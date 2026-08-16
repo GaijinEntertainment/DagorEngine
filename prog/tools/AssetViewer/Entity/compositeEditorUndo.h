@@ -3,6 +3,7 @@
 
 #include <de3_dataBlockIdHolder.h>
 #include <libTools/util/undo.h>
+#include <dag/dag_vector.h>
 #include <EASTL/unique_ptr.h>
 
 class DataBlock;
@@ -21,9 +22,10 @@ private:
 
   void loadUndo() const;
   void saveUndoFromDataBlock(const DataBlock &dataBlock);
-  bool containsSavedSelection() const { return selectedTreeNodeDataBlockId != IDataBlockIdHolder::invalid_id; }
+  bool containsSavedSelection() const;
 
   eastl::unique_ptr<uint8_t[]> buffer;
   size_t bufferSize = 0;
   unsigned selectedTreeNodeDataBlockId = IDataBlockIdHolder::invalid_id;
+  dag::Vector<unsigned> selectedTreeNodeDataBlockIds;
 };

@@ -59,6 +59,76 @@ namespace das {
         Feature box;
     };
 
+    // Lock-free snapshot box: one writer publishes a POD value, any number of readers copy the
+    // latest one. Where LockBox holds a mutex for the whole duration of the block it invokes, this
+    // is a seqlock — the writer bumps a version, stores the payload and bumps again; a reader that
+    // catches a write in progress retries. Neither side can ever wait for the other, which is what
+    // makes it safe to publish from a realtime thread (an audio mix callback) that must never
+    // block on a game thread.
+    //
+    // The value is copied byte-wise, so it must be POD with no heap references, and both sides
+    // must agree on its type — the box validates only the size. Payload words are atomic so the
+    // deliberate read/write race the version resolves is not also a data race under TSAN.
+    class SeqBox : public JobStatus {
+    public:
+        enum { PAYLOAD_WORDS = 8, PAYLOAD_BYTES = PAYLOAD_WORDS * 8 };
+        SeqBox() { mTrackMagic = TRACK_SEQBOX; }
+        virtual ~SeqBox() {}
+        // The odd/even counter is a seqlock, which admits exactly one writer: two writers bumping it
+        // concurrently can leave it EVEN while the payload is half-written, and a reader accepts that
+        // as a stable snapshot. So a writer CLAIMS the box with a CAS from even to odd instead.
+        // publish never waits for the claim - it is the realtime side, and a dropped status snapshot
+        // is replaced by the next one a block later, which is cheaper than any wait.
+        bool publish ( const void * data, uint32_t size ) {
+            if ( !size || size > PAYLOAD_BYTES ) return false;
+            uint64_t words[PAYLOAD_WORDS] = {};
+            memcpy(words, data, size);
+            uint32_t s0 = mSeq.load(std::memory_order_acquire);
+            if ( (s0 & 1u) || !mSeq.compare_exchange_strong(s0, s0+1,
+                    std::memory_order_acq_rel, std::memory_order_relaxed) ) return false;  // odd: writing
+            for ( uint32_t w=0; w!=PAYLOAD_WORDS; ++w ) mPayload[w].store(words[w], std::memory_order_relaxed);
+            mSize.store(size, std::memory_order_relaxed);
+            mSeq.store(s0+2, std::memory_order_release);        // even: stable
+            return true;
+        }
+        bool read ( void * out, uint32_t size ) const {
+            if ( !size || size > PAYLOAD_BYTES ) return false;
+            // The write is a handful of stores, so needing more than a couple of retries is already
+            // pathological; give up rather than spin unboundedly on a caller's thread.
+            for ( int attempt=0; attempt!=16; ++attempt ) {
+                uint32_t s0 = mSeq.load(std::memory_order_acquire);
+                if ( s0 & 1u ) continue;
+                if ( mSize.load(std::memory_order_relaxed)!=size ) return false;    // empty, or another type
+                uint64_t words[PAYLOAD_WORDS];
+                for ( uint32_t w=0; w!=PAYLOAD_WORDS; ++w ) words[w] = mPayload[w].load(std::memory_order_relaxed);
+                std::atomic_thread_fence(std::memory_order_acquire);
+                if ( mSeq.load(std::memory_order_relaxed)!=s0 ) continue;
+                memcpy(out, words, size);
+                return true;
+            }
+            return false;
+        }
+        // clear is the control side, so it waits for the claim rather than dropping the request. The
+        // wait is bounded in practice: a claim is held for a handful of stores and never across a call.
+        void clear () {
+            for ( ;; ) {
+                uint32_t s0 = mSeq.load(std::memory_order_acquire);
+                if ( s0 & 1u ) continue;
+                if ( mSeq.compare_exchange_weak(s0, s0+1,
+                        std::memory_order_acq_rel, std::memory_order_relaxed) ) {
+                    mSize.store(0, std::memory_order_relaxed);
+                    mSeq.store(s0+2, std::memory_order_release);
+                    return;
+                }
+            }
+        }
+        bool hasValue () const { return mSize.load(std::memory_order_acquire)!=0; }
+    protected:
+        mutable atomic<uint32_t> mSeq { 0 };
+        atomic<uint32_t> mSize { 0 };
+        atomic<uint64_t> mPayload[PAYLOAD_WORDS] = {};
+    };
+
     template <typename TT>
     class AtomicTT {
     public:
@@ -96,38 +166,58 @@ namespace das {
                 tt(f.data, f.type, f.from ? f.from : owner);
             }
         }
+        // gather/gatherEx/gather_and_forward drain the pipe under the lock, then run
+        // the callback OUTSIDE it. The callback is arbitrary user code — it may push
+        // to or query this very channel (reentrancy), and it may be arbitrarily slow
+        // (the wasm AudioWorklet interprets the audio command ladder here; running it
+        // under the lock starved the main thread's per-frame push into a dead page).
+        // Items pushed during a gather join the next drain, never the current one.
         template <typename TT>
         void gather ( TT && tt ) {
-            lock_guard<mutex> guard(mCompleteMutex);
-            for ( auto & f : pipe ) {
+            decltype(pipe) drained;
+            {
+                lock_guard<mutex> guard(mCompleteMutex);
+                drained.swap(pipe);
+            }
+            for ( auto & f : drained ) {
                 tt(f.data, f.type, f.from ? f.from : owner);
             }
-            pipe.clear();
         }
         template <typename TT>
         void gatherEx ( Context * ctx, TT && tt ) {
-            lock_guard<mutex> guard(mCompleteMutex);
-            for ( auto f = pipe.begin(); f != pipe.end(); ) {
-                auto itOwner = f->from ? f->from : owner;
-                if ( itOwner == ctx ) {
-                    tt(f->data, f->type, itOwner);
-                    f = pipe.erase(f);
-                } else {
-                    ++f;
+            decltype(pipe) drained;
+            {
+                lock_guard<mutex> guard(mCompleteMutex);
+                for ( auto f = pipe.begin(); f != pipe.end(); ) {
+                    auto itOwner = f->from ? f->from : owner;
+                    if ( itOwner == ctx ) {
+                        drained.emplace_back(das::move(*f));
+                        f = pipe.erase(f);
+                    } else {
+                        ++f;
+                    }
                 }
+            }
+            for ( auto & f : drained ) {
+                tt(f.data, f.type, f.from ? f.from : owner);
             }
         }
         template <typename TT>
         void gather_and_forward ( Channel * that, TT && tt ) {
-            lock_guard<mutex> guard(mCompleteMutex);
-            for ( auto & f : pipe ) {
+            decltype(pipe) drained;
+            {
+                lock_guard<mutex> guard(mCompleteMutex);
+                drained.swap(pipe);
+            }
+            for ( auto & f : drained ) {
                 tt(f.data, f.type, f.from ? f.from : owner);
             }
-            lock_guard<mutex> guard2(that->mCompleteMutex);
-            for ( auto & f : pipe ) {
-                that->pipe.emplace_back(das::move(f));
+            {
+                lock_guard<mutex> guard2(that->mCompleteMutex);
+                for ( auto & f : drained ) {
+                    that->pipe.emplace_back(das::move(f));
+                }
             }
-            pipe.clear();
             that->mCond.notify_all();  // notify_one??
         }
     protected:
@@ -142,8 +232,8 @@ namespace das {
         Stream() { mTrackMagic = TRACK_STREAM; }
         Stream( int count ) { mTrackMagic = TRACK_STREAM; mRemaining = count; }
         virtual ~Stream();
-        void push ( const uint8_t * data, uint32_t size );
-        void pushBatch ( const uint8_t * const * data, const uint32_t * sizes, int count );
+        void push ( const uint8_t * data, uint64_t size );
+        void pushBatch ( const uint8_t * const * data, const uint64_t * sizes, int64_t count );
         void pop ( const TBlock<void, TTemporary<TArray<uint8_t> const>> & blk, Context * context, LineInfoArg * at );
         bool tryPop ( const TBlock<void, TTemporary<TArray<uint8_t> const>> & blk, Context * context, LineInfoArg * at );
         bool popWithTimeout ( int timeoutMs, const TBlock<void, TTemporary<TArray<uint8_t> const>> & blk, Context * context, LineInfoArg * at );
@@ -155,19 +245,25 @@ namespace das {
             lock_guard<mutex> guard(mCompleteMutex);
             for ( auto & v : pipe ) {
                 Array arr;
-                array_mark_locked(arr, (void *)v.data(), (uint32_t)v.size());
+                array_mark_locked(arr, (void *)v.data(), v.size());
                 tt(&arr);
             }
         }
+        // Same drain-first rule as Channel::gather above: the callback (the audio
+        // command ladder, arbitrary user code) runs OUTSIDE the lock and may push
+        // to or query this stream; items pushed during a gather join the next drain.
         template <typename TT>
         void gather ( TT && tt ) {
-            lock_guard<mutex> guard(mCompleteMutex);
-            for ( auto & v : pipe ) {
+            decltype(pipe) drained;
+            {
+                lock_guard<mutex> guard(mCompleteMutex);
+                drained.swap(pipe);
+            }
+            for ( auto & v : drained ) {
                 Array arr;
-                array_mark_locked(arr, (void *)v.data(), (uint32_t)v.size());
+                array_mark_locked(arr, (void *)v.data(), v.size());
                 tt(&arr);
             }
-            pipe.clear();
         }
     protected:
         uint32_t                mSleepMs = 1;
@@ -175,11 +271,48 @@ namespace das {
     };
 
     DAS_API bool is_job_que_shutting_down();
+    DAS_API bool is_job_que_available();
+    DAS_API void set_jobque_worker_limit ( int32_t n, Context * context, LineInfoArg * at );
+    DAS_API int32_t get_jobque_worker_limit ( Context * context, LineInfoArg * at );
+    DAS_API void set_jobque_team_rank_gate ( bool on, Context * context, LineInfoArg * at );
+    DAS_API bool get_jobque_team_rank_gate ( Context * context, LineInfoArg * at );
+    DAS_API uint64_t count_jobque_leaks();
     DAS_API void new_job_invoke ( Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo );
+    DAS_API void set_jobque_fork_pool ( bool keep, bool skipInit, Context * context, LineInfoArg * at );
+    DAS_API void set_jobque_fork_skip_heap_reset ( bool skip, Context * context, LineInfoArg * at );
+    DAS_API void set_jobque_worker_spin ( int32_t usec, Context * context, LineInfoArg * at );
+    DAS_API void set_jobque_batch_dispatch ( bool batch, Context * context, LineInfoArg * at );
+    DAS_API void flush_jobque_batch ( Context * context, LineInfoArg * at );
+    DAS_API void set_jobque_join_spin ( int32_t level, Context * context, LineInfoArg * at );
+    DAS_API void set_jobque_team_mode ( bool on, Context * context, LineInfoArg * at );
+    DAS_API bool get_jobque_team_mode ( Context * context, LineInfoArg * at );
+    DAS_API void set_jobque_thread_team_mode ( bool on, Context * context, LineInfoArg * at );
+    DAS_API bool get_jobque_thread_team_mode ( Context * context, LineInfoArg * at );
+    DAS_API void set_jobque_team_prof ( bool on, Context * context, LineInfoArg * at );
+    DAS_API void reset_jobque_team_prof ( Context * context, LineInfoArg * at );
+    DAS_API float4 get_jobque_team_prof ( Context * context, LineInfoArg * at );
+    DAS_API int4 get_jobque_team_prof_counts ( Context * context, LineInfoArg * at );
+    DAS_API float2 get_jobque_team_prof_react ( Context * context, LineInfoArg * at );
+    DAS_API void jobque_trace_start ( int32_t eventsPerLane, Context * context, LineInfoArg * at );
+    DAS_API void jobque_trace_stop ( Context * context, LineInfoArg * at );
+    DAS_API bool jobque_trace_save ( const char * path, Context * context, LineInfoArg * at );
+    DAS_API void jobque_trace_tag ( int32_t tag, Context * context, LineInfoArg * at );
+    DAS_API void jobque_trace_category ( int32_t id, const char * name, uint32_t color, Context * context, LineInfoArg * at );
+    DAS_API int32_t jobque_trace_marker_name ( const char * name, Context * context, LineInfoArg * at );
+    DAS_API void jobque_trace_marker ( int32_t id, int32_t arg, Context * context, LineInfoArg * at );
+    DAS_API void jobque_set_thread_priority ( int32_t level, Context * context, LineInfoArg * at );
+    DAS_API void team_parallel_for_invoke ( int32_t rangeBegin, int32_t rangeEnd, int32_t numChunks, Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo );
+    DAS_API void team_parallel_for_indexed_invoke ( int32_t rangeBegin, int32_t rangeEnd, int32_t numChunks, Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo );
+    DAS_API void team_parallel_stages_invoke ( const TArray<int3> & stages, Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo );
+    DAS_API bool jobque_try_run_one ( Context * context, LineInfoArg * at );
     DAS_API void new_thread_invoke ( Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo );
     DAS_API void withJobQue ( const TBlock<void> & block, Context * context, LineInfoArg * lineInfo );
+    DAS_API void createJobQue ( Context * context, LineInfoArg * lineInfo );
+    DAS_API void destroyJobQue ( Context * context, LineInfoArg * lineInfo );
     DAS_API int getTotalHwJobs( Context * context, LineInfoArg * at );
     DAS_API int getTotalHwThreads ();
+    DAS_API int getTotalHwCores ();
+    DAS_API void setJobqueThreadsCap ( int32_t cap );
     DAS_API void withJobStatus ( int32_t total, const TBlock<void,JobStatus *> & block, Context * context, LineInfoArg * lineInfo );
     DAS_API void jobStatusAddRef ( JobStatus * status, Context * context, LineInfoArg * at );
     DAS_API void jobStatusReleaseRef ( JobStatus * & status, Context * context, LineInfoArg * at );
@@ -222,6 +355,12 @@ namespace das {
     DAS_API vec4f lockBoxFill ( Context & context, SimNode_CallBase * call, vec4f * args );
     DAS_API void lockBoxGrab ( LockBox * ch, const TBlock<void,void*> & blk, Context * context, LineInfoArg * at );
     DAS_API void lockBoxUpdate ( LockBox * ch, TypeInfo * ti, const TBlock<void *,void*> & blk, Context * context, LineInfoArg * at );
+    DAS_API SeqBox * seqBoxCreate( Context *, LineInfoArg * );
+    DAS_API void seqBoxRelease( SeqBox * & box, Context * context, LineInfoArg * at );
+    DAS_API void withSeqBox ( const TBlock<void,SeqBox *> & blk, Context * context, LineInfoArg * at );
+    DAS_API bool seqBoxPublish ( SeqBox * box, void * data, int32_t size, Context * context, LineInfoArg * at );
+    DAS_API bool seqBoxRead ( SeqBox * box, void * out, int32_t size, Context * context, LineInfoArg * at );
+    DAS_API void seqBoxClear ( SeqBox * box, Context * context, LineInfoArg * at );
 
     template <typename TT>
     AtomicTT<TT> * atomicCreate( Context *, LineInfoArg * ) {

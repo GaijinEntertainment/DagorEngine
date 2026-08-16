@@ -74,7 +74,7 @@
 #include "scriptapi.h"
 
 
-#define APP_VERSION "1.0.45"
+#define APP_VERSION "1.0.46"
 
 // Stubs
 
@@ -328,7 +328,7 @@ static Module modules[] = {
         cpujobs::init();
 
       charsq::init("console", 0, spawn_http_wrapper_async(), module_manager);
-      charsq::add_client(sqvm, "char", false, nullptr, &urlProvider);
+      charsq::add_client(sqvm, "char", nullptr, &urlProvider);
     }},
 #endif
   {"register_eventbus", "module eventbus: subscribe, subscribe_onehit",
@@ -676,19 +676,6 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
       }
     });
     quit_game(0, false);
-  }
-
-  if (moduleIndex >= 0)
-  {
-    Tab<String> nativeModules;
-    module_manager->forEachNativeModule([&nativeModules](const char *mn, const Sqrat::Object &) { nativeModules.push_back() = mn; });
-    for (int i = 0; i < nativeModules.size(); i++)
-    {
-
-      String assignCode(0, "::getroottable()[\"native_module__%s\"] <- ::require(\"%s\")", nativeModules[i].str(),
-        nativeModules[i].str());
-      run_sq_code(assignCode, assignCode);
-    }
   }
 
   indexCounter++;

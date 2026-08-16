@@ -1950,6 +1950,15 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
     case CM_STATS: showStats(); return 1;
 
     case CM_CHANGE_FOV: onChangeFov(); return 1;
+
+    case CM_OBJED_OBJPROP_PANEL:
+    case CM_OBJED_SELECT_BY_NAME:
+      if (IGenEditorPlugin *plug = curPlugin())
+      {
+        plug->handleViewportAcceleratorCommand(id);
+        return 1;
+      }
+      break;
   }
 
   // change plugin
@@ -2107,67 +2116,64 @@ void DagorEdAppWindow::initDllPlugins(const char *plug_dir)
     console->addMessage(ILogWriter::REMARK, "Loading DLL \"%s\"...", ff.name);
 
     void *dllHandle = os_dll_load_deep_bind(libPath);
-
-    if (dllHandle)
+    if (!dllHandle)
     {
-      ::symhlp_load(libPath);
-      GetPluginVersionFunc getVersionFunc = (GetPluginVersionFunc)os_dll_get_symbol(dllHandle, "get_plugin_version");
+      console->addMessage(ILogWriter::NOTE, "DLL \"%s\" not loaded", ff.name);
+      continue;
+    }
 
-      if (getVersionFunc)
+    ::symhlp_load(libPath);
+    GetPluginVersionFunc getVersionFunc = (GetPluginVersionFunc)os_dll_get_symbol(dllHandle, "get_plugin_version");
+
+    if (getVersionFunc)
+    {
+      if ((*getVersionFunc)() != IGenEditorPlugin::CURRENT_VERSION)
       {
-        if ((*getVersionFunc)() != IGenEditorPlugin::CURRENT_VERSION)
-        {
-          ::symhlp_unload(libPath);
-          os_dll_close(dllHandle);
-          console->addMessage(ILogWriter::WARNING, "Plugin version mismatch. It can make Editor unstable.");
-          continue;
-        }
+        ::symhlp_unload(libPath);
+        os_dll_close(dllHandle);
+        console->addMessage(ILogWriter::WARNING, "Plugin version mismatch. It can make Editor unstable.");
+        continue;
+      }
 
-        RegisterPluginFunc regFunc = (RegisterPluginFunc)os_dll_get_symbol(dllHandle, "register_plugin");
+      RegisterPluginFunc regFunc = (RegisterPluginFunc)os_dll_get_symbol(dllHandle, "register_plugin");
 
-        if (regFunc)
+      if (regFunc)
+      {
+        DAGOR_TRY
         {
-          DAGOR_TRY
+          IGenEditorPlugin *plug = (*regFunc)(*IDagorEd2Engine::get(), libPath);
+
+          if (plug)
           {
-            IGenEditorPlugin *plug = (*regFunc)(*IDagorEd2Engine::get(), libPath);
-
-            if (plug)
-            {
-              if (registerDllPlugin(plug, dllHandle, libPath))
-                console->addMessage(ILogWriter::REMARK, "Plugin \"%s\" (%s) succesfully registered", ff.name,
-                  plug->getMenuCommandName());
-              else
-              {
-                ReleasePluginFunc releaseFunc = (ReleasePluginFunc)os_dll_get_symbol(dllHandle, "release_plugin");
-                if (releaseFunc)
-                  (*releaseFunc)();
-
-                errorMess = String(256, "Plugin from DLL \"%s\" not registered", ff.name);
-                errorType = ILogWriter::NOTE;
-              }
-            }
+            if (registerDllPlugin(plug, dllHandle, libPath))
+              console->addMessage(ILogWriter::REMARK, "Plugin \"%s\" (%s) succesfully registered", ff.name,
+                plug->getMenuCommandName());
             else
-              errorMess = String(256, "Couldn't register plugin from DLL \"%s\"", ff.name);
+            {
+              ReleasePluginFunc releaseFunc = (ReleasePluginFunc)os_dll_get_symbol(dllHandle, "release_plugin");
+              if (releaseFunc)
+                (*releaseFunc)();
+
+              errorMess = String(256, "Plugin from DLL \"%s\" not registered", ff.name);
+              errorType = ILogWriter::NOTE;
+            }
           }
-          DAGOR_CATCH(...) { errorMess = String(256, "Exception - couldn't register plugin from DLL \"%s\"", ff.name); }
+          else
+            errorMess = String(256, "Couldn't register plugin from DLL \"%s\"", ff.name);
         }
-        else
-          errorMess = String(256,
-            "Couldn't locate \"register_plugin()\" function in DLL "
-            "\"%s\"",
-            ff.name);
+        DAGOR_CATCH(...) { errorMess = String(256, "Exception - couldn't register plugin from DLL \"%s\"", ff.name); }
       }
       else
         errorMess = String(256,
-          "Couldn't locate \"get_plugin_version()\" function in DLL "
+          "Couldn't locate \"register_plugin()\" function in DLL "
           "\"%s\"",
           ff.name);
     }
     else
-    {
-      errorType = ILogWriter::NOTE;
-      errorMess = String(256, "DLL \"%s\" not loaded", ff.name);
-    }
+      errorMess = String(256,
+        "Couldn't locate \"get_plugin_version()\" function in DLL "
+        "\"%s\"",
+        ff.name);
 
     if (errorMess.length())
     {
@@ -2225,13 +2231,24 @@ void DagorEdAppWindow::startWithWorkspace(const char *wspName)
 
     dagor_idle_cycle();
 
-    handled = true;
-
     if (result == PropPanel::DIALOG_ID_CANCEL || sel == -1)
     {
       mManager->close();
       return;
     }
+
+    if (sel == ID_OPEN_PROJECT)
+    {
+      const String path = wingw::file_open_dlg(mManager->getMainWindow(), "Open location to edit...",
+        "Level BLK|*" LEVEL_FILE_EXTENSION, LEVEL_FILE_EXTENSION_WO_DOT, wsp->getLevelsDir());
+      if (path.empty())
+        continue;
+
+      addToRecentList(path);
+      sel = ID_RECENT_FIRST;
+    }
+
+    handled = true;
 
     const char *name = wsp->getName();
     if (!name || !*name)
@@ -2299,10 +2316,6 @@ void DagorEdAppWindow::startWithWorkspace(const char *wspName)
         handled = handleNewProject(false);
         break;
 
-      case ID_OPEN_PROJECT: // open
-        handled = handleOpenProject(false);
-        break;
-
       case ID_OPEN_DRAG_AND_DROPPED_SCREENSHOT:
       {
         ::strcpy(sceneFname, dlg.getFilePathFromScreenshotMetaInfo());
@@ -2367,7 +2380,6 @@ void DagorEdAppWindow::startWithWorkspace(const char *wspName)
   // the rendering is not enabled at that point then the application appears to be frozen.)
   queryEditorInterface<IDynRenderService>()->enableRender(!d3d::is_stub_driver());
   queryEditorInterface<IDynRenderService>()->selectAsGameScene();
-  spawnEvent(HUID_AfterProjectLoad, NULL);
 
   preparePluginsListmenu();
 
@@ -2375,6 +2387,9 @@ void DagorEdAppWindow::startWithWorkspace(const char *wspName)
   force_screen_redraw();
   dagor_idle_cycle();
   DEBUG_CP();
+
+  // Show the console as the last rendered frame till the windows are not laid out.
+  queryEditorInterface<IDynRenderService>()->suppressScenePresent(true);
 
   DAGORED2->getConsole().hideConsole();
 
@@ -2386,14 +2401,27 @@ void DagorEdAppWindow::startWithWorkspace(const char *wspName)
     // The first DagorEdAppWindow::renderUI() call loads the last used layout or sets the default one, then ImGui needs
     // two frames to handle auto sizing.
     for (int i = 0; i < 3; i++)
+    {
       dagor_work_cycle();
+
+      // Supressing present() also suppresses tql::on_frame_finished(), but we want streaming texture loading to work.
+      dagor_idle_cycle();
+    }
 
     dgs_limit_fps = oldLimitFps;
   }
 
+  queryEditorInterface<IDynRenderService>()->suppressScenePresent(false);
   ec_set_busy(false);
 
+  const DataBlock *profilerBlk = dgs_get_settings()->getBlockByNameEx("debug")->getBlockByName("profiler");
+  if (profilerBlk && profilerBlk->getBool("auto_dump_startup", false))
+    da_profiler::request_dump();
+
   logdbg("daEditorX has loaded and ready for interaction");
+  flash_window(win32_get_main_wnd());
+
+  spawnEvent(HUID_AfterProjectLoad, NULL);
 }
 
 
@@ -4047,18 +4075,6 @@ void DagorEdAppWindow::renderUIViewport(ViewportWindow &viewport, const Point2 &
   ImGui::PushID(&viewport);
 
   const ImGuiID viewportCanvasId = ImGui::GetCurrentWindow()->GetID("canvas");
-
-  if (viewport.isActive())
-  {
-    unsigned commandId = mManager->processImguiViewportAccelerator(viewportCanvasId);
-    if (commandId != 0)
-    {
-      G_ASSERT((commandId & DELAYED_CALLBACK_VIEWPORT_COMMAND_BIT) == 0);
-      commandId |= DELAYED_CALLBACK_VIEWPORT_COMMAND_BIT;
-      PropPanel::request_delayed_callback(*this, (void *)((uintptr_t)commandId));
-    }
-  }
-
   viewport.updateImgui(viewportCanvasId, size, item_spacing);
 
   if (mCameraPresets)
@@ -4067,11 +4083,20 @@ void DagorEdAppWindow::renderUIViewport(ViewportWindow &viewport, const Point2 &
   ImGui::PopID();
 }
 
-void DagorEdAppWindow::renderUIViewports()
+bool DagorEdAppWindow::renderUIViewports()
 {
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-  ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
+  const bool submitContent = ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
   ImGui::PopStyleVar();
+
+  const ImGuiWindow *window = ImGui::GetCurrentWindow();
+  const bool vpWindowVisible = submitContent && !window->Hidden && (!window->DockIsActive || window->DockTabIsVisible);
+
+  if (!submitContent)
+  {
+    ImGui::End();
+    return vpWindowVisible;
+  }
 
   const float itemSpacing = ImGui::GetStyle().ItemSpacing.y; // Use the same spacing in both directions.
   const Point2 regionAvailable = Point2(ImGui::GetContentRegionAvail()) - Point2(itemSpacing, itemSpacing);
@@ -4116,6 +4141,7 @@ void DagorEdAppWindow::renderUIViewports()
   }
 
   ImGui::End();
+  return vpWindowVisible;
 }
 
 void DagorEdAppWindow::renderUI()
@@ -4254,7 +4280,7 @@ void DagorEdAppWindow::renderUI()
   ImGui::DockSpace(rootDockSpaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
   PropPanel::popDialogTitleBarColorOverrides();
 
-  renderUIViewports();
+  bool vpWindowVisible = renderUIViewports();
 
   IGenEditorPlugin *currentPlugin = curPlugin();
   if (currentPlugin)
@@ -4315,7 +4341,7 @@ void DagorEdAppWindow::renderUI()
   }
 
   // Viewport overlays rendered last so they appear on top of the docked viewport windows.
-  if (mCameraPresets)
+  if (mCameraPresets && vpWindowVisible)
     mCameraPresets->renderAllViewportOverlays();
 
   ImGui::EndChild();
@@ -4342,10 +4368,13 @@ void DagorEdAppWindow::updateImgui()
   // renderUI (that calls ImGui's NewFrame that updates ImGui's key states), and onMenuItemClick could fire more than
   // once.
 
-  const unsigned commandId = mManager->processImguiAccelerator();
+  bool viewportAccelerator = false;
+  unsigned commandId = mManager->processImguiAccelerator(ged.getActiveViewport() != nullptr, viewportAccelerator);
   if (commandId != 0)
   {
     G_ASSERT((commandId & DELAYED_CALLBACK_VIEWPORT_COMMAND_BIT) == 0);
+    if (viewportAccelerator)
+      commandId |= DELAYED_CALLBACK_VIEWPORT_COMMAND_BIT;
     PropPanel::request_delayed_callback(*this, (void *)((uintptr_t)commandId));
   }
 

@@ -132,14 +132,14 @@ void WorldRenderer::startVisibility()
 
 void WorldRenderer::startOcclusionAndSwRaster()
 {
-  mat44f_cref worldProjTm = reinterpret_cast<mat44f_cref>(currentFrameCamera.noJitterProjTm);
-  mainCameraVisibilityMgr.startOcclusionAndSwRaster(*riOcclusionData, currentFrameCamera, lmeshMgr, worldProjTm);
+  mat44f_cref cockpitProjTm = reinterpret_cast<mat44f_cref>(cockpitCameraParams.noJitterProjTm);
+  mainCameraVisibilityMgr.startOcclusionAndSwRaster(*riOcclusionData, currentFrameCamera, lmeshMgr, cockpitProjTm);
 
   if (camera_in_camera::is_lens_render_active())
   {
     if (camera_in_camera::get_frame_number() < 1)
       camcamVisibilityMgr.getOcclusion()->reset();
-    camcamVisibilityMgr.startOcclusionAndSwRaster(*riOcclusionData, *camcamParams, lmeshMgr, worldProjTm);
+    camcamVisibilityMgr.startOcclusionAndSwRaster(*riOcclusionData, *camcamParams, lmeshMgr, cockpitProjTm);
   }
 }
 

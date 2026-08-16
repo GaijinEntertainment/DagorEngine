@@ -37,7 +37,7 @@ struct TrackDriver3dRenderTarget : public Driver3dRenderTarget
       return false;
     }
 
-    if (used&DEPTH && depth.tex != a.depth.tex || depth.face != a.depth.face || depth.level != a.depth.level)
+    if (used&DEPTH && (depth.tex != a.depth.tex || depth.face != a.depth.face || depth.level != a.depth.level))
     {
       return false;
     }
@@ -351,16 +351,6 @@ bool d3d::set_depth(BaseTexture *tex, int face, DepthAccess access)
 {
   set_depth_impl(tex, face, access == DepthAccess::SampledRO);
   return true;
-}
-
-bool d3d::set_render_target(int rt_index, BaseTexture* rt, uint8_t level)
-{
-  return set_render_target_impl(rt_index, rt, level, 0);
-}
-
-bool d3d::set_render_target(int rt_index, BaseTexture* rt, int fc, uint8_t level)
-{
-  return set_render_target_impl(rt_index, rt, level, fc);
 }
 
 void d3d::get_render_target(Driver3dRenderTarget& out_rt)

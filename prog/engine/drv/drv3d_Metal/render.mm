@@ -2575,6 +2575,7 @@ namespace drv3d_metal
           if (enable_postmortem)
             command_buffer_labels.push_back(String(0, "\tcopytex %s", [dest->apiTex->texture.label UTF8String]).c_str());
 #endif
+
           for (int i = 0; i < dest->mipLevels; i++)
           {
             size.width = max(dest->width >> i, 1);
@@ -2592,9 +2593,10 @@ namespace drv3d_metal
             int count = 1;
             if (dest->type == D3DResourceType::CUBETEX)
               count = 6;
-            else
-            if (dest->type == D3DResourceType::ARRTEX)
+            else if (dest->type == D3DResourceType::ARRTEX)
                 count = dest->depth;
+            else if (dest->type == D3DResourceType::CUBEARRTEX)
+                count = 6*dest->depth;
 
             G_ASSERT(src != backbuffer || drawable_acquired);
             id<MTLTexture> src_tex = src->apiTex->texture;
@@ -3321,7 +3323,7 @@ namespace drv3d_metal
     if (cache[index].buf == buffer && cache[index].metal_buf == metal_buffer)
       return false;
 
-    if (res)
+    if (cache[index].metal_buf)
       render.removeResource(cache[index].metal_buf);
     cache[index] = { buffer, metal_buffer };
     if (res)
@@ -4168,6 +4170,11 @@ namespace drv3d_metal
       return;
     }
 
+    G_ASSERT(dest->mipLevels <= src->mipLevels);
+    G_ASSERT(dest->type == src->type);
+    G_ASSERT(dest->depth <= src->depth);
+    G_ASSERT(dest->width <= src->width);
+    G_ASSERT(dest->height <= src->height);
     command_encoder.write(CommandType::CopyTex).write(src).write(dest);
     ensureHaveEncoderExceptRenderFrontend(Render::EncoderType::Blit);
   }

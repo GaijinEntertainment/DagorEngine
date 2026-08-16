@@ -11,6 +11,20 @@ FastNameMapEx EditLayerProps::layerNames;
 Tab<EditLayerProps> EditLayerProps::layerProps;
 int EditLayerProps::activeLayerIdx[EditLayerProps::TYPENUM];
 
+LandscapeObjectTypeState LandscapeObjectTypeState::types[EditLayerProps::TYPENUM];
+
+bool EditLayerProps::isLayerOrTypeHidden() const
+{
+  G_ASSERT(type < TYPENUM);
+  return hide || !LandscapeObjectTypeState::types[type].visible;
+}
+
+bool EditLayerProps::isLayerOrTypeLocked() const
+{
+  G_ASSERT(type < TYPENUM);
+  return lock || LandscapeObjectTypeState::types[type].locked;
+}
+
 void EditLayerProps::resetLayersToDefauls()
 {
   layerNames.reset();
@@ -62,12 +76,6 @@ void EditLayerProps::loadLayersConfig(const DataBlock &blk, const DataBlock &loc
   for (int i = 0; i < EditLayerProps::TYPENUM; i++)
     if (activeLayerIdx[i] < 0)
       activeLayerIdx[i] = i;
-
-  LayerHiddenMask lh_mask;
-  for (int i = 0; i < layerProps.size(); i++)
-    if (layerProps[i].hide)
-      lh_mask.setHidden(i);
-  DAEDITOR3.setEntityLayerHiddenMask(lh_mask);
 }
 void EditLayerProps::saveLayersConfig(DataBlock &blk, DataBlock &local_data)
 {
@@ -125,4 +133,53 @@ void EditLayerProps::renameLayer(int idx, const char *new_name)
   }
 
   layerProps[idx].nameId = nid;
+}
+
+void EditLayerProps::updateEntityLayerHiddenMask()
+{
+  LayerHiddenMask lhMask;
+  for (int i = 0; i < EditLayerProps::layerProps.size(); ++i)
+    lhMask.setHidden(i, EditLayerProps::layerProps[i].isLayerOrTypeHidden());
+  DAEDITOR3.setEntityLayerHiddenMask(lhMask);
+}
+
+void LandscapeObjectTypeState::resetAllObjectTypesToDefault()
+{
+  for (int i = 0; i < EditLayerProps::TYPENUM; ++i)
+    types[i] = LandscapeObjectTypeState();
+}
+
+void LandscapeObjectTypeState::saveAllObjectTypeConfig(DataBlock &local_data)
+{
+  DataBlock *typesBlk = nullptr;
+  for (int i = 0; i < EditLayerProps::TYPENUM; ++i)
+  {
+    const bool typeHidden = !LandscapeObjectTypeState::types[i].visible;
+    const bool typeLocked = LandscapeObjectTypeState::types[i].locked;
+    if (typeHidden || typeLocked)
+    {
+      if (!typesBlk)
+        typesBlk = local_data.addBlock("types");
+
+      DataBlock *typeBlk = typesBlk->addBlock(lptype_name[i]);
+      if (typeHidden)
+        typeBlk->addBool("hide", typeHidden);
+      if (typeLocked)
+        typeBlk->addBool("lock", typeLocked);
+    }
+  }
+}
+
+void LandscapeObjectTypeState::loadAllObjectTypeConfig(const DataBlock &local_data)
+{
+  const DataBlock *typesBlk = local_data.getBlockByName("types");
+  if (!typesBlk)
+    return;
+
+  for (int i = 0; i < EditLayerProps::TYPENUM; ++i)
+    if (const DataBlock *typeBlk = typesBlk->getBlockByName(lptype_name[i]))
+    {
+      LandscapeObjectTypeState::types[i].visible = !typeBlk->getBool("hide", false);
+      LandscapeObjectTypeState::types[i].locked = typeBlk->getBool("lock", false);
+    }
 }

@@ -329,6 +329,14 @@ IMGUI_NODE_EDITOR_API ImDrawList* GetNodeBackgroundDrawList(NodeId nodeId);
 
 IMGUI_NODE_EDITOR_API bool Link(LinkId id, PinId startPinId, PinId endPinId, const ImVec4& color = ImVec4(1, 1, 1, 1), float thickness = 1.0f);
 
+// MODIFICATION BY GAIJIN
+// Dash and gap length for the next Link() call, then back to 0 (solid). The next Link() consumes it
+// whichever way it goes: a call that returns false because an endpoint pin is not live this frame
+// still clears it, so the dash cannot carry over to an unrelated link. Kept as SetNext-style state
+// rather than a Link() parameter so the existing Link() signature stays put -- the daScript imgui
+// bindings (dasImgui) bind it by exact function-pointer type.
+IMGUI_NODE_EDITOR_API void SetNextLinkDashSize(float dashSize);
+
 // Returns the bezier control points for a link in canvas space.
 // Use to draw custom link visuals (e.g. gradient) on top of a transparent ed::Link call.
 struct LinkBezierCurve { ImVec2 P0, P1, P2, P3; };

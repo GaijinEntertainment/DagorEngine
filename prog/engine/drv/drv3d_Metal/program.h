@@ -66,7 +66,7 @@ public:
     {
       for (int i = 0; i < MAX_SIMRT; i++)
       {
-        pixelFormat[0] = MTLPixelFormatInvalid;
+        pixelFormat[i] = MTLPixelFormatInvalid;
       }
 
       for (int i = 0; i < BUFFER_POINT_COUNT; i++)

@@ -57,8 +57,8 @@ static auto request_common_scope_state(dafg::Registry registry)
   static constexpr auto ProjBind = use_jittered_proj ? &CameraParams::jitterProjTm : &CameraParams::noJitterProjTm;
 
   auto camera =
-    registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>().bindAsProj<ProjBind>().handle();
-  auto prevCamera = registry.readBlobHistory<CameraParams>("current_camera").handle();
+    registry.readBlob<CameraParams>("current_cockpit_camera").bindAsView<&CameraParams::viewRotTm>().bindAsProj<ProjBind>().handle();
+  auto prevCamera = registry.readBlobHistory<CameraParams>("current_cockpit_camera").handle();
 
   auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
   auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
@@ -497,7 +497,7 @@ dafg::NodeHandle makeRenderCrosshairGUINode()
     registry.requestState().allowWireframe().setFrameBlock(nullptr);
     registry.requestRenderPass().color({registry.renameTexture("lens_crosshair_target", "lens_crosshair_gui_target")});
 
-    auto camera = registry.readBlob<CameraParams>("current_camera").handle();
+    auto camera = registry.readBlob<CameraParams>("current_cockpit_camera").handle();
     auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
     auto viewportResHndl = registry.getResolution<2>("main_view");
 

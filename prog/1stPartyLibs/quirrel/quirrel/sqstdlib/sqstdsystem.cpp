@@ -46,20 +46,17 @@ static SQInteger _system_setenv(HSQUIRRELVM v)
 
 static SQInteger _system_getenv_stub(HSQUIRRELVM v)
 {
-    sq_throwerror(v,"getenv() not available for this platform");
-    return 1;
+    return sq_throwerror(v,"getenv() not available for this platform");
 }
 
 static SQInteger _system_setenv_stub(HSQUIRRELVM v)
 {
-    sq_throwerror(v,"setenv() not available for this platform");
-    return 1;
+    return sq_throwerror(v,"setenv() not available for this platform");
 }
 
 static SQInteger _system_system_stub(HSQUIRRELVM v)
 {
-    sq_throwerror(v,"system() not available for this platform");
-    return 1;
+    return sq_throwerror(v,"system() not available for this platform");
 }
 
 #endif

@@ -127,9 +127,6 @@ def public make_notification(method : string; params_json : string) : string {
 
 def public make_batch(messages : array<string>) : string {
     //! Wrap pre-built request/notification strings as a JSON-RPC 2.0 §6 batch array.
-    //! Each element of ``messages`` must be a valid request or notification.
-    //! Empty input returns ``"[]"`` — note that ``[]`` is itself a -32600 invalid
-    //! request per the spec, so this is mostly useful for testing the rejection path.
     return build_string() $(var w) {
         write_char(w, '[')
         var first = true
@@ -154,20 +151,16 @@ def private parse_one_request(body_value : JsonValue?; strict : bool) : ParsedRe
     let body & = unsafe(body_value.value as _object)
     let id_v = body?["id"] ?? null
     let method_v = body?["method"] ?? null
-    // params_v needs the reinterpret: it's assigned to `result.params : JsonValue?`,
-    // and `?[]` on a const view returns `JsonValue? const` — assignment to a
-    // non-const field would fail. id_v / method_v above are read-only and don't need it.
+    // params_v needs the reinterpret: it's assigned to `result.params : JsonValue?`, and `?[]` on a const view returns `JsonValue? const` — assignment to a non-const field would fail. id_v / method_v above are read-only and don't need it.
     var params_v = unsafe(reinterpret<JsonValue?>(body?["params"] ?? null))
-    // §4: id MUST be string, number, or null. Reject objects/arrays/booleans —
-    // they'd also break framing since write_json would pretty-print across lines.
+    // §4: id MUST be string, number, or null. Reject objects/arrays/booleans — they'd also break framing since write_json would pretty-print across lines.
     if (id_v != null && !(id_v.value is _string) && !(id_v.value is _number) && !(id_v.value is _longint) && !(id_v.value is _null)) {
         result.error_envelope = error("null", INVALID_REQUEST, "invalid request: id must be string, number, or null")
         return result
     }
     result.id_str = serialize_id(id_v)
     if (method_v == null || !(method_v.value is _string)) {
-        // Don't flag as notification before method validation — `{}` or `{"method":42}`
-        // without id would otherwise swallow the envelope per spec §5.1.
+        // Don't flag as notification before method validation — `{}` or `{"method":42}` without id would otherwise swallow the envelope per spec §5.1.
         result.error_envelope = error(result.id_str, INVALID_REQUEST, "invalid request: missing or non-string method")
         return result
     }
@@ -193,12 +186,6 @@ def private parse_one_request(body_value : JsonValue?; strict : bool) : ParsedRe
 
 def public parse_request(line : string; strict : bool = false) : ParsedRequest {
     //! Parse a single JSON-RPC 2.0 request line. Pure function — testable in isolation.
-    //!
-    //! With ``strict=false`` (default), the ``jsonrpc`` field is optional and any
-    //! string value is accepted. With ``strict=true``, missing or non-``"2.0"``
-    //! ``jsonrpc`` yields INVALID_REQUEST. All other §4 rules — id type,
-    //! notification semantics, required ``method``, ``params`` type — are
-    //! enforced in both modes.
     var result = ParsedRequest(id_str = "null")
     var parse_error_msg = ""
     var parsed = read_json(line, parse_error_msg)
@@ -211,15 +198,6 @@ def public parse_request(line : string; strict : bool = false) : ParsedRequest {
 
 def public parse_batch(line : string; strict : bool = false) : ParsedBatch {
     //! Parse a JSON-RPC 2.0 wire body that may be a single request or a §6 batch array.
-    //!
-    //! Semantics:
-    //!
-    //! * Single object → ``is_batch=false``, ``requests`` has one entry.
-    //! * Array of objects → ``is_batch=true``, ``requests`` has one entry per element.
-    //! * Empty array ``[]`` → ``is_batch=true``, ``requests`` empty, ``framing_error``
-    //!   carries a pre-built INVALID_REQUEST envelope (spec §6).
-    //! * Top-level parse failure → ``is_batch=false``, ``requests`` empty,
-    //!   ``framing_error`` carries a PARSE_ERROR envelope.
     var result : ParsedBatch
     var parse_error_msg = ""
     var parsed = read_json(line, parse_error_msg)
@@ -290,10 +268,6 @@ def private parse_one_response(body_value : JsonValue?) : ParsedResponse {
 
 def public parse_response(line : string) : ParsedResponse {
     //! Parse a single JSON-RPC 2.0 response line.
-    //!
-    //! ``is_success`` distinguishes ``{"result":...}`` from ``{"error":...}``.
-    //! Optional ``error.data`` is surfaced as the raw JSON string in
-    //! ``error_data`` (empty when absent). Malformed wires set ``parse_error``.
     var result = ParsedResponse(id_str = "null", is_success = false)
     var parse_error_msg = ""
     var parsed = read_json(line, parse_error_msg)
@@ -306,10 +280,6 @@ def public parse_response(line : string) : ParsedResponse {
 
 def public parse_response_batch(line : string) : ParsedResponseBatch {
     //! Parse a JSON-RPC 2.0 response wire body that may be a single response or a §6 batch array.
-    //!
-    //! Semantics mirror ``parse_batch``: a top-level array sets ``is_batch=true``;
-    //! a single object sets ``is_batch=false`` with one entry. Top-level parse
-    //! failure populates ``parse_error``.
     var result : ParsedResponseBatch
     var parse_error_msg = ""
     var parsed = read_json(line, parse_error_msg)
@@ -336,30 +306,28 @@ def public parse_response_batch(line : string) : ParsedResponseBatch {
 // ===== Framing helper =====
 
 def public compact_json_whitespace(s : string) : string {
-    //! Strip JSON pretty-printer whitespace (spaces, tabs, newlines, carriage returns)
-    //! that appears outside string literals. Whitespace inside ``"..."`` is preserved
-    //! verbatim, including backslash-escaped quotes. Used to flatten ``write_json``
-    //! output for one-message-per-line wire framing.
+    //! Strip JSON pretty-printer whitespace (spaces, tabs, newlines, carriage returns) that appears outside string literals. Whitespace inside ``"..."`` is preserved verbatim, including backslash-escaped quotes. Used to flatten ``write_json`` output for one-message-per-line wire framing.
     return build_string() $(var w) {
         peek_data(s) $(bytes) {
             var in_string = false
             var escape = false
-            for (b in bytes) {
+            for (raw_b in bytes) {
+                let b = int(raw_b)
                 if (in_string) {
-                    write_char(w, int(b))
+                    write_char(w, b)
                     if (escape) {
                         escape = false
-                    } elif (b == uint8('\\')) {
+                    } elif (b == '\\') {
                         escape = true
-                    } elif (b == uint8('"')) {
+                    } elif (b == '"') {
                         in_string = false
                     }
                 } else {
-                    if (b == uint8('"')) {
+                    if (b == '"') {
                         in_string = true
-                        write_char(w, int(b))
-                    } elif (b != uint8(' ') && b != uint8('\n') && b != uint8('\t') && b != uint8('\r')) {
-                        write_char(w, int(b))
+                        write_char(w, b)
+                    } elif (b != ' ' && b != '\n' && b != '\t' && b != '\r') {
+                        write_char(w, b)
                     }
                 }
             }
@@ -377,18 +345,7 @@ def private dispatch_one(req : ParsedRequest; dispatcher : block<(method : strin
 }
 
 def public dispatch_line(line : string; strict : bool; dispatcher : block<(method : string; params_json : string) : string>) : string {
-    //! Dispatch a JSON-RPC 2.0 wire line (single or §6 batch) through ``dispatcher``,
-    //! returning the response string ready for the wire (or ``""`` for all-notifications).
-    //!
-    //! The dispatcher block receives ``(method, params_json)`` for each non-notification
-    //! request and returns a raw JSON result string. The library wraps the result in
-    //! a JSON-RPC envelope; notification semantics, batch wrapping, framing-error
-    //! suppression, and input-order preservation are all handled here.
-    //!
-    //! Caller-side error reporting: to signal ``METHOD_NOT_FOUND`` or other
-    //! per-method errors from the dispatcher, return a JSON object the wrapper
-    //! treats as result — or use ``parse_request`` / ``parse_batch`` directly and
-    //! emit ``error(...)`` envelopes yourself when the protocol requires it.
+    //! Dispatch a JSON-RPC 2.0 wire line (single or §6 batch) through ``dispatcher``, returning the response string ready for the wire (or ``""`` for all-notifications).
     let pb = parse_batch(line, strict)
     if (!empty(pb.framing_error)) return pb.framing_error
     if (!pb.is_batch) return dispatch_one(pb.requests[0], dispatcher)

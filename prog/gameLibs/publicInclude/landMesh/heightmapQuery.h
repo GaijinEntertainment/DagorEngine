@@ -39,4 +39,5 @@ void update_landclass_data(LandclassQueryData &data);
 int query(const Point3 &world_pos, const Point3 &grav_dir);
 GpuReadbackResultState get_query_result(int query_id, HeightmapQueryResult &result);
 GpuReadbackResultState get_query_result(int query_id, HeightmapQueryResultWrapper &wrapped_result);
+void cancel_query(int query_id);
 } // namespace heightmap_query

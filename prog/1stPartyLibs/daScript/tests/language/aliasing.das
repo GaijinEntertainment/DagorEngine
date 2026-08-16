@@ -176,17 +176,17 @@ def test_aliasing(t : T?) {
     }
     t |> run("cast aliasing") @(t : T?) {
         var a = Foo(a = 1)
-        var b = Foo(a = 2)
-        a = set2(unsafe(reinterpret<int&> a.b)) // (7) 40211: function set result aliases argument inc
+        let b = Foo(a = 2)
+        a = set2(unsafe(reinterpret<int&>(a.b)))  // (7) 40211: function set result aliases argument inc
         t |> equal(13, a.a)
         a = Foo(a = 1)
-        a = set2(unsafe(reinterpret<int&> b.b)) // this one ok
+        a = set2(unsafe(reinterpret<int&>(b.b)))  // this one ok
         t |> equal(13, a.a)
     }
     t |> run("op3 aliasing") @(t : T?) {
         var a = Foo(a = 1)
         var b = Foo(a = 2)
-        var cond = (random_int(seed) & 1) != 0
+        let cond = (random_int(seed) & 1) != 0
         cond ? a : b = set(a)       // (8) 40211: function set result aliases argument a
         t |> equal(14, cond ? a.a : b.a)
         a = Foo(a = 1)
@@ -254,7 +254,7 @@ def test_aliasing(t : T?) {
         t |> equal(14, b.a)
     }
     t |> run("pointer result false aliasing") @(t : T?) {
-        var a = Foo(a = 1)
+        let a = Foo(a = 1)
         var b = new Foo()
         *b = set(a)     // (17) 40211: function set result always aliases
                                 // note - false aliasing
@@ -294,7 +294,7 @@ def test_aliasing(t : T?) {
         t |> equal(14, b2[1].f.a)
     }
     t |> run("straight up invoke function aliasing") @(t : T?) {
-        var fn = @@set
+        let fn = @@set
         var a = Foo(a = 1)
         var b : Foo
         a = invoke(fn, a)                 // (20) 40211: function set result aliases argument a
@@ -304,7 +304,7 @@ def test_aliasing(t : T?) {
         t |> equal(14, b.a)
     }
     t |> run("global function without aliasing") @(t : T?) {
-        var fn = @@set_with_extra
+        let fn = @@set_with_extra
         g_a = Foo(a = 1)
         g_a = invoke(fn, Foo(a = 1), 13)              // this one ok
         t |> equal(14, g_a.a)
@@ -318,7 +318,7 @@ def test_aliasing(t : T?) {
         t |> equal(14, g_a.a)
     }
     t |> run("straight up lambda aliasing") @(t : T?) {
-        var fn <- @(a : Foo) {
+        let fn <- @(a : Foo) {
             var b = Foo(a = 13)
             b.a += a.a
             return b
@@ -332,7 +332,7 @@ def test_aliasing(t : T?) {
         t |> equal(14, b.a)
     }
     t |> run("global lambda without aliasing") @(t : T?) {
-        var fn <- @(var b : Foo; extra : int) : Foo {
+        let fn <- @(var b : Foo; extra : int) : Foo {
             var a = Foo(a = extra)
             a.a += b.a
             return a

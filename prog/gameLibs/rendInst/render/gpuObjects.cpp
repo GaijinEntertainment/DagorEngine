@@ -87,8 +87,8 @@ void add(const eastl::string &name, int cell_tile, int grid_size, float cell_siz
     }
     using namespace rendinst;
     // Expected to be preloaded by `GpuObjectRiResourcePreload`
-    const rendinst::ClientRiexPool id =
-      rendinst::ClientRiexPool::add(name.c_str(), rendinst::AddRIFlag::UseShadow | rendinst::AddRIFlag::GameresPreLoaded);
+    const rendinst::ClientRiexPoolId id =
+      rendinst::ClientRiexPoolId::add(name.c_str(), rendinst::AddRIFlag::UseShadow | rendinst::AddRIFlag::GameresPreLoaded);
     if (!id.valid())
       return;
 
@@ -155,14 +155,14 @@ void change_parameters(const eastl::string &name, const gpu_objects::PlacingPara
 {
   d3d::GpuAutoLock lock;
   if (manager)
-    manager->changeParameters(rendinst::ClientRiexPool::get(name.c_str()), parameters);
+    manager->changeParameters(rendinst::ClientRiexPoolId::get(name.c_str()), parameters);
 }
 
 void change_grid(const eastl::string &name, int cell_tile, int grid_size, float cell_size)
 {
   d3d::GpuAutoLock lock;
   if (manager)
-    manager->changeGrid(rendinst::ClientRiexPool::get(name.c_str()), cell_tile, grid_size, cell_size);
+    manager->changeGrid(rendinst::ClientRiexPoolId::get(name.c_str()), cell_tile, grid_size, cell_size);
 }
 
 void invalidate_inside_bbox(const BBox2 &bbox)

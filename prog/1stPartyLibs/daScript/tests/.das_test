@@ -2,10 +2,13 @@ options gen2
 options indenting = 4
 
 require daslib/rtti
-require strings
 
 [export, pinvoke]
 def can_visit_folder(folder_name : string; var result : bool?) {
+    if (folder_name == "clipboard") {
+        *result = has_module("clipboard_core")
+        return
+    }
     if (folder_name == "dasHV") {
         *result = has_module("dashv")
         return
@@ -18,8 +21,23 @@ def can_visit_folder(folder_name : string; var result : bool?) {
         *result = has_module("sqlite")
         return
     }
+    // Provider-neutral suite, but the in-tree conformance shim opens SQLite.
+    if (folder_name == "sql_conformance") {
+        *result = has_module("sqlite")
+        return
+    }
     if (folder_name == "stbimage") {
         *result = has_module("stbimage")
+        return
+    }
+    if (folder_name == "dasGLTF") {
+        // gltf_parse requires stbimage (image decode), so these tests only build where
+        // stbimage is present — same gate as the stbimage folder itself.
+        *result = has_module("gltf") && has_module("stbimage")
+        return
+    }
+    if (folder_name == "minfft") {
+        *result = has_module("minfft")
         return
     }
     if (folder_name == "live_host") {
@@ -28,6 +46,23 @@ def can_visit_folder(folder_name : string; var result : bool?) {
     }
     if (folder_name == "strudel") {
         *result = has_module("audio")
+        return
+    }
+    // Device-driven audio tests (with_audio_system + the device callback thread).
+    // Interpreter-only: under --use-aot the AOT-compiled audio_system_finalize drains
+    // command_processor on the main thread while the audio thread does too, on a
+    // non-thread-safe mixer context -> heap corruption. Gate the whole dir off for AOT.
+    if (folder_name == "strudel_device") {
+        *result = has_module("audio")
+        if (*result) {
+            let args <- get_command_line_arguments()
+            for (arg in args) {
+                if (arg == "--use-aot") {
+                    *result = false
+                    return
+                }
+            }
+        }
         return
     }
     if (folder_name == "jit_tests" || folder_name == ".jitted_scripts") {
@@ -40,26 +75,22 @@ def can_visit_folder(folder_name : string; var result : bool?) {
         }
     }
     // A meta-test that requires the compiler frontend at runtime (e.g. daslib/flatten ->
-    // macro_boost) can't AOT-link in the full-tree batch, and one that runs qmacro at runtime
-    // (flatten_optimize re-entry) carries quote nodes LLVM JIT can't codegen — interp only.
-    if (folder_name == "no_aot") {
+    // macro_boost) can't AOT-link in the full-tree batch. Under -jit it runs fine: quote( )
+    // nodes are lowered by daslib/quote when jit_enabled is set.
+    if (folder_name == "no_aot" || folder_name == "ast_match" || folder_name == "ast") {
         let args <- get_command_line_arguments()
         for (arg in args) {
-            if (arg == "--use-aot" || arg == "-jit") {
+            if (arg == "--use-aot") {
                 *result = false
                 return
             }
         }
     }
-    if (folder_name == "ast_match" || folder_name == "ast") {
-        let args <- get_command_line_arguments()
-        for (arg in args) {
-            if (arg == "--use-aot" || arg == "-jit") {
-                *result = false
-                return
-            }
-        }
-    }
+    // GC tests are interp-only under JIT: jitted frames keep locals on the native stack,
+    // so heap_collect can't see a heap pointer whose only reference is a jitted local and
+    // frees it (double-free / reuse-after-collect; Debug memory_model.h assert catches it,
+    // Release passes by luck). Lift only once the JIT spills GC roots somewhere the
+    // collector can scan.
     if (folder_name == "gc") {
         let args <- get_command_line_arguments()
         for (arg in args) {
@@ -69,5 +100,4 @@ def can_visit_folder(folder_name : string; var result : bool?) {
             }
         }
     }
-
 }

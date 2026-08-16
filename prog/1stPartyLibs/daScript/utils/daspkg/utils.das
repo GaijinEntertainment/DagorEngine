@@ -54,7 +54,14 @@ def run_cmd(cmd : string; var output : string&) : int {
     output = ""
     log_debug("$ {cmd}")
     run_cmd_counter ++
-    let tmp_out = "{get_das_root()}/_daspkg_cmd_output_{run_cmd_counter}.txt"
+    // The capture file lives in the system temp dir, NOT under das_root: the SDK
+    // root may be read-only (installed SDK, the buildd sandbox's ro-mounted
+    // worktree). das_root only as a last-resort fallback.
+    var tmp_err = ""
+    var tmp_out = create_temp_file("daspkg_cmd_{run_cmd_counter}_", ".txt", tmp_err)
+    if (empty(tmp_out)) {
+        tmp_out = "{get_das_root()}/_daspkg_cmd_output_{run_cmd_counter}.txt"
+    }
     // Windows _popen invokes cmd.exe /c <our-cmd>. When <our-cmd> starts with a
     // quoted exe path AND contains `>`, cmd.exe's old-behavior rule strips the
     // first AND last `"`, mangling the inner quoting. Wrapping the whole thing

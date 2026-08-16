@@ -24,6 +24,23 @@ namespace das {                                                             \
     };                                                                      \
 };
 
+// distinct type (`distinct TYPE = <underlying>`) registered from C++ via DistinctTypeAnnotation;
+// extern signatures then carry the distinct type instead of the raw underlying
+#define MAKE_DISTINCT_TYPE_FACTORY(TYPE, CTYPE)                             \
+namespace das {                                                             \
+    template <>                                                             \
+    struct DAS_MOD_API typeFactory<CTYPE> {                                 \
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & library ) { \
+            return makeDistinctType(library, #TYPE);                        \
+        }                                                                   \
+    };                                                                      \
+                                                                            \
+    template <>                                                             \
+    struct typeName<CTYPE> {                                                \
+        constexpr static const char * name() { return #TYPE; }              \
+    };                                                                      \
+};
+
 #define MAKE_EXTERNAL_TYPE_FACTORY(TYPE, CTYPE)                             \
 namespace das {                                                             \
     class ModuleLibrary;                                                    \

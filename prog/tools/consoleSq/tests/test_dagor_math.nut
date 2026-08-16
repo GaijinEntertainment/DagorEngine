@@ -1,4 +1,4 @@
-// Squirrel module under test: dagor.math (registered by sqratDagorMath.cpp)
+// Quirrel module under test: dagor.math (registered by sqratDagorMath.cpp)
 
 from "dagor.math" import Point2, Point3, Point4, IPoint2, IPoint3, IPoint4, TMatrix, Quat, Color3, Color4, E3DCOLOR
 

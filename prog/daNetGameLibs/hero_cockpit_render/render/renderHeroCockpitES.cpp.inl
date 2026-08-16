@@ -11,10 +11,12 @@
 
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/renderEvent.h>
+#include <render/lights/clusteredLights.h>
 #include <render/world/dynModelRenderPass.h>
 #include <render/dynmodelRenderer.h>
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/global_vars.h>
+#include <render/world/wrDispatcher.h>
 
 #include <shaders/dag_shaderBlock.h>
 #include <ioSys/dag_dataBlock.h>
@@ -129,6 +131,10 @@ static void render_hero_cockpit_colorpass(ecs::EntityManager &manager,
   if (!fill_context_for_cockpit(manager, ctx, cockpit_entities, dynrend::NeedPreviousMatrices::Yes, tex_ctx))
     return;
 
+  ClusteredLights &lights = WRDispatcher::getClusteredLights();
+  if (lights.initialized())
+    lights.setInsideOfFrustumLightsToShader();
+
   SCENE_LAYER_GUARD(dynamicSceneBlockId);
   dynrend::render_all_stages(ctx);
 }
@@ -173,8 +179,9 @@ static dafg::NodeHandle makeHeroCockpitEarlyPrepassNode()
 
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
 
-    auto curCameraHndl = registry.read("current_camera").blob<CameraParams>().bindAsProj<&CameraParams::jitterProjTm>().handle();
-    auto prevCameraHndl = registry.readBlobHistory<CameraParams>("current_camera").handle();
+    auto curCameraHndl =
+      registry.read("current_cockpit_camera").blob<CameraParams>().bindAsProj<&CameraParams::jitterProjTm>().handle();
+    auto prevCameraHndl = registry.readBlobHistory<CameraParams>("current_cockpit_camera").handle();
     auto viewTmNoOffsetHndl = registry.read("viewtm_no_offset").blob<TMatrix>().bindAsView().handle();
     auto prevViewTmNoOffsetHndl = registry.read("prev_viewtm_no_offset").blob<TMatrix>().handle();
 
@@ -232,7 +239,9 @@ static dafg::NodeHandle makeHeroCockpitLatePrepassNode()
 
     render_to_gbuffer_prepass(registry);
 
-    registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>().bindAsProj<&CameraParams::jitterProjTm>();
+    registry.readBlob<CameraParams>("current_cockpit_camera")
+      .bindAsView<&CameraParams::viewRotTm>()
+      .bindAsProj<&CameraParams::jitterProjTm>();
     return [] {
       get_hero_cockpit_entities_const_ecs_query(*g_entity_mgr, [&](const ecs::EidList &hero_cockpit_entities) {
         if (hero_cockpit_entities.empty())
@@ -251,11 +260,11 @@ static dafg::NodeHandle makeHeroCockpitColorpassNode()
     registry.requestState().setFrameBlock("global_frame").allowWireframe();
     render_to_gbuffer(registry);
 
-    auto curCameraHndl = registry.readBlob<CameraParams>("current_camera")
+    auto curCameraHndl = registry.readBlob<CameraParams>("current_cockpit_camera")
                            .bindAsView<&CameraParams::viewRotTm>()
                            .bindAsProj<&CameraParams::jitterProjTm>()
                            .handle();
-    auto prevCameraHndl = registry.readBlobHistory<CameraParams>("current_camera").handle();
+    auto prevCameraHndl = registry.readBlobHistory<CameraParams>("current_cockpit_camera").handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
     return [strmCtxHndl, curCameraHndl, prevCameraHndl] {

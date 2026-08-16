@@ -187,6 +187,7 @@ protected:
     uint32_t completelyValidFrames = 0;
     uint32_t renderRegionFirstTimeCount = 0;
     uint32_t invalidateRegionCount = 0;
+    uint32_t completelyValidFramesSinceLastUpdate = 0;
   } staticShadowsStatistics;
 #endif
 
@@ -269,6 +270,7 @@ public:
 
   static constexpr float ORTHOGONAL_THRESHOLD = 0.1; // auto switch to ortho shadows
   void printCascadesStatistics() const;
+  uint32_t getMinCompletelyValidFramesAcrossAllCascades() const;
 
 protected:
   bool isOrtho = false;

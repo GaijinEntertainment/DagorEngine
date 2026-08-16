@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "types" import String, Table, Array
 
 /*
   Here we 'format' 'AST' - array of objects (AST) and return it as one darg Component as result of applying formatters, style and filters
@@ -29,15 +30,15 @@ from "%darg/ui_imports.nut" import *
     {t="url" url = "http://gaijin.net", v = "(visit site)"}
     {t="sep"}
     {t="preformat" v =
-    @"  • Feature1
-        • Feature2 <color=#ff9999> colored text</color>
-          • Feature2.1
+    @"  ï¿½ Feature1
+        ï¿½ Feature2 <color=#ff9999> colored text</color>
+          ï¿½ Feature2.1
     "}
-    {platforms = "ps4" v="• PS4 feature"}
+    {platforms = "ps4" v="ï¿½ PS4 feature"}
   ])
 
 */
-let unknownTag = @(...) {rendObj=ROBJ_SOLID opacity=0.2 size=[flex(), hdpx(2)], margin=[0, hdpx(5)], color = Color(255,120,120)}
+let unknownTag = @(...) {rendObj=ROBJ_SOLID opacity=0.2 size=const [flex(), hdpx(2)], margin=const [0, hdpx(5)], color = Color(255,120,120)}
 function defTextArea(params, _formatAstFunc, style={}){
   return {
     rendObj = ROBJ_TEXTAREA
@@ -65,12 +66,12 @@ let mkFormatAst = kwarg(function mkFormatAstImpl(formatters = defFormatters, fil
 
   return function formatAst(object, params={}){
     let formatAstFunc = callee()
-    if (type(object) == "string")
+    if (object instanceof String)
       return formatters["string"](object, formatAstFunc, style)
     if (object==null)
       return null
 
-    if (type(object) == "table") {
+    if (object instanceof Table) {
       if (filter(object))
         return null
 
@@ -85,7 +86,7 @@ let mkFormatAst = kwarg(function mkFormatAstImpl(formatters = defFormatters, fil
       return unknownTag(object)
     }
     let ret = []
-    if (type(object) == "array") {
+    if (object instanceof Array) {
       foreach (t in object)
         ret.append(formatAstFunc(t))
     }

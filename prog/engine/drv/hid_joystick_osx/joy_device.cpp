@@ -7,7 +7,7 @@
 #include <util/dag_string.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
-#include <perfmon/dag_autofuncprof.h>
+#include <perfMon/dag_autoFuncProf.h>
 
 using namespace HumanInput;
 

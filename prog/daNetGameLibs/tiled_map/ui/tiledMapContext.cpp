@@ -70,6 +70,15 @@ inline void releasePicTex(PICTUREID &pid, TEXTUREID &tid)
   tid = BAD_TEXTUREID;
 }
 
+static bool load_tile_confirm_cb(void *arg)
+{
+  if (!s_tiled_map_ctx || !arg)
+    return false;
+  auto req = (TileAsyncLoadRequest *)arg;
+  if (req->generation != s_tiled_map_ctx->tileLoadGeneration)
+    return false;
+  return true;
+}
 static void load_tiles_cb(
   PICTUREID pid, TEXTUREID tid, d3d::SamplerHandle smp, const Point2 *tcLt, const Point2 *tcRb, const Point2 *picture_sz, void *arg)
 {
@@ -870,8 +879,8 @@ void TiledMapContext::dispatchTiles(const eastl::vector<QuadKey> &requiredTiles,
       req->generation = s_tiled_map_ctx->tileLoadGeneration;
       eastl::string filename =
         eastl::string(eastl::string::CtorSprintf{}, "%s/%s.avif", prefix.c_str(), quadKey.empty() ? "combined" : quadKey.c_str());
-      int sync =
-        PictureManager::get_picture_ex(filename.c_str(), tile.picId, tile.texId, tile.smpId, nullptr, nullptr, nullptr, cb, req);
+      int sync = PictureManager::get_picture_ex(filename.c_str(), tile.picId, tile.texId, tile.smpId, nullptr, nullptr, nullptr, cb,
+        req, load_tile_confirm_cb);
       if (sync)
       {
         TILEDMAP_DEBUG("TiledMapContext: sync load tile %s", quadKey.c_str());
@@ -917,6 +926,13 @@ void TiledMapContext::dispatchTiles(const eastl::vector<QuadKey> &requiredTiles,
     TILEDMAP_DEBUG("TiledMapContext: dispatchTiles: remove tile %s", tile.c_str());
     releasePicTex(tilesHashMap[tile].picId, tilesHashMap[tile].texId);
     tilesHashMap.erase(tile);
+
+    eastl::find_if(requests.begin(), requests.end(), [&tile](TileAsyncLoadRequest *req) {
+      if (req->quadKey != tile || req->generation != s_tiled_map_ctx->tileLoadGeneration)
+        return false;
+      req->generation = s_tiled_map_ctx->tileLoadGeneration - 1; //~0u;
+      return true;
+    });
   }
 }
 
@@ -955,10 +971,10 @@ void TiledMapContext::updateVisibleTiles()
   if (z > 0)
     requiredTiles.push_back(QuadKey());
 
-  TILEDMAP_DEBUG("TiledMapContext: before dispatch tiles: %d, fogTiles: %d", tiles.size(), fogTiles.size());
+  TILEDMAP_DEBUG("TiledMapContext: before dispatch tiles: %d", tiles.size());
   dispatchTiles(requiredTiles, tiles, tilesPath, z, load_tiles_cb);
   TILEDMAP_DEBUG("TiledMapContext: requiredTiles: %d", requiredTiles.size());
-  TILEDMAP_DEBUG("TiledMapContext: after dispatch tiles: %d, fogTiles: %d", tiles.size(), fogTiles.size());
+  TILEDMAP_DEBUG("TiledMapContext: after dispatch tiles: %d", tiles.size());
 
   lastWorldPosAfterVisibleTilesUpdate = worldPos;
 }

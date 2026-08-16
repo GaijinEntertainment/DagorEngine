@@ -12,3 +12,4 @@ void clear_hosted_server_start_pending() {}
 bool is_hosted_server_start_pending() { return false; }
 bool poll_manual_ready_watchdog() { return false; }
 void hosted_internal_server_management_update() {}
+void set_hosted_internal_server_log_sink(HostedServerLogSink) {}

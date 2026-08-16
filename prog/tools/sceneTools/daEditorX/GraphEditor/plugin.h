@@ -7,6 +7,7 @@
 #include <propPanel/c_control_event_handler.h>
 
 #include <ioSys/dag_dataBlock.h>
+#include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <util/dag_string.h>
 
@@ -215,6 +216,13 @@ public:
   void setPinComment(int node_id, int pin_index, const eastl::string &comment);
   void setPinCommentUndoable(int node_id, int pin_index, const eastl::string &new_comment);
 
+  // Edge-mute undo (link double-click). setEdgeMuted writes one edge's flag (used by
+  // UndoToggleEdgeMuted restore/redo); toggleEdgeMutedUndoable flips it and records one entry.
+  // Unlike a pin comment this DOES regenerate -- a muted edge carries no data, so the compiler
+  // drops it and prunes whatever it was the only source for.
+  void setEdgeMuted(int edge_id, bool muted);
+  void toggleEdgeMutedUndoable(int edge_id);
+
   // Block-resize undo. applyBlockSizes writes the given block sizes into graphData and queues a
   // ne::SetGroupSize push (ne stores the group bounds and ignores drawBlockNode's supplied size for an
   // existing group, so the size must be pushed explicitly -- the GraphPanel drains it in drawBlockNode).
@@ -278,6 +286,24 @@ public:
   {
     WinAutoLock lock(graphMutex);
     fn(graphData);
+    interlocked_increment(graphRevision);
+  }
+
+  // Bumped by every mutateGraphData call, so a main-thread cache derived from graphData
+  // (GraphPanel's dead-path cache) can detect staleness by comparing one value instead of
+  // threading a dirty flag through every mutation site. The texgen worker also reaches
+  // mutateGraphData when it commits a compile, so it bumps this too; a redundant refresh is
+  // harmless. Read outside graphMutex on purpose -- the cache it gates is display-only, so a
+  // relaxed load losing a race costs a one-frame-late refresh and nothing more.
+  uint64_t getGraphRevision() const { return interlocked_relaxed_load(graphRevision); }
+
+  // Read the canonical graphData under graphMutex, for worker-thread readers (the dshl assembler
+  // snapshot) that must not race a main-thread load. Read-only; use mutateGraphData to write.
+  template <class Fn>
+  void readGraphData(Fn &&fn)
+  {
+    WinAutoLock lock(graphMutex);
+    fn(static_cast<const GraphData &>(graphData));
   }
 
   const char *getShaderIncludesDir() const { return resourcePaths.shaderIncludesDir; }
@@ -335,6 +361,9 @@ private:
   // service's stateLock -- racing those against a main-thread load is a
   // pre-existing hazard scoped for a follow-up commit.
   WinCritSec graphMutex;
+
+  // See getGraphRevision. Written under graphMutex by both threads, read lock-free.
+  volatile uint64_t graphRevision = 0;
 
   // Adapter that forwards IGraphCompiler::compile() calls (issued from the
   // texgen worker) into compile_graph_to_blks(graphData) under graphMutex.

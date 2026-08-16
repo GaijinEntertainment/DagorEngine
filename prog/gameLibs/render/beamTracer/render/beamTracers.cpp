@@ -94,9 +94,6 @@ void BeamTracerManager::initGPU(const DataBlock &settings)
 
   beamTex = dag::get_tex_gameres("misc_ribbon_trail_1_tex_a", "beam_tracer_tex");
   // beamTex = dag::get_tex_gameres("soldier_teeth_tex_d", "beam_tracer_tex");
-  d3d::SamplerInfo smpInfo;
-  smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Wrap;
-  ShaderGlobal::set_sampler(get_shader_variable_id("beam_tracer_tex_samplerstate", true), d3d::request_sampler(smpInfo));
 
   updateCommands_cs.reset(new_compute_shader("update_beam_tracer_commands_cs"));
   createCommands_cs.reset(new_compute_shader("create_beam_tracer_commands_cs"));

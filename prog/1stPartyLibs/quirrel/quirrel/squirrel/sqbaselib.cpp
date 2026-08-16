@@ -598,7 +598,8 @@ static SQInteger container_each(HSQUIRRELVM v)
     while (SQ_SUCCEEDED(sq_next(v, 1))) {
         SQInteger iterTop = sq_gettop(v);
         v->PushNull();
-        v->Push(stack_get(v, iterTop));
+        if (nArgs >= 2)
+            v->Push(stack_get(v, iterTop));
         if (nArgs >= 3)
             v->Push(stack_get(v, iterTop-1));
         if (nArgs >= 4)
@@ -626,7 +627,8 @@ static SQInteger container_findindex(HSQUIRRELVM v)
     while (SQ_SUCCEEDED(sq_next(v, 1))) {
         SQInteger iterTop = sq_gettop(v);
         v->PushNull();
-        v->Push(stack_get(v, iterTop));
+        if (nArgs >= 2)
+            v->Push(stack_get(v, iterTop));
         if (nArgs >= 3)
             v->Push(stack_get(v, iterTop-1));
         if (nArgs >= 4)
@@ -662,7 +664,8 @@ static SQInteger container_findvalue(HSQUIRRELVM v)
         SQInteger iterTop = sq_gettop(v);
 
         v->PushNull();
-        v->Push(stack_get(v, iterTop));
+        if (nArgs >= 2)
+            v->Push(stack_get(v, iterTop));
         if (nArgs >= 3)
             v->Push(stack_get(v, iterTop-1));
         if (nArgs >= 4)
@@ -775,7 +778,8 @@ static SQInteger table_filter(HSQUIRRELVM v)
         itr = (SQInteger)nitr;
 
         v->PushNull();
-        v->Push(val);
+        if (nArgs >= 2)
+            v->Push(val);
         if (nArgs >= 3)
             v->Push(key);
         if (nArgs >= 4)
@@ -858,7 +862,7 @@ static SQInteger swap(HSQUIRRELVM v)
             SQInteger k2 = tointeger(key2);
             k2 = k2 >= 0 ? k2 : asize + k2 ;
             if( k1 >= asize || k2 >= asize || k1 < 0 || k2 < 0)
-                return sq_throwerror(v,"index is out of range");
+                return sq_throwerror(v,"index out of range");
 
             _Swap(_array(o)->_values[k1], _array(o)->_values[k2]);
             break;
@@ -944,7 +948,8 @@ static SQInteger __map_table(SQTable *dest, SQTable *src, HSQUIRRELVM v) {
         itr = (SQInteger)nitr;
 
         v->PushNull();
-        v->Push(val);
+        if (nArgs >= 2)
+            v->Push(val);
         if (nArgs >= 3)
             v->Push(key);
         if (nArgs >= 4)
@@ -1002,8 +1007,10 @@ static SQInteger table_reduce(HSQUIRRELVM v)
             gotAccum = true;
         } else {
             v->PushNull();
-            v->Push(accum);
-            v->Push(val);
+            if (nArgs >= 2)
+                v->Push(accum);
+            if (nArgs >= 3)
+                v->Push(val);
             if (nArgs >= 4)
                 v->Push(key);
             if (nArgs >= 5)
@@ -1028,6 +1035,11 @@ static SQInteger table_replace_with(HSQUIRRELVM v)
     SQ_CHECK_IMMUTABLE_SELF;
 
     SQTable *dst = _table(stack_get(v, 1));
+    SQTable *src = _table(stack_get(v, 2));
+    if (dst == src) {
+        v->Pop(1);
+        return 1;
+    }
     dst->Clear(false);
 
     // Alternatively, consider copying hash nodes directly instead of iterating slots
@@ -1188,7 +1200,7 @@ static SQInteger array_remove(HSQUIRRELVM v)
         v->Push(val);
         return 1;
     }
-    return sq_throwerror(v, "idx out of range");
+    return sq_throwerror(v, "index out of range");
 }
 
 static SQInteger array_resize(HSQUIRRELVM v)
@@ -1222,7 +1234,8 @@ static SQInteger __map_array(SQArray *dest,SQArray *src,HSQUIRRELVM v, bool appe
     for(SQInteger n = 0; n < size; n++) {
         src->Get(n,temp);
         v->PushNull();
-        v->Push(temp);
+        if (nArgs >= 2)
+            v->Push(temp);
         if (nArgs >= 3)
             v->Push(SQObjectPtr(n));
         if (nArgs >= 4)
@@ -1295,8 +1308,10 @@ static SQInteger array_reduce(HSQUIRRELVM v)
         for (SQInteger n = iterStart; n < size; n++) {
             a->Get(n,other);
             v->PushNull();
-            v->Push(accum);
-            v->Push(other);
+            if (nArgs >= 2)
+                v->Push(accum);
+            if (nArgs >= 3)
+                v->Push(other);
             if (nArgs >= 4)
                 v->Push(SQObjectPtr(n));
             if (nArgs >= 5)
@@ -1326,7 +1341,8 @@ static SQInteger array_filter(HSQUIRRELVM v)
     for(SQInteger n = 0; n < size; n++) {
         a->Get(n,val);
         v->PushNull();
-        v->Push(val);
+        if (nArgs >= 2)
+            v->Push(val);
         if (nArgs >= 3)
             v->Push(SQObjectPtr(n));
         if (nArgs >= 4)
@@ -2295,10 +2311,8 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
         SQObjectPtr parameters;
         SQObjectPtr defparams;
         SQObjectPtr typecheck;
-        SQObjectPtr key;
+        SQObjectPtr key = sq_declstring_key(nc);
         SQObjectPtr value;
-        key._type = OT_USERPOINTER;
-        key._unVal.pUserPointer = (void *)((size_t)(void *)nc->_function ^ ~size_t(0));
         if (_table(_ss(v)->doc_objects)->Get(key, value)) {
             SQFunctionType ft(_ss(v));
             SQInteger errorPos = -1;
@@ -2362,8 +2376,7 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
         SET_SLOT("varargs_type_mask", varargsTypeMask);
 
         SQObjectPtr docObject;
-        key._unVal.pUserPointer = (void *)nc->_function;
-        _table(_ss(v)->doc_objects)->Get(key, docObject);
+        _table(_ss(v)->doc_objects)->Get(sq_docstring_key(nc), docObject);
         SET_SLOT("doc", docObject);
     }
 
@@ -2619,16 +2632,13 @@ static SQInteger class_newmember(HSQUIRRELVM v)
 {
     SQInteger top = sq_gettop(v);
     SQBool bstatic = SQFalse;
-    if(top == 5)
+    if(top == 4)
     {
         sq_tobool(v,-1,&bstatic);
         sq_pop(v,1);
     }
 
-    if(top < 4) {
-        sq_pushnull(v);
-    }
-    return SQ_SUCCEEDED(sq_newmember(v,-4,bstatic))?1:SQ_ERROR;
+    return SQ_SUCCEEDED(sq_newmember(v,-3,bstatic))?1:SQ_ERROR;
 }
 
 

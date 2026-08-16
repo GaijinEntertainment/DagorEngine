@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "graph_compile.h"
+#include "graph_dead_paths.h"
 
 #include <ioSys/dag_dataBlock.h>
 #include <debug/dag_debug.h>
@@ -9,6 +10,7 @@
 #include <math/dag_Point3.h>
 #include <math/dag_Point4.h>
 
+#include <EASTL/algorithm.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 #include <EASTL/hash_set.h>
@@ -240,6 +242,11 @@ struct NodeSidecar
   // nodes out of `editor.elems`/`editor.edges`.
   bool bypassed = false;
 
+  // True when every fed input pin of this node arrives over a muted or otherwise dead edge
+  // (see compute_dead_paths). Unlike `bypassed` nothing is re-routed past it: the node and
+  // everything behind it produce no data, so the compile drops them entirely.
+  bool dead = false;
+
   // propagate_external_stuff result -- what THIS node produces. outTexDimension is
   // 0 for non-producing nodes (e.g. `result`), 1/2/3 for 1D/2D/3D texture / particles.
   bool hasPropagated = false;
@@ -391,7 +398,7 @@ eastl::string get_property(const GraphData::Node &n, const char *prop_name)
 
 // ---------------- Connectivity pass (mainNodes.js:2228-2281) ----------------
 
-void build_connectivity(const GraphData &g, const NodeIndex &index, NodeStates &states)
+void build_connectivity(const GraphData &g, const NodeIndex &index, const DeadPaths &dead, NodeStates &states)
 {
   states.clear();
   states.resize(g.nodes.size());
@@ -400,8 +407,13 @@ void build_connectivity(const GraphData &g, const NodeIndex &index, NodeStates &
     states[i].pins.resize(g.nodes[i].pins.size());
   }
 
-  for (const GraphData::Edge &edge : g.edges)
+  for (int e = 0; e < static_cast<int>(g.edges.size()); ++e)
   {
+    if (dead.isDeadEdge(e))
+    {
+      continue;
+    }
+    const GraphData::Edge &edge = g.edges[e];
     const int a = index.find(edge.elemA);
     const int b = index.find(edge.elemB);
     if (a < 0 || b < 0)
@@ -453,10 +465,16 @@ void build_connectivity(const GraphData &g, const NodeIndex &index, NodeStates &
 // Second connectivity pass: walk edges again and apply the data.final propagation,
 // because final-tracking needs the *descriptor* data of the *input* pin (which lives
 // in base_nodes.blk). Done as a separate pass for clarity.
-void propagate_final(const GraphData &g, const NodeIndex &index, const DataBlock &base_nodes_blk, NodeStates &states)
+void propagate_final(const GraphData &g, const NodeIndex &index, const DeadPaths &dead, const DataBlock &base_nodes_blk,
+  NodeStates &states)
 {
-  for (const GraphData::Edge &edge : g.edges)
+  for (int e = 0; e < static_cast<int>(g.edges.size()); ++e)
   {
+    if (dead.isDeadEdge(e))
+    {
+      continue;
+    }
+    const GraphData::Edge &edge = g.edges[e];
     const int a = index.find(edge.elemA);
     const int b = index.find(edge.elemB);
     if (a < 0 || b < 0)
@@ -946,11 +964,16 @@ bool propagate_external_stuff(int elem_idx, const GraphData &g, const DataBlock 
 // Walks every edge once, pushing the upstream node's propagatedStuff into the
 // downstream input pin's externalStuffOnPins fields. Mirrors graphEditor.js:1636-1648.
 // Returns true if any pin was newly populated.
-bool propagate_edges(const GraphData &g, const NodeIndex &index, NodeStates &states)
+bool propagate_edges(const GraphData &g, const NodeIndex &index, const DeadPaths &dead, NodeStates &states)
 {
   bool changed = false;
-  for (const GraphData::Edge &edge : g.edges)
+  for (int e = 0; e < static_cast<int>(g.edges.size()); ++e)
   {
+    if (dead.isDeadEdge(e))
+    {
+      continue;
+    }
+    const GraphData::Edge &edge = g.edges[e];
     const int a = index.find(edge.elemA);
     const int b = index.find(edge.elemB);
     if (a < 0 || b < 0)
@@ -1875,21 +1898,187 @@ void emit_particle_bypass(int elem_idx, int pin_idx, const GraphData &g, const N
   bb->setInt("height", texture_height(elem_idx, g, states));
 }
 
+// ---------------- Unemitted-node diagnosis ----------------
+
+// Every node left unprocessed has an unprocessed dependency, or the pass would have emitted it. The
+// ones worth naming are those actually on a loop, which means a strongly connected component with
+// more than one member (or a self-edge); the rest are merely starved behind one. Peeling the nodes
+// no blocked node reads is not the same test: two loops joined by a one-way path leave that path
+// unpeeled, and naming its nodes tells the user to cut an edge that breaks no loop.
+void describe_blocked_nodes(const GraphData &g, const NodeStates &states, const eastl::vector<bool> &processed, eastl::string &out_msg)
+{
+  const int nodeCount = static_cast<int>(g.nodes.size());
+  eastl::vector<int> blocked;
+  eastl::vector<int> slotOf(nodeCount, -1); // node index -> position in `blocked`
+  for (int i = 0; i < nodeCount; ++i)
+  {
+    if (!processed[i])
+    {
+      slotOf[i] = static_cast<int>(blocked.size());
+      blocked.push_back(i);
+    }
+  }
+  if (blocked.empty())
+  {
+    return;
+  }
+
+  const int slotCount = static_cast<int>(blocked.size());
+  eastl::vector<eastl::vector<int>> deps(slotCount); // slot -> slots it takes input from
+  for (int s = 0; s < slotCount; ++s)
+  {
+    const GraphData::Node &n = g.nodes[blocked[s]];
+    for (int j = 0; j < static_cast<int>(n.pins.size()); ++j)
+    {
+      // Same readiness relation the topo-sort pass walks, so the two agree on what "waiting" means.
+      const PinCompileState *st = get_pin_state(states, blocked[s], j);
+      if (!st || n.pins[j].role != PinRole::In || st->connectFromType == PinType::Unknown || st->connectElem < 0 ||
+          st->connectElem >= nodeCount)
+      {
+        continue;
+      }
+      const int depSlot = slotOf[st->connectElem];
+      if (depSlot < 0)
+      {
+        continue;
+      }
+      deps[s].push_back(depSlot);
+    }
+  }
+
+  eastl::vector<uint8_t> onLoop(slotCount, 0);
+  eastl::vector<int> depth(slotCount, -1);
+  eastl::vector<int> low(slotCount, 0);
+  eastl::vector<uint8_t> onSccStack(slotCount, 0);
+  eastl::vector<int> sccStack;
+  struct Frame
+  {
+    int slot;
+    int nextDep;
+  };
+  eastl::vector<Frame> walk;
+  int nextDepth = 0;
+  for (int root = 0; root < slotCount; ++root)
+  {
+    if (depth[root] >= 0)
+    {
+      continue;
+    }
+    walk.push_back(Frame{root, 0});
+    depth[root] = low[root] = nextDepth++;
+    sccStack.push_back(root);
+    onSccStack[root] = 1;
+    while (!walk.empty())
+    {
+      Frame &frame = walk.back();
+      if (frame.nextDep < static_cast<int>(deps[frame.slot].size()))
+      {
+        const int w = deps[frame.slot][frame.nextDep++];
+        if (depth[w] < 0)
+        {
+          depth[w] = low[w] = nextDepth++;
+          sccStack.push_back(w);
+          onSccStack[w] = 1;
+          walk.push_back(Frame{w, 0});
+        }
+        else if (onSccStack[w])
+        {
+          low[frame.slot] = eastl::min(low[frame.slot], depth[w]);
+        }
+        continue;
+      }
+
+      const int s = frame.slot;
+      walk.pop_back();
+      if (!walk.empty())
+      {
+        low[walk.back().slot] = eastl::min(low[walk.back().slot], low[s]);
+      }
+      if (low[s] != depth[s])
+      {
+        continue; // not a component root yet
+      }
+      // Pop the component. A single member is on a loop only by feeding itself.
+      int members = 0;
+      for (;;)
+      {
+        const int w = sccStack.back();
+        sccStack.pop_back();
+        onSccStack[w] = 0;
+        onLoop[w] = 1;
+        ++members;
+        if (w == s)
+        {
+          break;
+        }
+      }
+      if (members == 1 && eastl::find(deps[s].begin(), deps[s].end(), s) == deps[s].end())
+      {
+        onLoop[s] = 0;
+      }
+    }
+  }
+
+  // Enough names to point at the loop; a loop this big needs the graph, not a longer line.
+  constexpr int MAX_LISTED = 8;
+  String names;
+  int listed = 0;
+  int starved = 0;
+  for (int s = 0; s < slotCount; ++s)
+  {
+    if (!onLoop[s])
+    {
+      ++starved;
+      continue;
+    }
+    ++listed;
+    if (listed <= MAX_LISTED)
+    {
+      const GraphData::Node &n = g.nodes[blocked[s]];
+      names.aprintf(0, "%s#%d (%s)", listed > 1 ? ", " : "", n.id, n.descName.c_str());
+    }
+  }
+  if (listed > MAX_LISTED)
+  {
+    names.aprintf(0, ", and %d more", listed - MAX_LISTED);
+  }
+
+  String msg;
+  msg.printf(0, "dependency loop through %s -- the compile drops these nodes", names.str());
+  if (starved > 0)
+  {
+    msg.aprintf(0, ", and %d node(s) behind them", starved);
+  }
+  msg.aprintf(0, ". Delete or mute one edge in the loop.");
+  out_msg = msg.str();
+}
+
 } // namespace
 
 bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, const char *shader_includes_dir,
   DataBlock &out_main_graph_blk, DataBlock &out_shader_list_blk,
-  eastl::vector<eastl::vector<eastl::string>> &out_pin_custom_texture_names)
+  eastl::vector<eastl::vector<eastl::string>> &out_pin_custom_texture_names, eastl::string *out_message)
 {
   out_main_graph_blk.reset();
   out_shader_list_blk.reset();
   out_pin_custom_texture_names.clear();
+  if (out_message)
+  {
+    out_message->clear();
+  }
 
   NodeIndex index;
   index.build(g);
 
+  DeadPaths dead;
+  compute_dead_paths(g, dead);
+
   NodeStates states;
-  build_connectivity(g, index, states);
+  build_connectivity(g, index, dead, states);
+  for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
+  {
+    states[i].dead = dead.isDeadNode(i);
+  }
 
   // Descriptor / pin-descriptor cache. Each find_descriptor call linear-scans
   // base_nodes.blk (~100 entries); each find_pin_in_desc scans a descriptor's
@@ -1920,7 +2109,7 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
     }
   }
 
-  propagate_final(g, index, base_nodes_blk, states);
+  propagate_final(g, index, dead, base_nodes_blk, states);
 
   // Propagation pass: iterate to a fixed point. Each iteration tries to resolve
   // every node's propagatedStuff via propagate_external_stuff, then walks edges
@@ -1941,7 +2130,7 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
           propChanged = true;
         }
       }
-      if (propagate_edges(g, index, states))
+      if (propagate_edges(g, index, dead, states))
       {
         propChanged = true;
       }
@@ -2003,9 +2192,11 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
   // fixed point with a hard iteration guard.
   eastl::vector<bool> processed(g.nodes.size(), false);
   // Bypassed nodes never emit; pre-mark so they don't block their (re-routed) consumers.
+  // Dead nodes never emit either, and pre-marking them keeps a dead node from holding back a
+  // live consumer that still reads some other pin.
   for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
   {
-    if (states[i].bypassed)
+    if (states[i].bypassed || states[i].dead)
     {
       processed[i] = true;
     }
@@ -2014,6 +2205,7 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
   eastl::hash_set<eastl::string> uniqFinals;
   int iteration = 0;
   bool changed = false;
+  bool hitIterationGuard = false;
   do
   {
     changed = false;
@@ -2050,9 +2242,46 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
     if (iteration > 400)
     {
       debug("compile_graph_to_blks: topo-sort fixed-point loop hit 400-iteration guard");
+      hitIterationGuard = true;
       break;
     }
   } while (changed);
+
+  int unresolved = 0;
+  if (hitIterationGuard)
+  {
+    for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
+    {
+      if (!processed[i])
+      {
+        ++unresolved;
+      }
+    }
+  }
+
+  if (out_message)
+  {
+    if (hitIterationGuard)
+    {
+      String msg;
+      if (unresolved > 0)
+      {
+        // `processed` is a mid-convergence snapshot, so the count is all that can be claimed --
+        // naming nodes would name ones merely not reached yet.
+        msg.printf(0, "graph compile stopped: the topo-sort pass hit its 400-pass limit with %d node(s) unresolved", unresolved);
+      }
+      else
+      {
+        msg.printf(0, "the topo-sort pass reached its 400-pass limit and every node still resolved; the graph has a dependency "
+                      "chain that deep, so it stops compiling if it grows");
+      }
+      *out_message = msg.str();
+    }
+    else
+    {
+      describe_blocked_nodes(g, states, processed, *out_message);
+    }
+  }
 
   // Snapshot PinCompileState::customTextureName into the output parameter so the
   // caller can apply it onto GraphData::Pin::customTextureName from the main
@@ -2063,7 +2292,7 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
   out_pin_custom_texture_names.resize(g.nodes.size());
   for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
   {
-    if (states[i].bypassed)
+    if (states[i].bypassed || states[i].dead)
     {
       continue;
     }
@@ -2093,5 +2322,8 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
     out_main_graph_blk.addStr("skip_saving", s.c_str());
   }
 
-  return iteration <= 400;
+  // The guard trips one pass after the last productive one, so a chain exactly as deep as the limit
+  // converges and still hits it -- that is not a failure. A loop never trips it at all: the pass
+  // stops changing and exits, returning true so the rest of the graph still emits.
+  return !hitIterationGuard || unresolved == 0;
 }

@@ -17,11 +17,16 @@ namespace das
 
     // unspecified
 
-    void builtin_sort_any_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
+    // The byte-pointer sort engine (das_qsort_r.h) is fully 64-bit (size_t indices),
+    // so the array wrappers feed arr.size straight into these int64 cores (a signed
+    // length keeps the `length<=1` guard safe if a negative ever reaches a forwarder).
+    // The das-facing *_any_cblock / *_dim_* bindings keep int32 length and forward here
+    // (the typer only ever hands them a dummy 0 for arrays, or a fixed-array dim).
+    static void sort_any_core ( void * anyData, int32_t elementSize, int64_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
         if ( length<=1 ) return;
         vec4f bargs[2];
         context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-            das_qsort_r(anyData, length, elementSize, [&](const void * x, const void * y){
+            das_qsort_r(anyData, size_t(length), elementSize, [&](const void * x, const void * y){
               bargs[0] = cast<void *>::from(x);
               bargs[1] = cast<void *>::from(y);
               return code->evalBool(*context);
@@ -29,12 +34,12 @@ namespace das
         }, at);
     }
 
-    void builtin_sort_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
+    static void sort_any_ref_core ( void * anyData, int32_t elementSize, int64_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
         if ( length<=1 ) return;
         vec4f bargs[2];
         if ( elementSize <= 4 ) {
             context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-                das_qsort_r(anyData, length, elementSize, [&](const void * x, const void * y){
+                das_qsort_r(anyData, size_t(length), elementSize, [&](const void * x, const void * y){
                     bargs[0] = v_ldu_x((const float *)x);
                     bargs[1] = v_ldu_x((const float *)y);
                     return code->evalBool(*context);
@@ -42,7 +47,7 @@ namespace das
             },at);
         } else if ( elementSize <= 8 ) {
             context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-                das_qsort_r(anyData, length, elementSize, [&](const void * x, const void * y){
+                das_qsort_r(anyData, size_t(length), elementSize, [&](const void * x, const void * y){
                     bargs[0] = v_ldu_half(x);
                     bargs[1] = v_ldu_half(y);
                     return code->evalBool(*context);
@@ -50,7 +55,7 @@ namespace das
             }, at);
         } else {
             context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-                das_qsort_r(anyData, length, elementSize, [&](const void * x, const void * y){
+                das_qsort_r(anyData, size_t(length), elementSize, [&](const void * x, const void * y){
                     bargs[0] = v_ldu((const float *)x);
                     bargs[1] = v_ldu((const float *)y);
                     return code->evalBool(*context);
@@ -59,36 +64,31 @@ namespace das
         }
     }
 
+    void builtin_sort_any_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
+        sort_any_core(anyData, elementSize, length, cmp, context, at);
+    }
+
+    void builtin_sort_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
+        sort_any_ref_core(anyData, elementSize, length, cmp, context, at);
+    }
+
     void builtin_sort_dim_any_cblock ( vec4f anything, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
-        auto anyData = cast<void *>::to(anything);
-        builtin_sort_any_cblock(anyData, elementSize, length, cmp, context, at);
+        sort_any_core(cast<void *>::to(anything), elementSize, length, cmp, context, at);
     }
 
     void builtin_sort_dim_any_ref_cblock ( vec4f anything, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
-        auto anyData = cast<void *>::to(anything);
-        builtin_sort_any_ref_cblock(anyData, elementSize, length, cmp, context, at);
-    }
-
-    // The sort wrappers below pass arr.size (uint64_t) into inner sort functions taking
-    // int32_t length. For arrays > INT_MAX elements this would silently truncate and
-    // sort only a prefix. Panic up-front instead; the int-sized sort surface simply
-    // does not support arrays past INT_MAX, and there is no `long_sort` companion yet.
-    static __forceinline int32_t sort_array_size_or_panic ( const Array & arr, Context * context, LineInfoArg * at, const char * op ) {
-        if ( arr.size > uint64_t(INT32_MAX) ) context->throw_error_at(at, "%s: array size %llu exceeds INT_MAX; sort is not supported on arrays this large", op, (unsigned long long)arr.size);
-        return int32_t(arr.size);
+        sort_any_ref_core(cast<void *>::to(anything), elementSize, length, cmp, context, at);
     }
 
     void builtin_sort_array_any_cblock ( Array & arr, int32_t elementSize, int32_t, const Block & cmp, Context * context, LineInfoArg * at ) {
-        int32_t len = sort_array_size_or_panic(arr, context, at, "sort");
         array_lock(*context,arr,at);
-        builtin_sort_any_cblock(arr.data, elementSize, len, cmp, context, at);
+        sort_any_core(arr.data, elementSize, int64_t(arr.size), cmp, context, at);
         array_unlock(*context,arr,at);
     }
 
     void builtin_sort_array_any_ref_cblock ( Array & arr, int32_t elementSize, int32_t, const Block & cmp, Context * context, LineInfoArg * at ) {
-        int32_t len = sort_array_size_or_panic(arr, context, at, "sort");
         array_lock(*context,arr,at);
-        builtin_sort_any_ref_cblock(arr.data, elementSize, len, cmp, context, at);
+        sort_any_ref_core(arr.data, elementSize, int64_t(arr.size), cmp, context, at);
         array_unlock(*context,arr,at);
     }
 
@@ -107,11 +107,11 @@ namespace das
     // templates (das_stable_sort<T>) in aot.h.
     // ==========================================================================
 
-    void builtin_stable_sort_any_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
+    static void stable_sort_any_core ( void * anyData, int32_t elementSize, int64_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
         if ( length<=1 ) return;
         vec4f bargs[2];
         context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-            das_stable_sort_r(anyData, length, elementSize, [&](const void * x, const void * y){
+            das_stable_sort_r(anyData, size_t(length), elementSize, [&](const void * x, const void * y){
               bargs[0] = cast<void *>::from(x);
               bargs[1] = cast<void *>::from(y);
               return code->evalBool(*context);
@@ -119,12 +119,12 @@ namespace das
         }, at);
     }
 
-    void builtin_stable_sort_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
+    static void stable_sort_any_ref_core ( void * anyData, int32_t elementSize, int64_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
         if ( length<=1 ) return;
         vec4f bargs[2];
         if ( elementSize <= 4 ) {
             context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-                das_stable_sort_r(anyData, length, elementSize, [&](const void * x, const void * y){
+                das_stable_sort_r(anyData, size_t(length), elementSize, [&](const void * x, const void * y){
                     bargs[0] = v_ldu_x((const float *)x);
                     bargs[1] = v_ldu_x((const float *)y);
                     return code->evalBool(*context);
@@ -132,7 +132,7 @@ namespace das
             },at);
         } else if ( elementSize <= 8 ) {
             context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-                das_stable_sort_r(anyData, length, elementSize, [&](const void * x, const void * y){
+                das_stable_sort_r(anyData, size_t(length), elementSize, [&](const void * x, const void * y){
                     bargs[0] = v_ldu_half(x);
                     bargs[1] = v_ldu_half(y);
                     return code->evalBool(*context);
@@ -140,7 +140,7 @@ namespace das
             }, at);
         } else {
             context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-                das_stable_sort_r(anyData, length, elementSize, [&](const void * x, const void * y){
+                das_stable_sort_r(anyData, size_t(length), elementSize, [&](const void * x, const void * y){
                     bargs[0] = v_ldu((const float *)x);
                     bargs[1] = v_ldu((const float *)y);
                     return code->evalBool(*context);
@@ -149,25 +149,31 @@ namespace das
         }
     }
 
+    void builtin_stable_sort_any_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
+        stable_sort_any_core(anyData, elementSize, length, cmp, context, at);
+    }
+
+    void builtin_stable_sort_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
+        stable_sort_any_ref_core(anyData, elementSize, length, cmp, context, at);
+    }
+
     void builtin_stable_sort_dim_any_cblock ( vec4f anything, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
-        builtin_stable_sort_any_cblock(cast<void *>::to(anything), elementSize, length, cmp, context, at);
+        stable_sort_any_core(cast<void *>::to(anything), elementSize, length, cmp, context, at);
     }
 
     void builtin_stable_sort_dim_any_ref_cblock ( vec4f anything, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) {
-        builtin_stable_sort_any_ref_cblock(cast<void *>::to(anything), elementSize, length, cmp, context, at);
+        stable_sort_any_ref_core(cast<void *>::to(anything), elementSize, length, cmp, context, at);
     }
 
     void builtin_stable_sort_array_any_cblock ( Array & arr, int32_t elementSize, int32_t, const Block & cmp, Context * context, LineInfoArg * at ) {
-        int32_t len = sort_array_size_or_panic(arr, context, at, "stable_sort");
         array_lock(*context,arr,at);
-        builtin_stable_sort_any_cblock(arr.data, elementSize, len, cmp, context, at);
+        stable_sort_any_core(arr.data, elementSize, int64_t(arr.size), cmp, context, at);
         array_unlock(*context,arr,at);
     }
 
     void builtin_stable_sort_array_any_ref_cblock ( Array & arr, int32_t elementSize, int32_t, const Block & cmp, Context * context, LineInfoArg * at ) {
-        int32_t len = sort_array_size_or_panic(arr, context, at, "stable_sort");
         array_lock(*context,arr,at);
-        builtin_stable_sort_any_ref_cblock(arr.data, elementSize, len, cmp, context, at);
+        stable_sort_any_ref_core(arr.data, elementSize, int64_t(arr.size), cmp, context, at);
         array_unlock(*context,arr,at);
     }
 
@@ -182,12 +188,12 @@ namespace das
 
     // ---- partial_sort any path ----
 
-    void builtin_partial_sort_any_cblock ( void * anyData, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
+    static void partial_sort_any_core ( void * anyData, int32_t elementSize, int64_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
         if ( length<=1 || n<=0 ) return;
-        if ( n>length ) n = length;
+        if ( n > length ) n = int32_t(length);
         vec4f bargs[2];
         context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-            das_partial_sort_r(anyData, length, n, elementSize, [&](const void * x, const void * y){
+            das_partial_sort_r(anyData, size_t(length), size_t(n), elementSize, [&](const void * x, const void * y){
                 bargs[0] = cast<void *>::from(x);
                 bargs[1] = cast<void *>::from(y);
                 return code->evalBool(*context);
@@ -195,13 +201,13 @@ namespace das
         }, at);
     }
 
-    void builtin_partial_sort_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
+    static void partial_sort_any_ref_core ( void * anyData, int32_t elementSize, int64_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
         if ( length<=1 || n<=0 ) return;
-        if ( n>length ) n = length;
+        if ( n > length ) n = int32_t(length);
         vec4f bargs[2];
         if ( elementSize <= 4 ) {
             context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-                das_partial_sort_r(anyData, length, n, elementSize, [&](const void * x, const void * y){
+                das_partial_sort_r(anyData, size_t(length), size_t(n), elementSize, [&](const void * x, const void * y){
                     bargs[0] = v_ldu_x((const float *)x);
                     bargs[1] = v_ldu_x((const float *)y);
                     return code->evalBool(*context);
@@ -209,7 +215,7 @@ namespace das
             }, at);
         } else if ( elementSize <= 8 ) {
             context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-                das_partial_sort_r(anyData, length, n, elementSize, [&](const void * x, const void * y){
+                das_partial_sort_r(anyData, size_t(length), size_t(n), elementSize, [&](const void * x, const void * y){
                     bargs[0] = v_ldu_half(x);
                     bargs[1] = v_ldu_half(y);
                     return code->evalBool(*context);
@@ -217,7 +223,7 @@ namespace das
             }, at);
         } else {
             context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-                das_partial_sort_r(anyData, length, n, elementSize, [&](const void * x, const void * y){
+                das_partial_sort_r(anyData, size_t(length), size_t(n), elementSize, [&](const void * x, const void * y){
                     bargs[0] = v_ldu((const float *)x);
                     bargs[1] = v_ldu((const float *)y);
                     return code->evalBool(*context);
@@ -226,32 +232,38 @@ namespace das
         }
     }
 
+    void builtin_partial_sort_any_cblock ( void * anyData, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
+        partial_sort_any_core(anyData, elementSize, length, n, cmp, context, at);
+    }
+
+    void builtin_partial_sort_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
+        partial_sort_any_ref_core(anyData, elementSize, length, n, cmp, context, at);
+    }
+
     void builtin_partial_sort_dim_any_cblock ( vec4f anything, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
-        builtin_partial_sort_any_cblock(cast<void *>::to(anything), elementSize, length, n, cmp, context, at);
+        partial_sort_any_core(cast<void *>::to(anything), elementSize, length, n, cmp, context, at);
     }
     void builtin_partial_sort_dim_any_ref_cblock ( vec4f anything, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
-        builtin_partial_sort_any_ref_cblock(cast<void *>::to(anything), elementSize, length, n, cmp, context, at);
+        partial_sort_any_ref_core(cast<void *>::to(anything), elementSize, length, n, cmp, context, at);
     }
     void builtin_partial_sort_array_any_cblock ( Array & arr, int32_t elementSize, int32_t, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
-        int32_t len = sort_array_size_or_panic(arr, context, at, "partial_sort");
         array_lock(*context, arr, at);
-        builtin_partial_sort_any_cblock(arr.data, elementSize, len, n, cmp, context, at);
+        partial_sort_any_core(arr.data, elementSize, int64_t(arr.size), n, cmp, context, at);
         array_unlock(*context, arr, at);
     }
     void builtin_partial_sort_array_any_ref_cblock ( Array & arr, int32_t elementSize, int32_t, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
-        int32_t len = sort_array_size_or_panic(arr, context, at, "partial_sort");
         array_lock(*context, arr, at);
-        builtin_partial_sort_any_ref_cblock(arr.data, elementSize, len, n, cmp, context, at);
+        partial_sort_any_ref_core(arr.data, elementSize, int64_t(arr.size), n, cmp, context, at);
         array_unlock(*context, arr, at);
     }
 
     // ---- nth_element any path ----
 
-    void builtin_nth_element_any_cblock ( void * anyData, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
+    static void nth_element_any_core ( void * anyData, int32_t elementSize, int64_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
         if ( length<=1 || n<0 || n>=length ) return;
         vec4f bargs[2];
         context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-            das_nth_element_r(anyData, length, n, elementSize, [&](const void * x, const void * y){
+            das_nth_element_r(anyData, size_t(length), size_t(n), elementSize, [&](const void * x, const void * y){
                 bargs[0] = cast<void *>::from(x);
                 bargs[1] = cast<void *>::from(y);
                 return code->evalBool(*context);
@@ -259,12 +271,12 @@ namespace das
         }, at);
     }
 
-    void builtin_nth_element_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
+    static void nth_element_any_ref_core ( void * anyData, int32_t elementSize, int64_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
         if ( length<=1 || n<0 || n>=length ) return;
         vec4f bargs[2];
         if ( elementSize <= 4 ) {
             context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-                das_nth_element_r(anyData, length, n, elementSize, [&](const void * x, const void * y){
+                das_nth_element_r(anyData, size_t(length), size_t(n), elementSize, [&](const void * x, const void * y){
                     bargs[0] = v_ldu_x((const float *)x);
                     bargs[1] = v_ldu_x((const float *)y);
                     return code->evalBool(*context);
@@ -272,7 +284,7 @@ namespace das
             }, at);
         } else if ( elementSize <= 8 ) {
             context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-                das_nth_element_r(anyData, length, n, elementSize, [&](const void * x, const void * y){
+                das_nth_element_r(anyData, size_t(length), size_t(n), elementSize, [&](const void * x, const void * y){
                     bargs[0] = v_ldu_half(x);
                     bargs[1] = v_ldu_half(y);
                     return code->evalBool(*context);
@@ -280,7 +292,7 @@ namespace das
             }, at);
         } else {
             context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) {
-                das_nth_element_r(anyData, length, n, elementSize, [&](const void * x, const void * y){
+                das_nth_element_r(anyData, size_t(length), size_t(n), elementSize, [&](const void * x, const void * y){
                     bargs[0] = v_ldu((const float *)x);
                     bargs[1] = v_ldu((const float *)y);
                     return code->evalBool(*context);
@@ -289,22 +301,28 @@ namespace das
         }
     }
 
+    void builtin_nth_element_any_cblock ( void * anyData, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
+        nth_element_any_core(anyData, elementSize, length, n, cmp, context, at);
+    }
+
+    void builtin_nth_element_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
+        nth_element_any_ref_core(anyData, elementSize, length, n, cmp, context, at);
+    }
+
     void builtin_nth_element_dim_any_cblock ( vec4f anything, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
-        builtin_nth_element_any_cblock(cast<void *>::to(anything), elementSize, length, n, cmp, context, at);
+        nth_element_any_core(cast<void *>::to(anything), elementSize, length, n, cmp, context, at);
     }
     void builtin_nth_element_dim_any_ref_cblock ( vec4f anything, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
-        builtin_nth_element_any_ref_cblock(cast<void *>::to(anything), elementSize, length, n, cmp, context, at);
+        nth_element_any_ref_core(cast<void *>::to(anything), elementSize, length, n, cmp, context, at);
     }
     void builtin_nth_element_array_any_cblock ( Array & arr, int32_t elementSize, int32_t, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
-        int32_t len = sort_array_size_or_panic(arr, context, at, "nth_element");
         array_lock(*context, arr, at);
-        builtin_nth_element_any_cblock(arr.data, elementSize, len, n, cmp, context, at);
+        nth_element_any_core(arr.data, elementSize, int64_t(arr.size), n, cmp, context, at);
         array_unlock(*context, arr, at);
     }
     void builtin_nth_element_array_any_ref_cblock ( Array & arr, int32_t elementSize, int32_t, int32_t n, const Block & cmp, Context * context, LineInfoArg * at ) {
-        int32_t len = sort_array_size_or_panic(arr, context, at, "nth_element");
         array_lock(*context, arr, at);
-        builtin_nth_element_any_ref_cblock(arr.data, elementSize, len, n, cmp, context, at);
+        nth_element_any_ref_core(arr.data, elementSize, int64_t(arr.size), n, cmp, context, at);
         array_unlock(*context, arr, at);
     }
 
@@ -316,23 +334,23 @@ namespace das
     // modulo which das_<op>_r is invoked.
 
     #define DEFINE_HEAP_ANY_PATH(OP, DAS_R) \
-        void builtin_##OP##_any_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) { \
+        static void OP##_any_core ( void * anyData, int32_t elementSize, int64_t length, const Block & cmp, Context * context, LineInfoArg * at ) { \
             if ( length<=1 ) return; \
             vec4f bargs[2]; \
             context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) { \
-                DAS_R(anyData, length, elementSize, [&](const void * x, const void * y){ \
+                DAS_R(anyData, size_t(length), elementSize, [&](const void * x, const void * y){ \
                     bargs[0] = cast<void *>::from(x); \
                     bargs[1] = cast<void *>::from(y); \
                     return code->evalBool(*context); \
                 }); \
             }, at); \
         } \
-        void builtin_##OP##_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) { \
+        static void OP##_any_ref_core ( void * anyData, int32_t elementSize, int64_t length, const Block & cmp, Context * context, LineInfoArg * at ) { \
             if ( length<=1 ) return; \
             vec4f bargs[2]; \
             if ( elementSize <= 4 ) { \
                 context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) { \
-                    DAS_R(anyData, length, elementSize, [&](const void * x, const void * y){ \
+                    DAS_R(anyData, size_t(length), elementSize, [&](const void * x, const void * y){ \
                         bargs[0] = v_ldu_x((const float *)x); \
                         bargs[1] = v_ldu_x((const float *)y); \
                         return code->evalBool(*context); \
@@ -340,7 +358,7 @@ namespace das
                 }, at); \
             } else if ( elementSize <= 8 ) { \
                 context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) { \
-                    DAS_R(anyData, length, elementSize, [&](const void * x, const void * y){ \
+                    DAS_R(anyData, size_t(length), elementSize, [&](const void * x, const void * y){ \
                         bargs[0] = v_ldu_half(x); \
                         bargs[1] = v_ldu_half(y); \
                         return code->evalBool(*context); \
@@ -348,7 +366,7 @@ namespace das
                 }, at); \
             } else { \
                 context->invokeEx(cmp, bargs, nullptr, [&](SimNode * code) { \
-                    DAS_R(anyData, length, elementSize, [&](const void * x, const void * y){ \
+                    DAS_R(anyData, size_t(length), elementSize, [&](const void * x, const void * y){ \
                         bargs[0] = v_ldu((const float *)x); \
                         bargs[1] = v_ldu((const float *)y); \
                         return code->evalBool(*context); \
@@ -356,20 +374,26 @@ namespace das
                 }, at); \
             } \
         } \
+        void builtin_##OP##_any_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) { \
+            OP##_any_core(anyData, elementSize, length, cmp, context, at); \
+        } \
+        void builtin_##OP##_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) { \
+            OP##_any_ref_core(anyData, elementSize, length, cmp, context, at); \
+        } \
         void builtin_##OP##_dim_any_cblock ( vec4f anything, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) { \
-            builtin_##OP##_any_cblock(cast<void *>::to(anything), elementSize, length, cmp, context, at); \
+            OP##_any_core(cast<void *>::to(anything), elementSize, length, cmp, context, at); \
         } \
         void builtin_##OP##_dim_any_ref_cblock ( vec4f anything, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * at ) { \
-            builtin_##OP##_any_ref_cblock(cast<void *>::to(anything), elementSize, length, cmp, context, at); \
+            OP##_any_ref_core(cast<void *>::to(anything), elementSize, length, cmp, context, at); \
         } \
         void builtin_##OP##_array_any_cblock ( Array & arr, int32_t elementSize, int32_t, const Block & cmp, Context * context, LineInfoArg * at ) { \
             array_lock(*context, arr, at); \
-            builtin_##OP##_any_cblock(arr.data, elementSize, arr.size, cmp, context, at); \
+            OP##_any_core(arr.data, elementSize, int64_t(arr.size), cmp, context, at); \
             array_unlock(*context, arr, at); \
         } \
         void builtin_##OP##_array_any_ref_cblock ( Array & arr, int32_t elementSize, int32_t, const Block & cmp, Context * context, LineInfoArg * at ) { \
             array_lock(*context, arr, at); \
-            builtin_##OP##_any_ref_cblock(arr.data, elementSize, arr.size, cmp, context, at); \
+            OP##_any_ref_core(arr.data, elementSize, int64_t(arr.size), cmp, context, at); \
             array_unlock(*context, arr, at); \
         }
 

@@ -11,6 +11,7 @@
 #include "daScript/simulate/runtime_table.h"
 #include "daScript/simulate/hash.h"
 #include <cstddef>
+#include <limits>
 
 using namespace das;
 
@@ -95,9 +96,94 @@ namespace das {
 das::FileAccessPtr get_file_access( char * pak );//link time resolved dependencies
 
 Context * get_context( int stackSize = 0 );
+DECLARE_FUSION;
 
-void das_initialize_modules() {
-    NEED_ALL_DEFAULT_MODULES;
+// PULL_MODULE declares the das_pull_* entry points where it expands, and a declaration inside an
+// unnamed namespace has internal linkage - so this pull must live at file scope
+static void initialize_modules_impl () {
+    PULL_ALL_DEFAULT_MODULES;
+}
+
+namespace {
+    size_t c_string_length ( const char * text, const char * argument ) {
+        if ( !text ) {
+            DAS_FATAL_ERROR("%s must not be null\n", argument);
+            return 0;
+        }
+        return strlen(text);
+    }
+
+    void validate_range ( const char * text, size_t length, const char * argument ) {
+        if ( !text ) {
+            if ( length ) {
+                DAS_FATAL_ERROR("%s must not be null when its length is non-zero\n", argument);
+            }
+        }
+    }
+
+    string string_from_range ( const char * text, size_t length, const char * argument ) {
+        validate_range(text, length, argument);
+        if ( !text ) return string();
+        return string(text, length);
+    }
+
+    string c_string_from_range ( const char * text, size_t length, const char * argument ) {
+        auto result = string_from_range(text, length, argument);
+        auto zero = result.find('\0');
+        if ( zero != string::npos && zero + 1 != result.size() ) {
+            DAS_FATAL_ERROR("%s must not contain embedded null bytes\n", argument);
+        }
+        return result;
+    }
+
+    uint32_t checked_u32 ( size_t value, const char * argument ) {
+        if ( value > std::numeric_limits<uint32_t>::max() ) {
+            DAS_FATAL_ERROR("%s does not fit in uint32_t (%llu)\n", argument, (unsigned long long)value);
+            return 0;
+        }
+        return uint32_t(value);
+    }
+
+    uint32_t checked_u32_from_i64 ( int64_t value, const char * argument ) {
+        if ( value < 0 || uint64_t(value) > std::numeric_limits<uint32_t>::max() ) {
+            DAS_FATAL_ERROR("%s does not fit in uint32_t (%lld)\n", argument, (long long)value);
+            return 0;
+        }
+        return uint32_t(value);
+    }
+
+    int32_t checked_i32 ( int64_t value, const char * argument ) {
+        if ( value < std::numeric_limits<int32_t>::min() || value > std::numeric_limits<int32_t>::max() ) {
+            DAS_FATAL_ERROR("%s does not fit in int32_t (%lld)\n", argument, (long long)value);
+            return 0;
+        }
+        return int32_t(value);
+    }
+
+    int checked_int_from_size ( size_t value, const char * result ) {
+        if ( value > size_t(std::numeric_limits<int>::max()) ) {
+            DAS_FATAL_ERROR("%s does not fit in int (%llu)\n", result, (unsigned long long)value);
+            return 0;
+        }
+        return int(value);
+    }
+
+    int checked_int_from_u32 ( uint32_t value, const char * result ) {
+        return checked_int_from_size(size_t(value), result);
+    }
+
+    void validate_unaligned_arguments ( const vec4f_unaligned * arguments, int narguments ) {
+        if ( narguments < 0 ) {
+            DAS_FATAL_ERROR("narguments must not be negative (%d)\n", narguments);
+        }
+        if ( narguments && !arguments ) {
+            DAS_FATAL_ERROR("arguments must not be null when narguments is non-zero\n");
+        }
+        if ( size_t(narguments) > std::numeric_limits<size_t>::max() / sizeof(vec4f) ) {
+            DAS_FATAL_ERROR("narguments byte count overflows size_t (%d)\n", narguments);
+        }
+    }
+
 }
 
 extern "C" {
@@ -117,9 +203,17 @@ DAS_CC_API uint32_t SIDEEFFECTS_inferredSideEffects =  uint32_t(SideEffects::inf
 DAS_CC_API uint32_t DAS_CONTEXT_CATEGORY_THREAD_CLONE = uint32_t(ContextCategory::thread_clone);
 DAS_CC_API uint32_t DAS_CONTEXT_CATEGORY_JOB_CLONE = uint32_t(ContextCategory::job_clone);
 
+void das_initialize_modules() {
+    initialize_modules_impl();
+}
+
+void das_initialize_finalize() {
+    Module::Initialize();
+}
+
 void das_initialize() {
     das_initialize_modules();
-    Module::Initialize();
+    das_initialize_finalize();
 }
 
 void das_shutdown() {
@@ -139,7 +233,15 @@ void das_text_release ( das_text_writer * output ) {
 }
 
 void das_text_output ( das_text_writer * output, char * text ) {
-    *((TextWriter *)output) << text;
+    das_text_output_n(output, text, c_string_length(text, "text"));
+}
+
+void das_text_output_n ( das_text_writer * output, const char * text, size_t text_length ) {
+    if ( text_length > size_t(std::numeric_limits<int32_t>::max()) ) {
+        DAS_FATAL_ERROR("text_length does not fit in the text writer (%llu)\n", (unsigned long long)text_length);
+    }
+    validate_range(text, text_length, "text");
+    if ( text_length ) ((TextWriter *)output)->writeStr(text, text_length);
 }
 
 das_module_group * das_modulegroup_make () {
@@ -155,19 +257,45 @@ int das_register_dynamic_modules ( das_file_access *file_access,
                                     const char * const * load_module_paths,
                                     uint32_t num_load_module_paths,
                                     das_text_writer *tout ) {
+    vector<size_t> lengths;
+    if (load_module_paths) {
+        lengths.resize(num_load_module_paths);
+        for (uint32_t i = 0; i < num_load_module_paths; ++i) {
+            lengths[i] = load_module_paths[i] ? strlen(load_module_paths[i]) : 0;
+        }
+    }
+    return das_register_dynamic_modules_n(file_access,
+        project_root, c_string_length(project_root, "project_root"),
+        load_module_paths, lengths.empty() ? nullptr : lengths.data(),
+        num_load_module_paths, tout);
+}
+
+int das_register_dynamic_modules_n ( das_file_access *file_access,
+                                      const char *project_root,
+                                      size_t project_root_length,
+                                      const char * const * load_module_paths,
+                                      const size_t * load_module_path_lengths,
+                                      size_t num_load_module_paths,
+                                      das_text_writer *tout ) {
     TextPrinter printer;
     TextWriter *writer = tout != nullptr ? (TextWriter *)tout : &printer;
+    auto project_root_string = string_from_range(project_root, project_root_length, "project_root");
     vector<string> load_modules;
+    if (num_load_module_paths && (!load_module_paths || !load_module_path_lengths)) {
+        DAS_FATAL_ERROR("load_module_paths and load_module_path_lengths must not be null when the path count is non-zero\n");
+    }
     if (load_module_paths) {
         load_modules.reserve(num_load_module_paths);
-        for (uint32_t i = 0; i < num_load_module_paths; ++i) {
+        for (size_t i = 0; i < num_load_module_paths; ++i) {
             if (load_module_paths[i]) {
-                load_modules.emplace_back(load_module_paths[i]);
+                load_modules.emplace_back(string_from_range(load_module_paths[i], load_module_path_lengths[i], "load_module_paths entry"));
+            } else if (load_module_path_lengths[i]) {
+                DAS_FATAL_ERROR("load_module_paths entry must not be null when its length is non-zero\n");
             }
         }
     }
-    bool res = require_dynamic_modules((FileAccess *)file_access, project_root,
-                    project_root, load_modules, *writer);
+    bool res = require_dynamic_modules((FileAccess *)file_access, project_root_string,
+                    project_root_string, load_modules, *writer);
     return !res;
 }
 
@@ -181,7 +309,12 @@ das_file_access * das_fileaccess_make_default (  ) {
 }
 
 das_file_access * das_fileaccess_make_project ( const char * project_file  ) {
-    auto access = get_file_access((char *)project_file);
+    return das_fileaccess_make_project_n(project_file, c_string_length(project_file, "project_file"));
+}
+
+das_file_access * das_fileaccess_make_project_n ( const char * project_file, size_t project_file_length ) {
+    auto project_file_string = c_string_from_range(project_file, project_file_length, "project_file");
+    auto access = get_file_access((char *)project_file_string.c_str());
     return (das_file_access *) access.orphan();
 }
 
@@ -190,20 +323,41 @@ void das_fileaccess_release ( das_file_access * access ) {
 }
 
 void das_fileaccess_introduce_file ( das_file_access * access, const char * file_name, const char * file_content, int owns ) {
-    auto len = uint32_t(strlen(file_content));
+    das_fileaccess_introduce_file_n(access,
+        file_name, c_string_length(file_name, "file_name"),
+        file_content, c_string_length(file_content, "file_content"), owns);
+}
+
+void das_fileaccess_introduce_file_n ( das_file_access * access,
+                                       const char * file_name, size_t file_name_length,
+                                       const char * file_content, size_t file_content_length,
+                                       int owns ) {
+    auto file_name_string = string_from_range(file_name, file_name_length, "file_name");
+    validate_range(file_content, file_content_length, "file_content");
+    auto len = checked_u32(file_content_length, "file_content_length");
     if ( owns ) {
         char * content_copy = (char *) das_aligned_alloc16(len ? len : 1);
-        memcpy(content_copy, file_content, len);
+        if ( len ) memcpy(content_copy, file_content, len);
         auto fileInfo = make_unique<TextFileInfo>(content_copy, len, true);
-        ((FileAccess *) access)->setFileInfo(file_name, das::move(fileInfo));
+        ((FileAccess *) access)->setFileInfo(file_name_string, das::move(fileInfo));
     } else {
         auto fileInfo = make_unique<TextFileInfo>((char *) file_content, len, false);
-        ((FileAccess *) access)->setFileInfo(file_name, das::move(fileInfo));
+        ((FileAccess *) access)->setFileInfo(file_name_string, das::move(fileInfo));
     }
 }
 
 void das_fileaccess_introduce_file_from_disk ( das_file_access * access, const char * name, const char * disk_path ) {
-    ((FsFileAccess *) access)->introduceFileFromDisk(name, disk_path);
+    das_fileaccess_introduce_file_from_disk_n(access,
+        name, c_string_length(name, "name"),
+        disk_path, c_string_length(disk_path, "disk_path"));
+}
+
+void das_fileaccess_introduce_file_from_disk_n ( das_file_access * access,
+                                                 const char * name, size_t name_length,
+                                                 const char * disk_path, size_t disk_path_length ) {
+    auto name_string = string_from_range(name, name_length, "name");
+    auto disk_path_string = string_from_range(disk_path, disk_path_length, "disk_path");
+    ((FsFileAccess *) access)->introduceFileFromDisk(name_string, disk_path_string);
 }
 
 void das_fileaccess_introduce_daslib ( das_file_access * access ) {
@@ -215,7 +369,12 @@ void das_fileaccess_introduce_native_modules ( das_file_access * access ) {
 }
 
 int das_fileaccess_introduce_native_module ( das_file_access * access, const char * req ) {
-    return ((FsFileAccess *) access)->introduceNativeModule(req) ? 1 : 0;
+    return das_fileaccess_introduce_native_module_n(access, req, c_string_length(req, "req"));
+}
+
+int das_fileaccess_introduce_native_module_n ( das_file_access * access, const char * req, size_t req_length ) {
+    auto req_string = string_from_range(req, req_length, "req");
+    return ((FsFileAccess *) access)->introduceNativeModule(req_string) ? 1 : 0;
 }
 
 void das_fileaccess_lock ( das_file_access * access ) {
@@ -231,15 +390,30 @@ int das_fileaccess_is_locked ( das_file_access * access ) {
 }
 
 void das_get_root ( char * root, int maxbuf ) {
-    auto r = getDasRoot();
-    if ( maxbuf > 0 ) {
-        strncpy ( root, r.c_str(), maxbuf );
-        root[maxbuf - 1] = '\0';
+    if ( maxbuf < 0 ) {
+        DAS_FATAL_ERROR("maxbuf must not be negative (%d)\n", maxbuf);
     }
+    das_get_root_n(root, size_t(maxbuf));
+}
+
+void das_get_root_n ( char * root, size_t maxbuf ) {
+    if ( maxbuf && !root ) {
+        DAS_FATAL_ERROR("root must not be null when maxbuf is non-zero\n");
+    }
+    if ( !maxbuf ) return;
+    auto r = getDasRoot();
+    auto copy_length = das::min<size_t>(size_t(maxbuf - 1), r.size());
+    if ( copy_length ) memcpy(root, r.data(), copy_length);
+    root[copy_length] = 0;
 }
 
 das_program * das_program_compile ( char * program_file, das_file_access * access, das_text_writer * tout, das_module_group * libgroup ) {
-    auto program = compileDaScript(program_file,
+    return das_program_compile_n(program_file, c_string_length(program_file, "program_file"), access, tout, libgroup);
+}
+
+das_program * das_program_compile_n ( const char * program_file, size_t program_file_length, das_file_access * access, das_text_writer * tout, das_module_group * libgroup ) {
+    auto program_file_string = string_from_range(program_file, program_file_length, "program_file");
+    auto program = compileDaScript(program_file_string,
         (FileAccess *) access,
         *((TextWriter *) tout),
         *((ModuleGroup *) libgroup));
@@ -252,7 +426,7 @@ void das_program_release ( das_program * program ) {
 
 int das_program_err_count ( das_program * program ) {
     auto prog = (Program *) program;
-    return prog->failed() ? int(prog->errors.size()) : 0;
+    return prog->failed() ? checked_int_from_size(prog->errors.size(), "program error count") : 0;
 }
 
 int das_program_context_stack_size ( das_program * program ) {
@@ -276,11 +450,14 @@ int das_program_simulate ( das_program * program, das_context * ctx, das_text_wr
 
 das_error * das_program_get_error ( das_program * program, int index ) {
     auto prog = (Program *) program;
-    if ( index<0 || index>=int(prog->errors.size()) ) return nullptr;
+    if ( index < 0 || size_t(index) >= prog->errors.size() ) return nullptr;
     return (das_error *) &(prog->errors[index]);
 }
 
 das_context * das_context_make ( int stackSize ) {
+    if ( stackSize < 0 ) {
+        DAS_FATAL_ERROR("stackSize must not be negative (%d)\n", stackSize);
+    }
     return (das_context *) get_context(stackSize);
 }
 
@@ -288,11 +465,18 @@ void das_context_release ( das_context * context ) {
     if ( context ) delete (Context *) context;
 }
 
-das_function * das_context_find_function ( das_context * context, char * name ) {
-    return (das_function *) ((Context *)context)->findFunction(name);
+das_function * das_context_find_function ( das_context * context, const char * name ) {
+    return das_context_find_function_n(context, name, c_string_length(name, "name"));
+}
+
+das_function * das_context_find_function_n ( das_context * context, const char * name, size_t name_length ) {
+    auto name_string = c_string_from_range(name, name_length, "name");
+    return (das_function *) ((Context *)context)->findFunction(name_string.c_str());
 }
 
 void das_context_eval_with_catch_unaligned ( das_context * context, das_function * fun, vec4f_unaligned * arguments, int narguments, vec4f_unaligned * result ) {
+    validate_unaligned_arguments(arguments, narguments);
+    if ( !result ) DAS_FATAL_ERROR("result must not be null\n");
     vec4f * args = nullptr;
     if ( narguments ) {
         if ( intptr_t(arguments) & 0xf ) {
@@ -314,6 +498,7 @@ void das_context_eval_with_catch_cmres ( das_context * context, das_function * f
 }
 
 void das_context_eval_with_catch_cmres_unaligned ( das_context * context, das_function * fun, vec4f_unaligned * arguments, int narguments, void * cmres ) {
+    validate_unaligned_arguments(arguments, narguments);
     vec4f * args = nullptr;
     if ( narguments ) {
         if ( intptr_t(arguments) & 0xf ) {
@@ -347,6 +532,8 @@ vec4f das_context_eval_lambda ( das_context * context, das_lambda * lambda, vec4
 }
 
 void das_context_eval_lambda_unaligned ( das_context * context, das_lambda * lambda, vec4f_unaligned * arguments, int narguments, vec4f_unaligned * result ) {
+    validate_unaligned_arguments(arguments, narguments);
+    if ( !result ) DAS_FATAL_ERROR("result must not be null\n");
     vec4f * args = nullptr;
     if ( narguments ) {
         if ( intptr_t(arguments) & 0xf ) {
@@ -372,6 +559,7 @@ void das_context_eval_lambda_cmres ( das_context * context, das_lambda * lambda,
 }
 
 void das_context_eval_lambda_cmres_unaligned ( das_context * context, das_lambda * lambda, vec4f_unaligned * arguments, int narguments, void * cmres ) {
+    validate_unaligned_arguments(arguments, narguments);
     vec4f * args = nullptr;
     if ( narguments ) {
         if ( intptr_t(arguments) & 0xf ) {
@@ -393,6 +581,8 @@ vec4f das_context_eval_block ( das_context * context, das_block * block, vec4f *
 }
 
 void das_context_eval_block_unaligned ( das_context * context, das_block * block, vec4f_unaligned * arguments, int narguments, vec4f_unaligned * result ) {
+    validate_unaligned_arguments(arguments, narguments);
+    if ( !result ) DAS_FATAL_ERROR("result must not be null\n");
     vec4f * args = nullptr;
     if ( narguments ) {
         if ( intptr_t(arguments) & 0xf ) {
@@ -415,6 +605,7 @@ void das_context_eval_block_cmres ( das_context * context, das_block * block, ve
 }
 
 void das_context_eval_block_cmres_unaligned ( das_context * context, das_block * block, vec4f_unaligned * arguments, int narguments, void * cmres ) {
+    validate_unaligned_arguments(arguments, narguments);
     vec4f * args = nullptr;
     if ( narguments ) {
         if ( intptr_t(arguments) & 0xf ) {
@@ -436,28 +627,61 @@ void das_error_output ( das_error * error, das_text_writer * tout ) {
 }
 
 void das_error_report ( das_error * error, char * text, int maxLength ) {
+    if ( maxLength < 0 ) {
+        DAS_FATAL_ERROR("maxLength must not be negative (%d)\n", maxLength);
+    }
+    das_error_report_n(error, text, size_t(maxLength));
+}
+
+void das_error_report_n ( das_error * error, char * text, size_t maxLength ) {
+    if ( maxLength && !text ) {
+        DAS_FATAL_ERROR("text must not be null when maxLength is non-zero\n");
+    }
+    if ( !maxLength ) return;
     auto err = (Error *) error;
     auto str = reportError(err->at, err->what, err->extra, err->fixme, err->cerr );
-    if ( maxLength > 0 ) {
-        strncpy(text, str.c_str(), maxLength);
-        text[maxLength - 1] = '\0';
-    }
+    auto copy_length = das::min<size_t>(size_t(maxLength - 1), str.size());
+    if ( copy_length ) memcpy(text, str.data(), copy_length);
+    text[copy_length] = 0;
 }
 
 das_module * das_module_create ( char * name ) {
-    return (das_module *) new Module(name);
+    return das_module_create_n(name, c_string_length(name, "name"));
+}
+
+das_module * das_module_create_n ( const char * name, size_t name_length ) {
+    return (das_module *) new Module(string_from_range(name, name_length, "name"));
 }
 
 das_module * das_module_find ( const char * name ) {
-    return (das_module *) Module::require(name);
+    return das_module_find_n(name, c_string_length(name, "name"));
+}
+
+das_module * das_module_find_n ( const char * name, size_t name_length ) {
+    auto name_string = string_from_range(name, name_length, "name");
+    return (das_module *) Module::require(name_string);
 }
 
 void das_module_bind_interop_function ( das_module * mod, das_module_group * lib, das_interop_function * fun, char * name, char * cppName, uint32_t sideffects, char* args ) {
-    auto fn = new CFunction(name, *(ModuleLibrary *)lib, cppName, fun);
+    das_module_bind_interop_function_n(mod, lib, fun,
+        name, c_string_length(name, "name"),
+        cppName, c_string_length(cppName, "cppName"), sideffects,
+        args, c_string_length(args, "args"));
+}
+
+void das_module_bind_interop_function_n ( das_module * mod, das_module_group * lib, das_interop_function * fun,
+                                          const char * name, size_t name_length,
+                                          const char * cppName, size_t cppName_length,
+                                          uint32_t sideffects,
+                                          const char * args, size_t args_length ) {
+    auto name_string = c_string_from_range(name, name_length, "name");
+    auto cpp_name_string = c_string_from_range(cppName, cppName_length, "cppName");
+    auto args_string = c_string_from_range(args, args_length, "args");
+    auto fn = new CFunction(name_string.c_str(), *(ModuleLibrary *)lib, cpp_name_string.c_str(), fun);
     fn->setSideEffects((das::SideEffects) sideffects);
     vector <TypeDeclPtr> arguments;
     MangledNameParser parser;
-    const char * arg = args;
+    const char * arg = args_string.c_str();
     while ( *arg ) {
         auto tt = parser.parseTypeFromMangledName(arg, *(ModuleLibrary*)lib,(Module *)mod);
         arguments.push_back(tt);
@@ -468,11 +692,25 @@ void das_module_bind_interop_function ( das_module * mod, das_module_group * lib
 }
 
 void das_module_bind_interop_function_unaligned ( das_module * mod, das_module_group * lib, das_interop_function_unaligned * fun, char * name, char * cppName, uint32_t sideffects, char* args ) {
-    auto fn = new CFunction_Unaligned(name, *(ModuleLibrary *)lib, cppName, fun);
+    das_module_bind_interop_function_unaligned_n(mod, lib, fun,
+        name, c_string_length(name, "name"),
+        cppName, c_string_length(cppName, "cppName"), sideffects,
+        args, c_string_length(args, "args"));
+}
+
+void das_module_bind_interop_function_unaligned_n ( das_module * mod, das_module_group * lib, das_interop_function_unaligned * fun,
+                                                    const char * name, size_t name_length,
+                                                    const char * cppName, size_t cppName_length,
+                                                    uint32_t sideffects,
+                                                    const char * args, size_t args_length ) {
+    auto name_string = c_string_from_range(name, name_length, "name");
+    auto cpp_name_string = c_string_from_range(cppName, cppName_length, "cppName");
+    auto args_string = c_string_from_range(args, args_length, "args");
+    auto fn = new CFunction_Unaligned(name_string.c_str(), *(ModuleLibrary *)lib, cpp_name_string.c_str(), fun);
     fn->setSideEffects((das::SideEffects) sideffects);
     vector <TypeDeclPtr> arguments;
     MangledNameParser parser;
-    const char * arg = args;
+    const char * arg = args_string.c_str();
     while ( *arg ) {
         auto tt = parser.parseTypeFromMangledName(arg, *(ModuleLibrary*)lib,(Module *)mod);
         arguments.push_back(tt);
@@ -483,11 +721,21 @@ void das_module_bind_interop_function_unaligned ( das_module * mod, das_module_g
 }
 
 void das_module_bind_alias ( das_module * mod, das_module_group * lib, char * aname, char * tname ) {
+    das_module_bind_alias_n(mod, lib,
+        aname, c_string_length(aname, "aname"),
+        tname, c_string_length(tname, "tname"));
+}
+
+void das_module_bind_alias_n ( das_module * mod, das_module_group * lib,
+                               const char * aname, size_t aname_length,
+                               const char * tname, size_t tname_length ) {
+    auto alias_name = string_from_range(aname, aname_length, "aname");
+    auto type_name = c_string_from_range(tname, tname_length, "tname");
     MangledNameParser parser;
-    auto tt = (const char *) tname;
+    auto tt = type_name.c_str();
     auto at = parser.parseTypeFromMangledName(tt, *(ModuleLibrary*)lib,(Module *)mod);
     DAS_ASSERT(at->alias.empty() && "already an alias");
-    at->alias = aname;
+    at->alias = alias_name;
     ((Module *)mod)->addAlias(at);
 }
 
@@ -500,33 +748,91 @@ void das_module_bind_enumeration ( das_module * mod, das_enumeration * en ) {
 }
 
 das_structure * das_structure_make ( das_module_group * lib, const char * name, const char * cppname, int sz, int al ) {
-    auto st = new CStructureAnnotation(name,cppname,(ModuleLibrary *)lib);
-    st->sizeOf = sz;
-    st->alignOf = al;
+    if ( sz < 0 || al < 0 ) {
+        DAS_FATAL_ERROR("structure size and alignment must not be negative (%d, %d)\n", sz, al);
+    }
+    return das_structure_make_n(lib,
+        name, c_string_length(name, "name"),
+        cppname, c_string_length(cppname, "cppname"), size_t(sz), size_t(al));
+}
+
+das_structure * das_structure_make_n ( das_module_group * lib,
+                                       const char * name, size_t name_length,
+                                       const char * cppname, size_t cppname_length,
+                                       size_t sz, size_t al ) {
+    auto name_string = string_from_range(name, name_length, "name");
+    auto cpp_name_string = string_from_range(cppname, cppname_length, "cppname");
+    auto st = new CStructureAnnotation(name_string, cpp_name_string, (ModuleLibrary *)lib);
+    st->sizeOf = checked_u32(sz, "sz");
+    st->alignOf = checked_u32(al, "al");
     return (das_structure *) st;
 }
 
 void das_structure_add_field ( das_structure * st, das_module * mod, das_module_group * lib,  const char * name, const char * cppname, int offset, const char * tname ) {
+    if ( offset < 0 ) {
+        DAS_FATAL_ERROR("field offset must not be negative (%d)\n", offset);
+    }
+    das_structure_add_field_n(st, mod, lib,
+        name, c_string_length(name, "name"),
+        cppname, c_string_length(cppname, "cppname"), size_t(offset),
+        tname, c_string_length(tname, "tname"));
+}
+
+void das_structure_add_field_n ( das_structure * st, das_module * mod, das_module_group * lib,
+                                 const char * name, size_t name_length,
+                                 const char * cppname, size_t cppname_length,
+                                 size_t offset,
+                                 const char * tname, size_t tname_length ) {
+    auto name_string = string_from_range(name, name_length, "name");
+    auto cpp_name_string = string_from_range(cppname, cppname_length, "cppname");
+    auto type_name = c_string_from_range(tname, tname_length, "tname");
     MangledNameParser parser;
-    auto tt = (const char *) tname;
+    auto tt = type_name.c_str();
     auto at = parser.parseTypeFromMangledName(tt, *(ModuleLibrary*)lib,(Module *)mod);
-    ((CStructureAnnotation *)st)->addFieldEx(name,cppname,offset,at);
+    ((CStructureAnnotation *)st)->addFieldEx(name_string, cpp_name_string, checked_u32(offset, "offset"), at);
 }
 
 das_enumeration * das_enumeration_make ( const char * name, const char * cppname, int ext ) {
-    auto pEnum = new Enumeration(name);
-    pEnum->cppName = cppname;
+    return das_enumeration_make_n(name, c_string_length(name, "name"),
+        cppname, c_string_length(cppname, "cppname"), ext);
+}
+
+das_enumeration * das_enumeration_make_n ( const char * name, size_t name_length,
+                                           const char * cppname, size_t cppname_length,
+                                           int ext ) {
+    auto pEnum = new Enumeration(string_from_range(name, name_length, "name"));
+    pEnum->cppName = string_from_range(cppname, cppname_length, "cppname");
     pEnum->external = ext;
     return (das_enumeration *) pEnum;
 }
 
 void das_enumeration_add_value ( das_enumeration * enu, const char * name, const char * cppName, int value ) {
-    ((Enumeration *)enu)->addIEx(name, cppName, value, LineInfo());
+    das_enumeration_add_value_i64(enu, name, cppName, value);
+}
+
+void das_enumeration_add_value_i64 ( das_enumeration * enu, const char * name, const char * cppName, int64_t value ) {
+    das_enumeration_add_value_n(enu,
+        name, c_string_length(name, "name"),
+        cppName, c_string_length(cppName, "cppName"), value);
+}
+
+void das_enumeration_add_value_n ( das_enumeration * enu,
+                                   const char * name, size_t name_length,
+                                   const char * cppName, size_t cppName_length,
+                                   int64_t value ) {
+    auto name_string = string_from_range(name, name_length, "name");
+    auto cpp_name_string = string_from_range(cppName, cppName_length, "cppName");
+    ((Enumeration *)enu)->addIEx(name_string, cpp_name_string, value, LineInfo());
 }
 
 char * das_allocate_string ( das_context * context, char * str ) {
     if ( !str ) return nullptr;
-    return ((Context *)context)->allocateString(str, uint32_t(strlen(str)), nullptr, false);
+    return das_allocate_string_n(context, str, strlen(str));
+}
+
+char * das_allocate_string_n ( das_context * context, const char * str, size_t str_length ) {
+    validate_range(str, str_length, "str");
+    return ((Context *)context)->allocateString(str, uint64_t(str_length), nullptr, false);
 }
 
 int    das_argument_int ( vec4f arg ) { return cast<int>::to(arg); }
@@ -611,6 +917,17 @@ int das_policies_set_bool ( das_policies * policies, das_bool_policy flag, int v
         case DAS_POLICY_RTTI:                   p->rtti = v; break;
         case DAS_POLICY_NO_OPTIMIZATIONS:       p->no_optimizations = v; break;
         case DAS_POLICY_NO_INFER_TIME_FOLDING:  p->no_infer_time_folding = v; break;
+        case DAS_POLICY_FAST_MATH:              p->fast_math = v; break;
+        case DAS_POLICY_DISABLE_DSE:            p->disable_dse = v; break;
+        case DAS_POLICY_DISABLE_CSE:            p->disable_cse = v; break;
+        case DAS_POLICY_DISABLE_INLINE:         p->disable_inline = v; break;
+        case DAS_POLICY_DISABLE_AUTO_INLINE:    p->disable_auto_inline = v; break;
+        case DAS_POLICY_DISABLE_RUN:            p->disable_run = v; break;
+        case DAS_POLICY_DISABLE_TEMP_STRING_RECLAIM: p->disable_temp_string_reclaim = v; break;
+        case DAS_POLICY_LOG_OPTIMIZATION:       p->log_optimization = v; break;
+        case DAS_POLICY_LOG_OPTIMIZATION_PASSES: p->log_optimization_passes = v; break;
+        case DAS_POLICY_FUSION:                 p->fusion = v; break;
+        case DAS_POLICY_AUTO_INLINE_FUNCTIONS:  p->auto_inline_functions = v; break;
         default: return 0;
     }
     return 1;
@@ -619,18 +936,33 @@ int das_policies_set_bool ( das_policies * policies, das_bool_policy flag, int v
 int das_policies_set_int ( das_policies * policies, das_int_policy field, int64_t value ) {
     auto * p = (CodeOfPolicies *) policies;
     switch ( field ) {
-        case DAS_POLICY_STACK:                      p->stack = (uint32_t) value; break;
-        case DAS_POLICY_MAX_HEAP_ALLOCATED:         p->max_heap_allocated = (uint64_t) value; break;
-        case DAS_POLICY_MAX_STRING_HEAP_ALLOCATED:  p->max_string_heap_allocated = (uint64_t) value; break;
-        case DAS_POLICY_HEAP_SIZE_HINT:             p->heap_size_hint = (uint32_t) value; break;
-        case DAS_POLICY_STRING_HEAP_SIZE_HINT:      p->string_heap_size_hint = (uint32_t) value; break;
+        case DAS_POLICY_STACK:                      p->stack = checked_u32_from_i64(value, "DAS_POLICY_STACK"); break;
+        case DAS_POLICY_MAX_HEAP_ALLOCATED:
+            if ( value < 0 ) DAS_FATAL_ERROR("DAS_POLICY_MAX_HEAP_ALLOCATED must not be negative (%lld)\n", (long long)value);
+            p->max_heap_allocated = uint64_t(value); break;
+        case DAS_POLICY_MAX_STRING_HEAP_ALLOCATED:
+            if ( value < 0 ) DAS_FATAL_ERROR("DAS_POLICY_MAX_STRING_HEAP_ALLOCATED must not be negative (%lld)\n", (long long)value);
+            p->max_string_heap_allocated = uint64_t(value); break;
+        case DAS_POLICY_HEAP_SIZE_HINT:             p->heap_size_hint = checked_u32_from_i64(value, "DAS_POLICY_HEAP_SIZE_HINT"); break;
+        case DAS_POLICY_STRING_HEAP_SIZE_HINT:      p->string_heap_size_hint = checked_u32_from_i64(value, "DAS_POLICY_STRING_HEAP_SIZE_HINT"); break;
+        case DAS_POLICY_AUTO_INLINE_COST:           p->auto_inline_cost = checked_i32(value, "DAS_POLICY_AUTO_INLINE_COST"); break;
+        case DAS_POLICY_MAX_UNRESERVED_SIZE:
+            if ( value < 0 ) DAS_FATAL_ERROR("DAS_POLICY_MAX_UNRESERVED_SIZE must not be negative (%lld)\n", (long long)value);
+            p->max_unreserved_size = uint64_t(value); break;
         default: return 0;
     }
     return 1;
 }
 
 das_program * das_program_compile_policies ( char * program_file, das_file_access * access, das_text_writer * tout, das_module_group * libgroup, das_policies * policies ) {
-    auto program = compileDaScript(program_file,
+    return das_program_compile_policies_n(program_file, c_string_length(program_file, "program_file"), access, tout, libgroup, policies);
+}
+
+das_program * das_program_compile_policies_n ( const char * program_file, size_t program_file_length,
+                                               das_file_access * access, das_text_writer * tout,
+                                               das_module_group * libgroup, das_policies * policies ) {
+    auto program_file_string = string_from_range(program_file, program_file_length, "program_file");
+    auto program = compileDaScript(program_file_string,
         (FileAccess *) access,
         *((TextWriter *) tout),
         *((ModuleGroup *) libgroup),
@@ -641,7 +973,12 @@ das_program * das_program_compile_policies ( char * program_file, das_file_acces
 // --- Context variables ---
 
 int das_context_find_variable ( das_context * context, const char * name ) {
-    return ((Context *)context)->findVariable(name);
+    return das_context_find_variable_n(context, name, c_string_length(name, "name"));
+}
+
+int das_context_find_variable_n ( das_context * context, const char * name, size_t name_length ) {
+    auto name_string = c_string_from_range(name, name_length, "name");
+    return ((Context *)context)->findVariable(name_string.c_str());
 }
 
 void * das_context_get_variable ( das_context * context, int idx ) {
@@ -659,12 +996,28 @@ const char * das_context_get_variable_name ( das_context * context, int idx ) {
 
 int das_context_get_variable_size ( das_context * context, int idx ) {
     auto * info = ((Context *)context)->getVariableInfo(idx);
-    return info ? (int)info->size : 0;
+    return info ? checked_int_from_u32(info->size, "variable size") : 0;
 }
 
 // --- Serialization ---
 
 das_serialized_data * das_program_serialize ( das_program * program, const void ** out_data, int64_t * out_size ) {
+    if ( !out_data || !out_size ) {
+        DAS_FATAL_ERROR("out_data and out_size must not be null\n");
+    }
+    size_t size = 0;
+    auto result = das_program_serialize_n(program, out_data, &size);
+    if ( size > size_t(std::numeric_limits<int64_t>::max()) ) {
+        DAS_FATAL_ERROR("serialized program size does not fit in int64_t (%llu)\n", (unsigned long long)size);
+    }
+    *out_size = int64_t(size);
+    return result;
+}
+
+das_serialized_data * das_program_serialize_n ( das_program * program, const void ** out_data, size_t * out_size ) {
+    if ( !out_data || !out_size ) {
+        DAS_FATAL_ERROR("out_data and out_size must not be null\n");
+    }
     auto * storage = new SerializationStorageVector();
     {
         AstSerializer ser(storage, true);       // writing = true
@@ -672,13 +1025,24 @@ das_serialized_data * das_program_serialize ( das_program * program, const void 
         ser.moduleLibrary = nullptr;
     }
     *out_data = storage->buffer.data();
-    *out_size = (int64_t) storage->buffer.size();
+    *out_size = storage->buffer.size();
     return (das_serialized_data *) storage;
 }
 
 das_program * das_program_deserialize ( const void * data, int64_t size ) {
+    if ( size < 0 ) {
+        DAS_FATAL_ERROR("serialized program size must not be negative (%lld)\n", (long long)size);
+    }
+    return das_program_deserialize_n(data, size_t(size));
+}
+
+das_program * das_program_deserialize_n ( const void * data, size_t size ) {
+    validate_range((const char *)data, size, "data");
     auto * storage = new SerializationStorageVector();
-    storage->buffer.assign((const uint8_t *)data, (const uint8_t *)data + size);
+    if ( size ) {
+        auto bytes = (const uint8_t *)data;
+        storage->buffer.assign(bytes, bytes + size);
+    }
     ProgramPtr program;
     {
         AstSerializer deser(storage, false);    // writing = false
@@ -791,6 +1155,29 @@ static_assert(DAS_TYPE_TABLE == (int)Type::tTable, "DAS_TYPE_TABLE mismatch");
 static_assert(DAS_TYPE_BLOCK == (int)Type::tBlock, "DAS_TYPE_BLOCK mismatch");
 static_assert(DAS_TYPE_TUPLE == (int)Type::tTuple, "DAS_TYPE_TUPLE mismatch");
 static_assert(DAS_TYPE_VARIANT == (int)Type::tVariant, "DAS_TYPE_VARIANT mismatch");
+static_assert(DAS_TYPE_FLOAT16 == (int)Type::tFloat16, "DAS_TYPE_FLOAT16 mismatch");
+static_assert(DAS_TYPE_HALF2 == (int)Type::tHalf2, "DAS_TYPE_HALF2 mismatch");
+static_assert(DAS_TYPE_HALF3 == (int)Type::tHalf3, "DAS_TYPE_HALF3 mismatch");
+static_assert(DAS_TYPE_HALF4 == (int)Type::tHalf4, "DAS_TYPE_HALF4 mismatch");
+static_assert(DAS_TYPE_HALF8 == (int)Type::tHalf8, "DAS_TYPE_HALF8 mismatch");
+static_assert(DAS_TYPE_SHORT2 == (int)Type::tShort2, "DAS_TYPE_SHORT2 mismatch");
+static_assert(DAS_TYPE_SHORT3 == (int)Type::tShort3, "DAS_TYPE_SHORT3 mismatch");
+static_assert(DAS_TYPE_SHORT4 == (int)Type::tShort4, "DAS_TYPE_SHORT4 mismatch");
+static_assert(DAS_TYPE_SHORT8 == (int)Type::tShort8, "DAS_TYPE_SHORT8 mismatch");
+static_assert(DAS_TYPE_USHORT2 == (int)Type::tUShort2, "DAS_TYPE_USHORT2 mismatch");
+static_assert(DAS_TYPE_USHORT3 == (int)Type::tUShort3, "DAS_TYPE_USHORT3 mismatch");
+static_assert(DAS_TYPE_USHORT4 == (int)Type::tUShort4, "DAS_TYPE_USHORT4 mismatch");
+static_assert(DAS_TYPE_USHORT8 == (int)Type::tUShort8, "DAS_TYPE_USHORT8 mismatch");
+static_assert(DAS_TYPE_BYTE2 == (int)Type::tByte2, "DAS_TYPE_BYTE2 mismatch");
+static_assert(DAS_TYPE_BYTE3 == (int)Type::tByte3, "DAS_TYPE_BYTE3 mismatch");
+static_assert(DAS_TYPE_BYTE4 == (int)Type::tByte4, "DAS_TYPE_BYTE4 mismatch");
+static_assert(DAS_TYPE_BYTE8 == (int)Type::tByte8, "DAS_TYPE_BYTE8 mismatch");
+static_assert(DAS_TYPE_BYTE16 == (int)Type::tByte16, "DAS_TYPE_BYTE16 mismatch");
+static_assert(DAS_TYPE_UBYTE2 == (int)Type::tUByte2, "DAS_TYPE_UBYTE2 mismatch");
+static_assert(DAS_TYPE_UBYTE3 == (int)Type::tUByte3, "DAS_TYPE_UBYTE3 mismatch");
+static_assert(DAS_TYPE_UBYTE4 == (int)Type::tUByte4, "DAS_TYPE_UBYTE4 mismatch");
+static_assert(DAS_TYPE_UBYTE8 == (int)Type::tUByte8, "DAS_TYPE_UBYTE8 mismatch");
+static_assert(DAS_TYPE_UBYTE16 == (int)Type::tUByte16, "DAS_TYPE_UBYTE16 mismatch");
 
 // --- Type introspection: entry points ---
 
@@ -855,18 +1242,18 @@ das_type_info * das_type_info_get_second_type ( das_type_info * info ) {
 }
 
 int das_type_info_get_arg_count ( das_type_info * info ) {
-    return (int) ((TypeInfo *)info)->argCount;
+    return checked_int_from_u32(((TypeInfo *)info)->argCount, "type argument count");
 }
 
 das_type_info * das_type_info_get_arg_type ( das_type_info * info, int idx ) {
     auto * ti = (TypeInfo *)info;
-    if ( idx < 0 || idx >= (int)ti->argCount ) return nullptr;
+    if ( idx < 0 || uint32_t(idx) >= ti->argCount ) return nullptr;
     return (das_type_info *) ti->argTypes[idx];
 }
 
 const char * das_type_info_get_arg_name ( das_type_info * info, int idx ) {
     auto * ti = (TypeInfo *)info;
-    if ( idx < 0 || idx >= (int)ti->argCount || !ti->argNames ) return nullptr;
+    if ( idx < 0 || uint32_t(idx) >= ti->argCount || !ti->argNames ) return nullptr;
     return ti->argNames[idx];
 }
 
@@ -879,13 +1266,13 @@ int das_type_info_get_variant_field_offset ( das_type_info * info, int idx ) {
 }
 
 int das_type_info_get_dim_count ( das_type_info * info ) {
-    return (int) ((TypeInfo *)info)->dimSize;
+    return checked_int_from_u32(((TypeInfo *)info)->dimSize, "type dimension count");
 }
 
 int das_type_info_get_dim ( das_type_info * info, int idx ) {
     auto * ti = (TypeInfo *)info;
-    if ( idx < 0 || idx >= (int)ti->dimSize ) return 0;
-    return (int) ti->dim[idx];
+    if ( idx < 0 || uint32_t(idx) >= ti->dimSize ) return 0;
+    return checked_int_from_u32(ti->dim[idx], "type dimension");
 }
 
 // --- Type introspection: structures ---
@@ -905,11 +1292,11 @@ const char * das_struct_info_get_module ( das_struct_info * info ) {
 }
 
 int das_struct_info_get_field_count ( das_struct_info * info ) {
-    return (int) ((StructInfo *)info)->count;
+    return checked_int_from_u32(((StructInfo *)info)->count, "structure field count");
 }
 
 int das_struct_info_get_size ( das_struct_info * info ) {
-    return (int) ((StructInfo *)info)->size;
+    return checked_int_from_u32(((StructInfo *)info)->size, "structure size");
 }
 
 uint32_t das_struct_info_get_flags ( das_struct_info * info ) {
@@ -922,19 +1309,19 @@ uint64_t das_struct_info_get_hash ( das_struct_info * info ) {
 
 const char * das_struct_info_get_field_name ( das_struct_info * info, int idx ) {
     auto * si = (StructInfo *)info;
-    if ( idx < 0 || idx >= (int)si->count ) return nullptr;
+    if ( idx < 0 || uint32_t(idx) >= si->count ) return nullptr;
     return si->fields[idx]->name;
 }
 
 int das_struct_info_get_field_offset ( das_struct_info * info, int idx ) {
     auto * si = (StructInfo *)info;
-    if ( idx < 0 || idx >= (int)si->count ) return -1;
-    return (int) si->fields[idx]->offset;
+    if ( idx < 0 || uint32_t(idx) >= si->count ) return -1;
+    return checked_int_from_u32(si->fields[idx]->offset, "structure field offset");
 }
 
 das_type_info * das_struct_info_get_field_type ( das_struct_info * info, int idx ) {
     auto * si = (StructInfo *)info;
-    if ( idx < 0 || idx >= (int)si->count ) return nullptr;
+    if ( idx < 0 || uint32_t(idx) >= si->count ) return nullptr;
     return (das_type_info *) si->fields[idx];
 }
 
@@ -962,18 +1349,18 @@ const char * das_enum_info_get_module ( das_enum_info * info ) {
 }
 
 int das_enum_info_get_count ( das_enum_info * info ) {
-    return (int) ((EnumInfo *)info)->count;
+    return checked_int_from_u32(((EnumInfo *)info)->count, "enumeration value count");
 }
 
 const char * das_enum_info_get_value_name ( das_enum_info * info, int idx ) {
     auto * ei = (EnumInfo *)info;
-    if ( idx < 0 || idx >= (int)ei->count ) return nullptr;
+    if ( idx < 0 || uint32_t(idx) >= ei->count ) return nullptr;
     return ei->fields[idx]->name;
 }
 
 int64_t das_enum_info_get_value ( das_enum_info * info, int idx ) {
     auto * ei = (EnumInfo *)info;
-    if ( idx < 0 || idx >= (int)ei->count ) return 0;
+    if ( idx < 0 || uint32_t(idx) >= ei->count ) return 0;
     return ei->fields[idx]->value;
 }
 
@@ -988,18 +1375,18 @@ const char * das_func_info_get_cpp_name ( das_func_info * info ) {
 }
 
 int das_func_info_get_arg_count ( das_func_info * info ) {
-    return (int) ((FuncInfo *)info)->count;
+    return checked_int_from_u32(((FuncInfo *)info)->count, "function argument count");
 }
 
 das_type_info * das_func_info_get_arg_type ( das_func_info * info, int idx ) {
     auto * fi = (FuncInfo *)info;
-    if ( idx < 0 || idx >= (int)fi->count ) return nullptr;
+    if ( idx < 0 || uint32_t(idx) >= fi->count ) return nullptr;
     return (das_type_info *) fi->fields[idx];
 }
 
 const char * das_func_info_get_arg_name ( das_func_info * info, int idx ) {
     auto * fi = (FuncInfo *)info;
-    if ( idx < 0 || idx >= (int)fi->count ) return nullptr;
+    if ( idx < 0 || uint32_t(idx) >= fi->count ) return nullptr;
     return fi->fields[idx]->name;
 }
 
@@ -1016,7 +1403,7 @@ uint32_t das_func_info_get_flags ( das_func_info * info ) {
 }
 
 int das_func_info_get_stack_size ( das_func_info * info ) {
-    return (int) ((FuncInfo *)info)->stackSize;
+    return checked_int_from_u32(((FuncInfo *)info)->stackSize, "function stack size");
 }
 
 // --- Layout sync: das_array / das_table mirror Array / Table exactly ---
@@ -1030,14 +1417,14 @@ int das_func_info_get_stack_size ( das_func_info * info ) {
 // together pin every byte between `capacity` and `flags`.
 
 static_assert(sizeof(das_array) == sizeof(Array),
-    "das_array size must match das::Array — update daScriptC.h to mirror arraytype.h");
+    "das_array size must match das::Array - update daScriptC.h to mirror arraytype.h");
 static_assert(offsetof(das_array, data)     == offsetof(Array, data),     "das_array.data offset drift");
 static_assert(offsetof(das_array, size)     == offsetof(Array, size),     "das_array.size offset drift");
 static_assert(offsetof(das_array, capacity) == offsetof(Array, capacity), "das_array.capacity offset drift");
 static_assert(offsetof(das_array, flags)    == offsetof(Array, flags),    "das_array.flags offset drift");
 
 static_assert(sizeof(das_table) == sizeof(Table),
-    "das_table size must match das::Table — update daScriptC.h to mirror arraytype.h");
+    "das_table size must match das::Table - update daScriptC.h to mirror arraytype.h");
 static_assert(offsetof(das_table, data)       == offsetof(Table, data),       "das_table.data offset drift");
 static_assert(offsetof(das_table, size)       == offsetof(Table, size),       "das_table.size offset drift");
 static_assert(offsetof(das_table, capacity)   == offsetof(Table, capacity),   "das_table.capacity offset drift");

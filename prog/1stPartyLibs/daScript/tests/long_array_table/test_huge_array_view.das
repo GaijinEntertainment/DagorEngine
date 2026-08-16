@@ -28,6 +28,7 @@ let HUGE_N = 2200_l * 1024_l * 1024_l
 def test_array_view_offset_int64_past_int_max(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     // Sentinel near the tail (offset past INT_MAX).
     arr[HUGE_N - 5_l] = uint8(0xAA)
@@ -46,6 +47,7 @@ def test_array_view_offset_int64_past_int_max(t : T?) {
 def test_array_view_var_int64_past_int_max(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     arr[HUGE_N - 2_l] = uint8(0x77)
     arr[HUGE_N - 1_l] = uint8(0x88)

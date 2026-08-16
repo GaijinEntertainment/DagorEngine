@@ -216,6 +216,9 @@ void ToroidalStaticShadowCascade::invalidate(bool force)
     scrolledDepthMin = 0;
     scrolledDepthMax = 1;
   }
+#if COLLECT_STATIC_SHADOWS_STATISTICS
+  staticShadowsStatistics.completelyValidFramesSinceLastUpdate = 0;
+#endif
 }
 
 void ToroidalStaticShadowCascade::setShadervarsToInvalid()
@@ -674,6 +677,7 @@ void ToroidalStaticShadowCascade::render(IStaticShadowsCB &cb)
   {
 #if COLLECT_STATIC_SHADOWS_STATISTICS
     staticShadowsStatistics.completelyValidFrames++;
+    staticShadowsStatistics.completelyValidFramesSinceLastUpdate++;
 #endif
     return;
   }
@@ -708,6 +712,7 @@ void ToroidalStaticShadowCascade::render(IStaticShadowsCB &cb)
     staticShadowsStatistics.invalidateRegionFrames++;
     staticShadowsStatistics.invalidateRegionCount += renderCount;
   }
+  staticShadowsStatistics.completelyValidFramesSinceLastUpdate = 0;
 #endif
 
   d3d::settm(TM_VIEW, renderData.viewTm);

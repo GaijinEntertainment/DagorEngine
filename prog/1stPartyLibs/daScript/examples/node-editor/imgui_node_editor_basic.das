@@ -7,10 +7,12 @@ require glfw/glfw_boost
 require imgui/imgui_boost
 require imgui/imgui_node_editor_boost
 require opengl/opengl_boost
+require opengl/opengl_imgui_driver
 require daslib/static_let
 require daslib/safe_addr
 
 var window : GLFWwindow?
+var g_renderer : ImguiGlRenderer
 
 def imgui_app(title : string; blk : block) {
     if (glfwInit() == 0) {
@@ -26,11 +28,11 @@ def imgui_app(title : string; blk : block) {
     CreateContext(null)
     StyleColorsDark(null)
     ImGui_ImplGlfw_InitForOpenGL(window, true)
-    ImGui_ImplOpenGL3_Init("#version 330")
+    imgui_gl_set_backend_flags()
+    g_renderer <- imgui_gl_create()
     var clear_color = float4(0.45f, 0.55f, 0.60f, 1.00f)
     while (glfwWindowShouldClose(window) == 0) {
         glfwPollEvents()
-        ImGui_ImplOpenGL3_NewFrame()
         ImGui_ImplGlfw_NewFrame()
         invoke(blk)
         var display_w, display_h : int
@@ -38,11 +40,12 @@ def imgui_app(title : string; blk : block) {
         glViewport(0, 0, display_w, display_h)
         glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w)
         glClear(GL_COLOR_BUFFER_BIT)
-        ImGui_ImplOpenGL3_RenderDrawData(GetDrawData())
+        imgui_gl_update_textures(g_renderer)
+        imgui_gl_render(g_renderer)
         glfwMakeContextCurrent(window)
         glfwSwapBuffers(window)
     }
-    ImGui_ImplOpenGL3_Shutdown()
+    finalize(g_renderer)
     ImGui_ImplGlfw_Shutdown()
     DestroyContext(null)
     glfwDestroyWindow(window)

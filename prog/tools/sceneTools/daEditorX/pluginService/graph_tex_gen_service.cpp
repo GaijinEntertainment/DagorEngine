@@ -32,6 +32,9 @@
 #include <textureGen/textureGenLogger.h>
 #include <textureGen/textureRegManager.h>
 #include <textureGen/entitiesSaver.h>
+#include <textureGen/textureGenDshl.h>
+#include "texgen_dshl_assemble.h"
+#include "texgen_dshl_compile.h"
 #include <libTools/util/strUtil.h>
 #include <libTools/util/appDirRelativePath.h>
 #include <util/dag_fileTimeChecker.h>
@@ -420,10 +423,14 @@ public:
     // stateLock (same lock held here), so this snapshot is consistent.
     st.graphCompileFailed = graphCompileFailed;
     st.hasErrors = graphLogger.hasErrors;
-    st.hasWarnings = graphLogger.hasWarnings;
     st.generationCompleted = generationCompleted;
-    st.lastError = graphLogger.lastError.c_str();
-    st.lastWarning = graphLogger.lastWarning.c_str();
+    // The compile's own text outranks the logger's -- stage 2 never saw the part it is about --
+    // and graphCompileFailed decides which channel it lands on. Empty on a failure leaves the panel
+    // its generic line.
+    st.lastError = graphCompileFailed ? graphCompileMessage.str() : graphLogger.lastError.c_str();
+    const bool compileWarned = !graphCompileFailed && !graphCompileMessage.empty();
+    st.hasWarnings = compileWarned || graphLogger.hasWarnings;
+    st.lastWarning = compileWarned ? graphCompileMessage.str() : graphLogger.lastWarning.c_str();
     return st;
   }
 
@@ -479,14 +486,19 @@ public:
   {
     if (!gd)
     {
-      // Going idle: drop any pipeline state tied to the previous graph data.
+      // Going idle: drop any pipeline state tied to the previous graph data. The teardown does D3D
+      // work, so it stays outside stateLock -- lock order is GpuAutoLock outer, stateLock inner.
       texGenReg.close();
       finalizeTexGen();
       closeTexGen();
+      // getPipelineStatus reads this state under stateLock as one snapshot; the worker writes it
+      // under the same lock.
+      WinAutoLock guard(stateLock);
       texGenStep = -1;
       texGenTotalCmds = 0;
       declaredOutputsCount = 0;
       graphCompileFailed = false;
+      graphCompileMessage.clear();
       generationCompleted = false;
       previewFinalName.clear();
       previewFinalAddedToBlk = false;
@@ -500,20 +512,24 @@ public:
       return;
     }
 
-    graphData = gd;
-    // Drop any preview-final inherited from the previous graph -- the new BLK is unrelated, and a
-    // stale name typically won't match any output reg in it (which would assert in the texgen lib's
-    // get_nodes_generating_regs). The panel will re-issue setPreviewFinal on its next selection.
-    previewFinalName.clear();
-    previewFinalAddedToBlk = false;
-    pendingPreviewReg.clear();
-    selectedTexState = SelectedTextureState{};
-    // Old graph's output count / build outcome are meaningless for the new one; recomputed on the
-    // first compile + generation.
-    declaredOutputsCount = 0;
-    graphCompileFailed = false;
-    generationCompleted = false;
-    shouldGenerateTex = true;
+    {
+      WinAutoLock guard(stateLock);
+      graphData = gd;
+      // Drop any preview-final inherited from the previous graph -- the new BLK is unrelated, and a
+      // stale name typically won't match any output reg in it (which would assert in the texgen lib's
+      // get_nodes_generating_regs). The panel will re-issue setPreviewFinal on its next selection.
+      previewFinalName.clear();
+      previewFinalAddedToBlk = false;
+      pendingPreviewReg.clear();
+      selectedTexState = SelectedTextureState{};
+      // Old graph's output count / build outcome are meaningless for the new one; recomputed on the
+      // first compile + generation.
+      declaredOutputsCount = 0;
+      graphCompileFailed = false;
+      graphCompileMessage.clear();
+      generationCompleted = false;
+      shouldGenerateTex = true;
+    }
     if (worker)
     {
       os_event_set(&wakeEvent);
@@ -574,6 +590,13 @@ public:
         sleep_msec(1);
       }
     }
+  }
+
+  void setGraphCompileOutcome(bool failed, const char *msg) override
+  {
+    WinAutoLock guard(stateLock);
+    graphCompileFailed = failed;
+    graphCompileMessage = msg ? msg : "";
   }
 
   void markGraphDirty() override
@@ -994,11 +1017,19 @@ private:
       if (compilerSnap)
       {
         const bool ok = compilerSnap->compile();
+        // Snapshot the freshly-compiled BLKs under the plugin's graphMutex while compilerSnap is still
+        // guaranteed alive (compileInProgress is cleared only below). The slow dsc2 pass then assembles
+        // from this private copy, never reading graphData -- which a main-thread graph load can wipe
+        // under graphMutex during the multi-second compile.
+        DataBlock dshlMainCopy, dshlShaderListCopy;
+        if (ok)
+        {
+          compilerSnap->copyCompiledGraph(dshlMainCopy, dshlShaderListCopy);
+        }
         {
           WinAutoLock guard(stateLock);
-          // Stage-1 outcome for the status bar. A failed graph compile produces no generation
-          // pass, so the bar must learn about it here -- it can't infer it from the texgen logger.
-          graphCompileFailed = !ok;
+          // graphCompileFailed is not set here: compile() pushes it with its message through
+          // setGraphCompileOutcome so the bar can never pair one with the other's verdict.
           if (ok && graphData)
           {
             previewFinalAddedToBlk = false;
@@ -1012,6 +1043,13 @@ private:
           // graphDirtyGen) to retrigger compile.
           graphCompiledGen = compileGenSnap;
           compileInProgress = false;
+        }
+        // dshl phase 1: run the slow dsc2 compile of the freshly-compiled graph HERE -- still OUTSIDE
+        // GpuAutoLock (only the generation batch below takes it) -- so it never stalls the main render
+        // thread (which blocks in acquireD3dOwnership while the worker holds the GPU lock).
+        if (ok)
+        {
+          prepareDshlShaders(dshlMainCopy, dshlShaderListCopy);
         }
       }
 
@@ -1041,6 +1079,129 @@ private:
     }
   }
 
+  // dshl pipeline, phase 1 (worker COMPILE pass, OUTSIDE GpuAutoLock): assemble the per-graph .dshl and
+  // run the slow dsc2 subprocess to build the bindump on disk, stashing the result for phase 2. The dsc2
+  // run MUST stay off the GPU lock -- doing it under GpuAutoLock starves the main render thread (it blocks
+  // in acquireD3dOwnership). Gated on the assembled-body hash so param-only edits skip the recompile.
+  // main_graph_blk / shader_list_blk are a private snapshot of the compiled graph (taken by the worker
+  // via IGraphCompiler::copyCompiledGraph under the plugin's graphMutex); this runs the slow dsc2 pass
+  // without ever touching graphData, so a concurrent main-thread graph load can't corrupt it.
+  void prepareDshlShaders(const DataBlock &main_graph_blk, const DataBlock &shader_list_blk)
+  {
+    dshlReady = false;
+    // dshlNeedLoad is sticky: cleared only after setupDshlShaders actually loads the dump, so a dump
+    // compiled by one prepare pass is not lost if another prepare (unchanged hash) runs before the load.
+    DataBlock defaultTexgen, defaultShaders;
+    dblk::load(defaultTexgen, defaultTexgenPath, dblk::ReadFlag::ROBUST);
+    dblk::load(defaultShaders, defaultShadersPath, dblk::ReadFlag::ROBUST);
+
+    TexgenDshlSkeleton sk;
+    sk.vprog = defaultTexgen.getStr("vprog", "");
+    sk.particlesVprog = defaultTexgen.getStr("particles_vprog", "");
+    sk.premain = defaultTexgen.getStr("premain", "");
+    sk.postmain = defaultTexgen.getStr("postmain", "");
+
+    // shader_sources = every named shader block from default_shaders.blk + the graph's shaderListBlk.
+    dshlSources.reset();
+    const DataBlock *srcBlks[] = {&defaultShaders, &shader_list_blk};
+    for (const DataBlock *src : srcBlks)
+    {
+      for (int i = 0; i < src->blockCount(); ++i)
+      {
+        dshlSources.addNewBlock(src->getBlock(i), src->getBlock(i)->getBlockName());
+      }
+    }
+
+    String err;
+    if (!assemble_texgen_dshl(main_graph_blk, dshlSources, sk, dshlResult, err))
+    {
+      DAEDITOR3.conError("GraphTexGenService(dshl): assemble failed: %s", err.str());
+      return;
+    }
+    if (!err.empty())
+    {
+      DAEDITOR3.conWarning("GraphTexGenService(dshl): %s", err.str());
+    }
+
+    if (dshlBindump == INVALID_BINDUMP_HANDLE || dshlResult.bodyHash != dshlBodyHash)
+    {
+      if (!TexgenDshlCompiler::initPaths(err) ||
+          !TexgenDshlCompiler::compileToDump(dshlResult.dshlText.c_str(), "texgen_graph", dshlDumpBase, err))
+      {
+        DAEDITOR3.conError("GraphTexGenService(dshl): dsc2 compile failed: %s", err.str());
+        return;
+      }
+      dshlBodyHash = dshlResult.bodyHash;
+      dshlNeedLoad = true;
+      DAEDITOR3.conNote("GraphTexGenService(dshl): compiled %d shader variant(s)", dshlResult.variantCount);
+    }
+    dshlReady = true;
+  }
+
+  // dshl pipeline, phase 2 (under GpuAutoLock at generation init): fast bindump load (only if recompiled)
+  // + register each variant as a ShaderElement-backed texgen shader, from the state prepareDshlShaders
+  // stashed. The shader:t rewrite is applied later via applyDshlShaderRewrite.
+  void setupDshlShaders()
+  {
+    dshlNodeToVariant.clear();
+    if (!dshlReady)
+    {
+      return;
+    }
+
+    if (dshlNeedLoad)
+    {
+      String err;
+      if (!TexgenDshlCompiler::loadOrReload(dshlDumpBase.c_str(), dshlBindump, err))
+      {
+        DAEDITOR3.conError("GraphTexGenService(dshl): %s", err.str());
+        return;
+      }
+      dshlNeedLoad = false;
+    }
+    if (dshlBindump == INVALID_BINDUMP_HANDLE)
+    {
+      return;
+    }
+
+    // Per-node variants, registered under the variant name (node shader:t is rewritten to it).
+    for (auto &kv : dshlResult.variantToSource)
+    {
+      const DataBlock *src = dshlSources.getBlockByName(kv.second.c_str());
+      add_dshl_shader_texgen(texGen, kv.first.c_str(), kv.first.c_str(), dshlBindump, src ? src->getBlockByName("params") : nullptr,
+        src ? src->getInt("inputs", 0) : 0, src ? src->getInt("outputs", 1) : 1, src ? src->getInt("defMaxSubSize", 4096) : 4096);
+    }
+    // Builtin/library sub-shaders, registered under their ORIGINAL names, so the C++ orchestrators
+    // (distance_field/blur/...) resolve their REQUIRE'd sub-shaders via texgen_get_shader(name).
+    for (auto &kv : dshlResult.sourceToVariant)
+    {
+      const DataBlock *src = dshlSources.getBlockByName(kv.first.c_str());
+      add_dshl_shader_texgen(texGen, kv.first.c_str(), kv.second.c_str(), dshlBindump, src ? src->getBlockByName("params") : nullptr,
+        src ? src->getInt("inputs", 0) : 0, src ? src->getInt("outputs", 1) : 1, src ? src->getInt("defMaxSubSize", 4096) : 4096);
+    }
+    dshlNodeToVariant = dshlResult.nodeToVariant;
+  }
+
+  // Rewrite each main-graph node's shader:t to its dshl variant name, so the scheduler resolves the
+  // ShaderElement-backed variant. Runs after the cache_node fixups (which read the original names).
+  void applyDshlShaderRewrite()
+  {
+    if (!graphData || dshlNodeToVariant.empty())
+    {
+      return;
+    }
+    DataBlock &mainBlk = graphData->mainGraphBlk;
+    for (int i = 0; i < mainBlk.blockCount(); ++i)
+    {
+      DataBlock *n = mainBlk.getBlock(i);
+      auto it = dshlNodeToVariant.find_as(n->getBlockName());
+      if (it != dshlNodeToVariant.end())
+      {
+        n->setStr("shader", it->second.c_str());
+      }
+    }
+  }
+
   void initTexGenInternal()
   {
     if (!texGen)
@@ -1051,20 +1212,13 @@ private:
     texgen_set_logger(texGen, &graphLogger);
     graphLogger.clear();
 
-    // ROBUST suppresses the "BLK parsed string is really long" warnings --
-    // default_texgen.blk's `premain` and default_shaders.blk's entries legitimately
-    // carry multi-KB shader sources as triple-quoted strings.
-    DataBlock defaultTexgen;
-    dblk::load(defaultTexgen, defaultTexgenPath, dblk::ReadFlag::ROBUST);
-    load_pixel_shader_texgen(defaultTexgen);
-
-    DataBlock defaultShaders;
-    dblk::load(defaultShaders, defaultShadersPath, dblk::ReadFlag::ROBUST);
-    add_pixel_shader_texgen(defaultShaders, texGen);
-    if (graphData)
-    {
-      add_pixel_shader_texgen(graphData->shaderListBlk, texGen);
-    }
+    // Still need the shared texgen buffers (textureParamsCB, particlesInstancesIndirect, common_vdecl)
+    // that process() binds -- normally created inside load_pixel_shader_texgen. dshl only skips the vprog
+    // HLSL compile (the VS now lives in each bindump variant), not the buffers.
+    init_pixel_shader_texgen();
+    // Register the variants prepareDshlShaders() already compiled. The shader:t rewrite is deferred to
+    // startGenerateTex (after the cache_node fixups).
+    setupDshlShaders();
 
     extern void init_texgen_df_shader(TextureGenerator *);
     init_texgen_df_shader(texGen);
@@ -1144,6 +1298,10 @@ private:
         }
       }
     }
+
+    // dshl pipeline: now that the cache_node fixups (which read original shader names) are done, point
+    // each node at its dsc2-compiled variant shader.
+    applyDshlShaderRewrite();
 
     entitiesSaver.clearUsedBlkNames();
     for (int i = 0; i < mainBlk.blockCount(); i++)
@@ -2093,6 +2251,22 @@ private:
   // Texture generation
   TextureGenerator *texGen = nullptr;
   TextureRegManager texGenReg;
+
+  // dshl pipeline: node shaders are dsc2-compiled into this bindump and rendered as ShaderElements.
+  // dshlBodyHash gates the (slow) dsc2 recompile so param-only edits don't retrigger it. dshlNodeToVariant
+  // maps each main-graph node block to its variant shader name; applied to shader:t after the cache_node fixups.
+  ShaderBindumpHandle dshlBindump = INVALID_BINDUMP_HANDLE;
+  uint32_t dshlBodyHash = 0;
+  eastl::hash_map<eastl::string, eastl::string> dshlNodeToVariant;
+  // Worker-thread-only dshl state. prepareDshlShaders() (worker compile pass, OUTSIDE GpuAutoLock) runs
+  // the slow dsc2 subprocess and stashes the result here; setupDshlShaders() (under GpuAutoLock at init)
+  // then does the fast bindump load + shader registration. Both run on the texgen worker thread, never
+  // the main thread, so these need no extra locking.
+  TexgenDshlResult dshlResult;
+  DataBlock dshlSources;
+  String dshlDumpBase;
+  bool dshlReady = false;
+  bool dshlNeedLoad = false;
   eastl::hash_set<eastl::string> finalStrings;
   eastl::hash_set<eastl::string> oldFinalStrings;
   eastl::hash_set<eastl::string> skipSavingNames;
@@ -2106,9 +2280,12 @@ private:
   // instead of finalStrings.size(), which a generation failure prunes to 0 (see getPipelineStatus).
   int declaredOutputsCount = 0;
   // Build outcome for the status bar (see TexGenPipelineStatus). graphCompileFailed: stage-1 graph
-  // compile returned false. generationCompleted: a stage-2 generation pass reached success. Both
-  // reset on graph swap; generationCompleted also resets at each pass start.
+  // compile returned false. graphCompileMessage: why it failed, or what it dropped -- stored here
+  // rather than in graphLogger, which startGenerateTex clears before the user could read it.
+  // generationCompleted: a stage-2 generation pass reached success. All reset on graph swap;
+  // generationCompleted also resets at each pass start.
   bool graphCompileFailed = false;
+  String graphCompileMessage;
   bool generationCompleted = false;
 
   // Flags

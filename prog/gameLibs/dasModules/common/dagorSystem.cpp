@@ -117,6 +117,9 @@ public:
       "::profile_time_usec");
     das::addExtern<DAS_BIND_FUN(get_DAGOR_DBGLEVEL)>(*this, lib, "get_DAGOR_DBGLEVEL", das::SideEffects::accessExternal,
       "bind_dascript::get_DAGOR_DBGLEVEL");
+    // not none: none allows const folding, and the AOT compiler platform may differ from the target platform
+    das::addExtern<DAS_BIND_FUN(get_TARGET_PC)>(*this, lib, "get_TARGET_PC", das::SideEffects::accessExternal,
+      "bind_dascript::get_TARGET_PC");
     das::addExtern<DAS_BIND_FUN(get_DAGOR_ADDRESS_SANITIZER)>(*this, lib, "get_DAGOR_ADDRESS_SANITIZER",
       das::SideEffects::accessExternal, "bind_dascript::get_DAGOR_ADDRESS_SANITIZER");
     das::addExtern<DAS_BIND_FUN(get_DAGOR_THREAD_SANITIZER)>(*this, lib, "get_DAGOR_THREAD_SANITIZER",

@@ -95,24 +95,54 @@ void render_debug_text_marks()
   float fh = StdGuiRender::get_font_cell_size().y;
   E3DCOLOR bgColor = E3DCOLOR_MAKE(0, 0, 0, 160);
   E3DCOLOR txtColor = E3DCOLOR(255, 255, 255, 255);
+  // walk '\n'-separated lines of a null-terminated string, calling fn(lineStart, lineLen) per line
+  auto forEachLine = [](const char *str, auto &&fn) {
+    for (const char *s = str; s && *s;)
+    {
+      const char *nl = strchr(s, '\n');
+      fn(s, nl ? int(nl - s) : (int)strlen(s));
+      s = nl ? nl + 1 : nullptr;
+    }
+  };
+
   for (int i = 0; i < text_marks.size(); i++)
   {
     const TextMarkRec &r = text_marks[i];
-    Point2 htsz = StdGuiRender::get_str_bbox(r.str).width() * 0.5f;
+    // draw_str is single-line: measure each line's width, wrap them all in one box, draw left-aligned.
+    int numLines = 0;
+    float maxW = 0.f;
+    float soleLineH = 0.f;
+    forEachLine(r.str, [&](const char *s, int len) {
+      numLines++;
+      if (len <= 0)
+        return;
+      const Point2 sz = StdGuiRender::get_str_bbox(s, len).width();
+      maxW = sz.x > maxW ? sz.x : maxW;
+      soleLineH = sz.y;
+    });
+    if (numLines <= 0)
+      continue;
+    const float halfW = maxW * 0.5f;
+    // one line gets string's own glyph bbox's height; multiple lines use a uniform font cell per row
+    const float halfH = (numLines == 1 ? soleLineH : fh) * 0.5f;
+    const float off = (r.lofs - 0.8f) * fh;  // vertical anchor
+    const float extra = (numLines - 1) * fh; // grow the box downward for the extra lines
+
     if (r.frameColor != bgColor)
     {
       StdGuiRender::set_color(r.frameColor);
-      StdGuiRender::render_box(r.cx - htsz.x - 4, r.cy - htsz.y - 4 + (r.lofs - 0.8) * fh, r.cx + htsz.x + 4,
-        r.cy + htsz.y + 4 + (r.lofs - 0.8) * fh);
+      StdGuiRender::render_box(r.cx - halfW - 4, r.cy - halfH - 4 + off, r.cx + halfW + 4, r.cy + halfH + 4 + off + extra);
     }
-
     StdGuiRender::set_color(bgColor);
-    StdGuiRender::render_box(r.cx - htsz.x - 2, r.cy - htsz.y - 2 + (r.lofs - 0.8) * fh, r.cx + htsz.x + 2,
-      r.cy + htsz.y + 2 + (r.lofs - 0.8) * fh);
+    StdGuiRender::render_box(r.cx - halfW - 2, r.cy - halfH - 2 + off, r.cx + halfW + 2, r.cy + halfH + 2 + off + extra);
 
     StdGuiRender::set_color(txtColor);
-    StdGuiRender::goto_xy(floorf(r.cx - htsz.x), floorf(r.cy - htsz.y + r.lofs * fh));
-    StdGuiRender::draw_str(r.str);
+    float y = r.cy - halfH + r.lofs * fh;
+    forEachLine(r.str, [&](const char *s, int len) {
+      StdGuiRender::goto_xy(floorf(r.cx - halfW), floorf(y));
+      StdGuiRender::draw_str(s, len);
+      y += fh;
+    });
   }
 
   StdGuiRender::end_render();

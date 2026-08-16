@@ -183,6 +183,7 @@ third-party component as follows:
   prog/3rdPartyLibs/phys/joltPhysics/LICENSE
   prog/3rdPartyLibs/poisson-disk-generator/LICENSE
   prog/3rdPartyLibs/pugixml/LICENSE
+  prog/3rdPartyLibs/rapidcheck/LICENSE.md
   prog/3rdPartyLibs/rapidjson/license.txt
   prog/3rdPartyLibs/reachability/LICENSE.txt
   prog/3rdPartyLibs/recastnavigation/Detour/LICENSE

@@ -202,3 +202,46 @@ def test_job_status_join(t : T?) {
     }
 }
 
+// ---- persistent job queue: create_job_que / destroy_job_que ----
+
+[test]
+def test_persistent_job_que(t : T?) {
+    t |> run("new_job runs on a create_job_que pool with no with_job_que block") @(t : T?) {
+        create_job_que()
+        let NUM_JOBS = 4
+        with_channel(NUM_JOBS) $(ch) {
+            for (i in range(NUM_JOBS)) {
+                new_job() @() {
+                    ch |> push_clone(IntVal(v = i * 10))
+                    ch |> notify_and_release
+                }
+            }
+            var results : array<int>
+            ch |> for_each_clone() $(val : IntVal#) {
+                results |> push(val.v)
+            }
+            t |> equal(NUM_JOBS, length(results))
+            sort(results)
+            for (i in range(NUM_JOBS)) {
+                t |> equal(i * 10, results[i])
+            }
+        }
+        destroy_job_que()
+    }
+    t |> run("create_job_que works again after destroy_job_que teardown") @(t : T?) {
+        create_job_que()
+        with_channel(1) $(ch) {
+            new_job() @() {
+                ch |> push_clone(IntVal(v = 77))
+                ch |> notify_and_release
+            }
+            var result = 0
+            ch |> for_each_clone() $(val : IntVal#) {
+                result = val.v
+            }
+            t |> equal(77, result)
+        }
+        destroy_job_que()
+    }
+}
+

@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <math.h>
 #include <string_view>
 #include <filesystem>
 
@@ -44,7 +45,7 @@ ClassDesc *GetObjectPropertiesEditorCD();
 ClassDesc *GetDAGEXPCD();
 ClassDesc *GetImpUtilCD();
 
-TCHAR *GetString(int id);
+const TCHAR *GetString(int id);
 
 const TCHAR *make_path_rel(const TCHAR *);
 
@@ -89,15 +90,10 @@ enum
 
 #define DEGENERATE_VERTEX_DELTA 1e-5f // 0.01mm
 
-inline bool is_equal_float(float left, float right, float delta = 1e-4f)
-{
-  float diff = left - right;
-  (*(DWORD *)&diff) &= 0x7FFFFFFF; // fabsf()
-  return diff < delta;
-}
+inline bool is_equal_float(float left, float right, float delta = 1e-4f) { return fabsf(left - right) < delta; }
 
 
-inline bool is_equal_point(Point3 &left, Point3 &right, float delta = 1e-4f)
+inline bool is_equal_point(const Point3 &left, const Point3 &right, float delta = 1e-4f)
 {
   return is_equal_float(left.x, right.x, delta) && is_equal_float(left.y, right.y, delta) && is_equal_float(left.z, right.z, delta);
 }

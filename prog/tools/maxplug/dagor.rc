@@ -1041,15 +1041,19 @@ BEGIN
     PUSHBUTTON      "Export to Proxymat",IDC_PROXY_EXPORT,114,3,108,12
 END
 
-IDD_EXPORT_MAT_TO_JSON DIALOGEX 0, 0, 108, 85
+IDD_EXPORT_MAT_TO_JSON DIALOGEX 0, 0, 108, 136
 STYLE DS_SETFONT | WS_CHILD
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
-    EDITTEXT        IDC_ASSET_PREFIX,3,12,99,14,ES_AUTOHSCROLL
-    CONTROL         "Selected objects",IDC_EXPSEL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,30,93,10
-    PUSHBUTTON      "Resolve names",IDC_RESOLVE_NAMES,3,45,99,15
-    PUSHBUTTON      "Export JSON",IDC_EXPORT,3,63,99,15
-    LTEXT           "Asset prefix",IDC_STATIC,3,3,99,8
+    CONTROL         "Selected",IDC_EXPSEL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,3,93,10
+    GROUPBOX        "Materials",IDC_STATIC,0,17,105,64
+    LTEXT           "Prefix:",IDC_STATIC,6,30,23,8
+    EDITTEXT        IDC_ASSET_PREFIX,33,29,66,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "Resolve names",IDC_RESOLVE_NAMES,6,45,93,13
+    PUSHBUTTON      "Export to JSON",IDC_EXPORT,6,63,93,13
+    GROUPBOX        "Nodes",IDC_STATIC,0,84,105,48
+    PUSHBUTTON      "Resolve hierarchy",IDC_RESOLVE_HIER,6,95,93,13
+    PUSHBUTTON      "Remove Skin modifier",IDC_REMOVE_SKIN_MOD,6,114,93,13
 END
 
 
@@ -1317,7 +1321,7 @@ BEGIN
     BEGIN
         LEFTMARGIN, 1
         RIGHTMARGIN, 102
-        BOTTOMMARGIN, 80
+        BOTTOMMARGIN, 131
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -1687,12 +1691,7 @@ END
 
 IDD_EXPORT_MAT_TO_JSON AFX_DIALOG_LAYOUT
 BEGIN
-    0,
-    0, 0, 0, 0,
-    0, 0, 50, 0,
-    0, 0, 100, 0,
-    0, 0, 100, 0,
-    0, 0, 0, 0
+    0
 END
 
 
@@ -1874,7 +1873,7 @@ BEGIN
     IDS_OPEN_SCENE_TITLE    "Open Dagor Scene"
     IDS_IMPUTIL_PARAM_ROLL  "Dagor Scene Import Parameters"
     IDS_IMPUTIL_HELP_ROLL   "Help"
-    IDS_EXPORT_TO_JSON      "Export to JSON"
+    IDS_EXPORT_TO_JSON      "Prepare for FBX export"
     IDS_NON_DAGOR_LIGHTS    "There are non-dagor lights in the scene, see export log."
     IDS_NO_SMOOTHING        "There triangles in the scene with NO smoothing, see export log."
 END

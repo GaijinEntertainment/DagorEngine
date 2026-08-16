@@ -67,7 +67,7 @@ def struct_has_matching_field(value; query : string) : bool {
 
 def handled_has_matching_field(value : Annotation const; query : string) : bool {
     var found = false
-    var ann = unsafe(reinterpret<BasicStructureAnnotation?> value)
+    var ann = unsafe(reinterpret<BasicStructureAnnotation?>(value))
     for_each_field(*ann) $(name, _cppName, _xtype, _offset) {
         if (symbol_matches(name, query)) {
             found = true
@@ -87,7 +87,7 @@ def write_struct_fields_highlighted(var w : StringBuilderWriter; value; query : 
 }
 
 def write_handled_fields_highlighted(var w : StringBuilderWriter; value : Annotation const; query : string; field_search : bool) {
-    var ann = unsafe(reinterpret<BasicStructureAnnotation?> value)
+    var ann = unsafe(reinterpret<BasicStructureAnnotation?>(value))
     for_each_field(*ann) $(name, cppName, xtype, _offset) {
         let prefix = field_search && symbol_matches(name, query) ? "  > " : "    "
         if (!empty(cppName) && cppName != name) {

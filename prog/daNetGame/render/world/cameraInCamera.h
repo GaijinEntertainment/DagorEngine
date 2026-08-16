@@ -17,7 +17,7 @@ void setup(const bool has_feature);
 bool is_frame_after_deactivation();
 int get_frame_number();
 bool activate_view();
-void update_transforms(const CameraParams &main_view, const CameraParams &prev_main_view, const CameraParams &lens_view);
+void update_transforms(const CameraParams &cockpit_view, const CameraParams &prev_cockpit_view, const CameraParams &lens_view);
 OcclusionMaskApplier::NearPlaneWithHoleTaskData get_near_plane_masking_task(const CameraParams &main_view);
 bool is_lens_render_active();
 bool is_lens_only_zoom_enabled();

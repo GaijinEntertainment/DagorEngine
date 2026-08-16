@@ -43,14 +43,15 @@ static pthread_mutex_t ov_mutex = PTHREAD_MUTEX_INITIALIZER;
 class AsyncReadThread : public DaThread
 {
 public:
-  AsyncReadThread() : DaThread("posix thread async reader", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK), activeOvMask(0)
+  AsyncReadThread() : DaThread("posix thread async reader", DEFAULT_STACK_SZ * 2, 0, WORKER_THREADS_AFFINITY_MASK), activeOvMask(0)
   {
     os_event_create(&wakeEvent, "posix_thread_read_wake_event");
   }
 
   ~AsyncReadThread()
   {
-    terminate(false, -1, &wakeEvent);
+    DEBUG_CTX("[posix_thread_read] dfa: waiting for the read thread to finish");
+    terminate(true, -1, &wakeEvent);
     os_event_destroy(&wakeEvent);
   }
 
@@ -80,13 +81,23 @@ public:
   void process(AsyncReadData &ov)
   {
     int fd = HANDLE2FD(ov.handle);
-    lseek(fd, ov.offset, SEEK_SET);
-    ov.bytesRead = read(fd, ov.buf, ov.len);
-    if (ov.bytesRead < 0)
+    for (;;)
     {
-      logerr("[posix_thread_read] dfa: error %i processing (bytesRead: %i, fd: %i, offset: %i, length: %i)", errno, ov.bytesRead, fd,
-        ov.offset, ov.len);
-      ov.bytesRead = -1; // clamp to -1, for consistency with other AIO impls
+      lseek(fd, ov.offset, SEEK_SET);
+      ssize_t rd = read(fd, ov.buf, ov.len);
+      if (rd >= 0)
+      {
+        ov.bytesRead = (int)rd;
+        break;
+      }
+
+      int err = errno;
+      if (err == EINTR && !isThreadTerminating())
+        continue;
+
+      logerr("[posix_thread_read] dfa: error %i processing (fd: %i, offset: %i, length: %i)", err, fd, ov.offset, ov.len);
+      ov.bytesRead = -err;
+      break;
     }
 
     ov.code.store(0, std::memory_order_release);
@@ -136,7 +147,7 @@ static bool unuse_bit(int idx)
 }
 
 
-void *dfa_open_for_read(const char *fpath, bool non_cached)
+void *dfa_open_for_read(const char *fpath, [[maybe_unused]] bool non_cached)
 {
   int fd = open(fpath, O_RDONLY);
   if (fd < 0)
@@ -160,7 +171,7 @@ void dfa_close(void *handle)
     dag_on_file_close(handle);
 }
 
-unsigned dfa_chunk_size(const char *fname)
+unsigned dfa_chunk_size([[maybe_unused]] const char *fname)
 {
   return 2048; //==
 }
@@ -240,21 +251,30 @@ bool dfa_check_complete(int asyncdata_handle, int *read_len)
 {
   G_ASSERT(asyncdata_handle >= 0 && asyncdata_handle < 64);
   AsyncReadData &p = ovPool[asyncdata_handle];
-  if (p.code.load(std::memory_order_acquire) == 0)
+  if (p.code.load(std::memory_order_acquire) != 0)
   {
-#if SIMULATE_READ_ERRORS
-    if (p.bytesRead > 0 && grnd() < 1024)
-    {
-      *read_len = -1;
-      return true;
-    }
-#endif
-    *read_len = p.bytesRead;
-    return true;
+    *read_len = 0;
+    return false;
   }
 
-  *read_len = 0;
-  return false;
+#if SIMULATE_READ_ERRORS
+  if (p.bytesRead > 0 && grnd() < 1024)
+    p.bytesRead = -EIO;
+#endif
+
+  if (p.bytesRead < 0)
+  {
+    errno = -p.bytesRead;
+    if (dag_on_read_error_cb && dag_on_read_error_cb(p.handle, p.offset, p.len))
+    {
+      *read_len = 0;
+      dfa_read_async(p.handle, asyncdata_handle, p.offset, p.buf, p.len);
+      return false;
+    }
+  }
+
+  *read_len = p.bytesRead;
+  return true;
 }
 
 #define EXPORT_PULL dll_pull_osapiwrappers_asyncRead

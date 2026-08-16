@@ -169,7 +169,7 @@ def public run_chunk_workers(argvs : array<array<string>>) : array<ChunkResult> 
                             var output : string
                             let exit_code = unsafe(popen_argv(input.argv, 0.0, $(f) {
                                 if (f != null) {
-                                    output := unsafe(fread_to_eof(f))
+                                    output := fread(f)
                                 }
                             }))
                             outCh |> push_clone(ChunkResult(

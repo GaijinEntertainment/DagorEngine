@@ -5,6 +5,7 @@ include "shaders_dx11.blk"
 {
   file:t = "testgi_bvh_debug.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_dynrend_indices.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_lru_collision_normals.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_bake_texture_to_vertices.dshl"
 }
 
@@ -12,6 +13,7 @@ include "shaders_dx11.blk"
 "@override:Compile" {
   "@override:fsh":t="5.0"
   "@override:assume_vars" {
+    "@delete:supports_barycentrics":i = 0
     "@delete:render_inline_raytracing":i=0
      //gi_voxelize_use_multidraw:i=1
   }

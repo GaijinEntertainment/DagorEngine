@@ -34,6 +34,8 @@ struct xkb_keymap;
 struct xkb_state;
 struct xkb_context;
 
+class WinCritSec;
+
 typedef int32_t wl_fixed_t_proxy;
 
 struct Wayland
@@ -180,6 +182,10 @@ struct Wayland
 
   BlockPool<Output, wl_output *, Wayland, 16> outputs;
   Output *getDefaultOutput();
+  // Finds an output by its wl_output name. A null/empty monitorName selects the default output.
+  Output *findOutputByName(const char *monitorName);
+  // Returns the output force-selected via the "video/monitor" setting, or nullptr when it is unset/"auto".
+  Output *getSelectedOutput();
 
   struct Pointer;
   struct Keyboard;
@@ -190,6 +196,9 @@ struct Wayland
     Wayland *parent;
     Pointer *activePointer;
     Keyboard *activeKeyboard;
+
+    // heap-allocated: WinCritSec is non-copyable, Window lives in an assignable BlockPool
+    WinCritSec *inputCritSec = nullptr;
 
     bool fullscreen;
     bool outputsChanged;
@@ -281,6 +290,10 @@ struct Wayland
     bool clipChanged;
     bool validDeltas;
 
+    // input is usually 10 per standard mouse wheel notch
+    // dagor scale is 100 per notch
+    static constexpr uintptr_t MOUSE_WHEEL_SCALE_TO_DAGOR = 10;
+
     struct
     {
       bool dirty;
@@ -293,9 +306,9 @@ struct Wayland
     {
       zwp_relative_pointer_v1 *relativePointerV1;
       zwp_confined_pointer_v1 *confinedPointerV1;
-      zwp_locked_pointer_v1 *lockedPointerV1;
     } zwp;
 
+    void destroy();
     void resetupHideState();
     void resetupClipState();
 
@@ -329,6 +342,7 @@ struct Wayland
     void trackRepeat(bool pressed, uint32_t key);
     void processRepeats();
 
+    void destroy();
     void sendKeyMsg(bool pressed, uint32_t keycode);
 
     void cbKeymap(uint32_t format, int32_t fd, uint32_t size);

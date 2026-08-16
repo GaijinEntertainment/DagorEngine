@@ -240,6 +240,15 @@ public:
   NameSpaceRequest currNameSpace() { return *this; }
 
   /**
+   * \brief Returns a request object for the parent of this node's name space.
+   * \note The root name space is its own parent, so a node registered in the
+   * root gets the root itself.
+   *
+   * \return NameSpaceRequest object representing the parent name space.
+   */
+  NameSpaceRequest getParentNameSpace() const;
+
+  /**
    * \brief Returns a request object for the root name space which can
    * be used to access global resources.
    *

@@ -17,9 +17,6 @@ def test_long_length_after_resize(t : T?) {
 
 [test]
 def test_long_length_table(t : T?) {
-    var tab : table<int; int>
-    tab |> insert(1, 100)
-    tab |> insert(2, 200)
-    tab |> insert(3, 300)
+    let tab <- { 1 => 100, 2 => 200, 3 => 300 }
     t |> equal(long_length(tab), 3_l)
 }

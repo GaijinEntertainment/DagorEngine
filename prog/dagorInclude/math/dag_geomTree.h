@@ -63,10 +63,14 @@ public:
   Index16 findNodeIndex(const char *name) const;
   Index16 findINodeIndex(const char *name) const;
 
-  // Monotonic pose stamp: every wtm update entry and named world-state mutator (wtm/wofs
-  // setters) bumps it, so consumers caching pose-derived data (collision instances, TLAS
-  // feeders) can cheaply detect a change. Never 0. Local-tm writers do not bump (calcWtm
+  // Per-OBJECT monotonic pose stamp: every wtm update entry, named world-state mutator
+  // (wtm/wofs setters), load and copy-assign bumps it, so consumers caching pose-derived
+  // data (collision instances, TLAS feeders) see every pose change AND every content
+  // replacement of this object as stale. Never 0. Local-tm writers do not bump (calcWtm
   // does); direct wtm writers through the non-const accessors must call markPoseChanged().
+  // Object identity is the pointer: the binding contract requires the tree to outlive its
+  // consumers (a dangling consumer is UB no stamp can repair), so the stamp needs no
+  // cross-object uniqueness. Out of contract: 2^32 bumps landing exactly on a stamp.
   uint32_t getPoseGeneration() const { return poseGeneration; }
   void markPoseChanged()
   {

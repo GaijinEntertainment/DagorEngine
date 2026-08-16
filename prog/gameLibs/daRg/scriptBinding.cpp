@@ -3,6 +3,7 @@
 #include "scriptBinding.h"
 #include "guiScene.h"
 #include "dargDebugUtils.h"
+#include "statefulComp.h"
 
 #include <daRg/dag_element.h>
 #include <daRg/dag_renderObject.h>
@@ -1030,6 +1031,8 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
     .Func("set", &BhvMoveToAreaTarget::set)
     .Func("clear", &BhvMoveToAreaTarget::clear)
     /**/;
+
+  bind_stateful_comp(sqvm, exports);
 
   exports.Bind("ElemGroup", elemGroup);
   exports.Bind("ScrollHandler", scrollHandler);

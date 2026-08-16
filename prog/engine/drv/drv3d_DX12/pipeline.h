@@ -1536,7 +1536,7 @@ class PipelineManager : public backend::ShaderModuleManager,
   ID3D12PipelineState *createBlitPipeline(Device &device, DXGI_FORMAT out_fmt);
   ID3D12PipelineState *createClearPipeline(Device &device, DXGI_FORMAT out_fmt);
   GraphicsPipelineSignature *getGraphicsPipelineSignature(ID3D12Device *device, PipelineCache &cache,
-    dxil::GraphicsRootSignatureExtraProperties propertie, const dxil::ShaderResourceUsageTable &vs_header,
+    dxil::GraphicsRootSignatureExtraProperties properties, const dxil::ShaderResourceUsageTable &vs_header,
     const dxil::ShaderResourceUsageTable &ps_header, const dxil::ShaderResourceUsageTable *gs_header,
     const dxil::ShaderResourceUsageTable *hs_header, const dxil::ShaderResourceUsageTable *ds_header);
 #if !_TARGET_XBOXONE
@@ -2521,6 +2521,12 @@ struct ConstBufferSetupInformationStream
 #endif
 };
 
+enum class BindingsResetMode
+{
+  All,
+  KeepRaytraceOverrides
+};
+
 struct PipelineStageStateBase
 {
   struct TRegister
@@ -2589,7 +2595,7 @@ struct PipelineStageStateBase
     bRegisterStateDirtyMask = tRegisterStateDirtyMask = uRegisterStateDirtyMask = ~0u; //
   }
   void resetDescriptorRanges();
-  void resetAllState();
+  void resetBindings(BindingsResetMode mode);
   void setSRVTexture(uint32_t unit, Image *image, ImageViewState view_state, bool as_const_ds, D3D12_CPU_DESCRIPTOR_HANDLE view);
   void setSampler(uint32_t unit, D3D12_CPU_DESCRIPTOR_HANDLE sampler);
   void setUAVTexture(uint32_t unit, Image *image, ImageViewState view_state, D3D12_CPU_DESCRIPTOR_HANDLE view);

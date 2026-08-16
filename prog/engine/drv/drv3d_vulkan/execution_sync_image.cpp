@@ -241,6 +241,12 @@ void ImageSyncOp::onConflictWithDst(ImageSyncOp &dst)
   // clang-format on
   handledBySubpassDependency = handledBySubpassDep;
   dst.handledBySubpassDependency = handledBySubpassDep;
+
+  // a suppressed intra-NRP dependency is covered by the subpass dependency only inside the pass;
+  // the src write still needs an explicit barrier before the next external access, so fold it into
+  // the surviving dst op, which otherwise keeps only its read and loses the write for future sync.
+  if (handledBySubpassDep && laddr.isWrite())
+    dst.laddr.merge(laddr);
 }
 
 template <>

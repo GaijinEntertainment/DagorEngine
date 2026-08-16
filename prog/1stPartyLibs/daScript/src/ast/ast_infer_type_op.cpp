@@ -152,7 +152,8 @@ namespace das {
             return Visitor::visit(expr); // failed to infer
         // pointer arithmetics
         if (expr->subexpr->type->isPointer()) {
-            if (!expr->subexpr->type->firstType) {
+            // same tVoid-shaped void? guard as the binary case below
+            if (!expr->subexpr->type->firstType || expr->subexpr->type->firstType->baseType == Type::tVoid) {
                 error("operations on 'void' pointers are prohibited; " +
                           describeType(expr->subexpr->type),
                       "", "",
@@ -391,7 +392,10 @@ namespace das {
         }
         // pointer arithmetics
         if (expr->left->type->isPointer() && expr->right->type->isIndexExt()) {
-            if (!expr->left->type->firstType) {
+            // a void? can carry firstType as an explicit tVoid node — that shape used to slip
+            // past the null check and lower with stride sizeof(void) == 0, silently turning
+            // `p + n` into `p`
+            if (!expr->left->type->firstType || expr->left->type->firstType->baseType == Type::tVoid) {
                 error("operations on 'void' pointers are prohibited; " +
                           describeType(expr->left->type),
                       "", "",
@@ -471,6 +475,15 @@ namespace das {
                 expr->type = new TypeDecl();
                 return Visitor::visit(expr);
             }
+        }
+        // distinct types borrow == and != (language-level, not overridable): lower to a compare
+        // of the underlyings. Both sides must be the SAME distinct type; Foo == int stays an error
+        if ((expr->op == "==" || expr->op == "!=") && expr->left->type->isDistinct() &&
+            expr->left->type->isSameType(*expr->right->type, RefMatters::no, ConstMatters::no, TemporaryMatters::no)) {
+            reportAstChanged();
+            return new ExprOp2(expr->at, expr->op,
+                new ExprPtr2Ref(expr->left->at, expr->left),
+                new ExprPtr2Ref(expr->right->at, expr->right));
         }
         auto opName = "_::" + expr->op;
         auto tempCall = new ExprLooksLikeCall(expr->at, opName);
@@ -611,11 +624,40 @@ namespace das {
             return "";
         }
     }
+    // a direct store target (tab[k] = / <- / :=, incl. behind an unsafe() wrap) is fully overwritten —
+    // the default_init_containers rewrite must not init it first (init-then-move-over would leak)
+    static void markTableStoreTarget(Expression *left) {
+        if (left->rtti_isUnsafe()) left = static_cast<ExprUnsafe*>(left)->body;
+        if (left->rtti_isAt()) static_cast<ExprAt*>(left)->noTableInit = true;
+    }
     void InferTypes::preVisit(ExprMove *expr) {
         Visitor::preVisit(expr);
+        markTableStoreTarget(expr->left);
+        if (expr->left->rtti_isAt()) {
+            // keep the raw ExprAt so visit(ExprMove) can try the []<- operator first
+            auto at = static_cast<ExprAt*>(expr->left);
+            at->underClone = true;
+        }
         markNoDiscard(expr->right);
     }
     ExpressionPtr InferTypes::visit(ExprMove *expr) {
+        if (expr->right->type && !expr->right->type->isAutoOrAlias() && expr->left->rtti_isAt()) {
+            ExprAt *eat = (ExprAt *)(expr->left);
+            if (eat->subexpr->type && !eat->subexpr->type->isExprType()) {
+                // lets find []<- operator
+                if (auto opAtMove = inferGenericOperator3("[]<-", expr->at, eat->subexpr, eat->index, expr->right)) {
+                    opAtMove->alwaysSafe = eat->alwaysSafe | expr->alwaysSafe;
+                    reportAstChanged();
+                    return opAtMove;
+                }
+                // now, lets see if at itself can be promoted
+                if (auto OpAt = inferGenericOperator("[]", expr->at, eat->subexpr, eat->index)) {
+                    reportAstChanged();
+                    OpAt->alwaysSafe = eat->alwaysSafe;
+                    expr->left = OpAt;
+                }
+            }
+        }
         if (!expr->left->type || !expr->right->type)
             return Visitor::visit(expr);
         // infer
@@ -707,6 +749,7 @@ namespace das {
     }
     void InferTypes::preVisit(ExprCopy *expr) {
         Visitor::preVisit(expr);
+        markTableStoreTarget(expr->left);
         if (!strictProperties) {
             if (expr->left->rtti_isField()) {
                 auto field = static_cast<ExprField*>(expr->left);
@@ -770,6 +813,7 @@ namespace das {
     }
     void InferTypes::preVisit(ExprClone *expr) {
         Visitor::preVisit(expr);
+        markTableStoreTarget(expr->left);
         if (expr->left->rtti_isField()) {
             auto field = static_cast<ExprField*>(expr->left);
             field->underClone = true;

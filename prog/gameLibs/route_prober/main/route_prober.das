@@ -73,7 +73,7 @@ def get_settings(param : string; fallback : int) : int
 
 // Enables experiment with a given chance depending on current session id (deterministically)
 def is_matching_experiment_enabled(chance : float) : bool
-  let session : uint64 = get_session_id()
+  let session : uint64 = get_session_id() // nolint:LINT021
   var seed : int = int(session)
   let r : float = _frnd(seed)// [0, 1)
   return r < chance

@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <anim/dag_animPostBlendCtrl.h>
+#include <anim/footLockerIKCtrl.h>
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
@@ -162,7 +163,7 @@ static void load_animation_data_base(ecs::EntityManager &manager, ecs::EntityId 
       if (!main_database__footLockerCtrlName.empty())
       {
         String footLockerParamName(0, "$%s", main_database__footLockerCtrlName.c_str());
-        dataBase.footLockerParamId = anim_graph->getParamId(footLockerParamName, AnimV20::AnimGraphStateHolder::PT_InlinePtr);
+        dataBase.footLockerParamId = anim_graph->getParamId(footLockerParamName, AnimV20::AnimGraphStateHolder::PT_InlinePtrCTZ);
         if (dataBase.footLockerParamId == -1)
         {
           String animGraphName;

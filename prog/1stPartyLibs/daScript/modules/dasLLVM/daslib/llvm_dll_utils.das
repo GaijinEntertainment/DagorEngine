@@ -6,6 +6,7 @@ require jit
 require daslib/rtti
 require daslib/strings_boost
 require daslib/ast
+require daslib/templates_boost
 
 // Wrapped name for dll.
 struct public DllName {
@@ -119,13 +120,23 @@ class public UidNodes {
     }
 
     def private get_base(ptr : void?; hint : string) {
-        if (id_map |> key_exists(ptr)) {
-            let id = unsafe(id_map[ptr])
-            return DllName("{get_namesp_prefix()}`{get_mangled_name(thisFunc)}_{id}_{hint}")
-        } else {
+        if (!(id_map |> key_exists(ptr))) {
             panic("Key not found for {hint}")
             return DllName()
         }
+        let id = unsafe(id_map[ptr])
+        // nolint:STYLE014 — the sentinel contract below is load-bearing
+        // Nodes inside global-variable initializers have no Function context (thisFunc == null):
+        // the exe path codegens them as a synthetic init_globals fn. Both the define pass
+        // (generate_globals_initialization_fn) and the store pass (collect_external_functions)
+        // reach them with thisFunc == null, so a leading-backtick sentinel (never a mangled
+        // name) keeps the addr-global name in agreement. get_mangled_name(null) would otherwise
+        // throw ("expecting function"), which the macro adapter reports as error[31206].
+        var fnPart = "`globals"
+        if (thisFunc != null) {
+            fnPart = get_mangled_name(thisFunc)
+        }
+        return DllName("{get_namesp_prefix()}`{fnPart}_{id}_{hint}")
     }
 
     def get_addr(expr : ExprAddr?) : DllName {
@@ -168,10 +179,6 @@ class public UidNodes {
         return get_base(blk, "block_{get_mangled_name(blk)}")
     }
 
-    def public get_block_ann(mk_blk : ExprMakeBlock?) : DllName {
-        return get_base(mk_blk, "makeblock_ann")
-    }
-
     def reset(var func : Function?) {
         thisFunc = func
     }
@@ -186,12 +193,28 @@ class public UidNodes {
 
 }
 
-def public create_uid_nodes(prog : Program?; funcs : array<FunctionPtr>) {
+def public create_uid_nodes(prog : Program?; funcs : array<FunctionPtr>; gen_exe : bool = false) {
     var res = new table<void?, uint64>()
     var uids = new UidGen(id_map = res)
     make_visitor(*uids) $(adapter) {
         for (fun in funcs) {
             visit(fun, adapter)
+        }
+        // nolint:STYLE014 — the exact-mirror requirement below is load-bearing
+        // Exe codegens global-var initializers as a synthetic init_globals fn, so a UID-bearing
+        // node in a global init (e.g. an @@fn -> ExprAddr, common for kernel dispatch globals in
+        // builtin modules) needs an id too, or get_base panics. JIT skips this: the interpreter
+        // runs global inits, never codegen. This must mirror generate_globals_initialization_fn's
+        // enumeration EXACTLY — every module including builtin ones (do NOT skip builtIn the way
+        // collect_external_functions does; those globals are still init-codegenned in the exe).
+        if (gen_exe) {
+            prog |> for_each_module() $(m) {
+                m |> for_each_global() $(var glob) {
+                    if (glob.init != null && glob.flags.used) {
+                        visit_expression(glob.init, adapter)
+                    }
+                }
+            }
         }
     }
     unsafe {

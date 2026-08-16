@@ -23,7 +23,7 @@ is written directly to the `output`
 
 ## Usage:
 ```
-./bin/das-fmt file1.das file2.das -i -v2
+./bin/gen1_to_gen2 file1.das file2.das -i -v2
 ```
 There are two command line arguments (excluding input files):
 
@@ -37,10 +37,10 @@ This option is not required; by default files will be converted to gen1.5
 
 I used this command to transform all `.das` files syntax in current folder in-place:
 ```
-find . -name "*.das" | tr '\n' ' ' | xargs ./bin/das-fmt -i
+find . -name "*.das" | tr '\n' ' ' | xargs ./bin/gen1_to_gen2 -i
 ```
 Afterward, I suggest running it again on failed files individually:
 ```
-./bin/das-fmt <filename> -d
+./bin/gen1_to_gen2 <filename> -d
 ```
 This will at least partially format then, allowing you to manually edit the remaining parts.

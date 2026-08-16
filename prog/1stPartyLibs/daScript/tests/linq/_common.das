@@ -14,9 +14,9 @@ struct ComplexType { // this one can't be copied
         }
     }
     def operator /=(b : uint64) {    // we need this one for Average
-        let divisor = int64(b)
+        let divisor = int(b)
         for (i in a) {
-            i = int(int64(i) / divisor)
+            i = i / divisor
         }
     }
     def const operator ==(b : ComplexType) : bool {

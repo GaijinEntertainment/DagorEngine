@@ -50,8 +50,6 @@ public:
   void onRemove(ObjectEditor *) override;
   void onAdd(ObjectEditor *objEditor) override;
 
-  bool setPos(const Point3 &p) override;
-
   void putMoveUndo() override;
 
   void onObjectNameChange(RenderableEditableObject *obj, const char *old_name, const char *new_name) override { objectPropsChanged(); }
@@ -91,6 +89,8 @@ public:
     SimpleString entityName;
     int placeType = PT_coll;
     bool overridePlaceTypeForComposit = false;
+    bool overrideAutoInstSeed = false;
+    bool autoInstSeed = true;
 
     String notes;
   };
@@ -139,6 +139,9 @@ public:
     const char *initially_selected_asset_name);
 
   void setGizmoTranformMode(bool enable);
+  void setInteractiveMove(bool on);
+  void setHiddenFromPlacementTrace(bool hide);
+  void generatePinnedPerInstSeed();
 
 protected:
   struct CollidersData
@@ -182,7 +185,9 @@ protected:
   bool isCollidable;
   int editLayerIdx = 0;
   bool gizmoEnabled = false;
+  bool interactiveMove = false; // the object follows the mouse, see setInteractiveMove()
   bool riExtraCollisionIgnored = false;
+  int subtypeBeforeTraceHide = -1; // real subtype while ST_NOT_COLLIDABLE is held, -1 when not held
 
   static CollidersData colliders;
 
@@ -247,5 +252,37 @@ protected:
     size_t size() override { return sizeof(*this); }
     void accepted() override {}
     void get_description(String &s) override { s = "UndoEntityPropsChange"; }
+  };
+
+  // perInstSeed lives outside Props, so UndoPropsChange does not cover it. An edit that generates a pinned
+  // seed has to put this too, or its undo would restore the props and leave the object pinned - and
+  // propsChanged() would hand the pin straight back to the rebuilt entity.
+  class UndoPerInstSeedChange : public UndoRedoObject
+  {
+    Ptr<LandscapeEntityObject> obj;
+    int oldSeed, redoSeed;
+
+  public:
+    UndoPerInstSeedChange(LandscapeEntityObject *o) : obj(o), oldSeed(o->perInstSeed), redoSeed(o->perInstSeed) {}
+
+    // setPerInstanceSeed() re-places a composit's whole subtree and has no guard of its own, so an
+    // unchanged seed must not reach it: the record is put for a whole selection, most of which never moved.
+    void restore(bool save_redo) override
+    {
+      if (save_redo)
+        redoSeed = obj->perInstSeed;
+      if (obj->perInstSeed != oldSeed)
+        obj->setPerInstSeed(oldSeed); // 0 puts the object back on the position hash
+    }
+
+    void redo() override
+    {
+      if (obj->perInstSeed != redoSeed)
+        obj->setPerInstSeed(redoSeed);
+    }
+
+    size_t size() override { return sizeof(*this); }
+    void accepted() override {}
+    void get_description(String &s) override { s = "UndoEntityPerInstSeedChange"; }
   };
 };

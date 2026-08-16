@@ -452,6 +452,10 @@ class ResourceExecutionSyncableExtend
   uint32_t firstSyncOp = invalid_sync_op;
   uint32_t lastSyncOp = invalid_sync_op;
 
+  // resources created with (TEXCF|SBCF)_NO_STATE_TRACKING opt out of automatic execution sync;
+  // the caller drives layout/memory sync explicitly via d3d::enhanced_*_barrier
+  bool syncTracked = true;
+
   struct RoSeal
   {
     bool requested : 1;
@@ -474,6 +478,9 @@ public:
     }
   {}
   ~ResourceExecutionSyncableExtend() {}
+
+  void disableSyncTracking() { syncTracked = false; }
+  bool isSyncTracked() const { return syncTracked; }
 
   void clearLastSyncOp() { lastSyncOp = invalid_sync_op; }
   void setLastSyncOpIndex(size_t v)

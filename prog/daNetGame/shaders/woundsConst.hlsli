@@ -1,4 +1,4 @@
-#define TORN_WOUND_SIZE 4     // cut record size in float4 (oriented ellipsoid: 3 rows + params)
+#define TORN_WOUND_SIZE 5     // cut record size in float4 (oriented ellipsoid: 3 rows + params + rim)
 #define HOLE_WOUND_SIZE 5    // hole record size in float4 (oriented ellipsoid: 3 rows + time + ease)
 #define DECAL_WOUND_SIZE 5    // decal record size in float4
 
@@ -8,13 +8,16 @@
 #define WOUND_HOLE_ROW0 0 // r0.xyz, center.x
 #define WOUND_HOLE_ROW1 1 // r1.xyz, center.y
 #define WOUND_HOLE_ROW2 2 // r2.xyz, center.z
-#define WOUND_HOLE_TIME 3 // spawnTime, holdDuration, closeDuration, (free)
-#define WOUND_HOLE_EASE 4 // openDuration, pulseAmp, (free), (free)
+// rimWidth and inflateRatio are unitless: rimWidth is a fraction of the ellipsoid (same space as
+// trimVerticesTo), inflateRatio a fraction of that band. Both then ride any ellipsoid rescale.
+#define WOUND_HOLE_TIME 3 // spawnTime, holdDuration, closeDuration, rimWidth
+#define WOUND_HOLE_EASE 4 // openDuration, pulseAmp, nodeIndex, inflateRatio
 //Cut record (broken_bones), CPU push order
 #define WOUND_CUT_ROW0 0     // r0.xyz, center.x
 #define WOUND_CUT_ROW1 1     // r1.xyz, center.y
 #define WOUND_CUT_ROW2 2     // r2.xyz, center.z
 #define WOUND_CUT_PARAMS 3   // startFadeFrom, trimVerticesTo, discardPixelTo, discardTexUvScale
+#define WOUND_CUT_RIM 4      // rimWidth, inflateRatio, free, free
 
 // Decal record (projective_wounds), CPU push order
 #define WOUND_DECAL_AXIS_X 0    // rotated cube axis X.xyz, (free)

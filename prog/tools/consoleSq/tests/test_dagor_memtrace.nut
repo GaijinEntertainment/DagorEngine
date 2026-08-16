@@ -1,4 +1,4 @@
-// Squirrel module under test: dagor.memtrace (registered by sqratDagorDebug.cpp)
+// Quirrel module under test: dagor.memtrace (registered by sqratDagorDebug.cpp)
 
 from "dagor.memtrace" import get_quirrel_object_size, get_quirrel_object_size_as_string,
   is_quirrel_object_larger_than, set_huge_alloc_threshold, dump_cur_vm,

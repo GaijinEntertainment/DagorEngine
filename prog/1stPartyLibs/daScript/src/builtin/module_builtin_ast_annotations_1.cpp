@@ -220,6 +220,8 @@ namespace das {
                 offsetof(Function, flags), makeFunctionFlags() );
             this->addFieldEx ( "moreFlags", "moreFlags",
                 offsetof(Function, moreFlags), makeMoreFunctionFlags() );
+            this->addFieldEx ( "moreFlags2", "moreFlags2",
+                offsetof(Function, moreFlags2), makeMoreFunctionFlags2() );
             this->addFieldEx ( "sideEffectFlags", "sideEffectFlags",
                 offsetof(Function, sideEffectFlags), makeFunctionSideEffectFlags() );
             this->template addField<DAS_BIND_MANAGED_FIELD(inferStack)>("inferStack");
@@ -282,6 +284,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(initStackSize)>("initStackSize");
             addFieldEx ( "flags", "flags", offsetof(Variable, flags), makeVariableFlags() );
             addFieldEx ( "access_flags", "access_flags", offsetof(Variable, access_flags), makeVariableAccessFlags() );
+            addFieldEx ( "access_info", "access_info", offsetof(Variable, access_info), makeVariableAccessInfoFlags() );
             addField<DAS_BIND_MANAGED_FIELD(annotation)>("annotation");
             // properties
             addProperty<DAS_BIND_MANAGED_PROP(isAccessUnused)>("isAccessUnused","isAccessUnused");

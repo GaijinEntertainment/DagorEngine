@@ -542,6 +542,73 @@ macro USE_SPOT_LIGHTS_BOUNDS(code)
       float lightRadius = getSpotLightBoundingSphereRadius(l);
       return getSpotLightBoundingSphere(position, lightDirectionAngleOffset.xyz, lightRadius, sinHalfAngle, cosHalfAngle);
     };
+
+    // Orthonormal basis with dir as its Z axis. Mirrors v_view_matrix_from_tangentZ
+    // (dag_vecMath_common.h) used by the CPU-side box below.
+    void getViewBasisFromDir(float3 dir, out float3 left, out float3 up)
+    {
+      float3 upSeed = abs(dir.z) > 0.999f ? float3(1, 0, 0) : float3(0, 0, 1);
+      left = normalize(cross(upSeed, dir));
+      up = cross(dir, left);
+    };
+
+    // Tight cone bounding box: an octahedron cross-section at the cone's far cap plus the apex.
+    // Mirrors SpotLightsManager::updateBoundingBox (spotLightsManager.cpp) - algorithm parity
+    // within float precision, not bit-for-bit: lightRadius here is decoded from a half-float
+    // pack (see decode_spot_light_radius_and_culling_radius), and sinHalfAngle comes from the
+    // decoded cosine instead of tanHalfAngle directly. Keep the two in sync.
+    void getSpotLightBoundingBox(float3 position, float3 direction, float lightRadius, float sinHalfAngle, out float3 bmin,
+      out float3 bmax)
+    {
+      float3 left, up;
+      getViewBasisFromDir(direction, left, up);
+
+      // circumradius of an octahedron whose inscribed circle has radius sinHalfAngle*lightRadius
+      const float octahedronScale = 1.082392200292394f;
+      float mulR = sinHalfAngle * lightRadius * octahedronScale;
+      left *= mulR;
+      up *= mulR;
+
+      bmin = left;
+      bmax = left;
+      bmin = min(bmin, up); bmax = max(bmax, up);
+      bmin = min(bmin, -left); bmax = max(bmax, -left);
+      bmin = min(bmin, -up); bmax = max(bmax, -up);
+
+      float3 diagLeft = left * 0.7071067811865476f;
+      float3 diagUp = up * 0.7071067811865476f;
+      float3 corner0 = diagLeft + diagUp;
+      float3 corner1 = diagLeft - diagUp;
+      bmin = min(bmin, corner0); bmax = max(bmax, corner0);
+      bmin = min(bmin, -corner0); bmax = max(bmax, -corner0);
+      bmin = min(bmin, corner1); bmax = max(bmax, corner1);
+      bmin = min(bmin, -corner1); bmax = max(bmax, -corner1);
+
+      float3 farCenter = direction * lightRadius;
+      bmin += farCenter;
+      bmax += farCenter;
+
+      // the cone's apex sits at the light position, i.e. at the local origin here.
+      bmin = min(bmin, float3(0, 0, 0));
+      bmax = max(bmax, float3(0, 0, 0));
+
+      bmin += position;
+      bmax += position;
+    };
+
+    // lightRadius is decoded from a half-float pack, so it can round either direction from the
+    // true radius; a down-rounded radius makes this box slightly smaller than the CPU one. An
+    // hzb-occlusion consumer must treat that as non-conservative and budget for it
+    // (e.g. a small fixed margin), rather than assume this box always contains the true cone.
+    void getSpotLightBoundingBox(RenderSpotLight l, out float3 bmin, out float3 bmax)
+    {
+      float3 position = l.lightPos_halfRadius_halfCullRadius.xyz;
+      float4 lightDirectionAngleOffset = l.lightDirectionAngleOffset;
+      float cosHalfAngle = -lightDirectionAngleOffset.w / l.lightColorAngleScale.w;
+      float sinHalfAngle = sqrt(saturate(1 - cosHalfAngle*cosHalfAngle));
+      float lightRadius = getSpotLightBoundingSphereRadius(l);
+      getSpotLightBoundingBox(position, lightDirectionAngleOffset.xyz, lightRadius, sinHalfAngle, bmin, bmax);
+    };
   }
 endmacro
 

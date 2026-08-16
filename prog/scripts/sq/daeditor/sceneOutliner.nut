@@ -427,7 +427,7 @@ function mkIconButton(icon, onClick = null, visible = true, parentHovered = fals
     children = @() {
       rendObj = ROBJ_IMAGE
       image = !visible ? null : ((sf & S_HOVER) || parentHovered ? Picture(icon) : null)
-      size = [hdpx(20), hdpx(20)]
+      size = const [hdpx(20), hdpx(20)]
       valign = ALIGN_CENTER
       halign = ALIGN_CENTER
       color = onClick != null && (sf & S_HOVER) ? Color(66, 176, 255) : Color(255, 255, 255, 255)
@@ -695,12 +695,12 @@ function getTreeControl(item, ind) {
   while (currentOffset < offset - 1) {
     objs.append(
       {
-        size = [hdpx(TREE_CONTROL_CONTROL_WIDTH), flex()]
+        size = const [hdpx(TREE_CONTROL_CONTROL_WIDTH), flex()]
         valign = ALIGN_CENTER
         halign = ALIGN_CENTER
         children = {
           rendObj = ROBJ_SOLID
-          size = [1, flex()]
+          size = const [1, flex()]
           color = TREE_CONNECTIONS_COLOR
         }
       }
@@ -714,31 +714,31 @@ function getTreeControl(item, ind) {
     if (ind + 1 == filteredItems.get().len() || item.depth > filteredItems.get()[ind + 1].depth) {
       objs.append(
         {
-          size = [hdpx(TREE_CONTROL_CONTROL_WIDTH), flex()]
+          size = const [hdpx(TREE_CONTROL_CONTROL_WIDTH), flex()]
           valign = ALIGN_CENTER
           halign = ALIGN_RIGHT
           flow = FLOW_HORIZONTAL
           children = [
             {
-              size = [1, flex()]
+              size = const [1, flex()]
               flow = FLOW_VERTICAL
               children = [
                 {
                   rendObj = ROBJ_SOLID
                   valign = ALIGN_TOP
-                  size = [1, flex()]
+                  size = const [1, flex()]
                   color = TREE_CONNECTIONS_COLOR
                 }
                 {
                   valign = ALIGN_TOP
-                  size = [1, flex()]
+                  size = const [1, flex()]
                 }
               ]
             }
             {
               halign = ALIGN_RIGHT
               rendObj = ROBJ_SOLID
-              size = [hdpx(TREE_CONTROL_CONTROL_WIDTH) / 2, 1]
+              size = const [hdpx(TREE_CONTROL_CONTROL_WIDTH) / 2, 1]
               color = TREE_CONNECTIONS_COLOR
             }
           ]
@@ -748,20 +748,20 @@ function getTreeControl(item, ind) {
     else {
       objs.append(
         {
-          size = [hdpx(TREE_CONTROL_CONTROL_WIDTH), flex()]
+          size = const [hdpx(TREE_CONTROL_CONTROL_WIDTH), flex()]
           valign = ALIGN_CENTER
           halign = ALIGN_RIGHT
           flow = FLOW_HORIZONTAL
           children = [
             {
               rendObj = ROBJ_SOLID
-              size = [1, flex()]
+              size = const [1, flex()]
               color = TREE_CONNECTIONS_COLOR
             }
             {
               halign = ALIGN_RIGHT
               rendObj = ROBJ_SOLID
-              size = [hdpx(TREE_CONTROL_CONTROL_WIDTH) / 2, 1]
+              size = const [hdpx(TREE_CONTROL_CONTROL_WIDTH) / 2, 1]
               color = TREE_CONNECTIONS_COLOR
             }
           ]
@@ -772,7 +772,7 @@ function getTreeControl(item, ind) {
 
   if (isScene && item.scene.hasChildren) {
     objs.append({
-      size = [hdpx(TREE_CONTROL_CONTROL_WIDTH), flex()]
+      size = const [hdpx(TREE_CONTROL_CONTROL_WIDTH), flex()]
       halign = ALIGN_CENTER
       valign = ALIGN_CENTER
       children = {
@@ -821,7 +821,7 @@ function mkTag(icon, bgColor, color, text, maxTextString, tooltip = null) {
     borderRadius = hdpx(45)
     flow = FLOW_HORIZONTAL
     valign = ALIGN_CENTER
-    padding = [0, fsh(0.5), 0, fsh(0.5)]
+    padding = const [0, fsh(0.5), 0, fsh(0.5)]
     gap = fsh(0.25)
     behavior = Behaviors.TrackMouse
     onHover = @(on) setTooltip(on ? tooltip : null)
@@ -838,7 +838,7 @@ function mkTag(icon, bgColor, color, text, maxTextString, tooltip = null) {
           halign = ALIGN_RIGHT
           rendObj = ROBJ_IMAGE
           image = Picture(icon)
-          size = [hdpx(20), hdpx(20)]
+          size = const [hdpx(20), hdpx(20)]
           color = color
         }
         : null
@@ -952,7 +952,7 @@ function mkDataRow(item, textColor, hovered) {
   }
 
   return {
-    size = [flex(), SIZE_TO_CONTENT]
+    size = const [flex(), SIZE_TO_CONTENT]
     flow = FLOW_HORIZONTAL
     gap = fsh(0.5)
     children = [
@@ -1415,30 +1415,30 @@ function listSceneRow(item, idx) {
       children = [
         {
           flow = FLOW_VERTICAL
-          size = [flex(), SIZE_TO_CONTENT]
+          size = const [flex(), SIZE_TO_CONTENT]
           children = [
             @() {
               rendObj = ROBJ_SOLID
               watch = [stateWatcher]
-              size = [flex(), 1]
+              size = const [flex(), 1]
               color = getSeparatorColor(stateWatcher.get(), -1)
             }
             {
               flow = FLOW_HORIZONTAL
-              size = [ flex(), SIZE_TO_CONTENT ]
+              size = const [ flex(), SIZE_TO_CONTENT ]
               children = [
                 {
                   halign = ALIGN_CENTER
                   valign = ALIGN_CENTER
                   flow = FLOW_HORIZONTAL
-                  size = [ SIZE_TO_CONTENT, flex() ]
-                  padding = [0, fsh(0.5), 0, fsh(0.5)]
+                  size = const [ SIZE_TO_CONTENT, flex() ]
+                  padding = const [0, fsh(0.5), 0, fsh(0.5)]
                   children = getTreeControl(item, idx)
                 }
                 @() {
-                  size = [ flex(), SIZE_TO_CONTENT ]
+                  size = const [ flex(), SIZE_TO_CONTENT ]
                   watch = [stateWatcher]
-                  padding = [fsh(0.5), fsh(0.5), fsh(0.5), 0]
+                  padding = const [fsh(0.5), fsh(0.5), fsh(0.5), 0]
                   children = mkDataRow(item, (stateWatcher?.get().dropPosition == 0) || (sf & S_DRAG) ? dragColor.get() : textColor.get(),
                     sf & S_HOVER)
                 }
@@ -1447,7 +1447,7 @@ function listSceneRow(item, idx) {
             @() {
               rendObj = ROBJ_SOLID
               watch = [stateWatcher]
-              size = [flex(), 1]
+              size = const [flex(), 1]
               color = getSeparatorColor(stateWatcher.get(), 1)
             }
           ]
@@ -1810,7 +1810,7 @@ function createFilterControls() {
         }
         {
           rendObj = ROBJ_SOLID
-          size = [hdpx(46), hdpx(25)]
+          size = const [hdpx(46), hdpx(25)]
           color = colors.ControlBgOpaque
           behavior = Behaviors.Button
           onClick = @() filterSelectedEntities.set(!filterSelectedEntities.get())
@@ -1852,7 +1852,7 @@ function createFilterControls() {
 
 function mkImportButton() {
   return @() {
-    size = [SIZE_TO_CONTENT, flex()]
+    size = const [SIZE_TO_CONTENT, flex()]
     watch = [canAddImport]
     children = textButton("Import", function() {
         addImportDialog(function(path) {
@@ -1884,14 +1884,14 @@ function mkImportButton() {
         },
         boxStyle = {
           normal = {
-            size = [SIZE_TO_CONTENT, flex()]
+            size = const [SIZE_TO_CONTENT, flex()]
             margin = 0
-            padding = [hdpx(1),hdpx(10)]
+            padding = const [hdpx(1),hdpx(10)]
           }
         }
         textStyle = {
           normal = {
-            size = [SIZE_TO_CONTENT, flex()]
+            size = const [SIZE_TO_CONTENT, flex()]
             valign = ALIGN_CENTER
             halign = ALIGN_CENTER
           }
@@ -1915,8 +1915,8 @@ function mkFilterOptionsButton() {
 
   function dropdownBgOverlay(onClick) {
     return {
-      pos = [-9000, -9000]
-      size = [19999, 19999]
+      pos = const [-9000, -9000]
+      size = const [19999, 19999]
       behavior = Behaviors.ComboPopup
       eventPassThrough = true
       onClick
@@ -1925,8 +1925,8 @@ function mkFilterOptionsButton() {
 
   function popupWrapper(popupContent) {
     let children = [
-      {size = [flex(), ph(100)]}
-      {size = [flex(), hdpx(2)]}
+      {size = const [flex(), ph(100)]}
+      {size = const [flex(), hdpx(2)]}
       popupContent
     ]
 
@@ -2007,7 +2007,7 @@ function mkFilterOptionsButton() {
   return watchElemState( @(sf) {
     rendObj = ROBJ_BOX
     behavior = Behaviors.Button
-    size = [SIZE_TO_CONTENT, flex()]
+    size = const [SIZE_TO_CONTENT, flex()]
     valign = ALIGN_CENTER
     halign = ALIGN_CENTER
     watch = [dropDownOpen]
@@ -2018,7 +2018,7 @@ function mkFilterOptionsButton() {
     children = @() {
       rendObj = ROBJ_IMAGE
       image = Picture(getIcon("filter_default"))
-      size = [hdpx(26), hdpx(26)]
+      size = const [hdpx(26), hdpx(26)]
       valign = ALIGN_CENTER
       halign = ALIGN_CENTER
       watch = [dropDownOpen, isAnyFilterOptionEnabled]
@@ -2070,7 +2070,7 @@ function mkScenesList() {
       }
       {
         flow = FLOW_HORIZONTAL
-        size = [flex(), SIZE_TO_CONTENT]
+        size = const [flex(), SIZE_TO_CONTENT]
         children = [
           createFilterControls()
           hflow(

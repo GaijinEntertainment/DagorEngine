@@ -59,6 +59,19 @@ shader sparks_ps, sparks_thermal
   z_test = true;
   cull_mode = none;
 
+  if (modfx_debug_render == on)
+  {
+    z_test = false;
+
+    blend_src = one; blend_dst = one;
+    blend_asrc = one; blend_adst = one;
+
+    hlsl(ps) {
+      #define SPARKS_DEBUG_RENDER_ENABLED 1
+      #include "fx_debug_color.hlsli"
+    }
+  }
+
   hlsl {
     struct VsOutput
     {
@@ -97,6 +110,9 @@ shader sparks_ps, sparks_thermal
 
     PsOutput sparks_fx_ps(VsOutput input HW_USE_SCREEN_POS)
     {
+#if SPARKS_DEBUG_RENDER_ENABLED
+      return encode_output(float4(calc_debug_color(input.tc_size.xy * 2 - 1), 0));
+#else
       GlobalData gdata = global_data_load();
 
       float len = input.tc_size.z;
@@ -140,6 +156,7 @@ shader sparks_ps, sparks_thermal
       res.a = 0;
 ##endif
       return encode_output(res);
+#endif // SPARKS_DEBUG_RENDER_ENABLED
     }
   }
 

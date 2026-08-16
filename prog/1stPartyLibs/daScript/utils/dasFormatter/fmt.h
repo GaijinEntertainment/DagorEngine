@@ -18,11 +18,11 @@ namespace das::format {
     /**
      * Run formatter on single file and it's content
      */
-    DAS_API Result transform_syntax(const string &filename, const string content, format::FormatOptions options = {});
+    DAS_CC_API Result transform_syntax(const string &filename, const string content, format::FormatOptions options = {});
 
     /**
      * Run formatter on following files
      * @return 0 if everything is fine
      */
-    DAS_API int run(FormatOptions opt, const vector<string> &files);
+    DAS_CC_API int run(FormatOptions opt, const vector<string> &files);
 };

@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // PERF012: string(das_string) passed to strings module function
 //
 // Problem: Wrapping a das_string in string() before passing to a strings

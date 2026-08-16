@@ -102,11 +102,12 @@ void BufferHeap::HeapSuballocator::onHeapDestroyed(Heap &heap)
 
 void BufferHeap::HeapSuballocator::clear() { impl.clear(); }
 
-eastl::pair<BufferHeap::Heap *, ValueRange<uint64_t>> BufferHeap::HeapSuballocator::trySuballocate(dag::Vector<Heap> &buffer_heaps,
-  ResourceHeapProperties properties, uint64_t size, D3D12_RESOURCE_FLAGS flags, uint32_t offset_alignment)
+eastl::optional<eastl::pair<BufferHeap::Heap *, ValueRange<uint64_t>>> BufferHeap::HeapSuballocator::trySuballocate(
+  dag::Vector<Heap> &buffer_heaps, ResourceHeapProperties properties, uint64_t size, D3D12_RESOURCE_FLAGS flags,
+  uint32_t offset_alignment)
 {
   if (flags != D3D12_RESOURCE_FLAG_NONE)
-    return {nullptr, {}};
+    return {};
 
   const uint32_t signature = properties.raw;
 
@@ -124,11 +125,11 @@ eastl::pair<BufferHeap::Heap *, ValueRange<uint64_t>> BufferHeap::HeapSuballocat
       G_ASSERT(getSignature(heap) == signature);
 
       auto range = heap.allocateExact(size, offset_alignment);
-      if (range.empty())
+      if (!range)
         return false;
 
       selectedHeap = &heap;
-      allocationRange = range;
+      allocationRange = *range;
 
       return true;
     });
@@ -147,17 +148,22 @@ eastl::pair<BufferHeap::Heap *, ValueRange<uint64_t>> BufferHeap::HeapSuballocat
         G_ASSERT(getSignature(heap) == signature);
 
         auto range = heap.allocate(size, offset_alignment);
-        if (range.empty())
+        if (!range)
           return false;
 
         selectedHeap = &heap;
-        allocationRange = range;
+        allocationRange = *range;
 
         return true;
       });
   }
 
-  return {selectedHeap, allocationRange};
+  if (!selectedHeap)
+  {
+    return {};
+  }
+
+  return eastl::pair<Heap *, ValueRange<uint64_t>>{selectedHeap, allocationRange};
 }
 
 uint32_t BufferHeap::HeapSuballocator::getSignature(const Heap &heap) { return heap.getHeapID().group; }

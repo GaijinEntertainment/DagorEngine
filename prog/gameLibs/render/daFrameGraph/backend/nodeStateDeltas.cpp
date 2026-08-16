@@ -113,9 +113,10 @@ IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> DeltaCalculator:
   uint16_t pos = 0;
   for (auto [nodeIdx, nodeState] : graph.nodeStates.enumerate())
   {
-    for (int frame = 0; frame < BarrierScheduler::SCHEDULE_FRAME_WINDOW; ++frame)
+    for (int frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
       for (const auto &ev : events[frame][nodeIdx])
-        if (eastl::holds_alternative<BarrierScheduler::Event::Activation>(ev.data))
+        if (eastl::holds_alternative<BarrierScheduler::Event::Activation>(ev.data) ||
+            BarrierScheduler::barrier_kind(ev) == BarrierScheduler::Event::BarrierKind::FirstUse)
           firstActivationPosition[ev.resource] = eastl::min(firstActivationPosition[ev.resource], pos);
 
     if (nodeState.pass.has_value() && !nodeState.pass->isLegacyPass)
@@ -449,7 +450,7 @@ IdIndexedFlags<intermediate::NodeIndex> DeltaCalculator::computeDirtyDeltas(cons
   const auto needsPassBreak = [&](NodeIndex node_idx) {
     if (node_idx == graph.nodeStates.frontKey())
       return true;
-    for (int frame = 0; frame < BarrierScheduler::SCHEDULE_FRAME_WINDOW; ++frame)
+    for (int frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
       for (const auto &ev : events[frame][node_idx])
         if (eastl::holds_alternative<BarrierScheduler::Event::Barrier>(ev.data) ||
             eastl::holds_alternative<BarrierScheduler::Event::EnhancedBufferBarrier>(ev.data) ||

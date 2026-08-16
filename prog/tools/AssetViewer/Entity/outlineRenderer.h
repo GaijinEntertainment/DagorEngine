@@ -19,7 +19,9 @@ public:
   ~OutlineRenderer();
 
   void render(IGenViewportWnd &wnd, const RIElementsCache &riElements,
-    dag::ConstSpan<DynamicRenderableSceneInstance *> dynmodelElements);
+    dag::ConstSpan<DynamicRenderableSceneInstance *> dynmodelElements, const E3DCOLOR outlineColor, int outlineWidth = 2);
+
+  static const E3DCOLOR default_outline_color;
 
 private:
   void init();
@@ -31,12 +33,14 @@ private:
   PostFxRenderer finalRender;
   TextureIDHolderWithVar colorRt;
 
+  TextureIDHolderWithVar depthRt;
+
   RiGenVisibility *globalVisibility = nullptr;
   RiGenVisibility *filteredVisibility = nullptr;
 
   static int simple_outline_colorVarId;
   static int simple_outline_color_rtVarId;
+  static int simple_outline_widthVarId;
   static int global_frame_block_id;
   static int rendinst_scene_block_id;
-  static const E3DCOLOR outline_color;
 };

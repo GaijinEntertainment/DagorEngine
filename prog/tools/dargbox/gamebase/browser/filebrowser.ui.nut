@@ -5,6 +5,7 @@ import "samples_prog/_basic/components/textInput.nut" as textInput
 from "dagor.clipboard" import set_clipboard_text
 from "dagor.workcycle" import resetTimeout
 from "dagor.fs" import scan_folder
+from "types" import String
 
 let scrollbar = require("scrollbar.nut")
 let fs_node_button = require("fs_node.nut")
@@ -122,13 +123,13 @@ function isVideo(path) {
 }
 
 function isUi(path) {
-  if (type(path) =="string" && path.endswith(".ui.nut"))
+  if (path instanceof String && path.endswith(".ui.nut"))
     return true
   return false
 }
 
 function isShader(path) {
-  return type(path) == "string" && (path.endswith("_darg.hlsl") || path.endswith("_ui.hlsl"))
+  return path instanceof String && (path.endswith("_darg.hlsl") || path.endswith("_ui.hlsl"))
 }
 
 function isText(path){
@@ -230,7 +231,7 @@ function previewComp() {
   }
 
   let path = curFile.get()
-  if (type(path) != "string")
+  if (!(path instanceof String))
     return res
 
   if (isUi(path))

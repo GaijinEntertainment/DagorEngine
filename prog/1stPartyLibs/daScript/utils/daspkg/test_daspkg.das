@@ -125,7 +125,44 @@ def test_is_index_name(t : T?) {
 }
 
 [test]
-def test_parse_args(t : T?) {
+def test_index_has_push_access(t : T?) {
+    t |> run("exact true") @(t : T?) {
+        t |> success(index_has_push_access("true"))
+    }
+    t |> run("trailing newline tolerated") @(t : T?) {
+        t |> success(index_has_push_access("true\n"))
+    }
+    t |> run("false is no access") @(t : T?) {
+        t |> success(!index_has_push_access("false"))
+    }
+    t |> run("empty (gh error / no permissions field) is no access") @(t : T?) {
+        t |> success(!index_has_push_access(""))
+    }
+    t |> run("only lowercase true accepted") @(t : T?) {
+        t |> success(!index_has_push_access("True"))
+    }
+}
+
+[test]
+def test_index_push_target(t : T?) {
+    t |> run("write access → origin + bare branch") @(t : T?) {
+        let tgt = index_push_target(true, "octocat", "introduce-minmaxheap")
+        t |> equal(tgt.remote, "origin")
+        t |> equal(tgt.head_ref, "introduce-minmaxheap")
+    }
+    t |> run("no access → fork + login-qualified head") @(t : T?) {
+        let tgt = index_push_target(false, "JohnathanKG", "introduce-minmaxheap")
+        t |> equal(tgt.remote, "fork")
+        t |> equal(tgt.head_ref, "JohnathanKG:introduce-minmaxheap")
+    }
+    t |> run("login ignored when write access") @(t : T?) {
+        let tgt = index_push_target(true, "someone", "withdraw-foo")
+        t |> equal(tgt.head_ref, "withdraw-foo")
+    }
+}
+
+[test]
+def test_parse_args(t : T?) {   // nolint:STYLE038 — a flat case table: one argv shape per `t |> run` block
     t |> run("install command") @(t : T?) {
         var r <- parse_args(type<DaspkgArgs>, ["install", "dasImgui"])
         t |> success(r |> is_ok, "parse succeeds")
@@ -156,6 +193,22 @@ def test_parse_args(t : T?) {
         let parsed <- r |> move_unwrap
         t |> equal(parsed.command ?? "", "list")
         t |> success(parsed.command_arg |> is_none)
+    }
+    t |> run("release with paranoid tuning") @(t : T?) {
+        var r <- parse_args(type<DaspkgArgs>, ["release", "--out", "E:/", "--paranoid"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
+        t |> equal(parsed.command ?? "", "release")
+        t |> equal(parsed.out, "E:/")
+        t |> success(parsed.paranoid)
+    }
+    t |> run("release with quick inherit") @(t : T?) {
+        var r <- parse_args(type<DaspkgArgs>, ["release", "--quick"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
+        t |> equal(parsed.command ?? "", "release")
+        t |> success(parsed.quick)
+        t |> success(!parsed.paranoid)
     }
     t |> run("no command") @(t : T?) {
         let empty_args : array<string>
@@ -222,6 +275,23 @@ def test_lockfile_roundtrip(t : T?) {
         // cleanup
         remove("{tmp_dir}/{LOCK_FILE_NAME}")
         rmdir(tmp_dir)
+    }
+}
+
+[test]
+def test_in_tree_module_satisfies_install(t : T?) {
+    t |> run("explicit install of an in-tree module is a no-op") @(t : T?) {
+        // dasGlfw is a tracked in-tree module: present at <das_root>/modules/
+        // and never in the global lock file. cmd_install must recognize it,
+        // return 0 without touching the index or the network, and create no
+        // project-local shadow clone.
+        let tmp_root = "{get_das_root()}/_daspkg_test_intree"
+        mkdir(tmp_root)
+        let rc = cmd_install(tmp_root, "dasGlfw", false)
+        t |> equal(rc, 0)
+        t |> success(!fexist("{tmp_root}/modules/dasGlfw"))
+        // cleanup (no lock file is written on the no-op path)
+        rmdir(tmp_root)
     }
 }
 
@@ -1657,11 +1727,17 @@ def test_run_das_package_release(t : T?) {
         tt |> equal(2, length(info.include_globs))
         tt |> equal("*.png", info.include_globs[0])
         tt |> equal("data/**/*.json", info.include_globs[1])
+        tt |> equal(1, length(info.include_if_missing_globs))
+        tt |> equal("config/*.toml", info.include_if_missing_globs[0])
         tt |> equal(1, length(info.exclude_globs))
         tt |> equal("data/internal/**", info.exclude_globs[0])
         tt |> equal(2, length(info.forced_modules))
         tt |> equal("dasSQLITE", info.forced_modules[0])
         tt |> equal("dasGlfw", info.forced_modules[1])
+        tt |> equal("emcmake cmake -S . -B _wasm && cmake --build _wasm", info.wasm_build_command)
+        tt |> equal(2, length(info.wasm_archives))
+        tt |> equal("_wasm/liblibDasModuleTest.a", info.wasm_archives[0])
+        tt |> equal("_wasm/liblibTestApp.a", info.wasm_archives[1])
     }
     t |> run("returns true with empty spec when release() is missing") @(tt : T?) {
         var info : PackageReleaseInfo
@@ -1685,10 +1761,13 @@ def test_cmd_release_pure_daslang(t : T?) {
             fwrite(f, "options gen2\n[export]\ndef main() \{\n    print(\"hello\\n\")\n\}\n")
         }
         fopen("{tmp_root}/.das_package", "wb") $(f) {
-            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"smoke\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n    release_include(\"*.txt\")\n\}\n")
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"smoke\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n    release_include(\"*.txt\")\n    release_include_if_missing(\"config.toml\")\n\}\n")
         }
         fopen("{tmp_root}/data.txt", "wb") $(f) {
             fwrite(f, "asset")
+        }
+        fopen("{tmp_root}/config.toml", "wb") $(f) {
+            fwrite(f, "value = \"template\"\n")
         }
 
         let rc = cmd_release(tmp_root, out_dir)
@@ -1697,8 +1776,77 @@ def test_cmd_release_pure_daslang(t : T?) {
         let artifacts = bundle_artifacts_dir(out_dir, "smoke")
         tt |> success(fexist(exe_path), "exe shipped at {exe_path}")
         tt |> success(fexist(path_join(artifacts, "data.txt")), "asset shipped")
+        let deployed_config = path_join(artifacts, "config.toml")
+        tt |> equal("value = \"template\"\n", fread(deployed_config), "starter config shipped on first release")
         tt |> success(!fexist(path_join(artifacts, "smoke.o")), ".o build artifact dropped")
 
+        fopen(deployed_config, "wb") $(f) {
+            fwrite(f, "value = \"user-edited\"\n")
+        }
+        // Simulate upgrading from the old release_include("config.toml")
+        // behavior: the previous manifest still claims ownership. The new
+        // if-missing declaration must protect the deployed edit during that
+        // one-time migration cleanup.
+        let old_manifest = path_join(artifacts, ".daspkg_release.manifest")
+        fopen(old_manifest, "ab") $(f) {
+            fwrite(f, "config.toml\n")
+        }
+        let rc2 = cmd_release(tmp_root, out_dir)
+        tt |> equal(0, rc2, "second cmd_release returns 0")
+        tt |> equal("value = \"user-edited\"\n", fread(deployed_config),
+            "release_include_if_missing preserves deployed edits")
+        let manifest = fread(old_manifest)
+        tt |> success(find(manifest, "config.toml") < 0,
+            "user-owned starter config is omitted from release manifest")
+
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+}
+
+[test]
+def test_cmd_release_ships_minted_scope_manifest(t : T?) {
+    t |> run("a tune scope's RESOLVED manifest ships beside the exe") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_tunescope"
+        let out_dir = "{get_das_root()}/_test_release_tunescope_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        mkdir(tmp_root)
+        // the scope's tuner is a STUB: a real tuner races candidates (minutes, noise-gated);
+        // the stub copies a canned sidecar into DAS_TUNE_MANIFEST, so the SHIP path — the
+        // exact line the M4 mis-ship broke — tests at unit speed
+        let payload = "\{\"kernels\":\{\"stub_kernel\":\{\"suffix\":\"stub\"\}\},\"provenance\":\{\"mode\":\"stub\"\}\}"
+        fopen("{tmp_root}/stub_payload.json", "wb") $(f) {
+            fwrite(f, payload)
+        }
+        fopen("{tmp_root}/main.das", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire llvm/daslib/llvm_tune\n[tune_scope(name=\"stubscope\", tuner=\"stub_tuner.das\")]\nstruct StubScope \{\n    unused : int\n\}\n[export]\ndef main() \{\n    print(\"hi\\n\")\n\}\n")
+        }
+        fopen("{tmp_root}/stub_tuner.das", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/fio\n[export]\ndef main() \{\n    fopen(get_env_variable(\"DAS_TUNE_MANIFEST\"), \"wb\") $(mf) \{\n        fwrite(mf, fread(\"{tmp_root}/stub_payload.json\"))\n    \}\n\}\n")
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"tunestub\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n\}\n")
+        }
+        let rc = cmd_release(tmp_root, out_dir)
+        tt |> equal(0, rc, "cmd_release returns 0")
+        // the mint ran: the stub wrote the resolved manifest beside main.das
+        let src_manifest = "{tmp_root}/main.tune.json"
+        tt |> success(fexist(src_manifest), "the scope's manifest was minted at {src_manifest}")
+        // the ship: <bundle>/<name>.tune.json is that SAME manifest, byte-for-byte — shipping
+        // a next-to-root guess instead put a stale July sidecar beside a fresh M4 exe once
+        let bundle_dir = dir_name(bundle_exe_path(out_dir, "tunestub"))
+        let shipped = path_join(bundle_dir, "tunestub.tune.json")
+        tt |> success(fexist(shipped), "the bundle ships a tune sidecar at {shipped}")
+        tt |> equal(fread(src_manifest), fread(shipped), "shipped sidecar == the resolved manifest")
+        tt |> success(find(fread(shipped), "stub_kernel") >= 0, "the shipped winners are the stub mint's")
+        // the ship contract: STRICTLY newer than the exe, or the runtime staleness rule drops
+        // every kernel to its fallback and the artifact cannot name its winners
+        var exe_fs : FStat
+        var side_fs : FStat
+        tt |> success(stat(bundle_exe_path(out_dir, "tunestub"), exe_fs), "exe stats")
+        tt |> success(stat(shipped, side_fs), "shipped sidecar stats")
+        tt |> success(int64(side_fs.mtime) > int64(exe_fs.mtime), "shipped sidecar mtime is strictly newer than the exe")
         force_rmdir(tmp_root)
         force_rmdir(out_dir)
     }
@@ -1953,7 +2101,7 @@ def test_cmd_release_transitive_dep(t : T?) {
 def private add_external_lc_rpaths(path : string; var leaks : array<string>) {
     for (rp in list_lc_rpaths(path)) {
         if (is_external_rpath(rp)) {
-            leaks |> push_clone("{path}: {rp}")
+            leaks |> push("{path}: {rp}")
         }
     }
 }
@@ -1970,7 +2118,7 @@ def private add_external_lc_rpaths(path : string; var leaks : array<string>) {
 // is what makes the symlink alias load-bearing. The test discovers both names
 // at runtime rather than hardcoding versions, so it survives GLFW bumps.
 [test]
-def test_cmd_release_portable_on_macos(t : T?) {
+def test_cmd_release_portable_on_macos(t : T?) { // nolint:STYLE038
     if (get_platform_name() != "darwin") {
         t |> run("skipped — macOS-only audit (otool/install_name_tool)") @(tt : T?) {
             tt |> success(true)

@@ -1,6 +1,7 @@
 from "%darg/ui_imports.nut" import *
 from "dagor.fs" import scan_folder, dir_exists
 from "dagor.system" import argv, get_arg_value_by_name
+from "types" import Table
 
 let show_extensions=[".ui.nut", ".ddsx", ".png", ".jpg",".svg",".tga", ".nut", ".ivf", ".ogm",".ogg",".avif",".hlsl"/*".txt"*/]
 
@@ -26,7 +27,7 @@ let vrom_file_tree = function(){
 }()
 
 function listdir(path_or_options=null){
-  if (type(path_or_options) != "table") {
+  if (!(path_or_options instanceof Table)) {
     path_or_options = {path = path_or_options}
   }
   local path = path_or_options?.path

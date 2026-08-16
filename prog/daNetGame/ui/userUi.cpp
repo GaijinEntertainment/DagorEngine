@@ -147,6 +147,9 @@ static struct GuiSceneCb : public darg::IGuiSceneCallback
   {
     sq::cleanup_unreg_native_api(vm);
     bindquirrel::http_client_on_vm_shutdown(vm);
+    // Scene dtor runs elements' onDetach handlers which may use ECS API,
+    // so the VM is unregistered from ECS only here, right before sq_close.
+    shutdown_ecs_sq_script(vm);
   }
 
   virtual bool useInputConsumersCallback() override { return true; }
@@ -200,7 +203,7 @@ static void do_bind_das(SqModules *moduleMgr)
   bind_dascript::bind_das_events(moduleMgr);
 
   // This is disabled for security reasons, but may be returned later under a permission system
-  // bind_dascript::bind_das(moduleMgr);
+  // bind_dascript::bind_das(moduleMgr, das::daScriptEnvironment::getBound()));
 }
 
 
@@ -328,7 +331,6 @@ void term()
 
   sound::sqapi::release_vm(vm); // Note: this is also implicitly pulls 'bind_sound'
 
-  shutdown_ecs_sq_script(vm);
   bindquirrel::cleanup_dagor_workcycle_module(vm);
   scriptprofile::shutdown(vm);
 

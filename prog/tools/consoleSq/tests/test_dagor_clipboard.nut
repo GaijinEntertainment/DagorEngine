@@ -1,4 +1,4 @@
-// Squirrel module under test: dagor.clipboard (registered by dagorClipboard.cpp)
+// Quirrel module under test: dagor.clipboard (registered by dagorClipboard.cpp)
 // set_clipboard_text would mutate user-visible OS clipboard state and is not
 // invoked here. We restrict coverage to get_clipboard_text (read-only) plus
 // argument validation on set_clipboard_text.

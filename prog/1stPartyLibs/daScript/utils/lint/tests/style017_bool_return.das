@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE017: 'if (cond) return true; else return false' — use 'return cond'
 //
 // Problem: Three lines (or two if-else branches) that just propagate the boolean

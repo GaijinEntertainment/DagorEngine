@@ -37,6 +37,7 @@ namespace das {
     class Context;
 
     typedef vec4f (*JitBlockFunction)(Context *, vec4f *, void *, Block *);
+    typedef vec4f (*JitFunction)(Context *, vec4f *, void *);
 
     template <typename Result, typename... Args>
     struct TBlock : Block {
@@ -167,6 +168,7 @@ namespace das {
                 bool hopeless : 1;          // needs to be deleted without fuss (exceptions)
                 bool forego_lock_check : 1; // don't need to check if elements are locked
                 bool tableNoHash : 1;       // Table only: key type stores no per-slot hash (non-string) - see tableHashSlotBytes
+                bool borrowed : 1;          // a mark_locked view over foreign storage (fmap/temp_array) — array_forget_locked requires it, so an owned array that merely holds a lock can never be "forgotten" (leaked)
             };
             uint32_t flags;
         };
@@ -182,6 +184,7 @@ namespace das {
         friend DAS_API int builtin_array_lock_count ( const Array & arr );
         friend DAS_API void array_mark_locked(Array &arr, void *data, uint64_t capacity);
         friend DAS_API void array_mark_locked(Array &arr, void *data, uint64_t size, uint64_t capacity);
+        friend DAS_API bool array_forget_locked(Array &arr);
         friend DAS_API void array_lock(Context &context, Array &arr, LineInfo *at);
         friend DAS_API void array_unlock(Context &context, Array &arr, LineInfo *at);
         friend DAS_API void table_lock(Context &context, Table &arr, LineInfo *at);

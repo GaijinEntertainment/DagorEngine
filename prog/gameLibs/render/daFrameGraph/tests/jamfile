@@ -13,8 +13,9 @@ OutDir      = $(Root)/$(Location)/bin/$(LegacyPlatformSuffix) ;
 Target      = testFrameGraph ;
 
 UseD3DMulti = yes ;
-UseD3DMultiList = DX12 stub ;
+UseD3DMultiList = DX12 vulkan stub ;
 UseD3DMultiForced = windows ;
+LinuxUseGUI = yes ;
 include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;
 
 if $(PlatformSpec) = clang
@@ -52,6 +53,12 @@ UseProgLibs =
 
   gameLibs/render/daFrameGraph
 ;
+
+if $(Platform) = linux {
+  UseProgLibs +=
+    engine/osApiWrappers/messageBox
+  ;
+}
 
 ShaderVarsStub ?= mock ;
 

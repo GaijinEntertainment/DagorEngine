@@ -1,6 +1,7 @@
 from "dagor.system" import get_arg_value_by_name
 from "daRg" import *
 from "std/underscore.nut" import chunk
+from "types" import Array
 
 const MOVE_ABS = "MOVE_ABS"
 const MOVE_REL = "MOVE_REL"
@@ -183,7 +184,7 @@ function pathToCanvas(path, viewBox=null, fill=false): array {
 }
 
 function stringify(v): string {
-  if (type(v) == "array")
+  if (v instanceof Array)
     return "".concat("[", ", ".join(v.map(stringify)), "]")
   return v == null ? "null" : v.tostring()
 }

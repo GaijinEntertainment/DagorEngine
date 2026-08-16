@@ -3,7 +3,6 @@ options strict_smart_pointers = false
 
 require dastest/testing_boost
 
-require jit
 require daslib/rtti
 require daslib/ast
 
@@ -44,7 +43,7 @@ def public class_info_stub(cl) : StructInfo const? {
         }
     } static_elif (typeinfo is_lambda(cl)) {
         unsafe {
-            var l = reinterpret<int8 ??> addr(cl)
+            var l = addr<int8 ??>(cl)
             if (l == null) {
                 return null
             }

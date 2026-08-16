@@ -37,7 +37,7 @@ void main(
 
 	// If we run linear sampling (with the precise method) a base state must always be present.
 	// We select the current 
-	const float4 color			= t_alphaTexture.SampleLevel(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), texCoord.xy, 0);
+	const float4 color			= OMM_ALPHA_SAMPLE_LEVEL(texCoord.xy);
 	const float alpha			= color[g_GlobalConstants.AlphaTextureChannel];
 
     const OpacityState vertexState = (OpacityState) (g_GlobalConstants.AlphaCutoff < alpha ? (uint) OpacityState::Opaque : (uint) OpacityState::Transparent);

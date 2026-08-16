@@ -19,6 +19,8 @@
 #define GPU_OBJ_HLSL_ENCODE_VAL 8192
 #define GPU_OBJ_BBOX_CLEANER_SIZE 8
 
+#define MAX_GPU_OBJECT_BIOMES 32
+
 struct GeometryTriangle
 {
   uint3 v1v2;

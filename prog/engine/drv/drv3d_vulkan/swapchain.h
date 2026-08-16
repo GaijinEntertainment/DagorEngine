@@ -20,7 +20,8 @@ struct SwapchainMode
 {
   eastl::pair<VulkanSurfaceKHRHandle, void *> surfaceAndWindow;
   VkPresentModeKHR presentMode;
-  VkExtent2D extent;
+  VkExtent2D displayExtent;
+  VkExtent2D backbufferExtent;
   FormatStore format;
   uint8_t extraBusyImages;
   uint8_t enableSrgb : 1;
@@ -127,6 +128,8 @@ private:
   // prerotation stuff
   BaseTex *wrappedRotatedTex = nullptr;
   bool rotateNeeded = false;
+  bool rotateInApp = false;
+  int appRotationAngle = 0;
   shaders::DriverRenderStateId rotateRenderState;
 
   // still image for system preview of non focused application
@@ -149,6 +152,8 @@ private:
   bool acquireSwapImage();
   bool updateImageList(const VkSwapchainCreateInfoKHR &sci);
   void fillSemaphoresRing();
+  // pushes HDR10 mastering metadata to the presentation engine (VK_EXT_hdr_metadata) for the current swapchain
+  void applyHdrMetadata();
 
   void ensureOffscreenBuffer();
   void destroyOffscreenBuffer();
@@ -173,6 +178,8 @@ public:
 
   const SwapchainMode &getMode() const { return currentMode; }
   bool setMode(const SwapchainMode &new_mode);
+
+  int getAppPreRotationAngle() const { return rotateInApp ? appRotationAngle : 0; }
 
   bool init();
   void shutdown();

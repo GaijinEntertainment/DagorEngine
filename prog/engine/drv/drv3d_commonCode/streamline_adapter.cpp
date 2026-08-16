@@ -288,16 +288,19 @@ static void set_motion_vector_constants(sl::Constants &constants, Point2 mv_scal
   constants.jitterOffset = {jitter_offset.x, jitter_offset.y};
 }
 
+#ifdef VULKAN_CORE_H_
+// The vulkan driver hands over its Image object, the DX12 one the ID3D12Resource itself.
+struct NativeImage
+{
+  VkImage image;
+  VkImageCreateInfo info;
+  VkImageView view;
+};
+#endif
+
 static void process_vk_image(sl::Resource &res, bool out = false)
 {
 #ifdef VULKAN_CORE_H_
-  struct NativeImage
-  {
-    VkImage image;
-    VkImageCreateInfo info;
-    VkImageView view;
-  };
-
   auto &native = *(NativeImage *)res.native;
   res.native = native.image;
   res.view = native.view;
@@ -308,6 +311,21 @@ static void process_vk_image(sl::Resource &res, bool out = false)
   res.arrayLayers = 1;
   res.usage = out ? VK_IMAGE_USAGE_STORAGE_BIT : VK_IMAGE_USAGE_SAMPLED_BIT;
 #endif
+}
+
+static IPoint2 get_native_texture_resolution(void *native)
+{
+  if (!native)
+    return {0, 0};
+#ifdef VULKAN_CORE_H_
+  if (d3d::get_driver_code().is(d3d::vulkan))
+  {
+    const VkExtent3D &extent = ((const NativeImage *)native)->info.extent;
+    return {int(extent.width), int(extent.height)};
+  }
+#endif
+  D3D12_RESOURCE_DESC desc = ((ID3D12Resource *)native)->GetDesc();
+  return {int(desc.Width), int(desc.Height)};
 }
 
 template <typename Params>
@@ -882,7 +900,8 @@ DLSSFrameGeneration::DLSSFrameGeneration(int viewport_id, void *command_buffer, 
 
 DLSSFrameGeneration::~DLSSFrameGeneration() { G_VERIFY(sl_funcs::slFreeResources(sl::kFeatureDLSS_G, viewportId) == sl::Result::eOk); }
 
-static sl::DLSSGOptions make_dlssg_options(bool retain_resources, int frames_to_generate)
+static sl::DLSSGOptions make_dlssg_options(bool retain_resources, int frames_to_generate, IPoint2 display_resolution,
+  IPoint2 render_resolution)
 {
   sl::DLSSGOptions options{};
   if (frames_to_generate > 0)
@@ -894,14 +913,19 @@ static sl::DLSSGOptions make_dlssg_options(bool retain_resources, int frames_to_
   options.flags = retain_resources ? sl::DLSSGFlags::eRetainResourcesWhenOff : sl::DLSSGFlags(0);
   options.onErrorCallback = &api_error_callback;
   options.numFramesToGenerate = eastl::max(1, frames_to_generate);
+  options.colorWidth = display_resolution.x;
+  options.colorHeight = display_resolution.y;
+  options.mvecDepthWidth = render_resolution.x;
+  options.mvecDepthHeight = render_resolution.y;
   return options;
 }
 
 // Runs on the render backend thread. Optionally returns the queried state so the caller can cache the
 // parts the main thread needs (slDLSSGGetState is not thread safe, so the main thread must not call it).
-static bool change_dlssg_mode(int viewport_id, bool retain_resources, int frames_to_generate, sl::DLSSGState *out_state = nullptr)
+static bool change_dlssg_mode(int viewport_id, bool retain_resources, int frames_to_generate, IPoint2 display_resolution,
+  IPoint2 render_resolution, sl::DLSSGState *out_state = nullptr)
 {
-  auto options = make_dlssg_options(retain_resources, frames_to_generate);
+  auto options = make_dlssg_options(retain_resources, frames_to_generate, display_resolution, render_resolution);
   if (SL_FAILED(result, sl_funcs::slDLSSGSetOptions(viewport_id, options)))
   {
     if (result == sl::Result::eWarnOutOfVRAM)
@@ -949,7 +973,8 @@ void DLSSFrameGeneration::setEnabled(int frames_to_generate)
   else
   {
     sl::DLSSGState state;
-    this->framesToGenerate = change_dlssg_mode(viewportId, false, frames_to_generate, &state);
+    // The mode is off here, so the resolution hints are unused.
+    this->framesToGenerate = change_dlssg_mode(viewportId, false, frames_to_generate, {}, {}, &state);
     updateCachedState(state);
   }
 }
@@ -959,17 +984,21 @@ bool DLSSFrameGeneration::evaluate(const nv::DlssGParams<void> &params, void *co
   if (framesToGenerate == 0)
     return true;
 
+  // HUDless and UI are display sized, depth and motion vectors come at the upscaler input size.
+  const IPoint2 displayResolution = get_native_texture_resolution(params.inHUDless);
+  const IPoint2 renderResolution = get_native_texture_resolution(params.inDepth);
+
   sl::DLSSGState state;
   if (params.suppressed)
   {
     // this is a workaround to a bug causing DLSS-G to only retain resources when options are passed in each frame
-    change_dlssg_mode(viewportId, true, 0, &state);
+    change_dlssg_mode(viewportId, true, 0, displayResolution, renderResolution, &state);
     updateCachedState(state);
     return true;
   }
   else
   {
-    change_dlssg_mode(viewportId, true, framesToGenerate, &state);
+    change_dlssg_mode(viewportId, true, framesToGenerate, displayResolution, renderResolution, &state);
     updateCachedState(state);
   }
 
@@ -981,33 +1010,13 @@ bool DLSSFrameGeneration::evaluate(const nv::DlssGParams<void> &params, void *co
   sl::Resource inDepth{sl::ResourceType::eTex2d, params.inDepth, params.inDepthState};
   sl::Resource inMotionVectors{sl::ResourceType::eTex2d, params.inMotionVectors, params.inMotionVectorsState};
 
-#if _TARGET_PC_WIN && _TARGET_64BIT
   if (d3d::get_driver_code().is(d3d::vulkan))
   {
-    auto proc = [](sl::Resource &res, bool out = false) {
-      struct NativeImage
-      {
-        VkImage image;
-        VkImageCreateInfo info;
-        VkImageView view;
-      };
-      auto &native = *(NativeImage *)res.native;
-      res.native = native.image;
-      res.view = native.view;
-      res.width = native.info.extent.width;
-      res.height = native.info.extent.height;
-      res.nativeFormat = native.info.format;
-      res.mipLevels = 1;
-      res.arrayLayers = 1;
-      res.usage = out ? VK_IMAGE_USAGE_STORAGE_BIT : VK_IMAGE_USAGE_SAMPLED_BIT;
-    };
-
-    proc(inHUDless);
-    proc(inUI);
-    proc(inDepth);
-    proc(inMotionVectors);
+    process_vk_image(inHUDless);
+    process_vk_image(inUI);
+    process_vk_image(inDepth);
+    process_vk_image(inMotionVectors);
   }
-#endif
 
   sl::ResourceTag tags[] = {
     {&inHUDless, sl::kBufferTypeHUDLessColor, sl::ResourceLifecycle::eOnlyValidNow},

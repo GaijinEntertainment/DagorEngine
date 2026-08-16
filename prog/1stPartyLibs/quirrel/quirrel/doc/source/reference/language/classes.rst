@@ -180,6 +180,10 @@ The operator ``instanceof`` tests if a class instance is an instance of a certai
 
 .. note:: Since Squirrel 3.x instanceof doesn't throw an exception if the left expression is not a class, it simply fails
 
+.. note:: For class instances ``instanceof`` only checks the script class hierarchy,
+    so testing them against the built-in ``Instance`` class from the ``types`` module
+    always yields false. Use ``type(x) == "instance"`` for that check.
+
 --------------
 Inheritance
 --------------

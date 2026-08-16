@@ -328,6 +328,10 @@ void ScriptedShadersBinDumpOwner::clear()
   mDictionary.reset();
   mSelfData = {};
   mShaderDump = nullptr;
+  mShaderDumpV2 = nullptr;
+  mShaderDumpV3 = nullptr;
+  mShaderDumpV4 = nullptr;
+  mShaderDumpV5 = nullptr;
   mDictionary = nullptr;
   vprId.clear();
   fshId.clear();

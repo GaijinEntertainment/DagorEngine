@@ -97,6 +97,9 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
   auto nodeIsEligible = [&](const CollisionNode *node) {
     if (!node || !node->checkBehaviorFlags(CollisionNode::TRACEABLE))
       return false;
+    // a mirrored/singular live pose hides the node from CPU traces; SWRT must match
+    if (!coll_res.getDefaultInstance().isNodeTraceable(node->nodeIndex))
+      return false;
     // Require both verts AND indices: a node with indices but zero verts is malformed and would
     // make the indices loop below reference the previous node's vertex base (firstVertex does not
     // advance for the zero-vert node, but we still push its indices).
@@ -125,7 +128,9 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
   // whole grid, so hasBlas already excludes that.
   {
     const CollisionResource::Grid &grid = coll_res.getBlasGrid(CollisionNode::TRACEABLE);
-    if (!grid.blasData.empty())
+    // bind-grid bytes are valid only while every grid member still holds its seed pose: a
+    // setNodeTm-posed member must fall to the soup path, which composes the current pose
+    if (!grid.blasData.empty() && coll_res.getDefaultInstance().isGridResidentPoseAtBind())
     {
       uint32_t eligibleCount = 0;
       bool allEligibleInGrid = true;
@@ -177,7 +182,7 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
       continue;
 
     const int vertCount = coll_res.getNodeVertCount(ni);
-    const bool needsTransform = (node->flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) != CollisionNode::IDENT;
+    const bool needsTransform = !coll_res.isIdentNode(ni);
     if (needsTransform)
     {
       mat44f nodeTm;

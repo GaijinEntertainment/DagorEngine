@@ -186,8 +186,6 @@ struct D3dInterfaceTable
   bool (*set_depth_0)(BaseTexture *, DepthAccess);
   bool (*set_depth_1)(BaseTexture *tex, int layer, DepthAccess);
   bool (*set_render_target_0)();
-  bool (*set_render_target_1)(int rt_index, BaseTexture *, uint8_t level);
-  bool (*set_render_target_2)(int rt_index, BaseTexture *, int fc, uint8_t level);
   bool (*set_render_target_3)(const Driver3dRenderTarget &rt);
   void (*set_render_target_4)(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors);
   void (*get_render_target)(Driver3dRenderTarget &out_rt);
@@ -424,8 +422,6 @@ struct D3dInterfaceTable
   }
 
   bool set_render_target() { return set_render_target_0(); }
-  bool set_render_target(int ri, BaseTexture *tex, int fc, int level) { return set_render_target_2(ri, tex, fc, level); }
-  bool set_render_target(int rt_index, BaseTexture *tex, int level) { return set_render_target_1(rt_index, tex, level); }
   bool set_render_target(const Driver3dRenderTarget &rt) { return set_render_target_3(rt); }
   inline bool set_depth(BaseTexture *tex, DepthAccess access) { return set_depth_0(tex, access); }
   inline bool set_depth(BaseTexture *tex, int layer, DepthAccess access) { return set_depth_1(tex, layer, access); }

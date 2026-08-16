@@ -414,12 +414,20 @@ CPPopt +=
   -DASSIMP_FBX_USE_PAGE_ALLOCATOR
   -DASSIMP_ENABLE_DRACO
 ;
+
+# The FBX and STEP importers dispatch on dynamic_cast, so they need RTTI even when the
+# rest of the build sets -sRtti=no. Comes after the global /GR-, and the last flag wins.
+if $(Platform) in windows xboxOne scarlett {
+  CPPopt += /GR ;
+} else {
+  CPPopt += -frtti ;
+}
 if $(PlatformSpec) = clang {
   # draco\attributes\geometry_attribute.h(401,25): warning: implicit conversion from 'long long' to 'double'
   CPPopt += -Wno-implicit-const-int-float-conversion ;
 }
 
-if ! $(Platform) in windows macOS linux android {
+if ! $(Platform) in windows xboxOne scarlett macOS linux android {
   if $(PlatformSpec) = clang {
     CPPopt += -include fs_stub.h ;
   }
@@ -436,7 +444,7 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/assimp/code
   $(Root)/prog/3rdPartyLibs/assimp/include
   $(Root)/prog/3rdPartyLibs/assimp/include
-  $(Root)/prog/3rdPartyLibs/assimp/contrib/pugixml/src
+  $(Root)/prog/3rdPartyLibs/pugixml
   $(Root)/prog/3rdPartyLibs/rapidjson/include
   (Root)/prog/3rdPartyLibs/eastl/include
   $(Root)/prog/3rdPartyLibs/arc/unzip
@@ -445,6 +453,9 @@ AddIncludes =
 
 if $(Platform) = ps4 {
   AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps4 ;
+}
+if $(Platform) = ps5 {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps5 ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

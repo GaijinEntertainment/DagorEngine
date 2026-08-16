@@ -9,6 +9,7 @@
 #include <scene/dag_kdtreeCull.h>
 #include <EASTL/fixed_vector.h>
 #include <dag/dag_vector.h>
+#include <generic/dag_relocatableFixedVector.h>
 #include <osApiWrappers/dag_rwLock.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_atomic_types.h>
@@ -69,6 +70,7 @@ public:
   template <typename T = void, typename F = NoAction>
   void flushDeferredTransformUpdates(F user_cmd_processor = NoAction());
 
+  // its dead tile compaction renumbers tiles, so that part waits while a bulk transform update is open
   bool doMaintenance(int64_t reft, unsigned max_time_to_spend_usec);
 
   float getTileSize() const { return tileSize; }
@@ -79,6 +81,12 @@ public:
   void setTransform(node_index node, mat44f_cref transform, bool do_not_wait = false); // updating bounding sphere from pool,
                                                                                        // potentially slower, and requries pool to be
                                                                                        // valid
+  // Batches tile re-bucketing over a burst of moves. Within the scope a moved node stays in its old
+  // tile with only its bounds grown, so queries stay conservative; closing the outermost scope
+  // re-buckets in one pass per touched tile. Ref counted, writing thread only.
+  void beginBulkTransformUpdate();
+  void endBulkTransformUpdate();
+
   void setFlags(node_index node, uint16_t flags);
   void unsetFlags(node_index node, uint16_t flags);
   void unsetFlagsUnordered(dag::ConstSpan<node_index> nodes, uint16_t flags);
@@ -310,6 +318,32 @@ protected:
   int curFirstTileForMaint = 0, curTilesCountForMaint = 0;
   uint32_t pendingNewNodesCount1 = 0, pendingNewNodesCount2 = 0, pendingNewNodesCount3 = 0;
 
+  struct BulkTransform
+  {
+    // marks a node whose destroy waits for the flush. Node indices must not be freed inside a scope: a
+    // reused one would make a tile's stale entry point at a live node.
+    static constexpr uint32_t PENDING_DESTROY = INVALID_INDEX - 1;
+    static constexpr int INPLACE_NODES = 16;
+
+    int depth = 0;                  // read from any thread by setTransform(), written by begin/end only
+    dag::Vector<uint32_t> nodeTile; // node index -> tile it is stored in, INVALID_INDEX while it is in its own position's tile
+    dag::Vector<uint8_t> tileDirty; // tile index -> holds nodes that may need re-bucketing
+    dag::RelocatableFixedVector<node_index, INPLACE_NODES> movedNodes;     // flush scratch
+    dag::RelocatableFixedVector<node_index, INPLACE_NODES> destroyedNodes; // same, for the destroys the flush completes
+
+    bool isPendingDestroy(uint32_t n_index) const
+    {
+      return depth > 0 && n_index < nodeTile.size() && nodeTile[n_index] == PENDING_DESTROY;
+    }
+    void reset()
+    {
+      clear_and_shrink(nodeTile);
+      clear_and_shrink(tileDirty);
+      movedNodes.clear();
+      destroyedNodes.clear();
+    }
+  } bulk;
+
   struct DeferredCommand
   {
     mat44f transformCommand;
@@ -353,6 +387,13 @@ protected:
   std::mutex mDeferredSetTransformMutex;
 
   __forceinline uint32_t selectTileIndex(uint32_t n_index, bool allow_add);
+  __forceinline uint32_t getTargetTileIndex(uint32_t n_index); // same mapping as selectTileIndex, but never adds and never logs
+  __forceinline uint32_t getActualTileIndex(uint32_t n_index); // tile the node is stored in, which during a bulk update is not
+                                                               // necessarily the tile its position maps to
+  __forceinline void markNodeDisplaced(uint32_t n_index, uint32_t t_idx);
+  __forceinline void clearNodeDisplaced(uint32_t n_index);
+  void growTileForDisplacedNode(uint32_t t_idx, uint32_t n_index);
+  void flushBulkTransformUpdate();
   __forceinline void insertNode(TileData &tile, node_index node);
   __forceinline void removeNode(TileData &tile, node_index node);
   __forceinline void updateTileExtents(TileData &tile, mat44f_cref node, bbox3f &wabb);

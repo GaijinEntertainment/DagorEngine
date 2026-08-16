@@ -27,6 +27,8 @@ include "clustered/simple_point_light.dshl"
 include "envi_cover_inc.dshl"
 include "water_heightmap.dshl"
 include "use_gi.dshl"
+include "world_sdf.dshl"
+include "dagi_lit_scene_helper.dshl"
 include "night_light.dshl"
 include "rtao_use.dshl"
 include "rtr_use.dshl"
@@ -40,11 +42,6 @@ include "nrd_material.dshl"
 
 float4 stereo_params = (0, 0, 0, 0);
 
-float4 globtm_no_ofs_psf_0;
-float4 globtm_no_ofs_psf_1;
-float4 globtm_no_ofs_psf_2;
-float4 globtm_no_ofs_psf_3;
-texture combined_shadows;
 float4 blood_ss_profile = (0.95,0.3,0.25,0);
 float4 leaves_ss_profile = (1.0,0.8,0.5,0);
 texture specular_tex;
@@ -66,7 +63,6 @@ int combined_shadows_has_caustics;
 
 float4 tank_cockpit__bsphere = float4(0., 0., 0., 0.);
 float tank_cockpit_fake_ambient_light_strength = 0.25;
-float4 hero_cockpit_vec = (0, 0, 0, 0);
 
 macro COMMON_RESOLVE_SIMPLE(code)
   (code) {
@@ -219,6 +215,8 @@ macro COMMON_RESOLVE_EXTENDED(code)
       }
       DAGI_IRRADIANCE_GRID_SAMPLE(code)
       DAGI_NO_SCREEN_ENCODING(code)
+      READ_WORLD_SDF_MATH(code)
+      PROJECT_GET_WORLD_VOXELS_LIT_SCENE_AT(code)
     } else
     {
       SAMPLE_IRRADIANCE_SP(code)
@@ -309,7 +307,9 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
 
       float4 weights = sampleCloseUpscaleWeight(screenpos);
       SSAO_TYPE ssao = getSSAOUpscaleWeighted(weights, screenpos);
-      half4 ssrReflections = getSSRWeighted(gbuffer.linearRoughness, curViewTc, screenpos, weights);
+      float4 ssrFarLin = linearize_z4(downsampled_far_depth_tex.GatherRed(downsampled_far_depth_tex_samplerstate, curViewTc), zn_zfar.zw);
+      float4 ssrWeights = sampleCloseUpscaleWeightWithDepthMatch(screenpos, ssrFarLin, w);
+      half4 ssrReflections = getSSRWeighted(gbuffer.linearRoughness, curViewTc, screenpos, half4(ssrWeights));
 
       half cockpitFade = half(saturate(dot(float4(worldPos.xyz, 1), hero_cockpit_vec)));
 
@@ -464,10 +464,10 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       if (isPTGIEnabled())
       {
         half3 ptgi = half3(getPTGI(curViewTc, w));
+        ptgi *= gbuffer.ao; // Apply gbuffer AO only, PTGI implicitly includes RTAO
         if (gbuffer.isHeroCockpit)
           enviLight = lerp(ptgi, enviLight, cockpitFade);
         else {
-          // PTGI does not need additional AO
           enviLight = ptgi;
         }
       }
@@ -523,21 +523,25 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
         }
         half3 backAmbientLight = GetSkySHDiffuse(-gbuffer.normal);
         half3 giBackAmbient = backAmbientLight;
-        half giAmount = 1;
         ##if (gi_quality == screen_probes)
           sample_bilinear_irradiance_envi_normal(-gbuffer.normal, w, worldPos.xyz, gbuffer.normal, screenpos, giBackAmbient);
         ##elif (gi_quality == colored)
-          float ofs = max(dist*0.04, 0.25*dagi_irrad_grid_probe_size(0));
-          float3 filteredWorldPos = worldPos.xyz + view*ofs;
-          giAmount = dagi_irrad_grid_diffuse_biased_smooth(world_view_pos.xyz, filteredWorldPos, -gbuffer.normal, view, max(0, dist-ofs), gbuffer.normal, 0, giBackAmbient);
-          //ambient = volumetric_gi_calc_diffuse_uvw(input.texcoord.xy, 0.95*w, enviLightingNormal);
+          float3 backRadiance;
+          BRANCH
+          if (dagi_get_voxels_lit_scene_radiance_at(worldPos.xyz, -gbuffer.normal, backRadiance))
+            giBackAmbient = backRadiance;
+          else
+          {
+            float ofs = max(dist*0.04, 0.25*dagi_irrad_grid_probe_size(0));
+            float3 filteredWorldPos = worldPos.xyz + view*ofs;
+            dagi_irrad_grid_diffuse_biased_smooth(world_view_pos.xyz, filteredWorldPos, -gbuffer.normal, view, max(0, dist-ofs), gbuffer.normal, 0, giBackAmbient);
+          }
         ##elif (gi_quality == only_ao)
           float ofs = max(dist*0.04, 0.25*dagi_sky_vis_probe_size(0));
           float3 filteredWorldPos = worldPos.xyz + view*ofs;
           float vignette;
           float4 sh1 = dagi_get_sky_visibility_smooth_vignette(world_view_pos.xyz, filteredWorldPos, view, max(0, dist-ofs), gbuffer.normal, 0, vignette);
           giBackAmbient = lerp(GetSHFunctionValueSimple(enviLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx), giBackAmbient, vignette);
-          giAmount = 1 - vignette;
         ##endif
         backAmbientLight = giBackAmbient * skylight_gi_weight_atten;
         environmentAmbientLighting += enviAO*backAmbientLight*gbuffer.translucencyColor;

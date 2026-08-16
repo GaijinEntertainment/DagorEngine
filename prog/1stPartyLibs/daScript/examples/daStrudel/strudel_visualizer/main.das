@@ -1,19 +1,20 @@
 options gen2
 options indenting = 4
 options persistent_heap
+options gc
 
 require live/glfw_live
 require opengl/opengl_boost
 require opengl/opengl_ttf
-require live/opengl_live
+require live/opengl_live  // nolint:STYLE030 — load-bearing for OpenGL resource live-reload
 require live/live_commands
 require live/live_api
-require live/live_watch_boost
+require live/live_watch_boost // nolint:STYLE030 — load-bearing for live file-watch side-effects
 require live_host
 require daslib/math_boost
 require daslib/safe_addr
 require audio/audio_boost
-require live/audio_live
+require live/audio_live   // nolint:STYLE030 — load-bearing for audio buffer persistence across reloads
 require strudel/strudel
 require strudel/strudel_player
 require daslib/fio
@@ -162,7 +163,7 @@ def build_panels() {
 
 // --- Live commands ---
 
-[live_command(description="Dump debug info")]
+[live_command(description="Dump debug info"), unused_argument(input)]
 def cmd_debug(input : JsonValue?) : JsonValue? {
     let info = build_string() $(var writer) {
         writer |> write("tracks: {length(g_vis_registrations)}, panels: {length(panels)}\n")
@@ -185,7 +186,7 @@ def cmd_debug(input : JsonValue?) : JsonValue? {
 var asch : AudioSystemChannels
 
 [export]
-def init() {
+def init() { // nolint:STYLE038 — linear track-setup sequence
     live_create_window("daStrudel Visualizer", 1280, 720)
     create_gl_objects()
     create_ttf_objects()
@@ -302,7 +303,7 @@ def init() {
 }
 
 [export]
-def update() {
+def update() { // nolint:STYLE037 — per-panel-kind dispatch
     if (!live_begin_frame()) {
         return
     }
@@ -321,7 +322,7 @@ def update() {
     }
     // feed per-track PCM to audio analyses
     for (i in range(length(audio_analyses))) {
-        if (i < length(g_track_pcm) && length(g_track_pcm[i]) > 0) {
+        if (i < length(g_track_pcm) && !empty(g_track_pcm[i])) {
             audio_analysis_feed(audio_analyses[i], g_track_pcm[i])
         }
         audio_analysis_update_spectrum(audio_analyses[i])
@@ -385,7 +386,7 @@ def update() {
                 push_quad(verts, 0.0, py1 - 1.0, fw, py1 + 1.0, float4(0.5, 0.5, 0.5, 0.5))
             }
         }
-        if (length(verts) > 0) {
+        if (!empty(verts)) {
             let projection = ortho_rh(0.0, fw, 0.0, fh, -1.0, 1.0)
             glUseProgram(program)
             v_projection = projection
@@ -441,6 +442,7 @@ def main() {
     var frame_count = 0
     while (!exit_requested()) {
         update()
+        maybe_collect_gc()
         frame_count ++
         if (max_frame_limit > 0 && frame_count >= max_frame_limit) {
             break

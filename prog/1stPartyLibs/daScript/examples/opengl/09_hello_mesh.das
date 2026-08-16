@@ -1,10 +1,13 @@
 options gen2
+options persistent_heap
+options gc
 require glfw/glfw_boost
 require opengl/opengl_boost
 require opengl/opengl_gen
-require daslib/defer
 require math
+require strings
 require daslib/math_boost
+require live/live_gc
 
 var @in @location v_position : float3
 var @in @location v_normal   : float3
@@ -43,48 +46,48 @@ def fs_preview {
     f_FragColor.w = 1.
 }
 
+var window : GLFWwindow?
+var program : uint
+var mesh : OpenGLGeometryFragment
+var checkerboard_texture : uint
+var camera_distance = 4.
+var camera_rotation : float
+var camera_position_y : float
+var cursor_position_xy : float2
+var cursor_enabled = false
+
 [export]
-def main {
+def init() {
     if (glfwInit() == 0) {
         panic("can't init glfw")
     }
-    defer() {
-        glfwTerminate()
-    }
     glfwInitOpenGL(3, 3)
-    var window = glfwCreateWindow(1280, 720, "OpenGL - Hello object file", null, null)
+    window = glfwCreateWindow(1280, 720, "OpenGL - Hello object file", null, null)
     if (window == null) {
         panic("can't create window")
     }
-    defer() {
-        glfwDestroyWindow(window)
-    }
     glfwMakeContextCurrent(window)
-    let program = create_shader_program(@@vs_preview, @@fs_preview)
+    program = create_shader_program(@@vs_preview, @@fs_preview)
     // var mesh <- gen_sphere(32,16,false) |> create_geometry_fragment
-    let mesh <- load_obj_mesh("orb.obj",
+    mesh <- load_obj_mesh("orb.obj",
             "{get_das_root()}/examples/opengl",
             "{get_das_root()}/examples/opengl/media"
         ) |> create_geometry_fragment
-    let checkerboard_texture = gen_image_checkerboard(16, 16, 0xff404040, 0xff808080) |> create_texture
+    checkerboard_texture = gen_image_checkerboard(16, 16, 0xff404040, 0xff808080) |> create_texture
     glBindTexture(GL_TEXTURE_2D, checkerboard_texture)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
     glBindTexture(GL_TEXTURE_2D, 0u)
-    var camera_distance = 4.
-    var camera_rotation : float
-    var camera_position_y : float
-    var cursor_position_xy = glfwGetCursorPos(window)
-    var cursor_enabled = false
+    cursor_position_xy = glfwGetCursorPos(window)
     unsafe {
-        glfwSetScrollCallback(window) @ capture(& camera_distance) (w, x, y) {
+        glfwSetScrollCallback(window) @(w, x, y) {
             if (y > 0.0lf) {
                 camera_distance *= 1.1
             } else {
                 camera_distance /= 1.1
             }
         }
-        glfwSetCursorPosCallback(window) @ capture(& cursor_position_xy, & cursor_enabled, & camera_position_y, & camera_rotation, & camera_distance) (w, x, y) {
+        glfwSetCursorPosCallback(window) @(w, x, y) {
             if (cursor_enabled) {
                 let cxy = glfwGetCursorPos(window)
                 let dxy = cxy - cursor_position_xy
@@ -96,7 +99,7 @@ def main {
                 glfwSetCursorPos(window, double(cursor_position_xy.x), double(cursor_position_xy.y))
             }
         }
-        glfwSetMouseButtonCallback(window) @ capture(& cursor_enabled, & cursor_position_xy) (w, b, a, m) {
+        glfwSetMouseButtonCallback(window) @(w, b, a, m) {
             if (b == int(GLFW_MOUSE_BUTTON_1)) {
                 cursor_enabled = a == int(GLFW_PRESS)
                 if (cursor_enabled) {
@@ -113,37 +116,71 @@ def main {
             }
         }
     }
-    eval_main_loop() {
-        if (glfwWindowShouldClose(window) != 0) {
-            return false
+}
+
+[export]
+def update() {
+    glfwPollEvents()
+    var display_w, display_h : int
+    glfwGetFramebufferSize(window, display_w, display_h)
+    let aspect = display_h != 0 ? float(display_w) / float(display_h) : 1.
+    // render
+    glViewport(0, 0, display_w, display_h)
+    glClearColor(0.2, 0.2, 0.2, 1.0)
+    glClearDepth(1.0lf)
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glEnable(GL_DEPTH_TEST)
+    glEnable(GL_CULL_FACE)
+    glCullFace(GL_BACK)
+    glDepthFunc(GL_LEQUAL)
+    f_camera_position = float3(0., camera_position_y + camera_distance * 0.5, camera_distance)
+    v_view = look_at_rh(f_camera_position, float3(0, 0, 0), float3(0, 1, 0))
+    let rot = quat_from_unit_vec_ang(normalize(float3(0., 1., 0.)), camera_rotation * PI / 180.)
+    v_projection = perspective_rh_opengl(45.0f * PI / 180., aspect, 0.1f, 50.0f)
+    f_tex := checkerboard_texture
+    glUseProgram(program)
+    v_model = compose(float3(0, 0, 0), rot, float3(1.0))
+    vs_preview_bind_uniform(program)
+    fs_preview_bind_uniform(program)
+    draw_geometry_fragment(mesh)
+    glUseProgram(0u)
+    glfwMakeContextCurrent(window)
+    glfwSwapBuffers(window)
+}
+
+[export]
+def shutdown() {
+    if (window != null) {
+        glfwDestroyWindow(window)
+        window = null
+    }
+    glfwTerminate()
+}
+
+var max_frame_limit = 0
+
+def parse_args() {
+    let args <- get_command_line_arguments()
+    for (i in range(length(args) - 1)) {
+        if (args[i] == "--max-frames") {
+            max_frame_limit = to_int(args[i + 1])
         }
-        glfwPollEvents()
-        var display_w, display_h : int
-        glfwGetFramebufferSize(window, display_w, display_h)
-        let aspect = display_h != 0 ? float(display_w) / float(display_h) : 1.
-        // render
-        glViewport(0, 0, display_w, display_h)
-        glClearColor(0.2, 0.2, 0.2, 1.0)
-        glClearDepth(1.0lf)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glEnable(GL_DEPTH_TEST)
-        glEnable(GL_CULL_FACE)
-        glCullFace(GL_BACK)
-        glDepthFunc(GL_LEQUAL)
-        f_camera_position = float3(0., camera_position_y + camera_distance * 0.5, camera_distance)
-        v_view = look_at_rh(f_camera_position, float3(0, 0, 0), float3(0, 1, 0))
-        let rot = quat_from_unit_vec_ang(normalize(float3(0., 1., 0.)), camera_rotation * PI / 180.)
-        v_projection = perspective_rh_opengl(45.0f * PI / 180., aspect, 0.1f, 50.0f)
-        f_tex := checkerboard_texture
-        glUseProgram(program)
-        v_model = compose(float3(0, 0, 0), rot, float3(1.0))
-        vs_preview_bind_uniform(program)
-        fs_preview_bind_uniform(program)
-        draw_geometry_fragment(mesh)
-        glUseProgram(0u)
-        glfwMakeContextCurrent(window)
-        glfwSwapBuffers(window)
-        return true
     }
 }
 
+// on web the wasm host auto-drives init/update/shutdown per frame and never calls main
+[export]
+def main() {
+    parse_args()
+    init()
+    var frame_count = 0
+    while (glfwWindowShouldClose(window) == 0) {
+        update()
+        maybe_collect_gc()
+        frame_count ++
+        if (max_frame_limit > 0 && frame_count >= max_frame_limit) {
+            break
+        }
+    }
+    shutdown()
+}

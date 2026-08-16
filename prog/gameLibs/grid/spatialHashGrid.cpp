@@ -52,3 +52,22 @@ DAGOR_NOINLINE const GridObject *grid_find_in_transformed_box_by_bounding(const 
 {
   return grid_find_in_transformed_box_by_bounding_impl<GridObject>(grid_holder, tm, bbox, pred);
 }
+
+// The plane test is fixed at 6 planes. Anything else - a convex collision node carries one plane per
+// exported face, or a k-dop's plane set - narrows by the oriented bbox alone: fewer candidates than
+// no query at all, and callers run their own exact test afterwards regardless.
+DAGOR_NOINLINE const GridObject *grid_find_in_convex_by_pos(const GridHolder &grid_holder, const TMatrix &tm, const BBox3 &bbox,
+  dag::ConstSpan<plane3f> planes, const GridObjPred &pred)
+{
+  if (planes.size() != GridConvexPlanesSoA::PLANE_COUNT)
+    return grid_find_in_transformed_box_by_pos_impl<GridObject>(grid_holder, tm, bbox, pred);
+  return grid_find_in_convex_by_pos_impl<GridObject>(grid_holder, tm, bbox, planes, pred);
+}
+
+DAGOR_NOINLINE const GridObject *grid_find_in_convex_by_bounding(const GridHolder &grid_holder, const TMatrix &tm, const BBox3 &bbox,
+  dag::ConstSpan<plane3f> planes, const GridObjPred &pred)
+{
+  if (planes.size() != GridConvexPlanesSoA::PLANE_COUNT)
+    return grid_find_in_transformed_box_by_bounding_impl<GridObject>(grid_holder, tm, bbox, pred);
+  return grid_find_in_convex_by_bounding_impl<GridObject>(grid_holder, tm, bbox, planes, pred);
+}

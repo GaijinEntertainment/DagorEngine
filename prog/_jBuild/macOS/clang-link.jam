@@ -142,7 +142,7 @@ actions together quietly link_target
   echo linking $(1:B)$(1:S)
   del $(1)
   set MACOSX_DEPLOYMENT_TARGET=$(MacOSXMinVer)
-  call $(link) $(link_opt) $(link_libs) $(obj_list) -o $(1)
+  call $(link) $(link_opt) $(obj_list) $(link_libs) -o $(1)
   if errorlevel 1 goto failed
   $(postlink_cmd)
   if errorlevel 1 goto failed

@@ -71,7 +71,7 @@ struct DeltaCalculatorFixture
 
     // Allocate empty event vectors for every node slot in both frames of the schedule window.
     const auto totalKeys = static_cast<dafg::intermediate::NodeIndex>(graph.nodes.totalKeys());
-    for (int frame = 0; frame < dafg::BarrierScheduler::SCHEDULE_FRAME_WINDOW; ++frame)
+    for (int frame = 0; frame < dafg::SCHEDULE_FRAME_WINDOW; ++frame)
       events[frame].expandMapping(totalKeys);
 
     calc.emplace(graph);

@@ -47,8 +47,8 @@ void add_occlusion_mask_tasks(OcclusionMaskApplier &occlusionMaskApplier, const 
   if (!is_sub_view)
     return;
 
-  const CameraParams &world_view = WRDispatcher::getCurrentCameraParams();
-  const auto occlusionMaskinTask = camera_in_camera::get_near_plane_masking_task(world_view);
+  const CameraParams &cockpit_view = WRDispatcher::getCurrentCockpitCameraParams();
+  const auto occlusionMaskinTask = camera_in_camera::get_near_plane_masking_task(cockpit_view);
   if (occlusionMaskinTask.isValid())
     occlusionMaskApplier.scheduleTask(occlusionMaskinTask);
 }

@@ -1,11 +1,14 @@
 options gen2
+options persistent_heap
+options gc
 require glfw/glfw_boost
 require opengl/opengl_boost
 require glsl/glsl_opengl
-require daslib/defer
 require math
+require strings
 
 require daslib/safe_addr
+require live/live_gc
 
 var @in @location v_position : float2
 var @in @location v_color : float3
@@ -47,6 +50,7 @@ def fs_display {
     f_FragColor.w = 1.
 }
 
+var window : GLFWwindow?
 var program, display_program : uint
 var vao : uint
 var vbo : uint
@@ -109,60 +113,88 @@ def create_gl_objects {
 }
 
 [export]
-def main {
+def init() {
     if (glfwInit() == 0) {
         panic("can't init glfw")
     }
-    defer() {
-        glfwTerminate()
-    }
     glfwInitOpenGL(3, 3)
-    var window = glfwCreateWindow(1280, 720, "OpenGL - Hello render to texture", null, null)
+    window = glfwCreateWindow(1280, 720, "OpenGL - Hello render to texture", null, null)
     if (window == null) {
         panic("can't create window")
     }
-    defer() {
-        glfwDestroyWindow(window)
-    }
     glfwMakeContextCurrent(window)
     create_gl_objects()
-    eval_main_loop() {
-        if (glfwWindowShouldClose(window) != 0) {
-            return false
+}
+
+[export]
+def update() {
+    glfwPollEvents()
+    var display_w, display_h : int
+    glfwGetFramebufferSize(window, display_w, display_h)
+    let t = glfwGetTime()
+    if (t > 1lf) {
+        glfwSetTime(t - 1lf)
+    }
+    let ft = float(t)
+    f_offset = float2(ft, sin(ft * PI * 2.) * 0.25)
+    // bind fbo and render to it
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo)
+    glViewport(0, 0, fbo_width, fbo_height)
+    glUseProgram(program)
+    f_tex := texture
+    vs_effect_bind_uniform(program)
+    fs_effect_bind_uniform(program)
+    glBindVertexArray(vao)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null)
+    // bind back buffer, and render to it
+    glBindFramebuffer(GL_FRAMEBUFFER, 0u)
+    glViewport(0, 0, display_w, display_h)
+    glUseProgram(display_program)
+    f_tex := target_texture
+    vs_effect_bind_uniform(display_program)
+    fs_display_bind_uniform(display_program)
+    glBindVertexArray(vao)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null)
+    // swap buffers
+    glfwMakeContextCurrent(window)
+    glfwSwapBuffers(window)
+}
+
+[export]
+def shutdown() {
+    if (window != null) {
+        glfwDestroyWindow(window)
+        window = null
+    }
+    glfwTerminate()
+}
+
+var max_frame_limit = 0
+
+def parse_args() {
+    let args <- get_command_line_arguments()
+    for (i in range(length(args) - 1)) {
+        if (args[i] == "--max-frames") {
+            max_frame_limit = to_int(args[i + 1])
         }
-        glfwPollEvents()
-        var display_w, display_h : int
-        glfwGetFramebufferSize(window, display_w, display_h)
-        let t = glfwGetTime()
-        if (t > 1lf) {
-            glfwSetTime(t - 1lf)
-        }
-        let ft = float(t)
-        f_offset = float2(ft, sin(ft * PI * 2.) * 0.25)
-        // bind fbo and render to it
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo)
-        glViewport(0, 0, fbo_width, fbo_height)
-        glUseProgram(program)
-        f_tex := texture
-        vs_effect_bind_uniform(program)
-        fs_effect_bind_uniform(program)
-        glBindVertexArray(vao)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null)
-        // bind back buffer, and render to it
-        glBindFramebuffer(GL_FRAMEBUFFER, 0u)
-        glViewport(0, 0, display_w, display_h)
-        glUseProgram(display_program)
-        f_tex := target_texture
-        vs_effect_bind_uniform(display_program)
-        fs_display_bind_uniform(display_program)
-        glBindVertexArray(vao)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null)
-        // swap buffers
-        glfwMakeContextCurrent(window)
-        glfwSwapBuffers(window)
-        return true
     }
 }
 
+// on web the wasm host auto-drives init/update/shutdown per frame and never calls main
+[export]
+def main() {
+    parse_args()
+    init()
+    var frame_count = 0
+    while (glfwWindowShouldClose(window) == 0) {
+        update()
+        maybe_collect_gc()
+        frame_count ++
+        if (max_frame_limit > 0 && frame_count >= max_frame_limit) {
+            break
+        }
+    }
+    shutdown()
+}

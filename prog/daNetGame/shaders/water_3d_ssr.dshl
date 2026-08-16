@@ -293,9 +293,9 @@ macro WATER_SSR()
       float rawDepth = sample_close_depth_tex(result.xy, 0);
       float3 reflectionPos = world_view_pos + viewDir * linearize_z(rawDepth, zn_zfar.zw);
       //Check if camera is on the same side of water as reflection sample, with 1m tolerance
-      const float OFFSET = -sign(world_view_pos.y - water_level);
+      const float OFFSET = -sign(world_view_pos.y - world_pos.y);
       FLATTEN
-      if ((reflectionPos.y < water_level+OFFSET) == (world_view_pos.y < water_level))
+      if ((reflectionPos.y < world_pos.y+OFFSET) == (world_view_pos.y < world_pos.y))
         return result;
       else
         return float4(0, 0, 0, HIT_INVALID);

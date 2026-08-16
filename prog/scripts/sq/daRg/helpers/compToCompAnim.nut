@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "types" import Table
 
 let curAnimations = [] //id, comp
 let generation = Watched(0)
@@ -18,7 +19,7 @@ function removeCompAnim(id) {
   incGen()
 }
 
-let isAABB = @(o): bool type(o) == "table" && "l" in o && "r" in o && "b" in o && "t" in o
+let isAABB = @(o): bool o instanceof Table && "l" in o && "r" in o && "b" in o && "t" in o
 
 let getAABB = @(aabbOrKey) isAABB(aabbOrKey) ? aabbOrKey : gui_scene.getCompAABBbyKey(aabbOrKey)
 let mkSize = @(aabb): array [aabb.r - aabb.l, aabb.b - aabb.t]

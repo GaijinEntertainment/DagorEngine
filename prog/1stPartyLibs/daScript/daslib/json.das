@@ -60,12 +60,7 @@ def JVNull {
 var private g_json_null_sentinel : JsonValue?
 
 def json_null_sentinel : JsonValue ? {
-    //! Shared, per-context ``null`` JsonValue returned by ``operator ?[]`` / ``?.`` when a
-    //! key/index is absent — so missing-key navigation allocates nothing (a fresh ``JVNull()``
-    //! per miss was a steady GC-pressure source). It preserves the "``?[]`` is never null"
-    //! contract callers rely on. INTERNAL: it is shared and must never be freed, mutated, or
-    //! stored into a tree. ``delete_json`` and ``update`` guard against it; do not ``delete`` a
-    //! ``?[]`` result directly or ``insert`` it into an object/array.
+    //! Shared, per-context ``null`` JsonValue returned by ``operator ?[]`` / ``?.`` when a key/index is absent — so missing-key navigation allocates nothing (a fresh ``JVNull()`` per miss was a steady GC-pressure source). It preserves the "``?[]`` is never null" contract callers rely on. INTERNAL: it is shared and must never be freed, mutated, or stored into a tree. ``delete_json`` and ``update`` guard against it; do not ``delete`` a ``?[]`` result directly or ``insert`` it into an object/array.
     if (g_json_null_sentinel == null) {
         g_json_null_sentinel = JVNull()
     }
@@ -188,7 +183,7 @@ def private next(var text : iterator<int>; var character, line, row : int&) : bo
     return false
 }
 
-def private _lexer(var stext : string implicit) {
+def private _lexer(var stext : string implicit) {  // nolint:STYLE038 - one linear lexer state machine
     //! creates a lexer generator from the input `stext` string.
     return <- generator<TokenAt> {
         var tin : iterator<int>
@@ -266,7 +261,7 @@ def private _lexer(var stext : string implicit) {
                                     push(str, uint8('\\'))
                                     push(str, uint8('u'))
                                     for (b in hex_str) {
-                                        push(str, b) // nolint:PERF006 hex_str is 4 bytes max
+                                        push(str, b) // nolint:PERF006,LINT019 hex_str is 4 bytes max; PERF006 fires only in downstream compiles
                                     }
                                     if (!valid_hex) {
                                         push(str, uint8(ahead))
@@ -397,7 +392,7 @@ def private expect_symbol(var itv : iterator<TokenAt>; var ahead : TokenAt; sym 
     }
 }
 
-def private parse_value(var itv : iterator<TokenAt>; var error : string&) : JsonValue? {
+def private parse_value(var itv : iterator<TokenAt>; var error : string&) : JsonValue? {  // nolint:STYLE037,STYLE038 - recursive descent, one arm per json production
     //! parses a JSON value from the token iterator `itv`.
     var ahead : TokenAt
     if (!next(itv, ahead)) return null
@@ -605,6 +600,7 @@ def private write_value(var writer : StringBuilderWriter; jsv : JsonValue?; dept
     }
 }
 
+[temp_string_result]
 def write_json(val : JsonValue?) : string {
     //! returns JSON (textual) representation of JsonValue as a string.
     let st = build_string() $(var writer) {
@@ -613,33 +609,85 @@ def write_json(val : JsonValue?) : string {
     return st
 }
 
+def private write_value_compact(var writer : StringBuilderWriter; jsv : JsonValue?) {
+    if (jsv == null) {
+        write(writer, "null")
+    } elif (jsv.value is _string) {
+        write(writer, "\"")
+        write_escape_string(writer, jsv.value as _string)
+        write(writer, "\"")
+    } elif (jsv.value is _number) {
+        if (no_trailing_zeros) {
+            write(writer, fmt(":.17f", jsv.value as _number) |> rtrim("0") |> rtrim("."))
+        } else {
+            write(writer, jsv.value as _number)
+        }
+    } elif (jsv.value is _longint) {
+        write(writer, jsv.value as _longint)
+    } elif (jsv.value is _array) {
+        write(writer, "[")
+        var first = true
+        for (elem in jsv.value as _array) {
+            if (first) {
+                first = false
+            } else {
+                write(writer, ", ")
+            }
+            write_value_compact(writer, elem)
+        }
+        write(writer, "]")
+    } elif (jsv.value is _object) {
+        write(writer, "\{")
+        var first = true
+        for (elemK, elemV in keys(jsv.value as _object), values(jsv.value as _object)) {
+            if (no_empty_arrays && elemV.value is _array && empty(elemV.value as _array)) {
+                continue
+            }
+            if (first) {
+                first = false
+            } else {
+                write(writer, ", ")
+            }
+            write(writer, "\"")
+            write_escape_string(writer, elemK)
+            write(writer, "\": ")
+            write_value_compact(writer, elemV)
+        }
+        write(writer, "\}")
+    } elif (jsv.value is _bool) {
+        write(writer, (jsv.value as _bool) ? "true" : "false")
+    } elif (jsv.value is _null) {
+        write(writer, "null")
+    } else {
+        panic("unexpected {jsv}")
+    }
+}
+
+[temp_string_result]
+def write_json_compact(val : JsonValue?) : string {
+    //! ``write_json`` on one line: no newlines or indentation, ``", "`` / ``": "`` separators —
+    //! the python ``json.dumps`` / jinja ``tojson`` shape chat templates and wire protocols carry.
+    let st = build_string() $(var writer) {
+        write_value_compact(writer, val)
+    }
+    return st
+}
+
 def write_json(val : JsonValue?#) : string {
     //! Overload accepting temporary type
     unsafe {// Fine, as json doesn't escape the function
-        return write_json(reinterpret<JsonValue?> val)
+        return write_json(reinterpret<JsonValue?>(val))
     }
 }
 
 def delete_json(var jsv : JsonValue?) {
-    //! Free a JsonValue tree. ``JsonValue?`` is owned (this module is
-    //! ``strict_smart_pointers``), so ``delete`` already recurses — finalizing the
-    //! ``_object`` table / ``_array`` deletes the child nodes in turn — and one
-    //! top-level ``delete`` frees the whole tree. This wraps that in the required
-    //! ``unsafe`` plus a null guard, and names the intent at call sites. Pass an owned
-    //! tree you are done with (a parsed ``read_json`` input, a built result, a per-frame
-    //! payload); assumes unique ownership — do not call on a shared/aliased tree. No-op
-    //! on null or on the shared missing-key sentinel (``json_null_sentinel``), so freeing
-    //! a tree that a careless caller navigated into is still safe.
+    //! Free a JsonValue tree. ``JsonValue?`` is owned (this module is ``strict_smart_pointers``), so ``delete`` already recurses — finalizing the ``_object`` table / ``_array`` deletes the child nodes in turn — and one top-level ``delete`` frees the whole tree. This wraps that in the required ``unsafe`` plus a null guard, and names the intent at call sites. Pass an owned tree you are done with (a parsed ``read_json`` input, a built result, a per-frame payload); assumes unique ownership — do not call on a shared/aliased tree. No-op on null or on the shared missing-key sentinel (``json_null_sentinel``), so freeing a tree that a careless caller navigated into is still safe.
     if (jsv == null || jsv == g_json_null_sentinel) return
     unsafe { delete jsv; }
 }
 
 def update(var obj : JsonValue?; key : string; var jsv : JsonValue?) {
-    //! Set object field ``key`` to ``jsv``, first freeing (via ``delete_json``) whatever
-    //! JsonValue was stored at ``key``. Use this
-    //! instead of a bare insert when overwriting a field on a reused/long-lived object
-    //! every frame — a bare ``insert`` drops the old value on the heap. No-op when
-    //! ``obj`` is null or not an ``_object``.
+    //! Set object field ``key`` to ``jsv``, first freeing (via ``delete_json``) whatever JsonValue was stored at ``key``. Use this instead of a bare insert when overwriting a field on a reused/long-lived object every frame — a bare ``insert`` drops the old value on the heap. No-op when ``obj`` is null or not an ``_object``.
     if (obj == null || !(obj.value is _object)) return
     // Never store a raw null (write_json deref's object values) or the shared sentinel
     // (a later cascade-free would delete it out from under everyone) into a tree —
@@ -655,12 +703,8 @@ def update(var obj : JsonValue?; key : string; var jsv : JsonValue?) {
     (obj.value as _object) |> insert(key, jsv)
 }
 
-def try_fixing_broken_json(var bad : string) {
-    //! fixes broken json. so far supported
-    //! 1. "string" + "string" string concatenation
-    //! 2. "text "nested text" text" nested quotes
-    //! 3. extra , at the end of object or array
-    //! 4. /uXXXXXX sequences in the middle of white space
+def try_fixing_broken_json(var bad : string) {  // nolint:STYLE038 - one linear repair scan; the fix-up cases share cursor state
+    //! fixes broken json. so far supported 1. "string" + "string" string concatenation 2. "text "nested text" text" nested quotes 3. extra , at the end of object or array 4. /uXXXXXX sequences in the middle of white space
     return build_string() $(writer) {
         peek_data(bad) $(str) {
             var i = 0

@@ -319,7 +319,7 @@ class DagImp : public SceneImport
 {
 public:
   DagImp() {}
-  ~DagImp() override {}
+  ~DagImp() override = default;
 
   int ExtCount() override { return 1; }
   const TCHAR *Ext(int n) override { return _T("dag"); }
@@ -734,6 +734,9 @@ class WListView
   HWND hw;
   bool isWildcard;
   std::vector<std::wstring> &rules;
+  // compiling a regex is far too slow to do per row per repaint, so validity is kept alongside
+  // the rules and refreshed only where they change
+  std::vector<bool> ruleValid;
 
 public:
   WListView(HWND hw_, bool isWildcard_, std::vector<std::wstring> &rules_);
@@ -744,7 +747,8 @@ public:
   void UpdateView();
 
 private:
-  COLORREF ruleColor(std::wstring rule);
+  bool checkRule(std::wstring rule) const { return is_regex_valid(isWildcard, rule); }
+  COLORREF ruleColor(int index) const;
 };
 
 WListView::WListView(HWND hw_, bool isWildcard_, std::vector<std::wstring> &rules_) : hw(hw_), isWildcard(isWildcard_), rules(rules_)
@@ -771,6 +775,7 @@ void WListView::AddRule()
   lvi.pszText = 0;
   ListView_InsertItem(hw, &lvi);
   rules.emplace_back();
+  ruleValid.push_back(checkRule(rules.back()));
 }
 
 void WListView::DelRule()
@@ -780,6 +785,7 @@ void WListView::DelRule()
   {
     ListView_DeleteItem(hw, i);
     rules.erase(rules.begin() + i);
+    ruleValid.erase(ruleValid.begin() + i);
   }
 }
 
@@ -804,6 +810,7 @@ INT_PTR WListView::EditRule(LPARAM lParam)
     // simple `return TRUE/FALSE` doesn't work here, I don't know why
     ListView_SetItemText(hw, item.iItem, 0, item.pszText);
     rules[item.iItem] = item.pszText;
+    ruleValid[item.iItem] = checkRule(rules[item.iItem]);
     return TRUE;
   }
 
@@ -819,7 +826,7 @@ INT_PTR WListView::EditRule(LPARAM lParam)
     {
       LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;
       int iItem = (int)lplvcd->nmcd.dwItemSpec;
-      lplvcd->clrTextBk = ruleColor(rules[iItem]);
+      lplvcd->clrTextBk = ruleColor(iItem);
     }
     SetWindowLong(GetParent(hw), DWLP_MSGRESULT, CDRF_DODEFAULT);
     return CDRF_DODEFAULT;
@@ -831,6 +838,8 @@ INT_PTR WListView::EditRule(LPARAM lParam)
 void WListView::UpdateView()
 {
   ListView_DeleteAllItems(hw);
+  ruleValid.clear();
+  ruleValid.reserve(rules.size());
   for (std::wstring &s : rules)
   {
     LVITEM lvi;
@@ -841,12 +850,14 @@ void WListView::UpdateView()
     lvi.iSubItem = 0;
     lvi.pszText = s.data();
     ListView_InsertItem(hw, &lvi);
+    ruleValid.push_back(checkRule(s));
   }
 }
 
-COLORREF WListView::ruleColor(std::wstring rule)
+COLORREF WListView::ruleColor(int index) const
 {
-  return is_regex_valid(isWildcard, rule) ? VALID_REGEX_COLOR_BG : INVALID_REGEX_COLOR_BG;
+  const bool valid = index >= 0 && index < int(ruleValid.size()) && ruleValid[index];
+  return valid ? VALID_REGEX_COLOR_BG : INVALID_REGEX_COLOR_BG;
 }
 
 //==========================================================================//
@@ -1035,9 +1046,9 @@ static INT_PTR CALLBACK regex_dlg_proc(HWND hDlg, UINT message, WPARAM wParam, L
 
         case IDC_SET_DAGORPATH:
         {
-          static TCHAR dir[MAX_PATH];
+          TCHAR dir[MAX_PATH] = {};
 
-          _tcscpy(dir, util.dirPath.c_str());
+          _tcsncpy_s(dir, _countof(dir), util.dirPath.c_str(), _TRUNCATE);
           util.ip->ChooseDirectory(hDlg, GetString(IDS_CHOOSE_DAGOR_PATH), dir);
           if (dir[0])
           {

@@ -4,3 +4,20 @@ dng_camera_nodes {
   dafg_camera_registrator__name:t="dng_camera_nodes"
   "dng_camera_nodes_registrator:tag"{}
 }
+
+dng_ao_camera_nodes {
+  _singleton:b=yes
+  _tags:t="render"
+  dafg_camera_registrator__name:t="ambient_occlusion"
+  dng_ao_camera_nodes__w:i=0
+  dng_ao_camera_nodes__h:i=0
+  "dng_ao_camera_nodes__creation_flags:u32"{ value:i=0 }
+  dng_ao_camera_nodes__useGTAO:b=no
+}
+
+dng_ssr_camera_nodes {
+  _singleton:b=yes
+  _tags:t="render"
+  dafg_camera_registrator__name:t="screen_space_reflections"
+  "dng_ssr_camera_nodes__config:SsrNodesConfig"{}
+}

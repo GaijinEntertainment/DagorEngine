@@ -92,34 +92,40 @@ if $(Platform) in windows {
   AddIncludes += $(1stPartyDir)/jsoncpp/include ;
   UseProgLibs += 1stPartyLibs/jsoncpp ;
 
-  if $(PlatformArch) = x86_64 {
-    local AftermathSdkDir = $(3rdPartyDir)/aftermath/$(AftermathSdkVer) ;
-    if [ GLOB $(AftermathSdkDir) : * ] {
-      AddIncludes += $(AftermathSdkDir)/include ;
-      CPPopt += -DHAS_GF_AFTERMATH ;
-      Sources +=
-        debug/gpu_postmortem_nvidia_aftermath.cpp
-      ;
-    }
+  local AgsSdkDir = $(_DEVTOOL)/AGS.SDK.$(AgsSdkVer) ;
+  if [ GLOB $(AgsSdkDir) : * ] && $(PlatformArch) = x86_64 {
+    AddIncludes += $(AgsSdkDir)/inc ;
+    AddLibs +=
+      $(AgsSdkDir)/lib/amd_ags_x64.lib
+      delayimp.lib
+      -delayload:amd_ags_x64.dll
+    ;
+    CPPopt += -DHAS_AGS ;
+    Sources +=
+      debug/amd_ags_init.cpp
+      debug/gpu_capture/radeon_gpu_profiler.cpp
+      debug/gpu_postmortem_ags_trace.cpp
+    ;
+  }
 
-    local AgsSdkDir = $(_DEVTOOL)/AGS.SDK.$(AgsSdkVer) ;
-    if [ GLOB $(AgsSdkDir) : * ] && $(AgsEnabled) = yes {
-      AddIncludes += $(AgsSdkDir)/inc ;
-      AddLibs += $(AgsSdkDir)/lib/amd_ags_x64.lib ;
-      CPPopt += -DHAS_AGS ;
-      Sources +=
-        debug/amd_ags_init.cpp
-        debug/gpu_capture/radeon_gpu_profiler.cpp
-        debug/gpu_postmortem_ags_trace.cpp
-      ;
-    }
+  local AftermathSdkDir = $(_DEVTOOL)/aftermath-$(AftermathSdkVer) ;
+  if [ GLOB $(AftermathSdkDir) : * ] {
+    AddIncludes += $(AftermathSdkDir)/include ;
+    CPPopt += -DHAS_AFTERMATH ;
+    Sources +=
+      debug/gpu_postmortem_nvidia_aftermath.cpp
+    ;
+  }
 
-    AddIncludes += $(_DEVTOOL)/nvapi-$(NvApiVer) ;
+  local NvapiDir = $(_DEVTOOL)/nvapi-$(NvApiVer) ;
+  if [ GLOB $(NvapiDir) : * ] {
+    AddIncludes += $(NvapiDir) ;
+    # nvapiXXX.lib is added to AddLibs throughd drv3d_commonCode
     CPPopt += -DHAS_NVAPI ;
   }
 
   local WinPixEventRuntimeDir = $(3rdPartyDir)/winpixeventruntime ;
-  if $(Config) != rel && [ GLOB $(WinPixEventRuntimeDir) : * ] {
+  if [ GLOB $(WinPixEventRuntimeDir) : * ] && $(Config) != rel {
     local ArchName = x64 ;
     if $(PlatformArch) = arm64 {
       ArchName = ARM64 ;
@@ -173,18 +179,6 @@ if $(Platform)-$(PlatformArch) = windows-x86_64 {
   ;
 } else {
   Sources += fsr_wrapper_stub.cpp ;
-}
-
-DlssVersion   ?= 310.3.0 ;
-
-local NgxDir = $(_DEVTOOL)/ngx-dlss-$(DlssVersion) ;
-if $(Platform)-$(PlatformArch) = windows-arm64  && [ GLOB $(NgxDir) : * ] {
-  AddIncludes += $(NgxDir)/include ;
-  AddLibs += $(NgxDir)/lib/Windows_$(PlatformArch)/nvsdk_ngx_s.lib ;
-  CPPopt += -DUSE_DLSS_WITHOUT_STREAMLINE ;
-  Sources += dlss.cpp ;
-} else {
-  Sources += dlss_stub.cpp ;
 }
 
 if $(Platform)-$(PlatformArch) = windows-x86_64 && $(XessEnabled) = yes && [ GLOB $(3rdPartyDir)/xess_sdk : * ] {

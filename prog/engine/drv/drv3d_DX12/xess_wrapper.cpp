@@ -541,7 +541,7 @@ public:
 
     if (wasFgEnabled)
     {
-      [[maybe_unused]] auto enableResult = xefgSwapChainSetEnabled(m_xefgContext, true);
+      [[maybe_unused]] auto enableResult = xefgSwapChainSetEnabled(m_xefgContext, 1u);
       G_ASSERT_RETURN(enableResult == XEFG_SWAPCHAIN_RESULT_SUCCESS, false);
       fgEnabled = true;
     }

@@ -221,7 +221,7 @@ void WorldRenderer::setGIQualityFromSettings()
   if (is_rtgi_enabled())
   {
     gi_quality.set(GI_SCREEN_PROBES);
-    int rtgiMode = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("giForceInlineTrace", false) ? 1 : 2;
+    int rtgiMode = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("giForceInlineTrace", true) ? 1 : 2;
     ShaderGlobal::set_int(use_hw_rt_giVarId, rtgiMode);
   }
   else
@@ -266,6 +266,17 @@ void WorldRenderer::setGILightsToShader(bool allow_frustum_lights)
 }
 
 uint32_t get_gi_history_frames() { return static_cast<WorldRenderer *>(get_world_renderer())->getGIHistoryFrames(); }
+
+WorldRenderer::GIConvergenceState WorldRenderer::logGIConvergence()
+{
+  const GIConvergenceState state{daGI2 && daGI2->requiresUpdate(), daGI2 ? daGI2->getHistoryFrames() : 0,
+    (uint32_t)::dgs_get_settings()->getBlockByNameEx("debug")->getInt("giConvergedHistoryFrames", 600)};
+  const bool gi = !daGI2 || (!state.requiresUpdate && state.historyFrames >= state.historyFramesNeed);
+  if (gi && !giConvergenceLogged)
+    debug("[convergence] gi");
+  giConvergenceLogged = gi;
+  return state;
+}
 
 void WorldRenderer::overrideGISettings(const DaGISettings &settings)
 {
@@ -537,7 +548,7 @@ void WorldRenderer::updateGIPos(const Point3 &pos, const TMatrix &view_itm, floa
     });
   }
   if (!gi_update_pos.get())
-    return;
+    return daGI2->updateConstants();
   int oldBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
   auto baseVoxelizeRI = [&](const BBox3 &box_, const Point3 &voxelSize) {
     BBox3 box = box_;
@@ -657,7 +668,7 @@ void WorldRenderer::updateGIPos(const Point3 &pos, const TMatrix &view_itm, floa
       {
         if (voxelSize <= world_sdf_from_collision_rasterize_below)
         {
-          bool prims = rasterize_sdf_prims.get() && d3d::get_driver_desc().shaderModel < 6.1_sm;
+          bool prims = rasterize_sdf_prims.get() && !d3d::get_driver_desc().caps.hasBarycentrics;
           voxelizeCollision->rasterizeSDF(*lruCollision, dag::Span<uint64_t>(handles.data(), handles.size()), prims);
         }
         else
@@ -763,7 +774,7 @@ void WorldRenderer::initGI()
   // const DataBlock *graphicsGI = graphics->getBlockByNameEx("gi");
 
   lruCollision.reset();
-  lruCollision.reset(new LRURendinstCollision);
+  lruCollision = LRURendinstCollision::acquire();
 
   rendinst_voxelize_visibility = rendinst::createRIGenVisibility(midmem);
   rendinst::setRIGenVisibilityMinLod(rendinst_voxelize_visibility, 0, 2);

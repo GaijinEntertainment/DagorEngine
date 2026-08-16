@@ -1075,13 +1075,14 @@ public:
 
   struct BufferUP : public Buffer
   {
-    BufferUP()
+    BufferUP(uint32_t flags)
     {
       isDynamic = true;
       fast_discard = true;
+      bufFlags = flags;
     }
   };
-  BufferUP upBufferVB, upBufferIB;
+  BufferUP upBufferVB{SBCF_BIND_VERTEX}, upBufferIB{SBCF_BIND_INDEX};
 
   // this is used for sync debugging of gpu side errors
 #if DAGOR_DBGLEVEL > 0

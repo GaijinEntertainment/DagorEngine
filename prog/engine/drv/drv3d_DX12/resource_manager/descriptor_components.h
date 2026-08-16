@@ -111,6 +111,11 @@ class BufferDescriptorProvider : public TextureDescriptorProvider
 {
   using BaseType = TextureDescriptorProvider;
 
+public:
+  using BufferViewDescriptorsResult = dag::Expected<eastl::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE[]>, MemoryAllocationError>;
+  using BufferViewCreateResult = dag::Expected<void, MemoryAllocationError>;
+
+private:
   static constexpr uint32_t DESCRIPTOR_BLOCK_SIZE = 1024;
 
   ContainerMutexWrapper<DescriptorHeap<ShaderResourceViewStagingPolicy<DESCRIPTOR_BLOCK_SIZE>>, OSSpinlock> srvHeap;
@@ -141,37 +146,53 @@ protected:
     srvHeap.access()->init(info.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
   }
 
-  eastl::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE[]> createBufferSRVs(ID3D12Device *device, ID3D12Resource *buffer, uint32_t count,
+  /// All or nothing: a half filled array would hand out null handles that are then used to create
+  /// views against nothing.
+  BufferViewDescriptorsResult createBufferSRVs(ID3D12Device *device, ID3D12Resource *buffer, uint32_t count,
     D3D12_SHADER_RESOURCE_VIEW_DESC desc)
   {
     auto descriptors = eastl::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE[]>(count);
     auto srvHeapAccess = srvHeap.access();
+    uint32_t createdCount = 0;
     for (auto &descriptor : eastl::span{descriptors.get(), count})
     {
-      descriptor = srvHeapAccess->allocate(device)
-                     .transform([&](auto handle) {
-                       device->CreateShaderResourceView(buffer, &desc, handle);
-                       return handle;
-                     })
-                     .value_or({});
+      auto allocationResult = srvHeapAccess->allocate(device);
+      if (!allocationResult.has_value())
+      {
+        for (auto created : eastl::span{descriptors.get(), createdCount})
+        {
+          srvHeapAccess->free(created);
+        }
+        return unexpected_memory_allocation_error(allocationResult.error());
+      }
+      descriptor = allocationResult.value();
+      device->CreateShaderResourceView(buffer, &desc, descriptor);
+      ++createdCount;
       desc.Buffer.FirstElement += desc.Buffer.NumElements;
     }
     return descriptors;
   }
 
-  eastl::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE[]> createBufferUAVs(ID3D12Device *device, ID3D12Resource *buffer, uint32_t count,
+  BufferViewDescriptorsResult createBufferUAVs(ID3D12Device *device, ID3D12Resource *buffer, uint32_t count,
     D3D12_UNORDERED_ACCESS_VIEW_DESC desc)
   {
     auto descriptors = eastl::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE[]>(count);
     auto srvHeapAccess = srvHeap.access();
+    uint32_t createdCount = 0;
     for (auto &descriptor : eastl::span{descriptors.get(), count})
     {
-      descriptor = srvHeapAccess->allocate(device)
-                     .transform([&](auto handle) {
-                       device->CreateUnorderedAccessView(buffer, nullptr, &desc, handle);
-                       return handle;
-                     })
-                     .value_or({});
+      auto allocationResult = srvHeapAccess->allocate(device);
+      if (!allocationResult.has_value())
+      {
+        for (auto created : eastl::span{descriptors.get(), createdCount})
+        {
+          srvHeapAccess->free(created);
+        }
+        return unexpected_memory_allocation_error(allocationResult.error());
+      }
+      descriptor = allocationResult.value();
+      device->CreateUnorderedAccessView(buffer, nullptr, &desc, descriptor);
+      ++createdCount;
       desc.Buffer.FirstElement += desc.Buffer.NumElements;
     }
     return descriptors;
@@ -192,7 +213,7 @@ public:
     }
   }
 
-  void createBufferTextureSRV(ID3D12Device *device, BufferState &buffer, FormatStore format)
+  BufferViewCreateResult createBufferTextureSRV(ID3D12Device *device, BufferState &buffer, FormatStore format)
   {
     G_ASSERTF(0 == (buffer.offset % format.getBytesPerPixelBlock()), "DX12: Offset %u has to be multiples of element size %u",
       buffer.offset, format.getBytesPerPixelBlock());
@@ -205,10 +226,16 @@ public:
     desc.Buffer.StructureByteStride = 0;
     desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-    buffer.srvs = createBufferSRVs(device, buffer.buffer, buffer.discardCount, desc);
+    auto descriptors = createBufferSRVs(device, buffer.buffer, buffer.discardCount, desc);
+    if (!descriptors.has_value())
+    {
+      return dag::Unexpected{descriptors.error()};
+    }
+    buffer.srvs = eastl::move(descriptors.value());
+    return {};
   }
 
-  void createBufferStructureSRV(ID3D12Device *device, BufferState &buffer, uint32_t struct_size)
+  BufferViewCreateResult createBufferStructureSRV(ID3D12Device *device, BufferState &buffer, uint32_t struct_size)
   {
     G_ASSERTF(0 == (buffer.offset % struct_size), "DX12: Offset %u has to be multiples of element size %u", buffer.offset,
       struct_size);
@@ -221,10 +248,16 @@ public:
     desc.Buffer.StructureByteStride = struct_size;
     desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-    buffer.srvs = createBufferSRVs(device, buffer.buffer, buffer.discardCount, desc);
+    auto descriptors = createBufferSRVs(device, buffer.buffer, buffer.discardCount, desc);
+    if (!descriptors.has_value())
+    {
+      return dag::Unexpected{descriptors.error()};
+    }
+    buffer.srvs = eastl::move(descriptors.value());
+    return {};
   }
 
-  void createBufferRawSRV(ID3D12Device *device, BufferState &buffer)
+  BufferViewCreateResult createBufferRawSRV(ID3D12Device *device, BufferState &buffer)
   {
     // RAW has a 16 byte offset alignment rule
     if (buffer.discardCount > 1)
@@ -241,10 +274,16 @@ public:
     desc.Buffer.StructureByteStride = 0;
     desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
 
-    buffer.srvs = createBufferSRVs(device, buffer.buffer, buffer.discardCount, desc);
+    auto descriptors = createBufferSRVs(device, buffer.buffer, buffer.discardCount, desc);
+    if (!descriptors.has_value())
+    {
+      return dag::Unexpected{descriptors.error()};
+    }
+    buffer.srvs = eastl::move(descriptors.value());
+    return {};
   }
 
-  void createBufferTextureUAV(ID3D12Device *device, BufferState &buffer, FormatStore format)
+  BufferViewCreateResult createBufferTextureUAV(ID3D12Device *device, BufferState &buffer, FormatStore format)
   {
     G_ASSERTF(0 == buffer.offset, "DX12: Buffers with offsets can't have UAVs");
     D3D12_UNORDERED_ACCESS_VIEW_DESC desc;
@@ -256,12 +295,18 @@ public:
     desc.Buffer.CounterOffsetInBytes = 0;
     desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 
-    buffer.uavs = createBufferUAVs(device, buffer.buffer, buffer.discardCount, desc);
+    auto descriptors = createBufferUAVs(device, buffer.buffer, buffer.discardCount, desc);
+    if (!descriptors.has_value())
+    {
+      return dag::Unexpected{descriptors.error()};
+    }
+    buffer.uavs = eastl::move(descriptors.value());
 
     buffer.uavForClear.reset();
+    return {};
   }
 
-  void createBufferStructureUAV(ID3D12Device *device, BufferState &buffer, uint32_t struct_size)
+  BufferViewCreateResult createBufferStructureUAV(ID3D12Device *device, BufferState &buffer, uint32_t struct_size)
   {
     G_ASSERTF(0 == buffer.offset, "DX12: Buffers with offsets can't have UAVs");
     D3D12_UNORDERED_ACCESS_VIEW_DESC desc;
@@ -273,7 +318,11 @@ public:
     desc.Buffer.CounterOffsetInBytes = 0;
     desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 
-    buffer.uavs = createBufferUAVs(device, buffer.buffer, buffer.discardCount, desc);
+    auto descriptors = createBufferUAVs(device, buffer.buffer, buffer.discardCount, desc);
+    if (!descriptors.has_value())
+    {
+      return dag::Unexpected{descriptors.error()};
+    }
 
     // need extra views for clearing that are formatted, DX12 does not allow clearing of
     // structured views
@@ -284,10 +333,20 @@ public:
     desc.Buffer.CounterOffsetInBytes = 0;           // -V1048
     desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE; // -V1048
 
-    buffer.uavForClear = createBufferUAVs(device, buffer.buffer, buffer.discardCount, desc);
+    auto clearDescriptors = createBufferUAVs(device, buffer.buffer, buffer.discardCount, desc);
+    if (!clearDescriptors.has_value())
+    {
+      // Without the clear views currentClearUAV falls back to the structured view and the clear
+      // commands reject it, so the buffer gets no UAV at all.
+      freeBufferSRVDescriptors({descriptors.value().get(), descriptors.value().get() + buffer.discardCount});
+      return dag::Unexpected{clearDescriptors.error()};
+    }
+    buffer.uavs = eastl::move(descriptors.value());
+    buffer.uavForClear = eastl::move(clearDescriptors.value());
+    return {};
   }
 
-  void createBufferRawUAV(ID3D12Device *device, BufferState &buffer)
+  BufferViewCreateResult createBufferRawUAV(ID3D12Device *device, BufferState &buffer)
   {
     G_ASSERTF(0 == buffer.offset, "DX12: Buffers with offsets can't have UAVs");
     D3D12_UNORDERED_ACCESS_VIEW_DESC desc;
@@ -299,7 +358,13 @@ public:
     desc.Buffer.CounterOffsetInBytes = 0;
     desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
 
-    buffer.uavs = createBufferUAVs(device, buffer.buffer, buffer.discardCount, desc);
+    auto descriptors = createBufferUAVs(device, buffer.buffer, buffer.discardCount, desc);
+    if (!descriptors.has_value())
+    {
+      return dag::Unexpected{descriptors.error()};
+    }
+    buffer.uavs = eastl::move(descriptors.value());
+    return {};
   }
 };
 } // namespace drv3d_dx12::resource_manager

@@ -49,9 +49,7 @@ def test_table_default_name(t : T?) {
 def test_table_workhorse_value(t : T?) {
     //! Table with workhorse value type — block-arg is `int&`, mutation
     //! persists.
-    var tab : table<string; int>
-    tab |> insert("alpha", 10)
-    tab |> insert("beta", 20)
+    var tab <- { "alpha" => 10, "beta" => 20 }
     with_(tab["alpha"]) $(v) {
         v = 200
     }

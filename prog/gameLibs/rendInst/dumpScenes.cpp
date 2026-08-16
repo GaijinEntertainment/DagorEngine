@@ -94,9 +94,7 @@ static void dump_all_scenes_locked(IGenSave &cb)
   }
 
   // per-pool object metadata (bbox + bsphere + LODs + flags + name)
-  for (int i = 0; i < poolCount; ++i)
-  {
-    const RiExtraPool &p = riExtra[i];
+  rendinst::iterateRIExtra([&](int i, const RiExtraPool &p) {
     const char *name = riExtraMap.getName(i);
 
     RiSceneDumpPoolMeta m;
@@ -117,7 +115,7 @@ static void dump_all_scenes_locked(IGenSave &cb)
     cb.write(&m, sizeof(m));
     if (m.nameLen)
       cb.write(name, m.nameLen);
-  }
+  });
 
   // group-level tiled scene-pool info + occluders. Each array is prefixed with [count][elemSize] so a
   // reader can skip it without knowing the (private) TiledScenePoolInfo layout.

@@ -780,8 +780,8 @@ void DagorEdAppWindow::terminateInterface()
   getModelessWindowControllers().releaseAllWindows();
   resetCore();
 
-  // This must be before reset_game_resources(), otherwise it would assert because it cannot find the game resource
-  // in RandomGrass::releaseLayerResource().
+  // This must be before reset_game_resources() (which is called by terminate_interface_de3()), otherwise it would assert because it
+  // cannot find the game resource in RandomGrass::releaseLayerResource().
   release_generic_grass_service();
 
   if (IGPUGrassService *service = queryEditorInterface<IGPUGrassService>())
@@ -790,7 +790,6 @@ void DagorEdAppWindow::terminateInterface()
   services_release();
   delete_visclipmesh();
   terminate_interface_de3();
-  reset_game_resources();
   IDagorEd2Engine::set(NULL);
 }
 

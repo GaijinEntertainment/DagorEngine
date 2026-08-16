@@ -38,7 +38,7 @@ struct UnpackedGbuffer
   uint isLandscape;
   uint isHeroCockpit;
   uint dynamicMask;
-
+  uint enviCoverOverwrite;
   half3 motion;
   half reactive;
 
@@ -106,7 +106,8 @@ half4 packAlbedoAo(UnpackedGbuffer gbuffer, half emission_strength_hi)
 half4 packNormalMaterialExtra(UnpackedGbuffer gbuffer, bool packing_active)
 {
   uint advancedMaterialBit = (gbuffer.material & ADV_MAT_MASK_IN_MAT) >> ADV_MAT_CONVERT_SHIFT;
-  uint extraBits = gbuffer.dynamicMask | advancedMaterialBit;
+  uint enviOverwriteBit = gbuffer.enviCoverOverwrite << ENVI_OVERWRITE_BIT_SHIFT;
+  uint extraBits = gbuffer.dynamicMask | advancedMaterialBit | enviOverwriteBit;
   half extra = half(extraBits) / 1023.h;
   half baseMaterial = half(half(gbuffer.material & BASE_MAT_MASK) * (1.h/3.0h));
 
@@ -320,6 +321,7 @@ UnpackedGbuffer unpackGbuffer(PackedGbuffer gbuf)
   uint extra;
   unpackMaterialExtra(gbuf.normal_material, extra, gbuffer.material);
   gbuffer.dynamicMask = extra & 1u;
+  gbuffer.enviCoverOverwrite = (extra & ENVI_OVERWRITE_BIT_MASK) >> ENVI_OVERWRITE_BIT_SHIFT;
   #if !ENVI_COVER_NBS_WITH_PACKED_NORMS
     unpackNormal(gbuf.normal_material, gbuffer.material, gbuffer.normal);
   #endif

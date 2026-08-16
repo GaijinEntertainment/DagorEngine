@@ -304,6 +304,9 @@ void AssetViewerApp::switchToPlugin(int id)
     return;
   }
 
+  if (curAsset)
+    logdbg("Switching to asset \"%s\".", curAsset->getNameTypified().c_str());
+
   if (curAsset && assetBuildWarningDisplay != AssetBuildWarningDisplay::ShowWhenBuilding)
     logAssetBuildWarnings(*curAsset, assetBuildWarningDisplay == AssetBuildWarningDisplay::ShowOncePerSession);
 
@@ -325,6 +328,8 @@ void AssetViewerApp::switchToPlugin(int id)
 
   if (autoZoomAndCenter)
     zoomAndCenter();
+  else
+    getCompositeEditor().applyPendingCameraTransform();
 }
 
 
@@ -515,6 +520,14 @@ bool AssetViewerApp::traceRay(const Point3 &src, const Point3 &dir, float &dist,
   return false;
 }
 
+//==================================================================================================
+bool AssetViewerApp::trackChangesContinuous(int assets_to_check, bool notify_dabuild)
+{
+  const bool assetsChanged = assetMgr.trackChangesContinuous(assets_to_check);
+  if (notify_dabuild && assetsChanged)
+    ::post_base_update_notify_dabuild();
+  return assetsChanged;
+}
 
 //==============================================================================
 void AssetViewerApp::actObjects(real dt)
@@ -726,3 +739,35 @@ IEditorCoreEngine::ModeType AssetViewerApp::getGizmoModeType() { return gizmoEH-
 bool AssetViewerApp::isGizmoOperationStarted() const { return gizmoEH->isStarted(); }
 
 //==============================================================================
+
+IEditorCoreEngine::BasisType AssetViewerApp::getGizmoBasisType()
+{
+  if (isCompositeEditorShown())
+    return compositeEditor.getToolbar().getBasisType();
+
+  return BASIS_World;
+}
+
+IEditorCoreEngine::BasisType AssetViewerApp::getGizmoBasisTypeForMode(ModeType mode_type)
+{
+  if (isCompositeEditorShown())
+    return compositeEditor.getToolbar().getGizmoBasisTypeForMode(mode_type);
+
+  return BASIS_World;
+}
+
+IEditorCoreEngine::CenterType AssetViewerApp::getGizmoCenterType()
+{
+  if (isCompositeEditorShown())
+    return compositeEditor.getToolbar().getCenterType();
+
+  return CENTER_Pivot;
+}
+
+IEditorCoreEngine::CenterType AssetViewerApp::getGizmoCenterTypeForMode(ModeType mode_type)
+{
+  if (isCompositeEditorShown())
+    return compositeEditor.getToolbar().getGizmoCenterTypeForMode(mode_type);
+
+  return CENTER_Pivot;
+}

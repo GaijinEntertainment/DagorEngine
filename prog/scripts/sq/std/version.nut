@@ -1,5 +1,6 @@
 import "regexp2" as regexp2
 from "dagor.debug" import logerr
+from "types" import String, Array, Integer, Float, Null
 let verTrim = regexp2(@"^\s+|\s+$")
 let dotCase = regexp2(@"^\d+\.\d+\.\d+\.\d+$")
 let dashCase = regexp2(@"^\d+_\d+_\d+_\d+$")
@@ -29,20 +30,18 @@ function versionToInt(version): int {
 local class Version {
   version = null
   constructor(v){
-    let t = type(v)
-
-    if (t == "string")
+    if (v instanceof String)
       this.version = mkVersionFromString(v)
-    else if (t == "array") {
+    else if (v instanceof Array) {
       assert(v.len()==4)
       this.version = clone v
     }
-    else if (t =="integer") {
+    else if (v instanceof Integer) {
       this.version = mkVersionFromInt(v)
     }
-    else if (t=="float")
+    else if (v instanceof Float)
       this.version = mkVersionFromInt(v.tointeger())
-    else if (t=="null")
+    else if (v instanceof Null)
       this.version = [0,0,0,0]
     else {
       this.version = [0,0,0,0]

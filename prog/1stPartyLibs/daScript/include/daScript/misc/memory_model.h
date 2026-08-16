@@ -342,8 +342,10 @@ namespace das {
     };
 
     struct HeapChunk {
-        __forceinline HeapChunk ( uint32_t s, HeapChunk * n ) {
-            s = (s + 15) & ~15;
+        // 64-bit size/offset: one linear chunk can exceed 4 GB (multi-GB model weights,
+        // >4GB KV caches) — the uint32 chunk was the last 4GB wall after Deck/Array/MemoryModel.
+        __forceinline HeapChunk ( uint64_t s, HeapChunk * n ) {
+            s = (s + 15) & ~uint64_t(15);
             data = (char *) das_aligned_alloc16(s);
             size = s;
             offset = 0;
@@ -358,13 +360,13 @@ namespace das {
                 delete toDelete;
             }
         }
-        __forceinline char * allocate ( uint32_t s ) {
-            if ( uint64_t(offset) + s > size ) return nullptr;
+        __forceinline char * allocate ( uint64_t s ) {
+            if ( offset + s > size ) return nullptr;
             char * res = data + offset;
             offset += s;
             return res;
         }
-        __forceinline void free ( char * ptr, uint32_t s ) {
+        __forceinline void free ( char * ptr, uint64_t s ) {
             if ( ptr + s == data + offset ) {
                 offset -= s;
             }
@@ -373,8 +375,8 @@ namespace das {
             return (ptr>=data) && (ptr<data+size);
         }
         char *      data;
-        uint32_t    size;
-        uint32_t    offset;
+        uint64_t    size;
+        uint64_t    offset;
         HeapChunk * next;
     };
 
@@ -402,15 +404,10 @@ namespace das {
         uint64_t bytesAllocated() const;
         uint64_t totalAlignedMemoryAllocated() const;
         __forceinline void setInitialSize ( uint64_t size ) {
-            // HeapChunk allocation is uint32-bounded; LinearChunkAllocator never
-            // serves >4GB single allocations (those go through PersistentHeapAllocator
-            // / MemoryModel::bigStuff). Setting a larger initial size would silently
-            // truncate when the first chunk is created — fail loud instead.
-            DAS_VERIFYF(size <= UINT32_MAX, "LinearChunkAllocator::setInitialSize(%llu) exceeds the per-chunk uint32 cap", (unsigned long long)size);
             unadjustedInitialSize = size;
             initialSize = size;
         }
-        virtual uint32_t grow ( uint32_t si );
+        virtual uint64_t grow ( uint64_t size );
     protected:
         void getStats ( uint32_t & depth, uint64_t & bytes, uint64_t & total ) const;
     public:
@@ -418,8 +415,8 @@ namespace das {
         uint64_t    unadjustedInitialSize = 0;
         uint64_t    initialSize = 0;
         // uint64 — see MemoryModel::alignMask. `~alignMask` must be uint64 so the
-        // `DAS_VERIFYF(s <= UINT32_MAX)` cap check in allocate() actually fires on
-        // >4 GB requests instead of seeing a silently-truncated low-32-bit size.
+        // align round-up in allocate/free/reallocate doesn't truncate a >4 GB
+        // request to its low 32 bits.
         uint64_t    alignMask = 15;
         HeapChunk * chunk = nullptr;
     };

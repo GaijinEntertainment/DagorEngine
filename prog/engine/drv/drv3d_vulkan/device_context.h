@@ -110,6 +110,7 @@ class DeviceContext //-V553
   void submitReplay();
   // we should do some cleanups/restarts when backend flush command are executed
   void afterBackendFlush();
+  void insertInternalGPUMarkers();
 
   // temp buffers
   void cleanupFrontendReplayResources();

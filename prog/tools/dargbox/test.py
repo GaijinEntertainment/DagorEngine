@@ -3,6 +3,18 @@ import sys
 import subprocess
 import multiprocessing
 
+# exe lives in a per-arch subdir of tools/dargbox (see prog/tools/dargbox/jamfile);
+# all paths here are relative to tools/dargbox, the cwd when dargbox is run
+def get_dargbox_exe():
+  arch = (os.environ.get("PROCESSOR_ARCHITEW6432") or os.environ.get("PROCESSOR_ARCHITECTURE", "")).upper()
+  # arm64 hosts can run the x86_64 exe through emulation; the reverse cannot work
+  arch_dirs = ["windows-arm64", "windows-x86_64"] if arch == "ARM64" else ["windows-x86_64"]
+  for d in arch_dirs:
+    exe = os.path.join(d, "dargbox-dev.exe")
+    if os.path.exists(exe):
+      return exe
+  return os.path.join(arch_dirs[0], "dargbox-dev.exe")
+
 def gather_files_to_check(path, relative="", cwd=None):
   files2check=[]
   for root,dirs,files in os.walk(path):
@@ -14,7 +26,7 @@ def gather_files_to_check(path, relative="", cwd=None):
   return files2check
 
 def check(file_info):
-  cmd_darg = 'dargbox-64-dev.exe -quiet -silent -config:script:t={file} -config:debug/profiler:t=off -config:debug/limit_updates:i=1 -config:video/driver:t="stub" -fatals_to_stderr -logerr_to_stderr -config:workcycle/act_rate:i=0 -config:debug/useAddonVromSrc:b=yes -config:debug/fatalOnLogerrOnExit:b=no'.format(file=file_info["rel"])
+  cmd_darg = '{exe} -quiet -silent -config:script:t={file} -config:debug/profiler:t=off -config:debug/limit_updates:i=1 -config:video/driver:t="stub" -fatals_to_stderr -logerr_to_stderr -config:workcycle/act_rate:i=0 -config:debug/useAddonVromSrc:b=yes -config:debug/fatalOnLogerrOnExit:b=no'.format(exe=get_dargbox_exe(), file=file_info["rel"])
   cmd_sq = '..\\dagor_cdk\\windows-x86_64\\csq-dev.exe {file}'.format(file=file_info["rel"])
   failedBy = ""
   failText = ""
@@ -38,7 +50,7 @@ def check(file_info):
 
 
 def rerun_dargbox(dargboxFailedScript):
-  cmd_darg = f'dargbox-64-dev.exe -quiet -silent -config:script:t={dargboxFailedScript} -config:debug/profiler:t=off -config:debug/limit_updates:i=1 -config:video/driver:t="stub" -config:workcycle/act_rate:i=0 -config:debug/useAddonVromSrc:b=yes -config:debug/fatalOnLogerrOnExit:b=no'
+  cmd_darg = f'{get_dargbox_exe()} -quiet -silent -config:script:t={dargboxFailedScript} -config:debug/profiler:t=off -config:debug/limit_updates:i=1 -config:video/driver:t="stub" -config:workcycle/act_rate:i=0 -config:debug/useAddonVromSrc:b=yes -config:debug/fatalOnLogerrOnExit:b=no'
   subprocess.run(cmd_darg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
   with open(".log/last_debug", "r") as f:
     debugDir = f.read().strip()

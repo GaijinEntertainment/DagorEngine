@@ -490,7 +490,7 @@ private:
   void onEditorCommandKeyChordChanged() override;
 
   void renderUIViewport(ViewportWindow &viewport, const Point2 &size, float item_spacing);
-  void renderUIViewports();
+  bool renderUIViewports();
   void renderUI();
 
   // IMainWindowImguiRenderingService

@@ -263,7 +263,7 @@ BaseTexture *d3d::place_texture_in_resource_heap(ResourceHeap *heap, const Resou
     dHeap->place(img, offset, alloc_info.sizeInBytes);
     memInfoUpdate = {img->getMemoryId(), AliasedResourceMemory(img->getMemory())};
 
-    tex->image = img;
+    tex->useExternalResource(img);
   }
   {
     OSSpinlockScopedLock frontLock(Globals::ctx.getFrontLock());

@@ -29,6 +29,10 @@ int modfx_use_simplified_vs_lighting = 0;
 interval modfx_use_simplified_vs_lighting: no < 1, yes;
 assume_if_not_assumed modfx_use_simplified_vs_lighting = no;
 
+int modfx_bboard_clustered_lighting_centered = 0;
+interval modfx_bboard_clustered_lighting_centered: no < 1, yes;
+assume_if_not_assumed modfx_bboard_clustered_lighting_centered = no;
+
 texture wboit_color;
 texture wboit_alpha;
 
@@ -143,6 +147,9 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
       #define SIMPLIFIED_VS_LIGHTING 1
     ##else
       #define SIMPLIFIED_VS_LIGHTING 0
+    ##endif
+    ##if modfx_bboard_clustered_lighting_centered == yes
+      #define MODFX_CLUSTERED_LIGHTING_CENTERED 1
     ##endif
     #define MODFX_USE_FRAMEBLEND 1
     #define MODFX_USE_MOTION_VECS 1

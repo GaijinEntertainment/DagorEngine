@@ -147,28 +147,50 @@ Result transform_syntax(const string &filename, const string content, format::Fo
     string moduleName;
     das_hash_map<string, NamelessModuleReq> namelessReq;
     vector<NamelessMismatch> namelessMismatches;
-    if (getPrerequisits(filename, access, moduleName, req, missing, circular, notAllowed, chain,
-                        dependencies, namelessReq, namelessMismatches, libGroup, nullptr, 1, !policies.ignore_shared_modules)) {
-        for (auto &mod: req) {
-            if (libGroup.findModule(mod.moduleName)) {
-                continue;
-            }
-            auto program = parseDaScript(mod.fileName, mod.moduleName, access, tout, libGroup, true, true,
-                                         policies);
-            policies.threadlock_context |= program->options.getBoolOption("threadlock_context", false);
-            if (program->failed()) {
-                for (const auto& err: program->errors) {
-                    tp << err.what << " " << err.at.describe() << '\n';
-                }
-                // return {}; // still try to compile
-            }
-            if (program->thisModule->name.empty()) {
-                program->thisModule->name = mod.moduleName;
-                program->thisModule->wasParsedNameless = true;
-            }
-            program->thisModule->fileName = mod.fileName;
-            addNewModules(libGroup, program);
+
+    // daslib/builtin defines to_array_move / to_table_move and the comprehension push that the
+    // gen2 make-literal lowering ([1,2,3], {k=>v}, [for ...]) emits. compileDaScript pulls it in
+    // automatically (addExtraDependency); this hand-rolled parse must do the same, or the
+    // verify-compile of converted make-literals fails generic resolution. (issue #3094)
+    {
+        const string builtinPath = getDasRoot() + "/daslib/builtin.das";
+        string builtinModName;
+        if (getPrerequisits(builtinPath, access, builtinModName, req, missing, circular, notAllowed, chain,
+                            dependencies, namelessReq, namelessMismatches, libGroup, nullptr, 1, !policies.ignore_shared_modules)) {
+            ModuleInfo info;
+            auto finfo = access->getFileInfo(builtinPath);
+            info.fileName = finfo ? finfo->name : builtinPath;
+            info.importName = "";
+            info.moduleName = "builtin";
+            info.extraDepModule = true;
+            req.push_back(info);
         }
+    }
+
+    // The input filename may be synthetic (e.g. the --tests harness, where the content is
+    // supplied directly and no such file exists on disk), so don't gate module loading on
+    // getPrerequisits resolving it — builtin (added above) must load either way.
+    getPrerequisits(filename, access, moduleName, req, missing, circular, notAllowed, chain,
+                    dependencies, namelessReq, namelessMismatches, libGroup, nullptr, 1, !policies.ignore_shared_modules);
+    for (auto &mod: req) {
+        if (libGroup.findModule(mod.moduleName)) {
+            continue;
+        }
+        auto program = parseDaScript(mod.fileName, mod.moduleName, access, tout, libGroup, true, true,
+                                     policies);
+        policies.threadlock_context |= program->options.getBoolOption("threadlock_context", false);
+        if (program->failed()) {
+            for (const auto& err: program->errors) {
+                tp << err.what << " " << err.at.describe() << '\n';
+            }
+            // return {}; // still try to compile
+        }
+        if (program->thisModule->name.empty()) {
+            program->thisModule->name = mod.moduleName;
+            program->thisModule->wasParsedNameless = true;
+        }
+        program->thisModule->fileName = mod.fileName;
+        addNewModules(libGroup, program);
     }
 
     int iter = 0;
@@ -225,7 +247,7 @@ Result transform_syntax(const string &filename, const string content, format::Fo
         format::destroy();
         das_yylex_destroy(scanner);
         if (err != 0) {
-            for (const auto erR: program->errors) {
+            for (const auto & erR: program->errors) {
                 tp << erR.at.describe() << '\n' << erR.what << '\n';
             }
             if (iter == 0) {

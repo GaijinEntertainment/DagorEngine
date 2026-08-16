@@ -125,10 +125,6 @@ struct TestObjectBarAnnotation : ManagedStructureAnnotation <TestObjectBar> {
     }
 };
 
-void testFoo ( TestObjectFoo & foo ) {
-    foo.fooData = 1234;
-}
-
 void testAdd ( int & a, int b ) {
     a += b;
 }
@@ -184,6 +180,22 @@ void test_das_string(const Block & block, Context * context, LineInfoArg * at) {
     context->invoke(block, args, nullptr, at);
     if (str != "out_of_it") context->throw_error_at(at, "test string mismatch");
     if (str2 != "test_das_string") context->throw_error_at(at, "test string clone mismatch");
+}
+
+uint64_t g_blockAnnotationDataPayload = 0xDA5CDA7Aull;
+uint64_t g_blockAnnotationDataSid = 0xB10CDA7Aull;
+
+// Reads back the annotationData a block_macro attached to this block. Every tier reaches it the
+// same way -- Block::body is the SimNode_ClosureBlock (interpreter), das_make_block_base which
+// derives from it (AOT), or SimNode_JitBlock which derives from it (JIT). This is how a host (an
+// ECS looking up its baked query description) gets at the value, so it is what the tiers must agree on.
+uint64_t testBlockAnnotationData(const Block & blk, Context *, LineInfoArg *) {
+    auto node = (SimNode_ClosureBlock *) blk.body;
+    return node ? node->annotationData : 0;
+}
+
+uint64_t testBlockAnnotationDataPayload() {
+    return g_blockAnnotationDataPayload;
 }
 
 void testPipedDefaults(int32_t a, float b, const TBlock<void, int32_t, float> & blk, Context * context, LineInfoArg * at) {
@@ -277,6 +289,26 @@ struct TestFunctionAnnotation : FunctionAnnotation {
     }
 };
 
+struct BlockAnnotationDataAnnotation : FunctionAnnotation {
+    BlockAnnotationDataAnnotation() : FunctionAnnotation("block_ann_data") { }
+    virtual bool apply ( const FunctionPtr &, ModuleGroup &, const AnnotationArgumentList &, string & err ) override {
+        err = "block_ann_data can only be applied to a block";
+        return false;
+    }
+    virtual bool finalize ( const FunctionPtr &, ModuleGroup &, const AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
+        return true;
+    }
+    virtual bool apply ( ExprBlock *, ModuleGroup &, const AnnotationArgumentList &, string & ) override {
+        return true;
+    }
+    virtual bool finalize ( ExprBlock * blk, ModuleGroup &, const AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
+        // ast_annotations.cpp requires the pair; setting only one is an internal error.
+        blk->annotationData = g_blockAnnotationDataPayload;
+        blk->annotationDataSid = g_blockAnnotationDataSid;
+        return true;
+    }
+};
+
 struct EventRegistrator : StructureAnnotation {
     EventRegistrator() : StructureAnnotation("event") {}
     bool touch ( const StructurePtr & st, ModuleGroup & /*libGroup*/,
@@ -352,6 +384,16 @@ void testPoint3Array(const TBlock<void,const Point3Array> & blk, Context * conte
     context->invoke(blk, args, nullptr, at);
 }
 
+
+// hands out a TestObjectNotLocal, whose annotation reports isLocal()==false. das code has no other
+// way to obtain one, and a value of a non-local type is what the inliner's argument temp must refuse.
+void testNotLocalObject(const TBlock<void,TestObjectNotLocal> & blk, Context * context, LineInfoArg * at) {
+    TestObjectNotLocal obj;
+    obj.fooData = 13;
+    vec4f args[1];
+    args[0] = cast<TestObjectNotLocal *>::from(&obj);
+    context->invoke(blk, args, nullptr, at);
+}
 
 float2 test_abi_mad2 ( float2 a, float2 b, float2 c ) {
     return v_add(v_mul(a,b),c);
@@ -441,6 +483,8 @@ struct BigEntityIdAnnotation final: das::ManagedValueAnnotation <BigEntityId> {
 };
 
 MAKE_TYPE_FACTORY(EntityId,EntityId);
+
+MAKE_DISTINCT_TYPE_FACTORY(NativeId,NativeId);
 
 struct EntityIdAnnotation final: das::ManagedValueAnnotation <EntityId> {
     EntityIdAnnotation(ModuleLibrary & mlib) : ManagedValueAnnotation  (mlib,"EntityId","EntityId") {}
@@ -553,12 +597,15 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
     addAnnotation(new EventRegistrator());
     // test
     addAnnotation(new TestFunctionAnnotation());
+    addAnnotation(new BlockAnnotationDataAnnotation());
     // point3 array
     addAlias(typeFactory<Point3>::make(lib));
     addVectorAnnotation<Point3Array>(this,lib,new Point3ArrayAnnotation(lib));
     addCtorAndUsing<Point3Array>(*this, lib, "Point3Array", "Point3Array");
     addExtern<DAS_BIND_FUN(testPoint3Array)>(*this, lib, "testPoint3Array",
         SideEffects::modifyExternal, "testPoint3Array");
+    addExtern<DAS_BIND_FUN(testNotLocalObject)>(*this, lib, "testNotLocalObject",
+        SideEffects::modifyExternal, "testNotLocalObject");
     addExtern<DAS_BIND_FUN(testCMRES),SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "testCMRES",
         SideEffects::modifyExternal, "testCMRES");
 
@@ -595,6 +642,10 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
         SideEffects::none, "get_screen_dimensions");
     addExtern<DAS_BIND_FUN(test_das_string)>(*this, lib, "test_das_string",
         SideEffects::modifyExternal, "test_das_string");
+    addExtern<DAS_BIND_FUN(testBlockAnnotationData)>(*this, lib, "testBlockAnnotationData",
+        SideEffects::none, "testBlockAnnotationData");
+    addExtern<DAS_BIND_FUN(testBlockAnnotationDataPayload)>(*this, lib, "testBlockAnnotationDataPayload",
+        SideEffects::none, "testBlockAnnotationDataPayload");
     addExtern<DAS_BIND_FUN(testPipedDefaults)>(*this, lib, "testPipedDefaults",
         SideEffects::invoke, "testPipedDefaults")
             ->args({"a","b","blk","context","at"})
@@ -690,6 +741,12 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
         SideEffects::none, "eidToInt");
     addExtern<DAS_BIND_FUN(intToEid)>(*this, lib, "EntityId",
         SideEffects::none, "intToEid");
+    addExtern<DAS_BIND_FUN(eidNot)>(*this, lib, "!",
+        SideEffects::none, "eidNot");
+    // NativeId - C++-registered distinct type (`distinct NativeId = int` from C++)
+    addAnnotation(new DistinctTypeAnnotation("NativeId", makeType<int32_t>(lib), "NativeId"));
+    addExtern<DAS_BIND_FUN(nativeIdNext)>(*this, lib, "native_id_next",
+        SideEffects::none, "nativeIdNext");
     // FancyClass
     addAnnotation(new FancyClassAnnotation(lib));
     addCtorAndUsing<FancyClass>(*this,lib,"FancyClass","FancyClass");
@@ -723,7 +780,7 @@ ModuleAotType Module_UnitTest::aotRequire ( TextWriter & tw ) const {
 
 #include "unit_test.das.inc"
 bool Module_UnitTest::appendCompiledFunctions() {
-    return compileBuiltinModule("unit_test.das",unit_test_das, sizeof(unit_test_das));
+    return compileBuiltinModule(this, "unit_test.das",unit_test_das, sizeof(unit_test_das));
 }
 
 REGISTER_DYN_MODULE(Module_UnitTest, Module_UnitTest);

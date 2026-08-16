@@ -42,8 +42,7 @@ class public MemSerializer : Serializer {
     }
     def getCopyOfData : array<uint8> {
         //! Returns copy of the data from the serializer.
-        var cdata := data
-        return <- cdata
+        return clone_to_move(data)
     }
     def getLastError {
         //! Returns last serialization error.
@@ -56,6 +55,7 @@ class public MemSerializer : Serializer {
     def override write(bytes : void? implicit; size : int) : bool {
         //! Appends bytes at the end of the data.
         let pos = length(data)
+        data |> ensure_capacity(pos + size)
         data |> resize_no_init(pos + size)
         unsafe {
             memcpy(addr(data[pos]), bytes, size)
@@ -67,7 +67,9 @@ class public MemSerializer : Serializer {
         let newOffset = readOffset + size
         let maxOffset = length(data)
         if (newOffset > maxOffset) {
-            error("reading past the end of stream")
+            // self-> matters: a bare error(...) resolves to the BUILTIN error (a stderr
+            // print), leaving lastError unset — OK() then reports a truncated stream as fine
+            self->error("reading past the end of stream")   // nolint:STYLE028 — dropping self-> rebinds to the builtin, probe-verified 2026-07-17
             readOffset = maxOffset
             return false
         }
@@ -217,11 +219,13 @@ def public serialize(var arch : Archive; var value : array<auto(TT)>) {
         }
         arch |> read_raw(len)
         static_if (typeinfo is_workhorse(type<TT>) && typeinfo is_raw(type<TT>)) {
+            value |> reserve(len)   // read side knows the final size: the resize never grows
             value |> resize_no_init(len)
             if (len > 0) {
                 arch.stream->read(unsafe(addr(value[0])), len * typeinfo sizeof(type<TT>))
             }
         } else {
+            value |> reserve(len)
             unsafe(value |> resize(len))
             for (element in value) {
                 arch |> _::serialize(element)
@@ -275,7 +279,7 @@ def public serialize(var arch : Archive; var value : string&) {
                 tbuf |> resize_no_init(len + 1)                         // todo: implement preallocat string with raii
                 arch.stream->read(addr(tbuf[0]), len)
                 tbuf[len] = 0u8
-                value = clone_string(reinterpret<string#> addr(tbuf[0]))
+                value = clone_string(reinterpret<string#>(addr(tbuf[0])))
                 delete tbuf
             } else {
                 value = ""
@@ -284,7 +288,7 @@ def public serialize(var arch : Archive; var value : string&) {
             var len = length(value)
             arch |> write_raw(len)
             if (len > 0) {
-                arch.stream->write(reinterpret<void?> value, len)
+                arch.stream->write(reinterpret<void?>(value), len)
             }
         }
     }

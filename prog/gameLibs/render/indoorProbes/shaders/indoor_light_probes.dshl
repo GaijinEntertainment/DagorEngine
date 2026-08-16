@@ -250,7 +250,10 @@ if (compatibility_mode == compatibility_mode_off)
   #if indoor_probes_enable_cube_tex == yes
 
       int boxesNearbyCount = 0;
-      UNROLL
+      ##if !hardware.ps4
+        //this attribute causes artifacts on ps4 (checked on enlisted, task RE-6208)
+        UNROLL
+      ##endif
       for (int i = 0; i < probesCount; ++i)
       {
   ##if indoor_probes_to_use == active_probes

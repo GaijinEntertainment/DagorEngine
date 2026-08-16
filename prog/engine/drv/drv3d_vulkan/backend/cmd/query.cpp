@@ -61,6 +61,48 @@ TSPEC void BEContext::execCmd(const CmdInsertTimesampQuery &)
   lastTimestampActionIdx = actionIdx;
 }
 
+void BEContext::consumeReorderedTimestamps(uint32_t count)
+{
+  if (!data->reorderedTimestampQueriesCount)
+    return;
+
+  count *= 2;
+  G_ASSERTF(lastReorderedTimestampIndex + count <= data->reorderedTimestampQueriesCount,
+    "vulkan: reordered timestamp count mismatch pushed %u got %u", data->reorderedTimestampQueriesCount,
+    lastReorderedTimestampIndex + count);
+
+  QueryBlock &qb = *data->timestampQueryBlock;
+  while (count > 0)
+  {
+    qb.dataIndexes[lastReorderedTimestampIndex] = qb.data.size() - 1;
+    ++lastReorderedTimestampIndex;
+    --count;
+  }
+}
+
+void BEContext::insertReorderedTimestamp()
+{
+  if (!data->reorderedTimestampQueriesCount)
+    return;
+
+  G_ASSERTF(lastReorderedTimestampIndex <= data->reorderedTimestampQueriesCount,
+    "vulkan: reordered timestamp count mismatch pushed %u got %u", data->reorderedTimestampQueriesCount, lastReorderedTimestampIndex);
+
+  QueryBlock &qb = *data->timestampQueryBlock;
+
+  if (frameCoreQueue != DeviceQueueType::GRAPHICS)
+    return;
+
+  if (actionIdx > lastTimestampActionIdx || qb.data.empty())
+  {
+    VULKAN_LOG_CALL(Backend::cb.wCmdWriteTimestamp(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, qb.pool, qb.data.size()));
+    qb.data.push_back(0);
+  }
+  qb.dataIndexes[lastReorderedTimestampIndex] = qb.data.size() - 1;
+  ++lastReorderedTimestampIndex;
+  lastTimestampActionIdx = actionIdx;
+}
+
 TSPEC void BEContext::execCmd(const CmdStartOcclusionQuery &cmd)
 {
   QueryBlock &qb = *data->occlusionQueryBlock;

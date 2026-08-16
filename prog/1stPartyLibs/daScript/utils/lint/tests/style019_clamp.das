@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE019: nested min/max → clamp(x, lo, hi)
 //
 // Problem: `min(max(x, lo), hi)` reads as a clamp; `clamp(x, lo, hi)` is a

@@ -129,6 +129,7 @@ namespace das {
             :  AstExpressionAnnotation<ExprWith> ("ExprWith", ml) {
             addField<DAS_BIND_MANAGED_FIELD(with)>("_with", "with");
             addField<DAS_BIND_MANAGED_FIELD(body)>("body");
+            addField<DAS_BIND_MANAGED_FIELD(moduleName)>("moduleName");
         }
     };
 

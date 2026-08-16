@@ -714,17 +714,17 @@ def iterate_over_filtered_components(eid : EntityId;
       continue
     let filterString = string(filterRange)
     if filterString |> starts_with("t:") && length(filterString) > 2
-      typeFilters |> push(unsafe(slice(filterString, 2) |> strip() |> to_lower_in_place()))
+      typeFilters |> push(slice(filterString, 2) |> strip() |> to_lower())
     elif filterString |> starts_with("-t:") && length(filterString) > 3
-      excludeTypeFilters |> push(unsafe(slice(filterString, 3) |> strip() |> to_lower_in_place()))
+      excludeTypeFilters |> push(slice(filterString, 3) |> strip() |> to_lower())
     elif filterString |> starts_with("f:") && length(filterString) > 2
-      flagFilters |> push(unsafe(slice(filterString, 2) |> strip() |> to_lower_in_place()))
+      flagFilters |> push(slice(filterString, 2) |> strip() |> to_lower())
     elif filterString |> starts_with("-f:") && length(filterString) > 3
-      excludeFlagFilters |> push(unsafe(slice(filterString, 3) |> strip() |> to_lower_in_place()))
+      excludeFlagFilters |> push(slice(filterString, 3) |> strip() |> to_lower())
     elif filterString |> starts_with("-") && length(filterString) > 1
-      excludeFilters |> push(unsafe(slice(filterString, 1) |> strip() |> to_lower_in_place()))
+      excludeFilters |> push(slice(filterString, 1) |> strip() |> to_lower())
     else
-      filters |> push(unsafe(filterString |> to_lower_in_place()))
+      filters |> push(filterString |> to_lower())
 
   for c in comps
     let name = c.name

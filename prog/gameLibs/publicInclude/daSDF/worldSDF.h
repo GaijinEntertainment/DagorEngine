@@ -40,6 +40,7 @@ struct WorldSDF
   virtual bool isValid() const = 0;
   virtual void fixup_settings(uint16_t &w, uint16_t &d, uint8_t &c) const = 0;
   virtual void setValues(uint8_t clips, uint16_t width, uint16_t height, float voxel0_size) = 0;
+  virtual void updateConstants() = 0;
   virtual uint32_t getRequiredTemporalBufferSize(uint16_t w, uint16_t d, uint8_t c) const = 0;
   virtual void setTemporalBuffer(const ManagedBuf &buf) = 0;
   virtual int getClipsCount() const = 0;

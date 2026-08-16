@@ -15,30 +15,8 @@
 #include <EASTL/algorithm.h>
 #include <EASTL/unique_ptr.h>
 
-OmniLightsManager::OmniLightsManager() : LightsManager<OmniLight>("omni")
-{
-  G_STATIC_ASSERT(1ULL << (sizeof(*freeLightIds.data()) * 8) >= MAX_LIGHTS);
-
-  mem_set_0(rawLights);
-  mem_set_0(freeLightIds);
-  mem_set_0(lightPriority);
-  freeLightIds.clear();
-
-  photometryTextures = IesTextureCollection::acquireRef();
-}
-
-
-OmniLightsManager::~OmniLightsManager() { close(); }
-
-void OmniLightsManager::close()
-{
-  destroyAllLights();
-  if (photometryTextures)
-  {
-    IesTextureCollection::releaseRef();
-    photometryTextures = nullptr;
-  }
-}
+OmniLightsManager::OmniLightsManager(const char *name) : LightsManager(name) {}
+OmniLightsManager::OmniLightsManager() : OmniLightsManager("omni") {}
 
 void OmniLightsManager::drawDebugInfo()
 {
@@ -69,85 +47,22 @@ void OmniLightsManager::renderDebugBboxes()
   end_draw_cached_debug_lines();
 }
 
-int OmniLightsManager::addLight(int priority, const RawLight &l)
+int OmniLightsManager::addLight(const RawLight &l) { return allocateLight(l, OmniLightMaskType::OMNI_LIGHT_MASK_DEFAULT); }
+
+void OmniLightsManager::destroyLight(unsigned int id) { deallocateLight(id); }
+
+
+int OmniLightsManager::addLight(const Point3 &pos, const Point3 &dir, const Color3 &color, float radius, int tex, float attenuation_k)
 {
-  OSSpinlockScopedLock lock(lightAllocationSpinlock);
-  int id = -1;
-  if (freeLightIds.size())
-  {
-    id = freeLightIds.back();
-    freeLightIds.pop_back();
-  }
-  else
-  {
-    if (maxLightIndex < (MAX_LIGHTS - 1))
-      id = ++maxLightIndex;
-    else
-      logerr("Adding omnilight failed, already have %d lights in scene!", MAX_LIGHTS);
-  }
-  if (id < 0)
-    return id;
-  rawLights[id] = l;
-  masks[id] = OmniLightMaskType::OMNI_LIGHT_MASK_DEFAULT;
-  lightPriority[id] = priority;
-  return id;
+  IesTextureCollection::PhotometryData photometryData = getPhotometryData(tex);
+  return addLight(Light(pos, dir, color, radius, attenuation_k, tex, photometryData.zoom, photometryData.rotated));
 }
 
-struct AscCompare
-{
-  bool operator()(const uint16_t a, const uint16_t b) const { return a < b; }
-};
-
-void OmniLightsManager::destroyLight(unsigned int id)
-{
-  OSSpinlockScopedLock lock(lightAllocationSpinlock);
-  G_ASSERT_RETURN(id <= maxLightIndex, );
-
-  memset(&rawLights[id], 0, sizeof(rawLights[id]));
-  masks[id] = OmniLightMaskType::OMNI_LIGHT_MASK_NONE;
-
-  if (id == maxLightIndex)
-  {
-    --maxLightIndex;
-    return;
-  }
-
-#if DAGOR_DBGLEVEL > 0
-  for (int i = 0; i < freeLightIds.size(); ++i)
-    if (freeLightIds[i] == id)
-    {
-      G_ASSERTF(freeLightIds[i] != id, "Light %d is already destroyed, re-destroy is invalid", id);
-      return;
-    }
-#endif
-  freeLightIds.push_back(id);
-}
-
-
-void OmniLightsManager::destroyAllLights()
-{
-  OSSpinlockScopedLock lock(lightAllocationSpinlock);
-  maxLightIndex = -1;
-  freeLightIds.clear();
-}
-
-IesTextureCollection::PhotometryData OmniLightsManager::getPhotometryData(int texId) const
-{
-  return photometryTextures->getTextureData(texId);
-}
-
-int OmniLightsManager::addLight(int priority, const Point3 &pos, const Point3 &dir, const Color3 &color, float radius, int tex,
+int OmniLightsManager::addLight(const Point3 &pos, const Point3 &dir, const Color3 &color, float radius, int tex, const TMatrix &box,
   float attenuation_k)
 {
   IesTextureCollection::PhotometryData photometryData = getPhotometryData(tex);
-  return addLight(priority, Light(pos, dir, color, radius, attenuation_k, tex, photometryData.zoom, photometryData.rotated));
-}
-
-int OmniLightsManager::addLight(int priority, const Point3 &pos, const Point3 &dir, const Color3 &color, float radius, int tex,
-  const TMatrix &box, float attenuation_k)
-{
-  IesTextureCollection::PhotometryData photometryData = getPhotometryData(tex);
-  return addLight(priority, Light(pos, dir, color, radius, attenuation_k, tex, photometryData.zoom, photometryData.rotated, box));
+  return addLight(Light(pos, dir, color, radius, attenuation_k, tex, photometryData.zoom, photometryData.rotated, box));
 }
 
 void OmniLightsManager::setLightTexture(unsigned int id, int tex)

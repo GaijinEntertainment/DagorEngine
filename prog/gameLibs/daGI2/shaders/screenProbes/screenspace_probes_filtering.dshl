@@ -265,12 +265,10 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
       }
 
       uint2 encodedProbeNormal = sp_loadEncodedProbeNormalAndColorCoord(screenspace_probe_pos, atlasProbeIndex, sp_getNumTotalProbes());
-      //probe.coord_ofs = decodeCoordOfs(encodedProbeNormal);
+      uint2 coord_ofs = decodeCoordOfs(encodedProbeNormal.x);
       float3 probeNormal = decodeProbeNormal(encodedProbeNormal.x);
-      //float2 screenProbeCoord = min(screen_tile_coord*screenspace_probe_res.z + probe.coord_ofs + 0.5f, screenspace_probe_screen_limit.zw);
-      float3 probeCamPos = probe.normalizedW*sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord));
+      float3 probeCamPos = probe.normalizedW*sp_getViewVecOptimizedNormalized(getScreenProbeAnchorScreenUV(screen_tile_coord, coord_ofs));
       float3 probeWorldPos = sp_world_view_pos + probeCamPos;
-      //float3 probeWorldPos = sp_world_view_pos + probe.normalizedW*sp_getViewVecOptimizedNormalized(screenCoordToScreenUV(screenProbeCoord));
 
       //float2 octTC = octCoord*sp_radiance_tc_decode.x + sp_radiance_tc_decode.y;
       float probeLinearW = probe.normalizedW*sp_zn_zfar.y;
@@ -292,7 +290,6 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
         bool shouldReprojectHistory = sp_is_moving_tag(probe.allTag) && probeLinearW < 50; // threshold is chosen arbitrarily
         if (shouldReprojectHistory) // this is moving/dynamic probe. to fight noiseness, we try to reproject it differnetly
         {
-          uint2 coord_ofs = decodeCoordOfs(encodedProbeNormal.x);
           uint2 probeScreenCoord = min(screen_tile_coord*screenspace_probe_res.z + coord_ofs, screenspace_probe_screen_limit.zw);
           float2 uv = screenICoordToScreenUV(probeScreenCoord);
           float2 motionVector = load_motion_gbuf(probeScreenCoord, uv);
@@ -426,60 +423,35 @@ shader filter_screenspace_radiance_cs
   }
 
   hlsl(cs) {
-    uint get_history_probe_unsafe(uint i) {return i;}
-    bool get_history_probe_safe(inout uint i) {return i < sp_getNumTotalProbes();}
     [numthreads(SP_FILTER_GROUP_X, SP_FILTER_GROUP_Y, 1)]
     void filter_radiance_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
     {
+      // probes covered by this group are contiguous: dispatch is linear over probes*area
+      uint probeBase = uint(gId*(SP_FILTER_GROUP_X*SP_FILTER_GROUP_Y))/uint(sp_radiance_area);
+      uint probeSlots = uint(gId*(SP_FILTER_GROUP_X*SP_FILTER_GROUP_Y) + SP_FILTER_GROUP_X*SP_FILTER_GROUP_Y - 1)/uint(sp_radiance_area) - probeBase + 1;
+      // contains group barriers, must be reached by every thread of the group
+      sp_filter_fill_group_cache(probeBase, probeSlots, tid, uint(sp_placement_iteration.z));
       #if SP_RADIANCE_SIZE_IS_GROUP
-        uint atlasProbeIndex = get_history_probe_unsafe(gId);
+        uint atlasProbeIndex = gId;
         uint2 octCoord = gtId;
-        if (tid == 0)
-          sharedEncodedProbe = sp_loadEncodedProbe(screenspace_probe_pos, atlasProbeIndex);
-        GroupMemoryBarrierWithGroupSync();
-        uint encodedProbe = sharedEncodedProbe;
       #else
         uint atlasProbeIndex = dtId.x/uint(sp_radiance_area);
-        if (!get_history_probe_safe(atlasProbeIndex))
+        if (atlasProbeIndex >= sp_getNumTotalProbes())
           return;
         uint2 octCoord = uint2(dtId.x%sp_getRadianceRes(), (dtId.x/sp_getRadianceRes())%sp_getRadianceRes());
-        uint encodedProbe = sp_loadEncodedProbe(screenspace_probe_pos, atlasProbeIndex);
       #endif
+      uint cacheSlot = atlasProbeIndex - probeBase;
+      float4 probePosW = sp_filter_probe_pos_w[cacheSlot];
+      if (probePosW.w <= 0)
+        return;
+      uint2 tileTag = sp_filter_probe_tile_tag[cacheSlot];
+      uint2 screen_tile_coord = uint2(tileTag.x&0xFFFF, tileTag.x>>16);
+      uint probeAllTag = tileTag.y;
       uint2 atlasProbeCoord = uint2(atlasProbeIndex%uint(screenspace_probe_res.x), atlasProbeIndex/uint(screenspace_probe_res.x));
 
-      if (!encodedProbe)
-        return;
-
-      uint2 screen_tile_coord = atlasProbeCoord;
-      uint numScreenProbes = sp_getNumScreenProbes();
-      uint totalAtlasProbes = sp_getNumTotalProbes();
-      uint numAddProbes = sp_getNumAdaptiveProbes();
-
-      DecodedProbe probe = sp_decodeProbeInfo(encodedProbe);
-
-      bool isScreenProbe = atlasProbeIndex < numScreenProbes;
-
-      if (!isScreenProbe)
-      {
-        uint addIndex = atlasProbeIndex - numScreenProbes;
-        uint screenProbeIndex = loadBuffer(screenspace_tile_classificator, (sp_getScreenTileClassificatorOffsetDwords() + addIndex)*4);
-        screen_tile_coord = uint2(screenProbeIndex%uint(screenspace_probe_res.x), screenProbeIndex/uint(screenspace_probe_res.x));
-      }
-
-      uint encodedProbeNormal = sp_loadEncodedProbeNormalCoord(screenspace_probe_pos, atlasProbeIndex, sp_getNumTotalProbes());
-      //probe.coord_ofs = decodeCoordOfs(encodedProbeNormal);
-      float3 probeNormal = decodeProbeNormal(encodedProbeNormal);
-      //float2 screenProbeCoord = min(screen_tile_coord*screenspace_probe_res.z + probe.coord_ofs + 0.5f, screenspace_probe_screen_limit.zw);
-      float3 probeCamPos = probe.normalizedW*sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord));
-      //float3 probeWorldPos = sp_world_view_pos + probe.normalizedW*sp_getViewVecOptimizedNormalized(screenCoordToScreenUV(screenProbeCoord));
-
-      //float2 octTC = octCoord*sp_radiance_tc_decode.x + sp_radiance_tc_decode.y;
+      float3 probeCamPos = probePosW.xyz;
       float3 rayDir = screenspace_probe_dir_decode(octCoord*sp_radiance_tc_decode.z + sp_radiance_tc_decode.w);
-      float probeLinearW = probe.normalizedW*sp_zn_zfar.y;
-
-      float3 prevRadiance = 0;
-      bool validHistory = false;
-      uint historyMovingTag = 0;
+      float probeLinearW = probePosW.w*sp_zn_zfar.y;
 
       float4 rad_distance = read_texture_radiance(atlasProbeIndex, atlasProbeCoord*sp_getRadianceRes(), octCoord);
 
@@ -489,41 +461,25 @@ shader filter_screenspace_radiance_cs
       if (SP_SPATIAL_FILTER)
       {
         ScreenProbeFilteringSettings s = default_screen_probes_filtering_settings();
-        //s.searchAdditionalProbes = !isScreenProbe || sp_is_moving_or_new(probe.allTag);
-        //s.usePositionAveraging = !sp_is_moving_or_new(probe.allTag);
-        //FLATTEN
-        //if (sp_is_moving_or_new(probe.allTag))
-        //  s.depth_exp /= 8;
-        //s.usePositionAveraging = false;
         //use different plane - makes more accurate spatial results
         float4 scenePlaneScaled = float4(rayDir, dot(rayDir, probeCamPos)) / probeLinearW;
-        //scenePlaneScaled *= depth_exp_precision_scale(probe.normalizedW);
-        // spatial filter
         #if SP_SPATIAL_FAVOR_DARK
         rad_distance.xyz = sqrt(rad_distance.xyz);  // favor dark
         #endif
-        float cWeight = sp_is_moving_or_new(probe.allTag) ? 0.25 : 1;
+        float cWeight = sp_is_moving_or_new(probeAllTag) ? 0.25 : 1;
         rad_distance.xyz *= cWeight;
-        float w1 = 1, w2 = 1, w3 = 1;
-        float invNormalizedW = rcp(probe.normalizedW);
-        int2 tcoordI = screen_tile_coord;
-        int ofs = sp_is_relatively_new(probe.allTag) ? sp_placement_iteration.z : 1;
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,-ofs), octCoord, rad_distance.xyz, cWeight, w2, s);
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,+ofs), octCoord, rad_distance.xyz, cWeight, w2, s);
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs, 0), octCoord, rad_distance.xyz, cWeight, w2, s);
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs, 0), octCoord, rad_distance.xyz, cWeight, w2, s);
+        float invNormalizedW = rcp(probePosW.w);
+        int2 tcoordI = int2(screen_tile_coord);
+        int ofs = sp_is_relatively_new(probeAllTag) ? sp_placement_iteration.z : 1;
+        UNROLL
+        for (uint ni = 0; ni < 4; ++ni)
+          sp_filter_add_cached_neighboor(cacheSlot, ni, tcoordI + sp_filter_nb_ofs[ni]*ofs, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, octCoord, rad_distance.xyz, cWeight, s);
 
-        if (sp_is_moving_or_new(probe.allTag))//moving or relatively new probes to be smoothed more
+        if (sp_is_moving_or_new(probeAllTag))//moving or relatively new probes to be smoothed more
         {
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs,-ofs), octCoord, rad_distance.xyz, cWeight, w1, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs,-ofs), octCoord, rad_distance.xyz, cWeight, w1, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs,+ofs), octCoord, rad_distance.xyz, cWeight, w1, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs,+ofs), octCoord, rad_distance.xyz, cWeight, w1, s);
-          int ofs2 = ofs + ofs;
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,-ofs2), octCoord, rad_distance.xyz, cWeight, w3, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,+ofs2), octCoord, rad_distance.xyz, cWeight, w3, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs2, 0), octCoord, rad_distance.xyz, cWeight, w3, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs2, 0), octCoord, rad_distance.xyz, cWeight, w3, s);
+          UNROLL
+          for (uint ni = 4; ni < SP_FILTER_NEIGHBORS; ++ni)
+            sp_filter_add_cached_neighboor(cacheSlot, ni, tcoordI + sp_filter_nb_ofs[ni]*ofs, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, octCoord, rad_distance.xyz, cWeight, s);
         }
         rad_distance.xyz /= cWeight;
         #if SP_SPATIAL_FAVOR_DARK

@@ -46,11 +46,13 @@ local Point2_manual = class {
 }
 */
 
+from "types" import Array, String
+
 let pp = @(...) print(" ".join(vargv.append("\n")))
 
 function unpackfield(field): array {
   local def = null
-  if (type(field) == "array") {
+  if (field instanceof Array) {
     def = field[1]
     field = field[0]
   }
@@ -72,7 +74,7 @@ let addNewline3 = mkAddNewline("      ")
 
 function valToStr(val){
   assert(["string","null","float","integer", "bool"].contains(type(val)), "only simple immutable types currently supported")
-  if (type(val)=="string")
+  if (val instanceof String)
     val = $"\"{val}\""
   return val
 }
@@ -115,7 +117,7 @@ function mkCtor(fields, args): string {
 let defParams = {name=null, verbose=false}
 function Dataclass(fields, params = defParams){
   local name = params?.name
-  name = (type(name)=="string")
+  name = (name instanceof String)
     ? $"static __name__ = \"{name}\"\n"
     : ""
 

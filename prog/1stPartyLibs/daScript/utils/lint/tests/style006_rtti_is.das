@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE006: string(__rtti) comparison should use `is` operator
 //
 // Problem: string(x.__rtti) == "ExprFoo" is verbose and fragile.

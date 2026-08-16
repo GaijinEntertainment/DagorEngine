@@ -660,6 +660,7 @@ namespace das {
         auto lfn = lambdaName + "`function";
         auto pFunc = new Function();
         pFunc->generated = true;
+        pFunc->localFunction = true;
         pFunc->at = pFunc->atDecl = block->at;
         pFunc->name = lfn;
         pFunc->body = block->clone();
@@ -853,7 +854,9 @@ namespace das {
             }
             if ( isCaptureAsRef(cV) || mode==CaptureMode::capture_by_reference ) {
                 auto varV = new ExprVar(captureAt, cV->name);
+                varV->generated = true;     // capture machinery; captureAt is zero-width for implicit captures
                 auto addrV = new ExprRef2Ptr(captureAt, varV);
+                addrV->generated = true;
                 addrV->alwaysSafe = true;
                 auto mV = new MakeFieldDecl(captureAt, cV->name, addrV, false, false);
                 ms->push_back(mV);
@@ -867,6 +870,7 @@ namespace das {
                     default: ;
                 }
                 auto varV = new ExprVar(captureAt, cV->name);
+                varV->generated = true;     // capture machinery; captureAt is zero-width for implicit captures
                 auto mV = new MakeFieldDecl(captureAt, cV->name, varV, moveS, cloneS);
                 ms->push_back(mV);
             }
@@ -1631,13 +1635,18 @@ namespace das {
             vvar->init = rein;
             veqt->variables.push_back(vvar);
             blk->list.push_back(veqt);
-            // loop &= _builtin_iterator_first(it0,pvar0)
+            // loop = _builtin_iterator_first(it0,pvar0) && loop
+            // first() on the LEFT so it runs for EVERY source even when an earlier one came up
+            // empty (matches SimNode_ForWithIterator) — end_loop closes all sources, and closing
+            // a never-opened container iterator unlocks a container whose lock was never taken.
             auto cbif = new ExprCall(expr->at, "_builtin_iterator_first");
             cbif->generated = true;
             cbif->arguments.push_back(new ExprVar(expr->at, srcName));
             cbif->arguments.push_back(new ExprVar(expr->at, pVarName));
-            auto lande = new ExprOp2(expr->at,"&&=",
-                                              new ExprVar(expr->at,loopVar),cbif);
+            auto land = new ExprOp2(expr->at,"&&",
+                                              cbif,new ExprVar(expr->at,loopVar));
+            auto lande = new ExprCopy(expr->at,
+                                              new ExprVar(expr->at,loopVar),land);
             blk->list.push_back(lande);
         }
         auto bll = new ExprLabel(expr->at, begin_loop_label,
@@ -1985,6 +1994,11 @@ namespace das {
         virtual void preVisitExpression ( Expression * expr ) override {
             Visitor::preVisitExpression(expr);
             expr->at = newAt;
+            // every node now shares one call-site location — no at points at
+            // its own token anymore, so the subtree is synthetic by definition;
+            // flag it so range-consuming tooling (lint fix, refactoring) knows
+            // these ranges are not spliceable source text
+            expr->generated = true;
         }
     protected:
         LineInfo    newAt;
@@ -2106,10 +2120,14 @@ namespace das {
         argV->capture_as_ref = true;
         func->arguments.insert(func->arguments.begin(), argV);
         // with self ...
+        // the wrapper block and `with` are coextensive with the user's body —
+        // give them its span, not the method-name token (tooling reads block->at
+        // as the brace range)
+        auto bodyAt = func->body ? func->body->at : func->at;
         auto block = new ExprBlock();
-        block->at = func->at;
+        block->at = bodyAt;
         auto wth = new ExprWith();
-        wth->at = func->at;
+        wth->at = bodyAt;
         auto wvar = new ExprVar(func->at,"self");
         wvar->generated = true;
         wth->with = wvar;

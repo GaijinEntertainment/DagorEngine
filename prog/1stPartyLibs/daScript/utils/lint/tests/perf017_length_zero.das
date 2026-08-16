@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // PERF017: length(s) == 0 / != 0 → empty(s) / !empty(s)
 //
 // Problem:

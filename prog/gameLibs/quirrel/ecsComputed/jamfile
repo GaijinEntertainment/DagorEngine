@@ -1,0 +1,22 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/ecsComputed ;
+StrictCompile = yes ;
+UseQuirrel = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/quirrel/ecsComputed.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/gameLibs
+;
+
+Sources =
+  ecsComputed.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

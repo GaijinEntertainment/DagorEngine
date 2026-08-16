@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 options rtti
 // PERF023: var X = clone_expression(E); ... $e(X) ... — qmacro splice already clones
 //

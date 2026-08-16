@@ -296,9 +296,9 @@ let mkTemplateInfoTag = @(text, fillColor = Color(100,100,200), size = SIZE_TO_C
   borderWidth = 0
   borderRadius = hdpx(4)
   fillColor
-  padding = [0,hdpx(1)]
+  padding = const [0,hdpx(1)]
   vplace = ALIGN_CENTER
-  margin = [hdpx(2),0]
+  margin = const [hdpx(2),0]
   children = {
     rendObj = ROBJ_TEXT
     size
@@ -504,7 +504,7 @@ function mkTemplateTooltip(templName, sceneText="") {
     }
   }
 
-  let displayDelay = 0.2
+  const displayDelay = 0.2
 
   return {
     rendObj = ROBJ_WORLD_BLUR_PANEL

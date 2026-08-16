@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // LINT007: Left and right operands of binary operator are identical
 //
 // Problem:
@@ -21,6 +22,9 @@ options gen2
 //   `let x = 1; x == x` is folded to `true` before lint runs and will NOT
 //   fire. LINT007 catches cases where operands are runtime values (function
 //   parameters, field reads, etc.). The fixture uses parameters on purpose.
+//   Identical CONSTANT operands are also skipped explicitly: macro splices
+//   legitimately produce shapes like `1 > 1` (`$v(n) > 1` with n == 1), and
+//   those are const-fold food rather than copy-paste typos.
 
 expect 50503:17
 

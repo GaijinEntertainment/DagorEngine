@@ -19,6 +19,13 @@
 #define OMM_PUSH_CONSTANTS_END(name, registerIndex)
 #endif
 
+#ifndef OMM_DAGOR_DECLARE_CBUFFER_TYPES
+#include "omm_texcoord_decode.hlsli"
+
+#define OMM_DECODE_TEXCOORD(texCoordBuffer, byteOffset) \
+  omm_decode_texcoord(texCoordBuffer, byteOffset, g_GlobalConstants.TexCoordFormat)
+#endif
+
 #define OMM_INPUT_RESOURCE(resourceType, resourceName, regName, bindingIndex)
 #define OMM_OUTPUT_RESOURCE(resourceType, resourceName, regName, bindingIndex)
 #define OMM_SAMPLER(resourceType, resourceName, regName, bindingIndex)

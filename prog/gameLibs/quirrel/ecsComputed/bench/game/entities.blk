@@ -1,0 +1,33 @@
+// eid-map shape: N of these, tracked scalar churn
+bench_bot
+{
+  "bench_bot:tag"{}
+  bench__index:i=0
+  bench__value:i=0
+  bench__hp:r=100.0
+  bench__alive:b=yes // filter-only component: never mirrored, only decides membership
+  _tracked:t="bench__value"
+  _tracked:t="bench__hp"
+  _tracked:t="bench__alive"
+}
+
+// single-entity shape: one hero with a jetpack-hud-sized component set
+bench_hero
+{
+  "bench_hero:tag"{}
+  hero__fuel:r=0.0
+  hero__maxFuel:r=100.0
+  hero__enabled:b=yes
+  hero__alert:b=no
+  hero__flightMode:b=no
+  hero__lock:b=no
+  hero__altitude:r=0.0
+  "hero__loadout:object"{
+    ammo:i=0
+  }
+  _tracked:t="hero__fuel"
+  _tracked:t="hero__loadout"
+  _tracked:t="hero__alert"
+  _tracked:t="hero__flightMode"
+  _tracked:t="hero__altitude"
+}

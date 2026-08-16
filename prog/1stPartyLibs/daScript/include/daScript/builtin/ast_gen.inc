@@ -1265,65 +1265,67 @@ protected:
     __fn_visitExprConstInt8 = 249,
     __fn_preVisitExprConstInt16 = 250,
     __fn_visitExprConstInt16 = 251,
-    __fn_preVisitExprConstInt64 = 252,
-    __fn_visitExprConstInt64 = 253,
-    __fn_preVisitExprConstInt = 254,
-    __fn_visitExprConstInt = 255,
-    __fn_preVisitExprConstInt2 = 256,
-    __fn_visitExprConstInt2 = 257,
-    __fn_preVisitExprConstInt3 = 258,
-    __fn_visitExprConstInt3 = 259,
-    __fn_preVisitExprConstInt4 = 260,
-    __fn_visitExprConstInt4 = 261,
-    __fn_preVisitExprConstUInt8 = 262,
-    __fn_visitExprConstUInt8 = 263,
-    __fn_preVisitExprConstUInt16 = 264,
-    __fn_visitExprConstUInt16 = 265,
-    __fn_preVisitExprConstUInt64 = 266,
-    __fn_visitExprConstUInt64 = 267,
-    __fn_preVisitExprConstUInt = 268,
-    __fn_visitExprConstUInt = 269,
-    __fn_preVisitExprConstUInt2 = 270,
-    __fn_visitExprConstUInt2 = 271,
-    __fn_preVisitExprConstUInt3 = 272,
-    __fn_visitExprConstUInt3 = 273,
-    __fn_preVisitExprConstUInt4 = 274,
-    __fn_visitExprConstUInt4 = 275,
-    __fn_preVisitExprConstRange = 276,
-    __fn_visitExprConstRange = 277,
-    __fn_preVisitExprConstURange = 278,
-    __fn_visitExprConstURange = 279,
-    __fn_preVisitExprConstRange64 = 280,
-    __fn_visitExprConstRange64 = 281,
-    __fn_preVisitExprConstURange64 = 282,
-    __fn_visitExprConstURange64 = 283,
-    __fn_preVisitExprConstBool = 284,
-    __fn_visitExprConstBool = 285,
-    __fn_preVisitExprConstFloat = 286,
-    __fn_visitExprConstFloat = 287,
-    __fn_preVisitExprConstFloat2 = 288,
-    __fn_visitExprConstFloat2 = 289,
-    __fn_preVisitExprConstFloat3 = 290,
-    __fn_visitExprConstFloat3 = 291,
-    __fn_preVisitExprConstFloat4 = 292,
-    __fn_visitExprConstFloat4 = 293,
-    __fn_preVisitExprConstString = 294,
-    __fn_visitExprConstString = 295,
-    __fn_preVisitExprConstDouble = 296,
-    __fn_visitExprConstDouble = 297,
-    __fn_preVisitExprFakeContext = 298,
-    __fn_visitExprFakeContext = 299,
-    __fn_preVisitExprFakeLineInfo = 300,
-    __fn_visitExprFakeLineInfo = 301,
-    __fn_preVisitExprReader = 302,
-    __fn_visitExprReader = 303,
-    __fn_preVisitExprUnsafe = 304,
-    __fn_visitExprUnsafe = 305,
-    __fn_preVisitExprCallMacro = 306,
-    __fn_visitExprCallMacro = 307,
+    __fn_preVisitExprConstFloat16 = 252,
+    __fn_visitExprConstFloat16 = 253,
+    __fn_preVisitExprConstInt64 = 254,
+    __fn_visitExprConstInt64 = 255,
+    __fn_preVisitExprConstInt = 256,
+    __fn_visitExprConstInt = 257,
+    __fn_preVisitExprConstInt2 = 258,
+    __fn_visitExprConstInt2 = 259,
+    __fn_preVisitExprConstInt3 = 260,
+    __fn_visitExprConstInt3 = 261,
+    __fn_preVisitExprConstInt4 = 262,
+    __fn_visitExprConstInt4 = 263,
+    __fn_preVisitExprConstUInt8 = 264,
+    __fn_visitExprConstUInt8 = 265,
+    __fn_preVisitExprConstUInt16 = 266,
+    __fn_visitExprConstUInt16 = 267,
+    __fn_preVisitExprConstUInt64 = 268,
+    __fn_visitExprConstUInt64 = 269,
+    __fn_preVisitExprConstUInt = 270,
+    __fn_visitExprConstUInt = 271,
+    __fn_preVisitExprConstUInt2 = 272,
+    __fn_visitExprConstUInt2 = 273,
+    __fn_preVisitExprConstUInt3 = 274,
+    __fn_visitExprConstUInt3 = 275,
+    __fn_preVisitExprConstUInt4 = 276,
+    __fn_visitExprConstUInt4 = 277,
+    __fn_preVisitExprConstRange = 278,
+    __fn_visitExprConstRange = 279,
+    __fn_preVisitExprConstURange = 280,
+    __fn_visitExprConstURange = 281,
+    __fn_preVisitExprConstRange64 = 282,
+    __fn_visitExprConstRange64 = 283,
+    __fn_preVisitExprConstURange64 = 284,
+    __fn_visitExprConstURange64 = 285,
+    __fn_preVisitExprConstBool = 286,
+    __fn_visitExprConstBool = 287,
+    __fn_preVisitExprConstFloat = 288,
+    __fn_visitExprConstFloat = 289,
+    __fn_preVisitExprConstFloat2 = 290,
+    __fn_visitExprConstFloat2 = 291,
+    __fn_preVisitExprConstFloat3 = 292,
+    __fn_visitExprConstFloat3 = 293,
+    __fn_preVisitExprConstFloat4 = 294,
+    __fn_visitExprConstFloat4 = 295,
+    __fn_preVisitExprConstString = 296,
+    __fn_visitExprConstString = 297,
+    __fn_preVisitExprConstDouble = 298,
+    __fn_visitExprConstDouble = 299,
+    __fn_preVisitExprFakeContext = 300,
+    __fn_visitExprFakeContext = 301,
+    __fn_preVisitExprFakeLineInfo = 302,
+    __fn_visitExprFakeLineInfo = 303,
+    __fn_preVisitExprReader = 304,
+    __fn_visitExprReader = 305,
+    __fn_preVisitExprUnsafe = 306,
+    __fn_visitExprUnsafe = 307,
+    __fn_preVisitExprCallMacro = 308,
+    __fn_visitExprCallMacro = 309,
   };
 protected:
-  int _das_class_method_offset[308];
+  int _das_class_method_offset[310];
 public:
   AstVisitor_Adapter ( const StructInfo * info ) {
       _das_class_method_offset[__fn_preVisitProgram] = info->fields[2]->offset;
@@ -1578,62 +1580,64 @@ public:
       _das_class_method_offset[__fn_visitExprConstInt8] = info->fields[251]->offset;
       _das_class_method_offset[__fn_preVisitExprConstInt16] = info->fields[252]->offset;
       _das_class_method_offset[__fn_visitExprConstInt16] = info->fields[253]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstInt64] = info->fields[254]->offset;
-      _das_class_method_offset[__fn_visitExprConstInt64] = info->fields[255]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstInt] = info->fields[256]->offset;
-      _das_class_method_offset[__fn_visitExprConstInt] = info->fields[257]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstInt2] = info->fields[258]->offset;
-      _das_class_method_offset[__fn_visitExprConstInt2] = info->fields[259]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstInt3] = info->fields[260]->offset;
-      _das_class_method_offset[__fn_visitExprConstInt3] = info->fields[261]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstInt4] = info->fields[262]->offset;
-      _das_class_method_offset[__fn_visitExprConstInt4] = info->fields[263]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstUInt8] = info->fields[264]->offset;
-      _das_class_method_offset[__fn_visitExprConstUInt8] = info->fields[265]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstUInt16] = info->fields[266]->offset;
-      _das_class_method_offset[__fn_visitExprConstUInt16] = info->fields[267]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstUInt64] = info->fields[268]->offset;
-      _das_class_method_offset[__fn_visitExprConstUInt64] = info->fields[269]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstUInt] = info->fields[270]->offset;
-      _das_class_method_offset[__fn_visitExprConstUInt] = info->fields[271]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstUInt2] = info->fields[272]->offset;
-      _das_class_method_offset[__fn_visitExprConstUInt2] = info->fields[273]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstUInt3] = info->fields[274]->offset;
-      _das_class_method_offset[__fn_visitExprConstUInt3] = info->fields[275]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstUInt4] = info->fields[276]->offset;
-      _das_class_method_offset[__fn_visitExprConstUInt4] = info->fields[277]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstRange] = info->fields[278]->offset;
-      _das_class_method_offset[__fn_visitExprConstRange] = info->fields[279]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstURange] = info->fields[280]->offset;
-      _das_class_method_offset[__fn_visitExprConstURange] = info->fields[281]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstRange64] = info->fields[282]->offset;
-      _das_class_method_offset[__fn_visitExprConstRange64] = info->fields[283]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstURange64] = info->fields[284]->offset;
-      _das_class_method_offset[__fn_visitExprConstURange64] = info->fields[285]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstBool] = info->fields[286]->offset;
-      _das_class_method_offset[__fn_visitExprConstBool] = info->fields[287]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstFloat] = info->fields[288]->offset;
-      _das_class_method_offset[__fn_visitExprConstFloat] = info->fields[289]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstFloat2] = info->fields[290]->offset;
-      _das_class_method_offset[__fn_visitExprConstFloat2] = info->fields[291]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstFloat3] = info->fields[292]->offset;
-      _das_class_method_offset[__fn_visitExprConstFloat3] = info->fields[293]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstFloat4] = info->fields[294]->offset;
-      _das_class_method_offset[__fn_visitExprConstFloat4] = info->fields[295]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstString] = info->fields[296]->offset;
-      _das_class_method_offset[__fn_visitExprConstString] = info->fields[297]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstDouble] = info->fields[298]->offset;
-      _das_class_method_offset[__fn_visitExprConstDouble] = info->fields[299]->offset;
-      _das_class_method_offset[__fn_preVisitExprFakeContext] = info->fields[300]->offset;
-      _das_class_method_offset[__fn_visitExprFakeContext] = info->fields[301]->offset;
-      _das_class_method_offset[__fn_preVisitExprFakeLineInfo] = info->fields[302]->offset;
-      _das_class_method_offset[__fn_visitExprFakeLineInfo] = info->fields[303]->offset;
-      _das_class_method_offset[__fn_preVisitExprReader] = info->fields[304]->offset;
-      _das_class_method_offset[__fn_visitExprReader] = info->fields[305]->offset;
-      _das_class_method_offset[__fn_preVisitExprUnsafe] = info->fields[306]->offset;
-      _das_class_method_offset[__fn_visitExprUnsafe] = info->fields[307]->offset;
-      _das_class_method_offset[__fn_preVisitExprCallMacro] = info->fields[308]->offset;
-      _das_class_method_offset[__fn_visitExprCallMacro] = info->fields[309]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstFloat16] = info->fields[254]->offset;
+      _das_class_method_offset[__fn_visitExprConstFloat16] = info->fields[255]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstInt64] = info->fields[256]->offset;
+      _das_class_method_offset[__fn_visitExprConstInt64] = info->fields[257]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstInt] = info->fields[258]->offset;
+      _das_class_method_offset[__fn_visitExprConstInt] = info->fields[259]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstInt2] = info->fields[260]->offset;
+      _das_class_method_offset[__fn_visitExprConstInt2] = info->fields[261]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstInt3] = info->fields[262]->offset;
+      _das_class_method_offset[__fn_visitExprConstInt3] = info->fields[263]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstInt4] = info->fields[264]->offset;
+      _das_class_method_offset[__fn_visitExprConstInt4] = info->fields[265]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstUInt8] = info->fields[266]->offset;
+      _das_class_method_offset[__fn_visitExprConstUInt8] = info->fields[267]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstUInt16] = info->fields[268]->offset;
+      _das_class_method_offset[__fn_visitExprConstUInt16] = info->fields[269]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstUInt64] = info->fields[270]->offset;
+      _das_class_method_offset[__fn_visitExprConstUInt64] = info->fields[271]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstUInt] = info->fields[272]->offset;
+      _das_class_method_offset[__fn_visitExprConstUInt] = info->fields[273]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstUInt2] = info->fields[274]->offset;
+      _das_class_method_offset[__fn_visitExprConstUInt2] = info->fields[275]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstUInt3] = info->fields[276]->offset;
+      _das_class_method_offset[__fn_visitExprConstUInt3] = info->fields[277]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstUInt4] = info->fields[278]->offset;
+      _das_class_method_offset[__fn_visitExprConstUInt4] = info->fields[279]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstRange] = info->fields[280]->offset;
+      _das_class_method_offset[__fn_visitExprConstRange] = info->fields[281]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstURange] = info->fields[282]->offset;
+      _das_class_method_offset[__fn_visitExprConstURange] = info->fields[283]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstRange64] = info->fields[284]->offset;
+      _das_class_method_offset[__fn_visitExprConstRange64] = info->fields[285]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstURange64] = info->fields[286]->offset;
+      _das_class_method_offset[__fn_visitExprConstURange64] = info->fields[287]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstBool] = info->fields[288]->offset;
+      _das_class_method_offset[__fn_visitExprConstBool] = info->fields[289]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstFloat] = info->fields[290]->offset;
+      _das_class_method_offset[__fn_visitExprConstFloat] = info->fields[291]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstFloat2] = info->fields[292]->offset;
+      _das_class_method_offset[__fn_visitExprConstFloat2] = info->fields[293]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstFloat3] = info->fields[294]->offset;
+      _das_class_method_offset[__fn_visitExprConstFloat3] = info->fields[295]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstFloat4] = info->fields[296]->offset;
+      _das_class_method_offset[__fn_visitExprConstFloat4] = info->fields[297]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstString] = info->fields[298]->offset;
+      _das_class_method_offset[__fn_visitExprConstString] = info->fields[299]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstDouble] = info->fields[300]->offset;
+      _das_class_method_offset[__fn_visitExprConstDouble] = info->fields[301]->offset;
+      _das_class_method_offset[__fn_preVisitExprFakeContext] = info->fields[302]->offset;
+      _das_class_method_offset[__fn_visitExprFakeContext] = info->fields[303]->offset;
+      _das_class_method_offset[__fn_preVisitExprFakeLineInfo] = info->fields[304]->offset;
+      _das_class_method_offset[__fn_visitExprFakeLineInfo] = info->fields[305]->offset;
+      _das_class_method_offset[__fn_preVisitExprReader] = info->fields[306]->offset;
+      _das_class_method_offset[__fn_visitExprReader] = info->fields[307]->offset;
+      _das_class_method_offset[__fn_preVisitExprUnsafe] = info->fields[308]->offset;
+      _das_class_method_offset[__fn_visitExprUnsafe] = info->fields[309]->offset;
+      _das_class_method_offset[__fn_preVisitExprCallMacro] = info->fields[310]->offset;
+      _das_class_method_offset[__fn_visitExprCallMacro] = info->fields[311]->offset;
   }
   __forceinline Func get_preVisitProgram ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitProgram]);
@@ -3900,6 +3904,24 @@ public:
   __forceinline Expression * invoke_visitExprConstInt16 ( Context * __context__, Func __funcCall__, void * self, ExprConstInt16 * const  expr ) const {
     return das_invoke_function<Expression *>::invoke
       <void *,ExprConstInt16 * const >
+        (__context__,nullptr,__funcCall__,
+          self,expr);
+  }
+  __forceinline Func get_preVisitExprConstFloat16 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstFloat16]);
+  }
+  __forceinline void invoke_preVisitExprConstFloat16 ( Context * __context__, Func __funcCall__, void * self, ExprConstFloat16 * const  expr ) const {
+    das_invoke_function<void>::invoke
+      <void *,ExprConstFloat16 * const >
+        (__context__,nullptr,__funcCall__,
+          self,expr);
+  }
+  __forceinline Func get_visitExprConstFloat16 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstFloat16]);
+  }
+  __forceinline Expression * invoke_visitExprConstFloat16 ( Context * __context__, Func __funcCall__, void * self, ExprConstFloat16 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstFloat16 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }

@@ -20,6 +20,7 @@
 #include "backend/cmd/transfer.h"
 #include "backend/cmd/misc.h"
 #include "backend/cmd/screen.h"
+#include "backend/cmd/sync.h"
 
 namespace drv3d_vulkan
 {
@@ -211,6 +212,8 @@ struct RenderWork
   dag::Vector<VkSparseImageOpaqueMemoryBindInfo> sparseImageOpaqueBinds;
   dag::Vector<VkSparseImageMemoryBindInfo> sparseImageBinds;
   dag::Vector<CmdUpdateAliasedMemoryInfo> unorderedAliasedMemoryUpdates;
+  dag::Vector<EnhancedImageBarrier> enhancedImageBarriers;
+  dag::Vector<EnhancedBufferBarrier> enhancedBufferBarriers;
 
 #if VULKAN_HAS_RAYTRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
   dag::Vector<VkAccelerationStructureBuildRangeInfoKHR> raytraceBuildRangeInfoKHRStore;
@@ -231,6 +234,7 @@ struct RenderWork
   BatchedReadbacks *readbacks = nullptr;
   BatchedReadbacks *nextReadbacks = nullptr;
   BatchedReadbacks *prevReadbacks = nullptr;
+  QueryIndex reorderedTimestampQueriesCount = 0;
 
   bool generateFaultReport = false;
 
@@ -261,6 +265,8 @@ struct RenderWork
     size += CALC_VEC_BYTES(sparseImageOpaqueBinds);
     size += CALC_VEC_BYTES(sparseImageBinds);
     size += CALC_VEC_BYTES(unorderedAliasedMemoryUpdates);
+    size += CALC_VEC_BYTES(enhancedImageBarriers);
+    size += CALC_VEC_BYTES(enhancedBufferBarriers);
 #if VULKAN_HAS_RAYTRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
     size += CALC_VEC_BYTES(raytraceBuildRangeInfoKHRStore);
     size += CALC_VEC_BYTES(raytraceGeometryKHRStore);

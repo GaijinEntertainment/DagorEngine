@@ -192,7 +192,12 @@ namespace das {
         size = (size + alignMask) & ~alignMask;
         nsize = (nsize + alignMask) & ~alignMask;
         char * nptr = allocate(nsize);
-        DAS_VERIFYF(nptr,"out of memory?");
+        // Fail the way allocate() does — by returning null. Context::reallocate
+        // already turns that into throw_out_of_memory, so the caller gets a real
+        // daslang error naming the request size. Asserting here instead reached
+        // neither: it fired before the null could propagate, so an out-of-memory
+        // during array growth could never be reported or recovered, only aborted.
+        if ( !nptr ) return nullptr;
         memcpy ( nptr, ptr, das::min(size,nsize) );
 #if DAS_TRACK_ALLOCATIONS
         if ( trackAllocations ) {
@@ -317,49 +322,61 @@ namespace das {
 
     void LinearChunkAllocator::free ( char * ptr, uint64_t s ) {
         s = (s + alignMask) & ~alignMask;
-        DAS_ASSERTF(s <= UINT32_MAX, "LinearChunkAllocator chunks are uint32-bounded; free of >4GB block makes no sense");
         for ( auto ch=chunk; ch; ch=ch->next ) {
             if ( ch->isOwnPtr(ptr) ) {
-                ch->free(ptr,uint32_t(s));
+                ch->free(ptr,s);
                 break;
             }
         }
     }
 
-    uint32_t LinearChunkAllocator::grow ( uint32_t size ) {
-        // HeapChunk is uint32-bounded by design (see allocate's DAS_VERIFYF); the
-        // grow hook is 64-bit, so clamp its result back into the per-chunk cap.
-        uint64_t ng = customGrow ? customGrow(size) : uint64_t(size) * 2;
-        return uint32_t(das::min(ng, uint64_t(UINT32_MAX)));
+    uint64_t LinearChunkAllocator::grow ( uint64_t size ) {
+        return customGrow ? customGrow(size) : size * 2;
     }
 
     char * LinearChunkAllocator::allocate ( uint64_t s ) {
         if ( !s ) return nullptr;
         s = (s + alignMask) & ~alignMask;
-        DAS_VERIFYF(s <= UINT32_MAX, "LinearChunkAllocator: single allocation of %llu bytes exceeds the per-chunk uint32 cap; >4GB allocations must go through PersistentHeapAllocator", (unsigned long long)s);
+#if SIZE_MAX < UINT64_MAX
+        // 32-bit: no size_t allocation can back a >SIZE_MAX request. Fail it as OOM here and cap
+        // chunk sizes below — otherwise HeapChunk's das_aligned_alloc16(size_t) truncates the malloc
+        // while HeapChunk::size records the full uint64, handing out unbacked memory. The cap is
+        // 16-aligned so HeapChunk's own round-up can't push it past SIZE_MAX.
+        const uint64_t chunkCap = uint64_t(SIZE_MAX) & ~uint64_t(15);
+        if ( s > chunkCap ) return nullptr;
+        auto capChunk = [&]( uint64_t sz ) { return das::min(chunkCap, sz); };
+#else
+        auto capChunk = []( uint64_t sz ) { return sz; };
+#endif
         if ( !chunk ) {
             if ( !initialSize ) {
                 initialSize = default_initial_size;
             }
-            chunk = new HeapChunk ( uint32_t(das::max(initialSize, s)), nullptr );
-            // printf("[HC] %i\n", chunk->size);
+            chunk = new HeapChunk ( capChunk(das::max(initialSize, s)), nullptr );
+            if ( !chunk->data ) {   // backing malloc failed: fail as OOM, don't install a dead chunk
+                delete chunk;
+                chunk = nullptr;
+                return nullptr;
+            }
         }
         for ( ;; ) {
-            if ( char * res = chunk->allocate(uint32_t(s)) ) {
-                // printf("[A] %i bytes, offs=%i\n", int(s), int(res-chunk->data));
+            if ( char * res = chunk->allocate(s) ) {
                 return res;
             }
-            chunk = new HeapChunk ( uint32_t(das::max(uint64_t(grow(chunk->size)), s)), chunk);
-            // printf("[HC] %i bytes\n", chunk->size);
+            auto nc = new HeapChunk ( capChunk(das::max(grow(chunk->size), s)), chunk);
+            if ( !nc->data ) {      // backing malloc failed: OOM, not an excuse to spin the grow loop
+                nc->next = nullptr; // detach — ~HeapChunk would otherwise free the whole live chain
+                delete nc;
+                return nullptr;
+            }
+            chunk = nc;
         }
     }
 
     void LinearChunkAllocator::reset() {
         if ( chunk && chunk->next ) {
             auto maxAllocated = (bytesAllocated()+1023) & ~uint64_t(1023);
-            // Clamp at UINT32_MAX so the next allocate() cast to uint32_t doesn't
-            // silently truncate a large cumulative footprint to a tiny initial chunk.
-            initialSize = das::min<uint64_t>(UINT32_MAX, das::max(initialSize, maxAllocated));
+            initialSize = das::max(initialSize, maxAllocated);
             delete chunk;
             chunk = nullptr;
         } else if ( chunk ) {

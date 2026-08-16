@@ -1,11 +1,13 @@
 options gen2
+options persistent_heap
+options gc
 require glfw/glfw_boost
 require opengl/opengl_boost
-require daslib/defer
-require daslib/math_boost
+require strings
 
 require daslib/safe_addr
 require daslib/math_boost
+require live/live_gc
 
 var @in @location v_position : float3
 var @in @location v_normal : float3
@@ -33,6 +35,7 @@ def fs_main {
     f_FragColor.w = 1.
 }
 
+var window : GLFWwindow?
 var program : uint
 var vao : uint
 var vbo : uint
@@ -102,61 +105,89 @@ def create_gl_objects {
 }
 
 [export]
-def main {
+def init() {
     if (glfwInit() == 0) {
         panic("can't init glfw")
     }
-    defer() {
-        glfwTerminate()
-    }
     glfwInitOpenGL(3, 3)
-    var window = glfwCreateWindow(1280, 720, "OpenGL - Hello cube", null, null)
+    window = glfwCreateWindow(1280, 720, "OpenGL - Hello cube", null, null)
     if (window == null) {
         panic("can't create window")
-    }
-    defer() {
-        glfwDestroyWindow(window)
     }
     glfwMakeContextCurrent(window)
     create_gl_objects()
     v_view = look_at_rh(float3(0, 0, 10), float3(0, 0, 0), float3(0, 1, 0))
-    eval_main_loop() {
-        if (glfwWindowShouldClose(window) != 0) {
-            return false
+}
+
+[export]
+def update() {
+    glfwPollEvents()
+    var display_w, display_h : int
+    glfwGetFramebufferSize(window, display_w, display_h)
+    let aspect = display_h != 0 ? float(display_w) / float(display_h) : 1.
+    // render
+    glViewport(0, 0, display_w, display_h)
+    glClearColor(0.2, 0.2, 0.2, 1.0)
+    glClearDepth(1.0lf)
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glEnable(GL_DEPTH_TEST)
+    glEnable(GL_CULL_FACE)
+    glCullFace(GL_BACK)
+    glDepthFunc(GL_LEQUAL)
+    let t = glfwGetTime()
+    if (t > 10lf) {
+        glfwSetTime(t - 10lf)
+    }
+    let rot = quat_from_unit_vec_ang(normalize(float3(1., 1., 0.)), float(t) * PI * 2. * 0.1)
+    v_model = compose(float3(0, 0, 0), rot, float3(1.0))      // bind model
+    v_projection = perspective_rh_opengl(45.0f * PI / 180., aspect, 0.1f, 50.0f)// bind projection
+    glUseProgram(program)
+    f_tex := texture
+    vs_main_bind_uniform(program)
+    fs_main_bind_uniform(program)
+    glBindVertexArray(vao)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, null)
+    glUseProgram(0u)
+    bind_ffp()
+    // swap buffers
+    glfwMakeContextCurrent(window)
+    glfwSwapBuffers(window)
+}
+
+[export]
+def shutdown() {
+    if (window != null) {
+        glfwDestroyWindow(window)
+        window = null
+    }
+    glfwTerminate()
+}
+
+var max_frame_limit = 0
+
+def parse_args() {
+    let args <- get_command_line_arguments()
+    for (i in range(length(args) - 1)) {
+        if (args[i] == "--max-frames") {
+            max_frame_limit = to_int(args[i + 1])
         }
-        glfwPollEvents()
-        var display_w, display_h : int
-        glfwGetFramebufferSize(window, display_w, display_h)
-        let aspect = display_h != 0 ? float(display_w) / float(display_h) : 1.
-        // render
-        glViewport(0, 0, display_w, display_h)
-        glClearColor(0.2, 0.2, 0.2, 1.0)
-        glClearDepth(1.0lf)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glEnable(GL_DEPTH_TEST)
-        glEnable(GL_CULL_FACE)
-        glCullFace(GL_BACK)
-        glDepthFunc(GL_LEQUAL)
-        let t = glfwGetTime()
-        if (t > 10lf) {
-            glfwSetTime(t - 10lf)
-        }
-        let rot = quat_from_unit_vec_ang(normalize(float3(1., 1., 0.)), float(t) * PI * 2. * 0.1)
-        v_model = compose(float3(0, 0, 0), rot, float3(1.0))      // bind model
-        v_projection = perspective_rh_opengl(45.0f * PI / 180., aspect, 0.1f, 50.0f)// bind projection
-        glUseProgram(program)
-        f_tex := texture
-        vs_main_bind_uniform(program)
-        fs_main_bind_uniform(program)
-        glBindVertexArray(vao)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, null)
-        glUseProgram(0u)
-        bind_ffp()
-        // swap buffers
-        glfwMakeContextCurrent(window)
-        glfwSwapBuffers(window)
-        return true
     }
 }
 
+// on web the wasm host auto-drives init/update/shutdown per frame and never calls main
+[export]
+def main() {
+    parse_args()
+    init()
+    var frame_count = 0
+    while (glfwWindowShouldClose(window) == 0) {
+        update()
+        maybe_collect_gc()
+        frame_count ++
+        if (max_frame_limit > 0 && frame_count >= max_frame_limit) {
+            break
+        }
+    }
+    shutdown()
+}

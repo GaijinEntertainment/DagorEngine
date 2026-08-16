@@ -24,11 +24,11 @@
 //   bits 16-28: o1B (13, signed)
 //   bit 29:     flipA
 //   bit 30:     flipB
-//   bit 31:     spare
+//   bit 31:     spare (reserved)
 // W3 (leaf+24):
 //   bits 0-12:  o2B (13, signed)
 //   bits 13-25: o3B (13, signed)
-//   bits 26-31: spare
+//   bits 26-31: user bits (see QUAD_LEAF_USER_*)
 //
 // Sentinels (no dedicated flag bits): hasB = (o1B != o2B); singleA = (o3A == o2A); singleB = (o3B == o2B).
 
@@ -61,6 +61,16 @@
 #define QUAD_FLIPA_FLAG  (1u << 29)                        // W2 bit 29
 #define QUAD_FLIPB_FLAG  (1u << 30)                        // W2 bit 30
 #define QUADB_O3_SHIFT   QUAD_O_BITS                       // W3[13:25] o3B (W3[0:12] = o2B)
+
+// Per-leaf user bits (W3[26:31]): 6 bits daBVH stores and returns but never interprets -- what a
+// value means belongs to the BLAS owner. The builder guarantees only that one leaf carries one
+// value (primitives with different values never share a leaf). Every other field masks these bits
+// out, so a leaf written before this existed reads as 0, the "unset" value.
+// Cost: a nonzero value keeps a single-quad leaf out of the short-body forms (SoA4 4-byte body,
+// bvhIO 8-byte record), so owners should give their most common meaning the value 0.
+#define QUAD_LEAF_USER_SHIFT 26
+#define QUAD_LEAF_USER_BITS  6
+#define QUAD_LEAF_USER_MASK  ((1u << QUAD_LEAF_USER_BITS) - 1) // 0x3F
 
 #define BVH_BLAS_NODE_SIZE 16
 #define BVH_BLAS_LEAF_SIZE 28

@@ -2,6 +2,8 @@
 
 #include <render/omm.h>
 
+#include "shaders/omm_texcoord_formats.hlsli"
+
 #include <debug/dag_assert.h>
 
 namespace render::omm
@@ -61,7 +63,11 @@ void clear_result(BakeResult &result)
   result.indexBufferSizeInBytes = 0;
 }
 
+DebugBakeSource make_debug_bake_source(const BakeInput &, TEXTUREID) { return {}; }
+
 void debug_register_bake_result(const BakeResult &, const DebugBakeResultInfo &) {}
+
+void debug_adopt_bake_result(BakeResult &&, const DebugBakeResultInfo &) {}
 
 void debug_unregister_bake_result(const BakeResult &) {}
 

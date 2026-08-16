@@ -14,13 +14,13 @@
 
 #if _TARGET_PC_WIN
 
-#if HAS_GF_AFTERMATH
+#if HAS_AFTERMATH
 #include <GFSDK_Aftermath.h>
 #include <GFSDK_Aftermath_GpuCrashDump.h>
 #include <GFSDK_Aftermath_GpuCrashDumpDecoding.h>
 #endif
 
-#if HAS_GF_AFTERMATH
+#if HAS_AFTERMATH
 #include "gpu_postmortem_nvidia_aftermath.h"
 #endif
 #include "gpu_postmortem_dagor_trace.h"
@@ -76,7 +76,7 @@ struct NeverInitModule : NullTrace
 };
 
 // Add dummy types to make following code easier to work with
-#if !HAS_GF_AFTERMATH
+#if !HAS_AFTERMATH
 namespace nvidia
 {
 struct Aftermath : NeverInitModule

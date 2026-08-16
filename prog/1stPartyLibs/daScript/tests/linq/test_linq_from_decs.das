@@ -1,5 +1,6 @@
 options gen2
 options rtti
+options disable_auto_inline    // this file pins linq splice shapes; auto-splicing would dissolve them
 options _no_linq_perf_warn = true  // file contains intentional cascade tests (regression guards for tier-2 fallthrough)
 require daslib/linq
 require dastest/testing_boost public

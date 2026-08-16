@@ -434,6 +434,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
         init_smoothness(gbuffer, smoothness);
         init_normal(gbuffer, worldNormal);
         init_dynamic(gbuffer,input.normal.w > 0 ? IS_DYNAMIC : 0);
+        init_envi_cover_overwrite(gbuffer, 1u);
 
         init_albedo(gbuffer, diffuseColor.rgb);
         init_translucency(gbuffer, get_constant_translucency());

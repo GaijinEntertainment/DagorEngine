@@ -225,6 +225,8 @@ void Panel::setCursorState(int hand, bool enabled, Point2 pos)
     bool needHoverUpdate = (ptr.isPresent != enabled) || (enabled && pos != ptr.pos);
     ptr.isPresent = enabled;
     ptr.pos = pos;
+    if (!enabled)
+      ptr.cursor = nullptr; // the cursor queries must track what is drawn, not the last render pass
     if (needHoverUpdate)
       updateHover();
   }

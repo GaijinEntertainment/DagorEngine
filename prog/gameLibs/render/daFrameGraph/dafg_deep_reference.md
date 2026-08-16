@@ -31,13 +31,14 @@ User Code -> API (cpp/das/ecs) -> Frontend -> Backend -> Runtime
 5. **REQUIRES_IR_GRAPH_BUILD** -- `IrGraphBuilder::build()`: builds `intermediate::Graph` with multiplexing expansion
 6. **REQUIRES_PASS_COLORING** -- `PassColorer::performColoring()`: colors nodes into potential render passes using framebuffer compatibility
 7. **REQUIRES_NODE_SCHEDULING** -- `NodeScheduler::schedule()`: topological sort respecting dependencies + priorities; outputs permutation
-8. **REQUIRES_BARRIER_SCHEDULING** -- `BarrierScheduler::scheduleEvents()`: places activation/deactivation/barrier events per node per frame
-9. **REQUIRES_STATE_DELTA_RECALCULATION** -- `DeltaCalculator::calculatePerNodeStateDeltas()`: computes minimal state changes between consecutive nodes (render passes, shader blocks, bindings, overrides)
-10. **REQUIRES_AUTO_RESOLUTION_UPDATE** -- updates IR resource descriptions from auto-resolution types
-11. **REQUIRES_RESOURCE_SCHEDULING** -- `ResourceScheduler::computeSchedule()`: packs resources into heaps with memory aliasing
-12. **REQUIRES_HISTORY_UPDATE** -- activates history resources, copies from previous frame if preserved
-13. **REQUIRES_VISUALIZATION_UPDATE** -- debug visualization
-14. **UP_TO_DATE** -- no work needed
+8. **REQUIRES_RESOURCE_LIFETIME_CALCULATION** -- `ResourceLifetimeCalculator::recalculate()`: first use and release timepoint per resource per frame
+9. **REQUIRES_BARRIER_SCHEDULING** -- `BarrierScheduler::scheduleEvents()`: places activation/deactivation/barrier events per node per frame
+10. **REQUIRES_STATE_DELTA_RECALCULATION** -- `DeltaCalculator::calculatePerNodeStateDeltas()`: computes minimal state changes between consecutive nodes (render passes, shader blocks, bindings, overrides)
+11. **REQUIRES_AUTO_RESOLUTION_UPDATE** -- updates IR resource descriptions from auto-resolution types
+12. **REQUIRES_RESOURCE_SCHEDULING** -- `ResourceScheduler::computeSchedule()`: packs resources into heaps with memory aliasing
+13. **REQUIRES_HISTORY_UPDATE** -- activates history resources, copies from previous frame if preserved
+14. **REQUIRES_VISUALIZATION_UPDATE** -- debug visualization
+15. **UP_TO_DATE** -- no work needed
 
 **Incremental recompilation**: `markStageDirty(stage)` sets `currentStage = min(currentStage, stage)`. The `recompile()` method uses a `switch` with `[[fallthrough]]` to run only the dirty stages and everything after them.
 
@@ -183,16 +184,57 @@ Groups nodes into potential render passes based on framebuffer compatibility:
 - Uses `FbLabel` (framebuffer fingerprint) and `SubpassColor` to detect compatible nodes
 - `requiresBarrierBetween()` checks if a GPU barrier is needed between two nodes (which would break a pass)
 
+### Resource Lifetimes (`ResourceLifetimeCalculator`)
+Reads `ResourceLifetimes` off the node order and the usage requests: per resource and per
+produced-on frame, the first use and the timepoint right after the last use, which falls on
+the next frame for history resources. Runs before barrier scheduling and depends on nothing
+but the IR graph and the pass coloring, so resource placement never depends on how
+synchronization is expressed. On tile-based architectures (`caps.hasTileBasedArchitecture`), an
+untracked resource's lifetime is widened to the enclosing grace points, because its barriers
+cannot be issued inside the merged render pass.
+
 ### Barrier Scheduling (`BarrierScheduler`)
 Places GPU barrier events at node boundaries:
-- `Activation` -- first use of a resource on a frame (with clear/discard)
-- `Barrier` -- state transition between usages
-- `Deactivation` -- last use, releases physical memory
+- `Activation`/`Deactivation` -- driver (de)activation of a tracked resource
+- `Barrier` -- legacy state transition between usages of a tracked resource
+- `EnhancedBufferBarrier`/`EnhancedTextureBarrier` -- an untracked resource's whole
+  lifecycle, tagged with a `BarrierKind` of `FirstUse`, `Transition` or `Release`
 - `CpuActivation`/`CpuDeactivation` -- blob construction/destruction
 
 Events are stored per-frame in `EventsCollection = array<FrameEvents, 2>` (double-buffered).
+Within a timepoint they run in ascending `execution_rank()`: deactivations and release
+barriers free memory, then transitions, then activations and first-use barriers claim it.
 
-**Grace points**: pass boundaries where activations/deactivations can be batched for efficiency.
+**Aliasing untracked resources** takes two enhanced barriers, never one: a barrier names a
+single resource and its `AccessBefore` must match that resource's state, so the outgoing
+release (`lastAccess -> NoAccess`) and the incoming first use (`NoAccess -> firstUse`) cannot
+be folded together. Enhanced barriers have no aliasing barrier type; the legacy one is the
+coarse decompress this whole scheme exists to avoid.
+
+Both barriers share stages: `SyncBefore` is the outgoing last use, `SyncAfter` the incoming
+first use. The partner is known only after the packer, so both stages stay empty until
+`Runtime::applyAliasSyncStages()` fills them from the resources that share the memory, plus the
+resource itself, which reuses its memory each frame. Only the history teardown and re-init in
+`updateHistory()` keep `All`. A repack hands memory between graphs, which no barrier sees; DX12
+needs none, because the graphs run in different `ExecuteCommandLists` scopes
+(D3D12EnhancedBarriers, "Resource Aliasing").
+
+**Grace points**: pass boundaries where barriers can be batched for efficiency.
+
+### Untracked resources (`*_NO_STATE_TRACKING`)
+Synchronized with enhanced barriers only, and those need a layout and an access, which
+`Usage::UNKNOWN` lacks. A request that never called `useAs` (`ResourceRequest::usageDeclared`)
+does not access the resource and yields no barrier, only lifetime; an explicit
+`useAs(Usage::UNKNOWN)` asserts in `IrGraphBuilder::addRequestsToGraph`.
+
+**Limitation**: custom execution nodes may request untracked resources, but must then access
+them exactly as their requests declare, since daFG cannot see what the callback does.
+
+**Fallback**: when `untracked_resources_supported()` (`common/untrackedResources.h`) is false,
+`IrGraphBuilder::fixupFlagsAndActivation` drops the creation flag and `Resource::isUntracked*()`
+answers false, so the resource keeps the driver's tracking and takes the legacy
+activate/`resource_barrier`/deactivate path. The same node code runs everywhere, and
+`Usage::UNKNOWN` is legal there.
 
 ### Resource Scheduling (`ResourceScheduler`)
 Assigns physical memory locations to virtual resources:

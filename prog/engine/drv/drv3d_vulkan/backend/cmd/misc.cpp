@@ -5,6 +5,7 @@
 #include "util/fault_report.h"
 #include "execution_async_compile_state.h"
 #include "execution_timings.h"
+#include "vulkan_allocation_callbacks.h"
 #if _TARGET_ANDROID
 #include <unistd.h>
 #endif
@@ -118,6 +119,8 @@ TSPEC void FaultReportDump::dumpCmd(const CmdSetLatencyMarker &v)
 
 TSPEC void BEContext::execCmd(const CmdRestartPipelineCompiler &)
 {
+  checkVulkanAllocationGuards("before pipeline compiler restart");
   Backend::pipelineCompiler.shutdown();
   Backend::pipelineCompiler.init();
+  checkVulkanAllocationGuards("after pipeline compiler restart");
 }

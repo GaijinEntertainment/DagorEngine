@@ -155,6 +155,7 @@ void RenderWork::wait() {}
 
 void RenderWork::cleanup()
 {
+  reorderedTimestampQueriesCount = 0;
   bufferUploads.clear();
   bufferUploadCopies.clear();
   orderedBufferUploads.clear();
@@ -178,6 +179,8 @@ void RenderWork::cleanup()
   sparseImageOpaqueBinds.clear();
   sparseImageBinds.clear();
   unorderedAliasedMemoryUpdates.clear();
+  enhancedImageBarriers.clear();
+  enhancedBufferBarriers.clear();
 #if VULKAN_HAS_RAYTRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
   raytraceBuildRangeInfoKHRStore.clear();
   raytraceGeometryKHRStore.clear();

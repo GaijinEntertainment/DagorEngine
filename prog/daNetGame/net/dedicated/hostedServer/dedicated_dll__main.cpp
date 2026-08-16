@@ -24,6 +24,9 @@ static int suppress_log_cb(int, const char *, const void *, int, const char *, i
 extern void default_crt_init_kernel_lib();
 extern void default_crt_init_core_lib();
 extern "C" const char *dagor_get_build_stamp_str(char *buf, size_t bufsz, const char *suffix);
+// C++ linkage (do not declare inside start_internal_server: that fn is extern "C").
+void hosted_server_install_debug_log_forward();
+void hosted_server_uninstall_debug_log_forward();
 namespace rendinst
 {
 extern bool allowOptimizeCollResOnLoad;
@@ -97,6 +100,8 @@ bool __cdecl start_internal_server(const DataBlock &inp, void(__cdecl *handler)(
   debug(dagor_get_build_stamp_str(sbuf, sizeof(sbuf), "\n\n"));
   measure_cpu_freq();
 #endif
+  // After debug system init: bridge engine logs to the host console via log_forwarder.
+  hosted_server_install_debug_log_forward();
 
   if (auto *tbl = (const GameResProxyTable *)(void *)inp.getInt64("gameResProxyTablePtr", 0))
   {
@@ -134,6 +139,10 @@ bool __cdecl start_internal_server(const DataBlock &inp, void(__cdecl *handler)(
   ::dgs_argv = nullptr;
   argv_storage.clear();
   flush_debug_file();
+  // Restore host callback before DLL unload (PC and non-PC). Leaving the DLL's
+  // hosted_server_debug_log_cb installed makes the next host debug() jump into
+  // unmapped pages after os_dll_close.
+  hosted_server_uninstall_debug_log_forward();
 #if !_TARGET_PC
   debug_set_log_callback(&suppress_log_cb);
 #endif

@@ -125,6 +125,12 @@ namespace das {
                                             pFnFin->classParent = func->classParent;
                                             DAS_ASSERT(pFnFin->classParent);
                                         }
+                                        // generator outlined from a generic instance keeps the generic's origin,
+                                        // so its body resolves names from the module the code was written in
+                                        if (func && func->fromGeneric) {
+                                            pFn->fromGeneric = func->getOrigin();
+                                            pFnFin->fromGeneric = pFn->fromGeneric;
+                                        }
                                         reportAstChanged();
                                         auto ms = generateLambdaMakeStruct(ls, pFn, pFnFin, cl.capt, expr->capture, expr->at, expr->captureAt, program);
                                         // each ( [[ ]]] )
@@ -161,6 +167,11 @@ namespace das {
             auto it = find_if(capture.begin(), capture.end(), [&](const auto &entry) { return entry.name == cV->name; });
             if (it != capture.end()) {
                 mode = it->mode;
+            }
+            if (cV->type->isGoodBlockType()) {
+                error("can't capture block variable " + cV->name, "", "",
+                      at, CompilationError::cant_capture_variable);
+                return false;
             }
             if (mode == CaptureMode::capture_any) {
                 if (cV->capture_as_ref) {
@@ -253,6 +264,12 @@ namespace das {
                                         pFnFin->classParent = func->classParent;
                                         DAS_ASSERT(pFnFin->classParent);
                                     }
+                                    // lambda outlined from a generic instance keeps the generic's origin,
+                                    // so its body resolves names from the module the code was written in
+                                    if (func && func->fromGeneric) {
+                                        pFn->fromGeneric = func->getOrigin();
+                                        pFnFin->fromGeneric = pFn->fromGeneric;
+                                    }
                                     reportAstChanged();
                                     auto ms = generateLambdaMakeStruct(ls, pFn, pFnFin, cl.capt, expr->capture, expr->at, expr->captureAt, program);
                                     return ms;
@@ -283,10 +300,12 @@ namespace das {
             } else {
                 string lname = generateNewLocalFunctionName(block->at);
                 auto pFn = generateLocalFunction(lname, block);
-                if (func) {
-                    if (auto origin = func->getOriginPtr()) {
-                        pFn->fromGeneric = getOrCreateDummy(origin->module);
-                    }
+                // local function outlined from a generic instance keeps the generic's origin (a
+                // getOrCreateDummy(origin->module) here mutates a foreign module's generics map
+                // with a function nothing roots — the per-pass AST GC guts it, and the next
+                // program to look it up crashes on the husk's null module)
+                if (func && func->fromGeneric) {
+                    pFn->fromGeneric = func->getOrigin();
                 }
                 if (program->addFunction(pFn)) {
                     reportAstChanged();
@@ -527,7 +546,8 @@ namespace das {
         verifyType(expr->makeType);
         auto mkBaseT = expr->makeType;
         while (mkBaseT->baseType==Type::tFixedArray && mkBaseT->firstType) mkBaseT = mkBaseT->firstType;
-        if (mkBaseT->baseType != Type::tStructure && mkBaseT->baseType != Type::tHandle) {
+        if (mkBaseT->baseType != Type::tStructure && mkBaseT->baseType != Type::tHandle && !mkBaseT->isAlias()) {
+            // an unresolved alias is handled in visit() (it may promote foo(a=5) to a named call)
             if (expr->structs.size()) {
                 error("[[" + describeType(expr->makeType) + "]] with non-structure type", "", "",
                       expr->at, CompilationError::invalid_structure_type);
@@ -800,6 +820,31 @@ namespace das {
                 expr->makeType = aT;
                 reportAstChanged();
             } else {
+                // an unresolved alias that names a visible function/generic is promoted to a named
+                // call foo(a=5, ...); a real struct/handle resolves above, so struct construction wins.
+                // visibility mirrors findMatchingFunctions so a same-named non-visible function can't trip it.
+                if (expr->structs.size() == 1 && !expr->structs[0]->empty()) {
+                    string aMod, aFn;
+                    splitTypeName(expr->makeType->alias, aMod, aFn);
+                    auto hFn = hash64z(aFn.c_str());
+                    auto inWhichModule = getSearchModule(aMod);
+                    bool hasFn = false;
+                    program->library.foreach([&](Module *mod) -> bool {
+                        if ( !isVisibleFunc(inWhichModule, mod) ) return true;
+                        if ( mod->functionsByName.find(hFn) || mod->genericsByName.find(hFn) ) {
+                            hasFn = true;
+                            return false;
+                        }
+                        return true;
+                    }, aMod);
+                    if ( hasFn ) {
+                        auto nc = new ExprNamedCall(expr->at, expr->makeType->alias);
+                        nc->arguments = expr->structs[0];
+                        expr->structs.clear();
+                        reportAstChanged();
+                        return nc;
+                    }
+                }
                 error("undefined [[ ]] expression type " + describeType(expr->makeType),
                       reportInferAliasErrors(expr->makeType), "", expr->makeType->at, CompilationError::lookup_expression_type);
                 return Visitor::visit(expr);
@@ -1068,6 +1113,13 @@ namespace das {
             }
         }
         expr->type = resT;
+        // no fields to initialize on a non-composite make-type - E(a=1) on an enum, or V(x=1)
+        // via an alias of a workhorse/pointer type (preVisit reported invalid_structure_type);
+        // don't fold to a constant, or the astChanged rerun would discard the error. the
+        // zero-value folds below stay for the legitimate empty forms (default<T>, T())
+        if (expr->structs.size() && (expr->type->isWorkhorseType() || expr->type->isPointer())) {
+            return Visitor::visit(expr);
+        }
         if (expr->type->isString()) {
             reportAstChanged();
             auto ecs = new ExprConstString(expr->at);
@@ -1100,9 +1152,45 @@ namespace das {
                 return ews;
             }
         } else if (expr->type->isWorkhorseType()) {
+            if (expr->type->isDistinct()) {
+                // default<Foo> - zero constant of the underlying, relabeled (the raw const node
+                // would re-infer as the underlying type on the next pass, losing the distinct).
+                // string and pointer underlyings route the same way the non-distinct default<>
+                // paths above do - Program::makeConst does not cover them
+                auto underT = expr->type->firstType;
+                ExpressionPtr ews;
+                if (underT->isString()) {
+                    ews = new ExprConstString(expr->at);
+                } else if (underT->isPointer()) {
+                    auto ewp = new ExprConstPtr(expr->at);
+                    ewp->isSmartPtr = underT->smartPtr;
+                    if (underT->firstType) {
+                        ewp->ptrType = new TypeDecl(*underT->firstType);
+                    }
+                    ews = ewp;
+                } else {
+                    ews = Program::makeConst(expr->at, underT, v_zero());
+                }
+                if (!ews) {
+                    error("can't zero-initialize distinct type " + describeType(expr->type) + "; construct it explicitly from a " + describeType(underT) + " value", "", "",
+                          expr->at, CompilationError::mismatching_distinct_type);
+                    return Visitor::visit(expr);
+                }
+                expr->type->ref = false;
+                reportAstChanged();
+                ews->type = new TypeDecl(*underT);
+                auto ecast = new ExprCast(expr->at, ews, new TypeDecl(*expr->type));
+                ecast->reinterpret = true;
+                ecast->alwaysSafe = true;
+                return ecast;
+            }
             expr->type->ref = false;
             reportAstChanged();
             auto ews = Program::makeConst(expr->at, expr->type, v_zero());
+            if (!ews) {
+                // 16/8-bit lattice vectors have no const nodes — lower to the zero ctor call
+                return new ExprCall(expr->at, das_to_string(expr->type->baseType));
+            }
             ews->type = new TypeDecl(*expr->type);
             return ews;
         } else if (!expr->type->isRefType()) {
@@ -1145,7 +1233,7 @@ namespace das {
             return Visitor::visitMakeTupleIndex(expr, index, init, lastField);
         }
         if (expr->recordType && expr->recordType->baseType == Type::tTuple) {
-            if (expr->recordType->argTypes.size() <= index) {
+            if (int64_t(expr->recordType->argTypes.size()) <= index) {
                 error("tuple element _" + to_string(index) + " out of element range", "", "",
                       init->at, CompilationError::exceeds_tuple_index);
                 return Visitor::visitMakeTupleIndex(expr, index, init, lastField);
@@ -1468,7 +1556,17 @@ namespace das {
         }
         uint32_t resDim = uint32_t(expr->values.size());
         TypeDeclPtr resT = nullptr;
-        if (expr->gen2) {
+        if (expr->gen2 && expr->makeArrayOnHeap) {
+            // heap array literal: type directly as array<T> (not the stack fixed array); codegen
+            // builds it on the heap, and to_array_move/to_table_move resolve their array<T> overload.
+            resT = new TypeDecl(Type::tArray);
+            resT->at = expr->at;
+            resT->constant = false;
+            resT->removeConstant = true;
+            resT->firstType = new TypeDecl(*expr->recordType);
+            resT->firstType->ref = false;
+            resT->firstType->constant = false;
+        } else if (expr->gen2) {
             // wrap outermost - element count is the outer dimension (old dim.push_back was inner-first, latent order bug)
             resT = makeFixedArrayTypeDecl(int32_t(resDim), new TypeDecl(*expr->makeType));
         } else if (resDim != 1 || expr->makeType->baseType==Type::tFixedArray) {
@@ -1509,6 +1607,10 @@ namespace das {
               expr->at, CompilationError::not_resolved_yet_array_type);
         }
         return Visitor::visit(expr);
+    }
+    void InferTypes::preVisit(ExprArrayComprehension *expr) {
+        Visitor::preVisit(expr);
+        comprehensionFor = expr->exprFor;   // exempt the embedded for from the null-body malformed-AST guard
     }
     void InferTypes::preVisitArrayComprehensionSubexpr(ExprArrayComprehension *expr, Expression *subexpr) {
         Visitor::preVisitArrayComprehensionSubexpr(expr, subexpr);

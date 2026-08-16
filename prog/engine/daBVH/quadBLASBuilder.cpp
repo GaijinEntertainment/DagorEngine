@@ -78,10 +78,19 @@ static bool findSharedEdgeImpl(const IdxT *triA, const IdxT *triB, int &v0, int 
 static uint64_t edgeKey(unsigned a, unsigned b) { return a < b ? ((uint64_t)a << 32) | b : ((uint64_t)b << 32) | a; }
 
 template <typename IdxT>
-void buildQuadPrims(Tab<QuadPrim> &prims, int &quadCount, int &singleCount, const IdxT *optIdx, int faceCount, const vec4f *verts4)
+void buildQuadPrims(Tab<QuadPrim> &prims, int &quadCount, int &singleCount, const IdxT *optIdx, int faceCount, const vec4f *verts4,
+  const uint8_t *face_user)
 {
   prims.clear();
   prims.reserve(faceCount);
+#if DAGOR_DBGLEVEL > 0
+  for (int t = 0; face_user && t < faceCount; ++t)
+    G_ASSERTF(face_user[t] <= QUAD_LEAF_USER_MASK, "face_user[%d] = %u does not fit %d bits", t, face_user[t], QUAD_LEAF_USER_BITS);
+#endif
+  // A value the field cannot hold names nothing, so it is never truncated into a different valid
+  // index: 0 is the one index every owner has. Read through here rather than checked in a pass, so
+  // a release build costs one compare per use and no walk of its own.
+  auto userOf = [face_user](int t) -> uint8_t { return face_user && face_user[t] <= QUAD_LEAF_USER_MASK ? face_user[t] : 0; };
   struct EdgeTris
   {
     int t0 = -1, t1 = -1;
@@ -120,6 +129,8 @@ void buildQuadPrims(Tab<QuadPrim> &prims, int &quadCount, int &singleCount, cons
   edgeMap.iterate([&](uint64_t, const EdgeTris &et) {
     if (et.t0 < 0 || et.t1 < 0)
       return;
+    if (userOf(et.t0) != userOf(et.t1))
+      return; // one user value per leaf: faces that disagree stay unpaired (singles below)
     int v0, v1, v2, v3;
     bool bFwd;
     if (!findSharedEdgeImpl(&optIdx[et.t0 * 3], &optIdx[et.t1 * 3], v0, v1, v2, v3, bFwd))
@@ -139,6 +150,7 @@ void buildQuadPrims(Tab<QuadPrim> &prims, int &quadCount, int &singleCount, cons
     qp.v[2] = v2;
     qp.v[3] = v3;
     qp.bFwd = bFwd;
+    qp.user = userOf(et.t0);
     bbox3f cb;
     v_bbox3_init(cb, verts4[v0]);
     v_bbox3_add_pt(cb, verts4[v1]);
@@ -190,13 +202,14 @@ void buildQuadPrims(Tab<QuadPrim> &prims, int &quadCount, int &singleCount, cons
     sp.v[1] = b;
     sp.v[2] = c;
     sp.v[3] = ~0u;
+    sp.user = userOf(t);
     prims.push_back(sp);
     singleCount++;
   }
 }
 
-template void buildQuadPrims<uint16_t>(Tab<QuadPrim> &, int &, int &, const uint16_t *, int, const vec4f *);
-template void buildQuadPrims<uint32_t>(Tab<QuadPrim> &, int &, int &, const uint32_t *, int, const vec4f *);
+template void buildQuadPrims<uint16_t>(Tab<QuadPrim> &, int &, int &, const uint16_t *, int, const vec4f *, const uint8_t *);
+template void buildQuadPrims<uint32_t>(Tab<QuadPrim> &, int &, int &, const uint32_t *, int, const vec4f *, const uint8_t *);
 
 void writeQuadBox(uint8_t *blasData, int dataOffset, vec4f bmin, vec4f bmax, vec4f scale, vec4f ofs, uint32_t skip, bool useHalves)
 {
@@ -292,6 +305,8 @@ static void collectLeafPairs(const bbox3f *nodes, const QuadPrim *prims, const u
       int pj = v_extract_wi(v_cast_vec4i(nodes[leafKids[j]].bmin));
       if (primGroup(prims[pj], vert_group) != gi)
         continue; // never pair across source groups (e.g. collision nodes)
+      if (prims[pj].user != prims[pi].user)
+        continue; // one user value per leaf
       bbox3f u = nodes[leafKids[i]];
       v_bbox3_add_box(u, nodes[leafKids[j]]);
       float saU = build_bvh::calculateSurfaceArea(u);
@@ -359,6 +374,14 @@ static void writeDoubleQuadLeaf(uint8_t *blasData, const bbox3f *nodes, const Do
     // offsets/base. (Reading the leaf body bytes as that one vertex stays in bounds.)
     w0 = QUAD_LEAF_FLAG;
     w1 = w2flip = w2hi = w3 = 0;
+  }
+  else
+  {
+    // Both quads carry the same value (buildDoubleQuadPrims never pairs across values), so the
+    // A/B base swap above cannot change it. Never stamped on the overflow leaf: its all-zero body
+    // is a contract the SoA4 converter and bvhIO both validate.
+    G_ASSERTF(!d.hasB || d.a.user == d.b.user, "double-quad leaf mixes user values %u and %u", d.a.user, d.b.user);
+    w3 |= ((uint32_t)d.a.user & QUAD_LEAF_USER_MASK) << QUAD_LEAF_USER_SHIFT;
   }
 
   writeQuadBox(blasData, dataOffset, nodes[node].bmin, nodes[node].bmax, scale, ofs, w0, useHalves);

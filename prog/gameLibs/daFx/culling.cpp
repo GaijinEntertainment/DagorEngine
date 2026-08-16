@@ -261,7 +261,7 @@ bool prepare_gpu_culling(Context &ctx, bool exec_clear)
     DBG_OPT("resizing culling feedback buf, frame: %d, alloc: %d", ctx.culling.gpuFeedbackIdx, feedback.allocCount);
 
     eastl::string name;
-    name.sprintf("dafx_culling_sb_%d", ctx.culling.gpuFeedbackIdx);
+    name.sprintf("dafx_culling_sb_%d%s", ctx.culling.gpuFeedbackIdx, ctx.cfg.gpu_res_suffix.c_str());
 
     const int feedbackBufferSize = feedback.allocCount * 2 * 4; // 2 lines, 4 components each
 
@@ -274,7 +274,7 @@ bool prepare_gpu_culling(Context &ctx, bool exec_clear)
       return false;
     }
 
-    name.sprintf("dafx_culling_rb_%d", ctx.culling.gpuFeedbackIdx);
+    name.sprintf("dafx_culling_rb_%d%s", ctx.culling.gpuFeedbackIdx, ctx.cfg.gpu_res_suffix.c_str());
     if (!create_gpu_rb_res(feedback.gpuResStaging, sizeof(int), feedbackBufferSize, name.c_str()))
     {
       logerr("dafx: can't create staging culling buffer");

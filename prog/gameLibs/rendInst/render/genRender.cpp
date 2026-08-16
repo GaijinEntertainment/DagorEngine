@@ -253,6 +253,8 @@ void rendinst::render::renderRendinstShadowsToTextures(const Point3 &sunDir0, bo
 
 bool rendinst::render::notRenderedStaticShadowsBBoxes(Tab<BBox3> &boxes, bool add_instance_box)
 {
+  TIME_PROFILE(notRenderedStaticShadowsBBoxes);
+
   if (RendInstGenData::isLoading)
     return false;
 

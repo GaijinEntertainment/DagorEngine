@@ -517,25 +517,21 @@ static d3d::AccessFlags enhanced_accesses_for_usage(intermediate::ResourceUsage 
   return result;
 }
 
-d3d::BufferBarrier enhanced_buffer_barrier_for_transition(intermediate::ResourceUsage usage_before,
+static d3d::BufferBarrier enhanced_buffer_barrier_for_transition(intermediate::ResourceUsage usage_before,
   intermediate::ResourceUsage usage_after)
 {
   return {{enhanced_stages_for_usage(usage_before), enhanced_stages_for_usage(usage_after)},
     {enhanced_accesses_for_usage(usage_before), enhanced_accesses_for_usage(usage_after)}};
 }
 
-// TODO: release over-syncs (SyncAfter=All) because the aliasing successor is
-// unknown here. Once lifetimes are decoupled (see barrierScheduler.cpp), fold
-// release + activation into one aliasing barrier on the incoming buffer.
-d3d::BufferBarrier enhanced_buffer_barrier_for_release(intermediate::ResourceUsage last_usage)
+d3d::BufferBarrier enhanced_buffer_barrier_for_release(intermediate::ResourceUsage last_usage, d3d::PipelineStageFlags sync_after)
 {
-  return {{enhanced_stages_for_usage(last_usage), d3d::PipelineStageFlag::All}, {enhanced_accesses_for_usage(last_usage), {}}};
+  return {{enhanced_stages_for_usage(last_usage), sync_after}, {enhanced_accesses_for_usage(last_usage), {}}};
 }
 
-d3d::BufferBarrier enhanced_buffer_barrier_for_activation(intermediate::ResourceUsage first_usage)
+d3d::BufferBarrier enhanced_buffer_barrier_for_activation(intermediate::ResourceUsage first_usage, d3d::PipelineStageFlags sync_before)
 {
-  const auto stages = enhanced_stages_for_usage(first_usage);
-  return {{stages, stages}, {{}, enhanced_accesses_for_usage(first_usage)}};
+  return {{sync_before, enhanced_stages_for_usage(first_usage)}, {{}, enhanced_accesses_for_usage(first_usage)}};
 }
 
 static d3d::AccessFlags enhanced_texture_accesses_for_usage(intermediate::ResourceUsage usage)
@@ -565,8 +561,10 @@ static d3d::TextureLayout enhanced_texture_layout_for_usage(intermediate::Resour
 {
   const bool rw = usage.access == Access::READ_WRITE;
 
+  // A depth-read-only layout permits depth reads only, so a depth attachment that is
+  // sampled at the same time has to use the combined read-only layout instead.
   if ((usage.type & Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE) == Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE)
-    return d3d::TextureLayout::DepthRo;
+    return d3d::TextureLayout::GenericRead;
   if ((usage.type & Usage::INPUT_ATTACHMENT) == Usage::INPUT_ATTACHMENT)
     return d3d::TextureLayout::ShaderResource;
 
@@ -586,6 +584,11 @@ static d3d::TextureLayout enhanced_texture_layout_for_usage(intermediate::Resour
     return d3d::TextureLayout::ShadingRateSource;
 
   return d3d::TextureLayout::GenericRead;
+}
+
+static bool enhanced_texture_layout_differs(intermediate::ResourceUsage usage_before, intermediate::ResourceUsage usage_after)
+{
+  return enhanced_texture_layout_for_usage(usage_before) != enhanced_texture_layout_for_usage(usage_after);
 }
 
 static d3d::PipelineStageFlags enhanced_texture_stages_for_usage(intermediate::ResourceUsage usage)
@@ -610,7 +613,7 @@ static d3d::PipelineStageFlags enhanced_texture_stages_for_usage(intermediate::R
   return result;
 }
 
-d3d::TextureBarrier enhanced_texture_barrier_for_transition(intermediate::ResourceUsage usage_before,
+static d3d::TextureBarrier enhanced_texture_barrier_for_transition(intermediate::ResourceUsage usage_before,
   intermediate::ResourceUsage usage_after)
 {
   return {{enhanced_texture_stages_for_usage(usage_before), enhanced_texture_stages_for_usage(usage_after)},
@@ -619,17 +622,33 @@ d3d::TextureBarrier enhanced_texture_barrier_for_transition(intermediate::Resour
     ENTIRE_TEXTURE_SUBRESOURCE_RANGE};
 }
 
-d3d::TextureBarrier enhanced_texture_barrier_for_release(intermediate::ResourceUsage last_usage)
+intermediate::EnhancedBarrier enhanced_barrier_for_transition(intermediate::ResourceUsage usage_before,
+  intermediate::ResourceUsage usage_after, ResourceType res_type)
 {
-  return {{enhanced_texture_stages_for_usage(last_usage), d3d::PipelineStageFlag::All},
-    {enhanced_texture_accesses_for_usage(last_usage), {}},
+  G_ASSERT(res_type == ResourceType::Texture || res_type == ResourceType::Buffer);
+  const bool isTexture = res_type == ResourceType::Texture;
+
+  const bool needsBarrier = barrier_for_transition(usage_before, usage_after) != RB_NONE || usage_after.access == Access::READ_WRITE ||
+                            (isTexture && enhanced_texture_layout_differs(usage_before, usage_after));
+
+  if (!needsBarrier)
+    return {};
+
+  if (isTexture)
+    return enhanced_texture_barrier_for_transition(usage_before, usage_after);
+  return enhanced_buffer_barrier_for_transition(usage_before, usage_after);
+}
+
+d3d::TextureBarrier enhanced_texture_barrier_for_release(intermediate::ResourceUsage last_usage, d3d::PipelineStageFlags sync_after)
+{
+  return {{enhanced_texture_stages_for_usage(last_usage), sync_after}, {enhanced_texture_accesses_for_usage(last_usage), {}},
     {enhanced_texture_layout_for_usage(last_usage), d3d::TextureLayout::Undefined}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE};
 }
 
-d3d::TextureBarrier enhanced_texture_barrier_for_activation(intermediate::ResourceUsage first_usage)
+d3d::TextureBarrier enhanced_texture_barrier_for_activation(intermediate::ResourceUsage first_usage,
+  d3d::PipelineStageFlags sync_before)
 {
-  const auto stages = enhanced_texture_stages_for_usage(first_usage);
-  return {{stages, stages}, {{}, enhanced_texture_accesses_for_usage(first_usage)},
+  return {{sync_before, enhanced_texture_stages_for_usage(first_usage)}, {{}, enhanced_texture_accesses_for_usage(first_usage)},
     {d3d::TextureLayout::Undefined, enhanced_texture_layout_for_usage(first_usage)}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE};
 }
 

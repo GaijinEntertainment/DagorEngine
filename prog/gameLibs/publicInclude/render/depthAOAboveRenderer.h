@@ -65,8 +65,6 @@ class DepthAOAboveRenderer
 
   class BlurDepthRenderer
   {
-
-    int blurred_depthVarId = -1;
     eastl::unique_ptr<DynamicShaderHelper> blurDepth;
     UniqueBuf quadsBuffer;
 

@@ -21,7 +21,7 @@ void win_pix_gpu_capturer_issue_check(HMODULE module, ::drv3d_dx12::debug::gpu_c
     if (issues.brokenExistingHeaps)
     {
       logdbg("DX12: Detected broken <WinPixGpuCapturer.dll> version %u.%u.%u.%u, can not use existing heaps feature or we risk "
-             "nullptr execption on command list submission",
+             "nullptr exception on command list submission",
         version->major, version->minor, version->revision, version->build);
     }
   }

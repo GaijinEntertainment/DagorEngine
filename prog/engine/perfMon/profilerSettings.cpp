@@ -80,5 +80,6 @@ namespace da_profiler
 {
 void set_profiling_settings(const DataBlock &) {}
 void set_resolve_symbols(bool) {}
+void set_gpu_clock_getter(gpu_clock_getter_t) {}
 } // namespace da_profiler
 #endif // #if TIME_PROFILE_ENABLED

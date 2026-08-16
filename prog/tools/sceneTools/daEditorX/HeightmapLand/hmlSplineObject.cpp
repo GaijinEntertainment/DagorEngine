@@ -423,7 +423,7 @@ BBox3 SplineObject::getGeomBoxChanges()
 
 bool SplineObject::shouldRenderRoadsGeom(const Frustum &frustum) const
 {
-  if (!created || EditLayerProps::layerProps[getEditLayerIdx()].hide)
+  if (!created || EditLayerProps::layerProps[getEditLayerIdx()].isLayerOrTypeHidden())
     return false;
   int st_mask = IDaEditor3Engine::get().getEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
   if (!(st_mask & splineSubtypeMask) || !(st_mask & roadsSubtypeMask))
@@ -451,9 +451,9 @@ void SplineObject::renderLines(bool opaque_pass, const Frustum &frustum)
     return;
   if (!points.size())
     return;
-  if (EditLayerProps::layerProps[getEditLayerIdx()].hide)
+  if (EditLayerProps::layerProps[getEditLayerIdx()].isLayerOrTypeHidden())
     return;
-  bool lock = (EditLayerProps::layerProps[getEditLayerIdx()].lock);
+  const bool lock = EditLayerProps::layerProps[getEditLayerIdx()].isLayerOrTypeLocked();
 
   if (HmapLandPlugin::self->renderDebugLines && opaque_pass && !lock && created)
     if (auto *gen = getPolyGen())
@@ -536,9 +536,9 @@ void SplineObject::render(DynRenderBuffer *db, const TMatrix4 &gtm, const Point2
     return;
   if (!points.size())
     return;
-  if (EditLayerProps::layerProps[getEditLayerIdx()].hide)
+  if (EditLayerProps::layerProps[getEditLayerIdx()].isLayerOrTypeHidden())
     return;
-  if (EditLayerProps::layerProps[getEditLayerIdx()].lock)
+  if (EditLayerProps::layerProps[getEditLayerIdx()].isLayerOrTypeLocked())
     return;
 
   if (!((HmapLandObjectEditor *)getObjEditor())->isEditingSpline(this) && !frustum.testBoxB(getGeomBox()))
@@ -1797,7 +1797,7 @@ void SplineObject::loadModifParams(const DataBlock &blk)
 
 bool SplineObject::isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const
 {
-  if (EditLayerProps::layerProps[getEditLayerIdx()].hide)
+  if (EditLayerProps::layerProps[getEditLayerIdx()].isLayerOrTypeHidden())
     return false;
   if (points.size() < 2)
     return false;
@@ -1860,7 +1860,7 @@ bool SplineObject::isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect
 
 bool SplineObject::isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const
 {
-  if (EditLayerProps::layerProps[getEditLayerIdx()].hide)
+  if (EditLayerProps::layerProps[getEditLayerIdx()].isLayerOrTypeHidden())
     return false;
   for (int i = 0; i < points.size(); i++)
     if (points[i]->isSelectedByPointClick(vp, x, y))

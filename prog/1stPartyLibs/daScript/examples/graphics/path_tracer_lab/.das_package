@@ -1,0 +1,18 @@
+options gen2
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("path_tracer_lab")
+    package_author("borisbat")
+    package_description("Path Tracer Lab — watch a path tracer fill in parallel: CPU single-thread, job queue, threads, or the GPU (fragment shader). OpenGL + Dear ImGui, jobque/threading showcase.")
+}
+
+[export]
+def release() {
+    // The source lives one level up (shared examples/graphics tree); dasImgui is in-tree,
+    // discovered from the compiled require chain at release time — no deps to declare.
+    // dashv is skipped on wasm (the harness ?dashv-guards live_api), so a single source
+    // serves desktop live-reload and the threaded wasm64 build.
+    release_main("../path_tracer_lab_opengl_imgui_example.das")
+}

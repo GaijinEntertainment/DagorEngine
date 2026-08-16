@@ -219,9 +219,9 @@ def test_reinterpret(t : T?) {
     t |> run("float to int roundtrip") @(t : T?) {
         unsafe {
             let f = 1.0
-            let bits = reinterpret<int> f
+            let bits = reinterpret<int>(f)
             t |> equal(bits, int(0x3F800000))       // IEEE 754 for 1.0
-            let back = reinterpret<float> bits
+            let back = reinterpret<float>(bits)
             t |> equal(back, 1.0)
         }
     }
@@ -233,8 +233,8 @@ def test_void_pointer(t : T?) {
         var x = 42
         unsafe {
             var p = addr(x)
-            var vp : void? = reinterpret<void?> p
-            var p2 = reinterpret<int?> vp
+            var vp : void? = reinterpret<void?>(p)
+            var p2 = reinterpret<int?>(vp)
             t |> equal(*p2, 42)
         }
     }

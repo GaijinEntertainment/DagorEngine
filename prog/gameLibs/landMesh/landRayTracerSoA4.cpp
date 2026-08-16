@@ -307,9 +307,12 @@ bool LandRayTracerSoA4::build(int cells_x, int cells_y, float cell_size, const P
   dag::Vector<CellTmp> tmp(src_cells.size());
   for_each_cell_parallel((int)src_cells.size(), [&](uint32_t i) {
     const CellSource &s = src_cells[i];
-    dag::Vector<vec4f> v4(s.verts.size());
-    for (int v = 0; v < s.verts.size(); ++v)
+    const int nv = s.verts.size();
+    dag::Vector<vec4f> v4(nv);
+    for (int v = 0; v < nv - 1; ++v)
       v4[v] = v_and(v_ldu(&s.verts[v].x), v_cast_vec4f(V_CI_MASK1110));
+    if (nv)
+      v4[nv - 1] = v_ldu_p3_safe(&s.verts[nv - 1].x);
     dag::Vector<uint32_t> idx(s.indices.size());
     for (int v = 0; v < s.indices.size(); ++v)
       idx[v] = (uint32_t)s.indices[v];

@@ -34,6 +34,7 @@ public:
 
   static void pic_mgr_async_load_cb(PICTUREID pid, TEXTUREID tid, d3d::SamplerHandle smp, const Point2 *tcLt, const Point2 *tcRb,
     const Point2 *picture_sz, void *arg);
+  static bool pic_mgr_load_confirm_cb(void *arg);
 };
 
 

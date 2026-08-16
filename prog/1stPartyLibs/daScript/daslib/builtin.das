@@ -21,63 +21,122 @@ let {
 [generic]
 def intptr(p : void?) : uint64 {
     static_if (typeinfo sizeof(p) == 4) {
-        return uint64(unsafe(reinterpret<uint> p))
+        return uint64(unsafe(reinterpret<uint>(p)))
     } else {
-        return unsafe(reinterpret<uint64> p)
+        return unsafe(reinterpret<uint64>(p))
     }
 }
 
 [generic]
 def intptr(p : smart_ptr<auto>) : uint64 {
     static_if (typeinfo sizeof(p) == 4) {
-        return uint64(unsafe(reinterpret<uint> p))
+        return uint64(unsafe(reinterpret<uint>(p)))
     } else {
-        return unsafe(reinterpret<uint64> p)
+        return unsafe(reinterpret<uint64>(p))
+    }
+}
+
+[unused_argument(Arr, newSize)]
+def private _finalize_shrunk(var Arr : array<auto(numT)>; newSize : int) {
+    static_if (typeinfo needs_container_finalize(type<numT>)) {
+        if (newSize >= 0) {
+            for (i in range(newSize, length(Arr))) {
+                unsafe(builtin_collect_local(Arr[i], uint(typeinfo sizeof(Arr[0]))))
+            }
+        }
+    }
+}
+
+[unused_argument(Arr, newSize)]
+def private _finalize_shrunk(var Arr : array<auto(numT)>; newSize : int64) {
+    static_if (typeinfo needs_container_finalize(type<numT>)) {
+        if (newSize >= 0_l) {
+            for (i in range64(newSize, long_length(Arr))) {
+                unsafe(builtin_collect_local(Arr[i], uint(typeinfo sizeof(Arr[0]))))
+            }
+        }
     }
 }
 
 def resize(var Arr : array<auto(numT)>; newSize : int) {
-    static_if (typeinfo is_unsafe_when_uninitialized(type<numT>)) {
+    static_if (typeinfo needs_container_init(type<numT>)) {
+        resize_and_init(Arr, newSize)
+    } static_elif (typeinfo is_unsafe_when_uninitialized(type<numT>)) {
         make_function_unsafe()
+        static_if (typeinfo needs_container_finalize(type<numT>)) {
+            _finalize_shrunk(Arr, newSize)
+        }
+        __builtin_array_resize(Arr, newSize, typeinfo sizeof(Arr[0]))
+    } else {
+        static_if (typeinfo needs_container_finalize(type<numT>)) {
+            _finalize_shrunk(Arr, newSize)
+        }
+        __builtin_array_resize(Arr, newSize, typeinfo sizeof(Arr[0]))
     }
-    __builtin_array_resize(Arr, newSize, typeinfo sizeof(Arr[0]))
 }
 
 def resize(var Arr : array<auto(numT)>; newSize : int64) {
-    static_if (typeinfo is_unsafe_when_uninitialized(type<numT>)) {
+    static_if (typeinfo needs_container_init(type<numT>)) {
+        resize_and_init(Arr, newSize)
+    } static_elif (typeinfo is_unsafe_when_uninitialized(type<numT>)) {
         make_function_unsafe()
+        static_if (typeinfo needs_container_finalize(type<numT>)) {
+            _finalize_shrunk(Arr, newSize)
+        }
+        __builtin_array_resize_i64(Arr, newSize, typeinfo sizeof(Arr[0]))
+    } else {
+        static_if (typeinfo needs_container_finalize(type<numT>)) {
+            _finalize_shrunk(Arr, newSize)
+        }
+        __builtin_array_resize_i64(Arr, newSize, typeinfo sizeof(Arr[0]))
     }
-    __builtin_array_resize_i64(Arr, newSize, typeinfo sizeof(Arr[0]))
 }
 
 def resize_and_init(var Arr : array<auto(numT)>; newSize : int | int64) {
     static_if (typeinfo is_int(newSize)) {
-        let oldSize = length(Arr)
-        __builtin_array_resize(Arr, newSize, typeinfo sizeof(Arr[0]))
-        for (i in range(oldSize, newSize)) {
-            static_if (typeinfo is_workhorse(type<numT>)) {
-                Arr[i] = numT()
-            } static_elif (typeinfo can_move(type<numT>)) {
-                Arr[i] <- default<numT>
-            } static_elif (typeinfo can_copy(type<numT>)) {
-                Arr[i] = default<numT>
-            } else {
-                Arr[i] := default<numT>
+        // trivially-zero element types take the bare arm - the builtin resize already zeroes new slots
+        static_if (typeinfo needs_nontrivial_init(type<numT>)) {
+            let oldSize = length(Arr)
+            static_if (typeinfo needs_container_finalize(type<numT>)) {
+                _finalize_shrunk(Arr, newSize)
             }
+            __builtin_array_resize(Arr, newSize, typeinfo sizeof(Arr[0]))
+            for (i in range(oldSize, newSize)) {
+                static_if (typeinfo can_move(type<numT>)) {
+                    Arr[i] <- default<numT>
+                } static_elif (typeinfo can_copy(type<numT>)) {
+                    Arr[i] = default<numT>
+                } else {
+                    Arr[i] := default<numT>
+                }
+            }
+        } else {
+            static_if (typeinfo needs_container_finalize(type<numT>)) {
+                _finalize_shrunk(Arr, newSize)
+            }
+            __builtin_array_resize(Arr, newSize, typeinfo sizeof(Arr[0]))
         }
     } else {
-        let oldSize = long_length(Arr)
-        __builtin_array_resize_i64(Arr, newSize, typeinfo sizeof(Arr[0]))
-        for (i in range64(oldSize, newSize)) {
-            static_if (typeinfo is_workhorse(type<numT>)) {
-                Arr[i] = numT()
-            } static_elif (typeinfo can_move(type<numT>)) {
-                Arr[i] <- default<numT>
-            } static_elif (typeinfo can_copy(type<numT>)) {
-                Arr[i] = default<numT>
-            } else {
-                Arr[i] := default<numT>
+        static_if (typeinfo needs_nontrivial_init(type<numT>)) {
+            let oldSize = long_length(Arr)
+            static_if (typeinfo needs_container_finalize(type<numT>)) {
+                _finalize_shrunk(Arr, newSize)
             }
+            __builtin_array_resize_i64(Arr, newSize, typeinfo sizeof(Arr[0]))
+            for (i in range64(oldSize, newSize)) {
+                static_if (typeinfo can_move(type<numT>)) {
+                    Arr[i] <- default<numT>
+                } static_elif (typeinfo can_copy(type<numT>)) {
+                    Arr[i] = default<numT>
+                } else {
+                    Arr[i] := default<numT>
+                }
+            }
+        } else {
+            static_if (typeinfo needs_container_finalize(type<numT>)) {
+                _finalize_shrunk(Arr, newSize)
+            }
+            __builtin_array_resize_i64(Arr, newSize, typeinfo sizeof(Arr[0]))
         }
     }
 }
@@ -85,6 +144,9 @@ def resize_and_init(var Arr : array<auto(numT)>; newSize : int | int64) {
 def resize_and_init(var Arr : array<auto(numT)>; newSize : int | int64; initValue : numT) {
     static_if (typeinfo is_int(newSize)) {
         let oldSize = length(Arr)
+        static_if (typeinfo needs_container_finalize(type<numT>)) {
+            _finalize_shrunk(Arr, newSize)
+        }
         __builtin_array_resize(Arr, newSize, typeinfo sizeof(Arr[0]))
         for (i in range(oldSize, newSize)) {
             static_if (typeinfo can_copy(initValue)) {
@@ -95,6 +157,9 @@ def resize_and_init(var Arr : array<auto(numT)>; newSize : int | int64; initValu
         }
     } else {
         let oldSize = long_length(Arr)
+        static_if (typeinfo needs_container_finalize(type<numT>)) {
+            _finalize_shrunk(Arr, newSize)
+        }
         __builtin_array_resize_i64(Arr, newSize, typeinfo sizeof(Arr[0]))
         for (i in range64(oldSize, newSize)) {
             static_if (typeinfo can_copy(initValue)) {
@@ -131,6 +196,24 @@ def reserve(var Arr : array<auto(numT)>; newSize : int) {
 
 def reserve(var Arr : array<auto(numT)>; newSize : int64) {
     __builtin_array_reserve_i64(Arr, newSize, typeinfo sizeof(Arr[0]))
+}
+
+//! Grows capacity to at least `newSize`, at least doubling on each growth once non-empty,
+//! so an append-by-resize loop stays amortized O(1). This is the deliberate-unbounded-append
+//! spelling: a following `resize` never grows, so it cannot trip `max_unreserved_size`.
+def ensure_capacity(var Arr : array<auto(numT)>; newSize : int) {
+    ensure_capacity(Arr, int64(newSize))
+}
+
+//! Int64 form of `ensure_capacity`.
+def ensure_capacity(var Arr : array<auto(numT)>; newSize : int64) {
+    if (newSize > long_capacity(Arr)) {
+        var want = long_capacity(Arr) * 2l
+        if (newSize > want) {
+            want = newSize
+        }
+        Arr |> reserve(want)
+    }
 }
 
 def pop(var Arr : array<auto(numT)>) {
@@ -412,6 +495,48 @@ def push_from(var Arr : array<auto(numT)>; varr : numT[] -#) {
     }
 }
 
+//!@nolint
+//! Append a *nested* source: an `array<array<...numT>>` flattened into `Arr`,
+//! one array level per recursion (any depth). The single-level overloads above
+//! out-specialize this untyped form, so a flat `array<numT>` (and the
+//! numT-is-array base) take the bulk path; this fires only for deeper nesting.
+[unused_argument(Arr, src)]
+def push_from(var Arr : array<auto(numT)>; src) {
+    static_if (typeinfo is_array(src)) {
+        for (x in src) {
+            Arr |> push_from(x)
+        }
+    } else {
+        concept_assert(false, "push_from: source is not an array (or nested array) of the element type")
+    }
+}
+
+//!@nolint
+//! Append several flat source arrays in one call — one combined `reserve(Σ)`
+//! up front, then unrolls to the single-source overload per arg. A *nested*
+//! source (`array<array<...>>`) goes through the recursive `push_from(Arr, src)`
+//! overload above, not this fixed-arity form (its params are `array<numT>`).
+def push_from(var Arr : array<auto(numT)>; a : array<numT>; b : array<numT>) {
+    Arr |> reserve(long_length(Arr) + long_length(a) + long_length(b))
+    Arr |> push_from(a)
+    Arr |> push_from(b)
+}
+
+def push_from(var Arr : array<auto(numT)>; a : array<numT>; b : array<numT>; c : array<numT>) {
+    Arr |> reserve(long_length(Arr) + long_length(a) + long_length(b) + long_length(c))
+    Arr |> push_from(a)
+    Arr |> push_from(b)
+    Arr |> push_from(c)
+}
+
+def push_from(var Arr : array<auto(numT)>; a : array<numT>; b : array<numT>; c : array<numT>; d : array<numT>) {
+    Arr |> reserve(long_length(Arr) + long_length(a) + long_length(b) + long_length(c) + long_length(d))
+    Arr |> push_from(a)
+    Arr |> push_from(b)
+    Arr |> push_from(c)
+    Arr |> push_from(d)
+}
+
 //! Append every element of source array `varr` to `Arr` via clone (`:=`).
 //! Reserves the combined length up front. Each slot is zero-initialized
 //! before clone (matches single-element ``push_clone`` semantics).
@@ -474,6 +599,46 @@ def push_clone_from(var Arr : array<auto(numT)>; var varr : numT[] ==const) {
     } else {
         concept_assert(false, "can't push_clone value, which can't be cloned")
     }
+}
+
+//! Append a *nested* source via clone — `array<array<...numT>>` flattened into
+//! `Arr`, one array level per recursion (any depth). Single-level overloads
+//! out-specialize this untyped form; fires only for deeper nesting.
+[unused_argument(Arr, src)]
+def push_clone_from(var Arr : array<auto(numT)>; src) {
+    static_if (typeinfo is_array(src)) {
+        for (x in src) {
+            Arr |> push_clone_from(x)
+        }
+    } else {
+        concept_assert(false, "push_clone_from: source is not an array (or nested array) of the element type")
+    }
+}
+
+//!@nolint
+//! Append several flat source arrays in one call via clone — one combined
+//! `reserve(Σ)` up front, then unrolls to the single-source overload per arg.
+//! Nested sources go through the recursive `push_clone_from(Arr, src)` overload
+//! above, not this fixed-arity form.
+def push_clone_from(var Arr : array<auto(numT)>; a : array<numT>; b : array<numT>) {
+    Arr |> reserve(long_length(Arr) + long_length(a) + long_length(b))
+    Arr |> push_clone_from(a)
+    Arr |> push_clone_from(b)
+}
+
+def push_clone_from(var Arr : array<auto(numT)>; a : array<numT>; b : array<numT>; c : array<numT>) {
+    Arr |> reserve(long_length(Arr) + long_length(a) + long_length(b) + long_length(c))
+    Arr |> push_clone_from(a)
+    Arr |> push_clone_from(b)
+    Arr |> push_clone_from(c)
+}
+
+def push_clone_from(var Arr : array<auto(numT)>; a : array<numT>; b : array<numT>; c : array<numT>; d : array<numT>) {
+    Arr |> reserve(long_length(Arr) + long_length(a) + long_length(b) + long_length(c) + long_length(d))
+    Arr |> push_clone_from(a)
+    Arr |> push_clone_from(b)
+    Arr |> push_clone_from(c)
+    Arr |> push_clone_from(d)
 }
 
 //! Move every element of source array `varr` into `Arr` (`<-`).
@@ -569,20 +734,57 @@ def back(arr : auto(TT) ==const) : auto& const {
     }
 }
 
+// the collect banner: erase/clear/shrink release the elements they drop. Raw-pointer
+// elements are carved out - for them "finalize" means delete-the-pointee, and clear-then-delete
+// is the documented borrowed-pointer escape. delete stays the ownership teardown.
 def erase(var Arr : array<auto(numT)>; at : int) {
+    static_if (typeinfo needs_container_finalize(type<numT>)) {
+        if (uint(at) < uint(length(Arr))) {
+            unsafe(builtin_collect_local(Arr[at], uint(typeinfo sizeof(Arr[0]))))
+        }
+    }
     __builtin_array_erase(Arr, at, typeinfo sizeof(Arr[0]))
 }
 
 def erase(var Arr : array<auto(numT)>; at : int64) {
+    static_if (typeinfo needs_container_finalize(type<numT>)) {
+        if (uint64(at) < uint64(long_length(Arr))) {
+            unsafe(builtin_collect_local(Arr[at], uint(typeinfo sizeof(Arr[0]))))
+        }
+    }
     __builtin_array_erase_i64(Arr, at, typeinfo sizeof(Arr[0]))
 }
 
 def erase(var Arr : array<auto(numT)>; at : int; count : int) {
+    static_if (typeinfo needs_container_finalize(type<numT>)) {
+        if (at >= 0 && count >= 0 && int64(at) + int64(count) <= long_length(Arr)) {
+            for (i in range(at, at + count)) {
+                unsafe(builtin_collect_local(Arr[i], uint(typeinfo sizeof(Arr[0]))))
+            }
+        }
+    }
     __builtin_array_erase_range(Arr, at, count, typeinfo sizeof(Arr[0]))
 }
 
 def erase(var Arr : array<auto(numT)>; at : int64; count : int64) {
+    static_if (typeinfo needs_container_finalize(type<numT>)) {
+        // sum as uint64 AFTER the non-negativity checks - int64 at+count can wrap (mirrors builtin_array_erase_range_i64)
+        if (at >= 0_l && count >= 0_l && uint64(at) + uint64(count) <= uint64(long_length(Arr))) {
+            for (i in range64(at, at + count)) {
+                unsafe(builtin_collect_local(Arr[i], uint(typeinfo sizeof(Arr[0]))))
+            }
+        }
+    }
     __builtin_array_erase_range_i64(Arr, at, count, typeinfo sizeof(Arr[0]))
+}
+
+def clear(var Arr : array<auto(numT)>) {
+    static_if (typeinfo needs_container_finalize(type<numT>)) {
+        for (v in Arr) {
+            unsafe(builtin_collect_local(v, uint(typeinfo sizeof(v))))
+        }
+    }
+    __builtin_array_clear(Arr)
 }
 
 
@@ -593,6 +795,11 @@ def erase_if(var arr : array<auto(TT)>; blk : block<(key : TT) : bool> | block<(
             let endIndex = i
             while (--i >= 0) {
                 break if (!invoke(blk, arr[i]))
+            }
+            static_if (typeinfo needs_container_finalize(type<TT>)) {
+                for (j in range(i + 1, endIndex + 1)) {
+                    unsafe(builtin_collect_local(arr[j], uint(typeinfo sizeof(arr[0]))))
+                }
             }
             __builtin_array_erase_range(arr, i + 1, endIndex - i, typeinfo sizeof(arr[0]))
         }
@@ -627,6 +834,25 @@ def reserve(var Tab : table<auto(keyT); auto>; newSize : int64) {
     __builtin_table_reserve(Tab, uint64(newSize))
 }
 
+// infer replaces a non-store tab[key] over an init-carrying value type with a call to this
+// (default_init_containers policy); a size bump across the index proves the slot is fresh
+def _table_index_and_init(var Tab : table<auto(keyT); auto(valT)>; at : keyT | #) : valT& {
+    let sz0 = length(Tab)
+    var p & = unsafe(Tab[at])
+    if (length(Tab) != sz0) {
+        static_if (typeinfo can_move(type<valT>)) {
+            p <- default<valT>
+        } static_elif (typeinfo can_copy(type<valT>)) {
+            p = default<valT>
+        } else {
+            p := default<valT>
+        }
+    }
+    unsafe {
+        return p
+    }
+}
+
 
 // one table lookup with block to rule them all 'get'
 
@@ -634,7 +860,7 @@ def get(Tab : table<auto(keyT); auto(valT)> ==const#; at : keyT | #; blk : block
     var val = __builtin_table_find(Tab, at)
     if (val != null) {
         __builtin_table_lock_mutable(Tab)
-        invoke(blk, *(unsafe(reinterpret<valT?#> val)))
+        invoke(blk, *(unsafe(reinterpret<valT?#>(val))))
         __builtin_table_unlock_mutable(Tab)
         return true
     } else {
@@ -646,7 +872,7 @@ def get(Tab : table<auto(keyT); auto(valT)> ==const; at : keyT | #; blk : block<
     var val = __builtin_table_find(Tab, at)
     if (val != null) {
         __builtin_table_lock_mutable(Tab)
-        invoke(blk, *(unsafe(reinterpret<valT?> val)))
+        invoke(blk, *(unsafe(reinterpret<valT?>(val))))
         __builtin_table_unlock_mutable(Tab)
         return true
     } else {
@@ -658,7 +884,7 @@ def get(var Tab : table<auto(keyT); auto(valT)> ==const#; at : keyT | #; blk : b
     var val = __builtin_table_find(Tab, at)
     if (val != null) {
         __builtin_table_lock(Tab)
-        invoke(blk, *(unsafe(reinterpret<valT?#> val)))
+        invoke(blk, *(unsafe(reinterpret<valT?#>(val))))
         __builtin_table_unlock(Tab)
         return true
     } else {
@@ -670,7 +896,7 @@ def get(var Tab : table<auto(keyT); auto(valT)> ==const; at : keyT | #; blk : bl
     var val = __builtin_table_find(Tab, at)
     if (val != null) {
         __builtin_table_lock(Tab)
-        invoke(blk, *(unsafe(reinterpret<valT?> val)))
+        invoke(blk, *(unsafe(reinterpret<valT?>(val))))
         __builtin_table_unlock(Tab)
         return true
     } else {
@@ -718,10 +944,19 @@ def clone_value(var Tab : table<auto(keyT); smart_ptr<auto(valT)>>; at : keyT | 
 
 def erase(var Tab : table<auto(keyT); auto(valT)>; at : string#) : bool {
     let at_nt := at
-    return __builtin_table_erase(Tab, at_nt)
+    return erase(Tab, at_nt)
 }
 
 def erase(var Tab : table<auto(keyT); auto(valT)>; at : keyT | #) : bool {
+    // the collect banner: release the dropped value's heap (raw-pointer values carved out)
+    static_if (typeinfo needs_container_finalize(type<valT>)) {
+        var val = __builtin_table_find(Tab, at)
+        if (val != null) {
+            unsafe {
+                builtin_collect_local(*(reinterpret<valT?>(val)), uint(typeinfo sizeof(type<valT>)))
+            }
+        }
+    }
     return __builtin_table_erase(Tab, at)
 }
 
@@ -915,7 +1150,7 @@ def binary_load(var obj; data : array<uint8> implicit) {
 
 def copy_to_local(a : auto(TT)) : TT -const {
     static_if (typeinfo can_copy(a)) {
-        return unsafe(reinterpret<TT -const> a)
+        return unsafe(reinterpret<TT -const>(a))
     } else {
         concept_assert(false, "can't copy this type")
     }
@@ -979,6 +1214,7 @@ def clone_dim(var a; b : auto | #) {
 
 def clone(var a : array<auto(TT)>; b : array<TT> ==const | #) {
     let ln = length(b)
+    reserve(a, ln)   // clone knows the final size: exact reserve, and the resize never grows
     unsafe(resize(a, ln))// note: is this safe? do we actaully need to init first???
     return if (ln == 0)
     static_if (typeinfo is_pod(type<TT>)) {
@@ -994,6 +1230,7 @@ def clone(var a : array<auto(TT)>; b : array<TT> ==const | #) {
 
 def clone(var a : array<auto(TT)>; var b : array<TT> ==const | #) {
     let ln = length(b)
+    reserve(a, ln)   // clone knows the final size: exact reserve, and the resize never grows
     unsafe(resize(a, ln))// note: is this safe? do we actaully need to init first???
     return if (ln == 0)
     static_if (typeinfo is_pod(type<TT>)) {
@@ -1145,6 +1382,52 @@ def values(var a : table<auto(keyT); auto(valT)> ==const | #) : iterator<valT&> 
     return <- it
 }
 
+def each_kv(a : table<auto(keyT)> ==const | #) {
+    concept_assert(false, "can't each_kv a table<...; void> - iterate keys() instead")
+}
+
+def each_kv(var a : table<auto(keyT)> ==const | #) {
+    concept_assert(false, "can't each_kv a table<...; void> - iterate keys() instead")
+}
+
+def each_kv(a : table<auto(keyT); auto(valT)[]> ==const | #) {
+    concept_assert(false, "each_kv of a table with dim-array values is not supported")
+}
+
+def each_kv(var a : table<auto(keyT); auto(valT)[]> ==const | #) {
+    concept_assert(false, "each_kv of a table with dim-array values is not supported")
+}
+
+[unsafe_outside_of_for, nodiscard]
+def each_kv(a : table<auto(keyT); auto(valT)> ==const | #) : iterator<tuple<key : keyT; value : valT> -const> {
+    //! Iterates over a table as `(key, value)` named tuples. Both fields are copies (read-only view);
+    //! requires a copyable value type — non-copyable values (arrays, tables) are rejected at compile time.
+    concept_assert(typeinfo can_copy(type<valT>), "each_kv requires a copyable value type")
+    var kit <- unsafe(keys(a))
+    var vit <- unsafe(values(a))
+    return <- generator<tuple<key : keyT; value : valT> -const> capture(<- kit, <- vit) {
+        for (k, v in kit, vit) {
+            yield (key = k, value = v)
+        }
+        return false
+    }
+}
+
+[unsafe_outside_of_for, nodiscard]
+def each_kv(var a : table<auto(keyT); auto(valT)> ==const | #) : iterator<tuple<key : keyT; value : valT> -const> {
+    //! Iterates over a table as `(key, value)` named tuples. Both fields are copies (read-only view);
+    //! requires a copyable value type — non-copyable values (arrays, tables) are rejected at compile time.
+    concept_assert(typeinfo can_copy(type<valT>), "each_kv requires a copyable value type")
+    var kit <- unsafe(keys(a))
+    var vit <- unsafe(values(a))
+    return <- generator<tuple<key : keyT; value : valT> -const> capture(<- kit, <- vit) {
+        for (k, v in kit, vit) {
+            yield (key = k, value = v)
+        }
+        return false
+    }
+}
+
 def get_key(a : table<auto(keyT)> ==const; value) {
     concept_assert(false, "can't get_key of a table<...; void>")
 }
@@ -1275,7 +1558,7 @@ def each(str : string) : iterator<int> {
 [unsafe_outside_of_for, nodiscard]
 def each(a : auto(TT)[]) : iterator<TT&> {
     unsafe {
-        var parr : void? = reinterpret<void?>(addr(a[0]))
+        var parr : void? = addr<void?>(a[0])
         var it : iterator<TT&>
         _builtin_make_fixed_array_iterator(it, parr, int64(typeinfo dim(a)), typeinfo sizeof(a[0]))
         return <- it
@@ -1309,9 +1592,20 @@ def each(lam : lambda<(var arg : auto(argT)) : bool>) : iterator<argT -&> {
 }
 
 [nodiscard]
-def each_ref(lam : lambda<(var arg : auto(argT)?) : bool>) : iterator<argT&> {
+def each_ref(lam : lambda<(var arg : auto(argT)?&) : bool>) : iterator<argT&> {
     var it : iterator<argT&>
     _builtin_make_lambda_iterator(it, lam, typeinfo sizeof(type<void?>))
+    unsafe {
+        return <- it
+    }
+}
+
+// trap for the by-value shape: the runtime hands the lambda the iteration-slot address,
+// so only a reference parameter can write the slot - a by-value pointer never can
+[nodiscard]
+def each_ref(lam : lambda<(var arg : auto(argT)? ==&) : bool>) : iterator<argT&> {
+    concept_assert(false, "each_ref lambda must take its argument as a reference to a pointer: (var arg : T? &)")
+    var it : iterator<argT&>
     unsafe {
         return <- it
     }
@@ -1355,6 +1649,13 @@ def to_array(var arr : array<auto(TT)>) : array<TT -const -#> {
     //! emitters (e.g. linq_das) always append `|> to_array()` regardless of whether the chain is
     //! already array-typed. `_sql(...)` intercepts this call as a no-op terminal (see analyze_chain).
     return <- arr
+}
+
+def to_array_move(var a : array<auto(TT)>) : array<TT -const> {
+    //! Already an `array` — move it through unchanged. Chosen at compile time over the fixed-array
+    //! overload for gen2 literals the inferer built directly on the heap (makeArrayOnHeap), so
+    //! `[..]` / `array<T>(..)` skip the stack `T[N]` + bulk copy.
+    return <- a
 }
 
 def to_array_move(var a : auto(TT)[]) : array<TT -const> {
@@ -1436,7 +1737,7 @@ def to_table_move(var a : array<auto(keyT)>) : table<keyT -const> {
     for (at in a) {
         __builtin_table_set_insert(tab, at)
     }
-    // Reclaim the (comprehension-owned) temp array; honors the "move" name and
+    // nolint:STYLE014 — Reclaim the (comprehension-owned) temp array; honors the "move" name and
     // frees what the table comprehension would otherwise orphan. tab clones
     // owned-heap keys (string/array/...) so delete must finalize those, but it
     // only aliases raw-pointer keys — null those first, or delete would free the
@@ -1487,7 +1788,7 @@ def to_table_move(var a : tuple<auto(keyT); auto(valT)>[]) : table<keyT -const; 
 def to_table_move(var a : array<tuple<auto(keyT); auto(valT)>>) : table<keyT -const; valT> {
     var tab : table<keyT -const; valT>
     static_if (typeinfo can_move(type<valT>)) {
-        // Always MOVE the value out (we own `a` and free it below). Moving —
+        // nolint:STYLE014 — Always MOVE the value out (we own `a` and free it below). Moving —
         // not copying — is what makes the source-free safe: a copy of a pointer
         // value would alias the same node, and `delete a` would then free the
         // node the table holds (use-after-free). After the move the element is
@@ -1502,7 +1803,7 @@ def to_table_move(var a : array<tuple<auto(keyT); auto(valT)>>) : table<keyT -co
     } else {
         concept_assert(false, "this array can't be copied or moved")
     }
-    // Moved-out values are already empty. Keys are copied into tab: owned-heap
+    // nolint:STYLE014 — Moved-out values are already empty. Keys are copied into tab: owned-heap
     // keys are cloned (delete must finalize the source copy) but raw-pointer keys
     // are only aliased — null those before delete so it frees just the temp
     // buffer, not the caller-owned pointee tab now references.
@@ -1658,13 +1959,13 @@ def stable_sort(var a : auto(TT)[] | #) {
 
 def lock(var a : array<auto(TT)> ==const | #; blk : block<(var x : array<TT>#)>) {
     __builtin_array_lock(a)
-    invoke(blk, unsafe(reinterpret<array<auto(TT)> -const#> a))
+    invoke(blk, unsafe(reinterpret<array<auto(TT)> -const#>(a)))
     __builtin_array_unlock(a)
 }
 
 def lock(a : array<auto(TT)> ==const | #; blk : block<(x : array<TT>#)>) {
     __builtin_array_lock_mutable(a)
-    invoke(blk, unsafe(reinterpret<array<auto(TT)> const#> a))
+    invoke(blk, unsafe(reinterpret<array<auto(TT)> const#>(a)))
     __builtin_array_unlock_mutable(a)
 }
 
@@ -1672,13 +1973,11 @@ def lock_data(var a : array<auto(TT)> ==const | #; blk : block<(var p : TT?#; s 
     let len = length(a)
     if (len != 0) {
         __builtin_array_lock(a)
-        unsafe {   // nolint:STYLE025 addr() needs unsafe too -- not detected as an unsafe leaf by the lint
-            invoke(blk, reinterpret<TT?#> addr(a[0]), len)
-        }
+        invoke(blk, unsafe(addr<TT?#>(a[0])), len)
         __builtin_array_unlock(a)
     } else {
         var nullT : TT?
-        invoke(blk, unsafe(reinterpret<TT?#> nullT), 0)
+        invoke(blk, unsafe(reinterpret<TT?#>(nullT)), 0)
     }
 }
 
@@ -1686,12 +1985,10 @@ def lock_data(a : array<auto(TT)> ==const | #; blk : block<(p : TT const?#; s : 
     let len = length(a)
     if (len != 0) {
         __builtin_array_lock_mutable(a)
-        unsafe {   // nolint:STYLE025 addr() needs unsafe too -- not detected as an unsafe leaf by the lint
-            invoke(blk, reinterpret<TT const?#> addr(a[0]), len)
-        }
+        invoke(blk, unsafe(addr<TT const?#>(a[0])), len)
         __builtin_array_unlock_mutable(a)
     } else {
-        invoke(blk, unsafe(reinterpret<TT const?#> null), 0)
+        invoke(blk, unsafe(reinterpret<TT const?#>(null)), 0)
     }
 }
 
@@ -1767,32 +2064,32 @@ def has_value(var a : iterator<auto>; key) {
 
 def get_ptr(src : smart_ptr<auto(TT)> ==const) : TT? const {
     unsafe {
-        return reinterpret<TT?> src
+        return reinterpret<TT?>(src)
     }
 }
 
 def get_ptr(var src : smart_ptr<auto(TT)> ==const) : TT? {
     unsafe {
-        return reinterpret<TT?> src
+        return reinterpret<TT?>(src)
     }
 }
 
 def get_const_ptr(src : smart_ptr<auto(TT)>) : TT? const {
     unsafe {
-        return reinterpret<TT? const> src
+        return reinterpret<TT? const>(src)
     }
 }
 
 def add_ptr_ref(src : auto(TT)?) : smart_ptr<TT> {
     unsafe {
-        var dst := reinterpret<smart_ptr<TT>> src
+        var dst := reinterpret<smart_ptr<TT>>(src)
         return <- dst
     }
 }
 
 def add_ptr_ref(src : smart_ptr<auto(TT)>) : smart_ptr<TT> {
     unsafe {
-        var dst := reinterpret<smart_ptr<TT>> src
+        var dst := reinterpret<smart_ptr<TT>>(src)
         return <- dst
     }
 }
@@ -1824,8 +2121,8 @@ def map_to_ro_array(data : void?; len : int; blk : block<(arg : array<auto(TT)>#
 
 def swap(var a, b : auto(TT)&) {
     var t : TT -& <- a
-    a <- b
-    b <- t
+    a <- b  // nolint:PERF030 — structurally leak-free: a was just moved out into t
+    b <- t  // nolint:PERF030 — structurally leak-free: b's old contents now live in a
 }
 
 def subarray(a : auto(TT)[]; r : range) {
@@ -1886,7 +2183,7 @@ def subarray(a : array<auto(TT)>; r : urange) {
 def move_to_ref(var a : auto&; var b) {
     static_if (typeinfo is_ref_type(a)) {
         static_if (typeinfo can_move(a)) {
-            a <- b
+            a <- b  // nolint:PERF030 — the raw move IS this primitive's contract; whether it should collect the old contents is an open design question
         } else {
             concept_assert(false, "type is not movable")
         }
@@ -1896,6 +2193,12 @@ def move_to_ref(var a : auto&; var b) {
 }
 
 def clear(var t : table<auto(KT); auto(VT)>) {
+    // the collect banner: release every value's heap (raw-pointer values carved out)
+    static_if (typeinfo needs_container_finalize(type<VT>)) {
+        for (v in values(t)) {
+            unsafe(builtin_collect_local(v, uint(typeinfo sizeof(v))))
+        }
+    }
     _builtin_table_clear(t)
 }
 

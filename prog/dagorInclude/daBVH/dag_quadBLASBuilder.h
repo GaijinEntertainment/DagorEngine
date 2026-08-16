@@ -33,6 +33,8 @@ struct QuadPrim
   bool bFwd = true;   // quad: triB winds v0->v2 across the shared edge (false: v2->v0). encodeQuad turns
                       // this into the leaf's flipSecond so triB keeps its source winding even when the mesh
                       // is not consistently wound. Unused for singles. Default true = manifold-consistent.
+  uint8_t user = 0;   // per-leaf user bits (QUAD_LEAF_USER_*), opaque to daBVH: prims that disagree are
+                      // never combined. Rides on the prim because prim order is not face order.
   uint32_t v0() const { return v[0]; }
   uint32_t v1() const { return v[1]; }
   uint32_t v2() const { return v[2]; }
@@ -53,7 +55,8 @@ struct DoubleQuadPrim
 // quad boxes, then pair leaves that share an internal-node parent when their union AABB stays tight
 // (SA-ratio gate, merge_factor). If vert_group != nullptr (one group id per vertex), two quads pair
 // only when they share a group -- required where a leaf is attributed to a single source by its first
-// vertex (collision per-node filtering / tri_ref). Pairs that overflow the leaf offset encoding are
+// vertex (collision per-node filtering / tri_ref). Quads whose QuadPrim::user differs never pair
+// either, so a leaf always carries one user value. Pairs that overflow the leaf offset encoding are
 // left unpaired. `out` is cleared and filled.
 void buildDoubleQuadPrims(dag::Vector<DoubleQuadPrim> &out, const QuadPrim *prims, int prims_count, const vec4f *verts,
   const uint32_t *vert_group = nullptr, float merge_factor = 1.5f);
@@ -80,8 +83,13 @@ bool writeDoubleQuadBLAS(dag::Vector<uint8_t> &out_data, bbox3f box, const bbox3
 // Instantiated for IdxT = uint16_t and uint32_t; QuadPrim::v[] is uint32 internally either way.
 // `prims` uses Tab<T> (MemPtrAllocator) so callers can back it with framemem_ptr() for
 // transient per-worker builds, or the default (midmem) for long-lived storage.
+// face_user (optional, one QUAD_LEAF_USER_BITS value per SOURCE face, index-aligned with optIdx --
+// leafOrderVertexFetch renumbers vertices but never moves faces): two faces pair into a quad only
+// when their values match, and the value rides on the prim. nullptr = every prim gets 0, which
+// reproduces the pre-user-bits build byte for byte.
 template <typename IdxT>
-void buildQuadPrims(Tab<QuadPrim> &prims, int &quadCount, int &singleCount, const IdxT *optIdx, int faceCount, const vec4f *verts4);
+void buildQuadPrims(Tab<QuadPrim> &prims, int &quadCount, int &singleCount, const IdxT *optIdx, int faceCount, const vec4f *verts4,
+  const uint8_t *face_user = nullptr);
 
 // Write quantized box node (useHalves: FP16 encoding, otherwise UINT16)
 void writeQuadBox(uint8_t *blasData, int dataOffset, vec4f bmin, vec4f bmax, vec4f scale, vec4f ofs, uint32_t skip,

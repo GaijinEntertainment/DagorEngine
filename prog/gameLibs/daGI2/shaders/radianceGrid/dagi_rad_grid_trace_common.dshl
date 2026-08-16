@@ -88,8 +88,13 @@ macro RADIANCE_GRID_TRACE_PROBE(code)
       DaGiProjectHitRes hit;
       if (dagi_project_trace_surface(worldPos, 0, rayDir, maxT, hit))
       {
+        #if DAGI_PROJECT_TRACE_HAS_ALBEDO
         radiance = dagi_get_radiance_at_with_albedo(hit.hitCamPos, hit.hitNormal, hit.hitAlbedo, float4(-rayDir, t));
-        //radiance = project_get_lit_color_at_trace_hit(hit.hitPos, hit.hitNormal, hit.hitAlbedo);
+        #else
+        // the trace albedo is not meaningful (e.g. a collision only bvh returns
+        // white); sample the albedo scene at the hit instead
+        radiance = dagi_get_radiance_at(hit.hitCamPos, hit.hitNormal, float4(-rayDir, t));
+        #endif
         t = hit.hitAt;
         encoded_dist = saturate(t / (probeSize*sqrt(3)));
       }

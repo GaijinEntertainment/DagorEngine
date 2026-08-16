@@ -54,9 +54,10 @@ struct Segment
   Segment *nextSeg;
 };
 
-static float get_segment_fade_out_time(Segment *p)
+static float get_segment_fade_out_time(Segment *p, float t)
 {
-  return g_settings.fadeOutTime * (get_settings().enableGenMuls ? p->genMul * p->forcedGenMul : 1.f);
+  float forcedGenMul = p->nextSeg ? lerp(p->forcedGenMul, p->nextSeg->forcedGenMul, t) : p->forcedGenMul;
+  return g_settings.fadeOutTime * (get_settings().enableGenMuls ? p->genMul * forcedGenMul : 1.f);
 }
 
 template <typename Ctx>
@@ -230,7 +231,7 @@ struct Emitter
     Vertex &v1 = points.back();
 
     float genMulRcp = 1.f / seg->genMul;
-    float st = (step ? 1.f : -1.f) / get_segment_fade_out_time(seg);
+    float st = (step ? 1.f : -1.f) / get_segment_fade_out_time(seg, 0.0f);
     alpha *= alphaMul;
     alpha *= min(len / max(g_settings.tailFadeInLength, 1e-3f), 1.0f);
 
@@ -769,10 +770,13 @@ struct Context
 
     auto accelerateFadeout = [](Segment *curr_seg, float gen_speed) -> void {
       curr_seg->forcedGenMul = max(curr_seg->forcedGenMul - gen_speed, 0.25f);
-      float fadeOutTime = get_segment_fade_out_time(curr_seg);
 
+      int n = curr_seg->points.size() - 1;
+      if (n <= 0)
+        n = 1;
       for (int i = 0; i < curr_seg->points.size(); ++i)
       {
+        float fadeOutTime = get_segment_fade_out_time(curr_seg, float(i) / float(n));
         Vertex &v = curr_seg->points[i];
         v.prm.w = (v.prm.w > 0.0f ? 1.0f : -1.0f) / fadeOutTime;
       }
@@ -804,7 +808,8 @@ struct Context
     for (int i = 0; i < finalizedSegments.size(); ++i)
     {
       Segment *seg = finalizedSegments[i];
-      if (currentGen > seg->lastGen + get_segment_fade_out_time(seg))
+      float fadeOutTime = max(get_segment_fade_out_time(seg, 0.0f), get_segment_fade_out_time(seg, 1.0f));
+      if (currentGen > seg->lastGen + fadeOutTime)
       {
         G_ASSERT(i == finalizedSegments[i]->id);
         destroySegment(seg);

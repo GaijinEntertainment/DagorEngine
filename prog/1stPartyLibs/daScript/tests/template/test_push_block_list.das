@@ -11,16 +11,10 @@ require dastest/testing_boost public
 // result into an ``array<Expression?>``, cloning each. Use in place of a
 // cluster of ``stmts |> push <| qmacro_expr() { single_stmt }`` calls when
 // emitting multi-statement snippets.
-//
-// All tests carry ``[no_jit]`` because ``qmacro_block`` codegens to an
-// ``ExprQuote`` wrapping a multi-statement block, which the LLVM JIT does
-// not lower (interp + AOT lanes handle it fine). Single-expression
-// ``qmacro(...)`` calls in the peer ``tests/ast_match/test_peel_lambda_*``
-// tests DO JIT — only the block form is affected.
 
 // ── Multi-statement append ──────────────────────────────────────────────
 
-[test, no_jit]
+[test]
 def test_appends_all_statements(t : T?) {
     ast_gc_guard() {
         var stmts : array<Expression?>
@@ -36,7 +30,7 @@ def test_appends_all_statements(t : T?) {
 
 // ── Single-statement (degenerate but legal) ────────────────────────────
 
-[test, no_jit]
+[test]
 def test_single_statement(t : T?) {
     ast_gc_guard() {
         var stmts : array<Expression?>
@@ -50,7 +44,7 @@ def test_single_statement(t : T?) {
 
 // ── Composes with prior + subsequent pushes ────────────────────────────
 
-[test, no_jit]
+[test]
 def test_interleaves_with_other_pushes(t : T?) {
     ast_gc_guard() {
         var stmts : array<Expression?>
@@ -71,7 +65,7 @@ def test_interleaves_with_other_pushes(t : T?) {
 
 // ── Pipe form ───────────────────────────────────────────────────────────
 
-[test, no_jit]
+[test]
 def test_pipe_form(t : T?) {
     ast_gc_guard() {
         var stmts : array<Expression?>
@@ -86,7 +80,7 @@ def test_pipe_form(t : T?) {
 
 // ── Null input is a silent no-op ────────────────────────────────────────
 
-[test, no_jit]
+[test]
 def test_null_block_is_noop(t : T?) {
     ast_gc_guard() {
         var stmts : array<Expression?>

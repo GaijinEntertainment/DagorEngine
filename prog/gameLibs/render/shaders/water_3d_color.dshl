@@ -442,8 +442,13 @@ macro USE_WATER_3D_DEFERRED_COLOR()
         BRANCH
         if (shore_distance_field_tex_exists && vd.shoreData.landHeight > 0)
         {
+          // worldPos.y is interpolated across the patch, waterHeight is sampled
+          // per pixel, so they disagree across water heightmap page seams and can
+          // discard visible water there. The test targets undertessellated far LOD
+          // patches only: if seams show up, gate it by LOD or camera distance.
+          const float EPS = 0.0001;
           BRANCH
-          if (vd.worldPos.y > vd.waterHeight + water_level_max_wave_height.y)
+          if (vd.worldPos.y - EPS > vd.waterHeight + water_level_max_wave_height.y)
             discard;
         }
       ##endif

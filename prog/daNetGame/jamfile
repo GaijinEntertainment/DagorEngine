@@ -422,6 +422,7 @@ if $(HaveOverlayUI) = yes {
 
   UseProgLibs +=
     gameLibs/quirrel/sqEventBus
+    gameLibs/quirrel/ecsComputed
   ;
 } else {
   Sources +=
@@ -553,7 +554,6 @@ if $(HaveRenderer) = yes {
     gameLibs/render/wind
     gameLibs/render/waterRipples
     gameLibs/render/wakePs
-    gameLibs/render/treesAbove
     gameLibs/render/foam
     gameLibs/render/texDebug
     gameLibs/render/fastGrassBaker
@@ -579,6 +579,7 @@ if $(HaveRenderer) = yes {
     gameLibs/render/upscale
     gameLibs/textureUtil
     gameLibs/render/daFrameGraph
+    gameLibs/render/metronome
     gameLibs/das/daFrameGraph
     gameLibs/render/resourceSlot
     gameLibs/render/shaderCacheWarmup

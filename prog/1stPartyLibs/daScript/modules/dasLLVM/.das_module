@@ -1,0 +1,30 @@
+options gen2
+
+require daslib/fio
+
+[export]
+def initialize(project_path : string) {
+    let daslib_paths = [
+        "llvm_boost", "llvm_debug", "llvm_jit", "llvm_targets",
+        "llvm_dsl",
+        "llvm_jit_intrin", "llvm_jit_common", "llvm_dll_utils",
+        "llvm_exe", "llvm_macro", "llvm_jit_cli", "llvm_jit_run", "llvm_aot",
+        "aarch64_neon", // public NEON-intrinsic header (portable fallbacks + name-based JIT recognition)
+        "x64_avx",      // public x86-64-intrinsic header (same contract, x64 mirror)
+        "f16_cvt",      // public f16<->f32 convert header (same contract, aarch64 + x64/F16C)
+        "llvm_code",          // [llvm_code] user-side annotation
+        "llvm_jit_code",      // [llvm_code] JIT-side generator registry
+        "llvm_user_modules",  // user-extensible require list for generator modules
+        "llvm_code_selftest", // worked-example generator + self-test vehicle
+        "llvm_tune"           // [tune] framework: perm grids, three modes, the manifest
+    ]
+    let bindings_paths = [
+        "llvm_const", "llvm_enum", "llvm_func", "llvm_struct",
+    ]
+    for (path in daslib_paths) {
+        register_native_path("llvm", "daslib/{path}", "{project_path}/daslib/{path}.das")
+    }
+    for (path in bindings_paths) {
+        register_native_path("llvm", "bindings/{path}", "{project_path}/bindings/{path}.das")
+    }
+}

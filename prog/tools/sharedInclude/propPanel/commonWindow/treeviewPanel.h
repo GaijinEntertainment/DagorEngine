@@ -19,6 +19,7 @@ namespace PropPanel
 class TreeControlStandalone;
 class IListBoxInterface;
 class ITreeInterface;
+class ITreeRenderEx;
 class ITreeDragHandler;
 class ITreeDropHandler;
 class ITreeFilter;
@@ -76,9 +77,12 @@ public:
   bool isSelected(TLeafHandle item) const;
 
   TLeafHandle getSelectedItem() const;
-  void getSelectedItems(dag::Vector<TLeafHandle> &items, bool search_in_collapsed, bool include_filtered_out) const;
-  void setSelectedItem(TLeafHandle item);
+  void getSelectedItems(dag::Vector<TLeafHandle> &items, bool search_in_collapsed = false, bool include_filtered_out = false) const;
+
+  void setSelectedItem(TLeafHandle item, bool keep_selected = false);
   void setSelectedItems(dag::ConstSpan<TLeafHandle> items);
+
+  bool deselectItem(TLeafHandle item);
   TLeafHandle getRoot() const;
 
   // Get the unfiltered internal root node.
@@ -94,6 +98,8 @@ public:
   void expandRecursive(TLeafHandle leaf, bool open = true);
   void expandTillRoot(TLeafHandle leaf, bool open = true);
   void ensureVisible(TLeafHandle item);
+
+  void setTreeRenderEx(ITreeRenderEx *interface);
 
   void setDragHandler(ITreeDragHandler *drag_handler);
   void setDropHandler(ITreeDropHandler *drop_handler);

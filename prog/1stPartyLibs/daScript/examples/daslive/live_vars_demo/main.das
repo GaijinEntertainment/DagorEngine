@@ -1,5 +1,8 @@
 options gen2
+options persistent_heap
+options gc
 
+require live/live_gc
 require live/live_vars
 require live_host
 
@@ -44,6 +47,7 @@ def main() {
     init()
     for (_i in range(120)) {
         update()
+        maybe_collect_gc()
     }
     shutdown()
 }

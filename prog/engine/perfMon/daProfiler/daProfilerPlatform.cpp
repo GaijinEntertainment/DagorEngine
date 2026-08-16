@@ -2,6 +2,7 @@
 
 #include "daProfilePlatform.h"
 #include "daGpuProfiler.h"
+#include <perfMon/dag_daProfilerSettings.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_cpuJobs.h>
@@ -54,6 +55,14 @@ uint64_t global_timestamp()
   time_t ct;
   ::time(&ct);
   return (uint64_t)ct;
+}
+
+static gpu_clock_getter_t gpu_clock_getter = nullptr;
+void set_gpu_clock_getter(gpu_clock_getter_t getter) { gpu_clock_getter = getter; }
+uint32_t gpu_current_clock_mhz()
+{
+  const int mhz = gpu_clock_getter ? gpu_clock_getter() : 0;
+  return mhz > 0 ? uint32_t(mhz) : 0;
 }
 
 const char *get_current_thread_name() { return DaThread::getCurrentThreadName(); }

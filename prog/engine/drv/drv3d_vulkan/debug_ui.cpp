@@ -534,7 +534,8 @@ void drv3d_vulkan::debug_ui_swapchain()
     ImGui::Text("surface: %016llX", (unsigned long long)generalize(mode.surfaceAndWindow.first));
     ImGui::Text("window: %p", mode.surfaceAndWindow.second);
     ImGui::Text("presentMode: %s", formatPresentMode(mode.presentMode));
-    ImGui::Text("extent: %u x %u", mode.extent.width, mode.extent.height);
+    ImGui::Text("display extent: %u x %u", mode.displayExtent.width, mode.displayExtent.height);
+    ImGui::Text("backbuffer extent: %u x %u", mode.backbufferExtent.width, mode.backbufferExtent.height);
     ImGui::Text("format: %s", mode.format.getNameString());
     ImGui::Text("extraBusyImages: %u", (unsigned)mode.extraBusyImages);
     ImGui::Text("enableSrgb: %d", (int)mode.enableSrgb);

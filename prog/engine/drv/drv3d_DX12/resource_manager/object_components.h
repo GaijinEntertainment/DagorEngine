@@ -55,7 +55,7 @@ inline uint64_t calculate_texture_alignment(uint64_t width, uint32_t height, uin
   const uint32_t MAX_TILES_COUNT_FOR_SMALL_RES = 16;
   const uint32_t tilesCount = ((textureWidthInBlocks + blocksInTileX - 1) / blocksInTileX) *
                               ((textureHeightInBlocks + blocksInTileY - 1) / blocksInTileY) * depth;
-  // This check is neccessary according to debug layer and dx12 documentation:
+  // This check is necessary according to debug layer and dx12 documentation:
   // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_resource_desc#alignment
   const bool smallAmountOfTiles = tilesCount <= MAX_TILES_COUNT_FOR_SMALL_RES;
 

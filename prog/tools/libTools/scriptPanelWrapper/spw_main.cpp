@@ -28,6 +28,27 @@ enum
 
 Tab<CSQPanelWrapper::GlobalConst> CSQPanelWrapper::globalConsts(midmem);
 
+static Sqrat::Object compile_get_control(HSQUIRRELVM vm)
+{
+  if (SQ_FAILED(sq_compile(vm, getControlScript, strlen(getControlScript), "<script_panel>", true, nullptr)))
+  {
+    logerr("script_panel: getControl compilation failed");
+    return Sqrat::Object(vm);
+  }
+  sq_pushnull(vm); // this
+  if (SQ_FAILED(sq_call(vm, 1, SQTrue, SQTrue)))
+  {
+    sq_pop(vm, 1); // closure
+    logerr("script_panel: getControl script failed");
+    return Sqrat::Object(vm);
+  }
+  HSQOBJECT fn;
+  sq_getstackobj(vm, -1, &fn);
+  Sqrat::Object res(fn, vm);
+  sq_pop(vm, 2); // retval + closure
+  return res;
+}
+
 static void script_print_func(HSQUIRRELVM /*v*/, const char *s, ...)
 {
   va_list vl;
@@ -68,7 +89,8 @@ void CSQPanelWrapper::init()
   sqstd_seterrorhandlers(v);
   sq_setprintfunc(v, script_print_func, script_err_print_func);
 
-  // Bind std libs to root table for compatibility only, would better use modules
+  // deprecated: std libs on the root table exist only for old panel scripts;
+  // do not use them, require the modules instead; remove somewhen in 2027
   sq_pushroottable(v);
   sqstd_register_iolib(v);
   sqstd_register_mathlib(v);
@@ -95,6 +117,35 @@ void CSQPanelWrapper::init()
   bindquirrel::register_dagor_fs_module(moduleMgr);
   bindquirrel::register_dagor_clipboard(moduleMgr);
   bindquirrel::sqrat_bind_datablock(moduleMgr);
+
+  Sqrat::Object getControl = compile_get_control(v);
+  Sqrat::Table panelApi(v);
+  if (!getControl.IsNull())
+    panelApi.SetValue("getControl", getControl);
+  publishNativeModule(*moduleMgr, "script_panel", panelApi);
+}
+
+
+void CSQPanelWrapper::publishNativeModule(SqModules &module_mgr, const char *name, const Sqrat::Table &module_exports)
+{
+  if (module_mgr.findNativeModule(name))
+    return;
+  module_mgr.addNativeModule(name, module_exports);
+
+  HSQUIRRELVM vm = module_exports.GetVM();
+  Sqrat::RootTable rootTbl(vm);
+  Sqrat::Object::iterator it;
+  while (module_exports.Next(it))
+  {
+    HSQOBJECT keyObj = it.getKey();
+    Sqrat::Object key(keyObj, vm);
+    if (!rootTbl.RawGetSlot(key).IsNull())
+    {
+      logerr("%s: refusing to overwrite the root slot '%s'", name, sq_objtostring(&keyObj));
+      continue;
+    }
+    rootTbl.SetValue(key, Sqrat::Object(it.getValue(), vm));
+  }
 }
 
 
@@ -136,13 +187,13 @@ bool CSQPanelWrapper::bindScript(const char script_fn[])
 
   mPanelContainer = new ScriptPanelContainer(this, NULL, "", "");
 
-  // generate, build and run init script
+  // build and run the global consts init script
   {
-    String initScript = prepareVariables() + defScript;
+    String initScript = prepareVariables();
+    // the init script only declares global consts; the empty bindings
+    // table just satisfies sq_compile
     Sqrat::Table bindingsTbl(moduleMgr->getVM());
     HSQOBJECT bindings = bindingsTbl;
-    moduleMgr->bindBaseLib(bindings);
-    moduleMgr->bindRequireApi(bindings);
 
     bool initScriptSucceeded = false;
     HSQUIRRELVM vm = moduleMgr->getVM();
@@ -150,7 +201,7 @@ bool CSQPanelWrapper::bindScript(const char script_fn[])
       logerr("Panel init script compilation failed");
     else
     {
-      sq_pushroottable(vm); // for compatibility, would better use null here
+      sq_pushnull(vm);
       if (SQ_SUCCEEDED(sq_call(vm, 1, false, true)))
         initScriptSucceeded = true;
       else
@@ -162,28 +213,52 @@ bool CSQPanelWrapper::bindScript(const char script_fn[])
       return false;
   }
 
+  // drop the previous panel's scheme so a script that publishes neither
+  // contract hits the type gate below instead of reusing a stale table
+  Sqrat::RootTable(moduleMgr->getVM()).RawDeleteSlot("scheme");
+
   Sqrat::Object exports;
   Sqrat::string errMsg;
-  if (!moduleMgr->requireModule(mScriptFilename, true, mScriptFilename, exports, errMsg))
+  // reload, not require: UpdateFile re-binds the same filename on edit and
+  // requireModule would return the stale cached exports. Reload re-runs the
+  // panel script and everything it requires, which matches the pre-module
+  // behavior of re-executing the whole script text on every bind
+  if (!moduleMgr->reloadModule(mScriptFilename, true, mScriptFilename, exports, errMsg))
   {
     logerr("Panel script error: %s [in %s]", errMsg.c_str(), script_fn);
     return false;
   }
 
-  Sqrat::RootTable root(moduleMgr->getVM());
-  Sqrat::Object root_item = root.GetSlot("scheme");
+  Sqrat::Object scheme = exports.GetSlot("scheme");
+  if (scheme.GetType() != OT_TABLE)
+  {
+    // both compat paths are loud so unconverted panels surface during the module migration;
+    // the probe picks the message since GetSlot returns null for an exported null and an absent key alike
+    bool schemeExported = !scheme.IsNull() || (exports.GetType() == OT_TABLE && Sqrat::Table(exports).RawHasKey("scheme"));
+    if (schemeExported)
+      logerr("panel script exported a non-table scheme (%s) in %s, falling back to ::scheme", sq_objtypestr(scheme.GetType()),
+        script_fn);
+    else
+      logerr("panel script does not export a scheme (return {scheme=...}) in %s, falling back to ::scheme", script_fn);
+    scheme = Sqrat::RootTable(moduleMgr->getVM()).GetSlot("scheme"); // legacy panels write ::scheme
+  }
+  else
+    // getControl navigates schemes through the root table; mirror an
+    // exports-resolved scheme there so it resolves for exports-only panels
+    Sqrat::RootTable(moduleMgr->getVM()).SetValue("scheme", scheme);
 
-  if (mPanelContainer && root_item.GetType() == OT_TABLE)
+  if (mPanelContainer && scheme.GetType() == OT_TABLE)
   {
     mPid = START_PID;
-    Sqrat::Object controls = root_item.GetSlot("controls");
+    Sqrat::Object controls = scheme.GetSlot("controls");
     mPanelContainer->fillParams(mPanel, mPid, controls);
     mPanelContainer->callChangeScript(false);
     setScriptUpdateFlag();
     return true;
   }
 
-  logerr("missing ::%s in %s (or bad mPanelContainer=%p)", "scheme", script_fn, mPanelContainer);
+  logerr("panel script must export a scheme table (return {scheme=...}) or set ::scheme in %s (or bad mPanelContainer=%p)", script_fn,
+    mPanelContainer);
   return false;
 }
 

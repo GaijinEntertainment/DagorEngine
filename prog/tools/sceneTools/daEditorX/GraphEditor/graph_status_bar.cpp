@@ -187,7 +187,9 @@ void draw_graph_status_bar(const GraphData &graph_data, IGraphTexGenService *tex
     {
       if (pipeline.graphCompileFailed)
       {
-        msgText = "ERROR: graph compile failed (unresolved node dependencies)";
+        // The compiler names the reason when it has one; the generic line is the fallback.
+        msgText = pipeline.lastError.empty() ? String("ERROR: graph compile failed (unresolved node dependencies)")
+                                             : String(0, "ERROR: %s", pipeline.lastError.c_str());
         msgColor = STATUS_ERROR_COLOR;
         iconName = "error";
       }

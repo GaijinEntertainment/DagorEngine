@@ -96,6 +96,14 @@ namespace das {
 
     struct AnnotationArgument;
     DAS_API RttiValue rtti_builtin_argument_value(const AnnotationArgument & info, Context * context, LineInfoArg * at);
+    DAS_API RttiValue rtti_builtin_argument_info_value(const AnnotationArgumentInfo & info, Context * context, LineInfoArg * at);
+
+    DAS_API const AnnotationInfo & rtti_builtin_struct_annotation ( const StructInfo & info, int32_t index, Context * context, LineInfoArg * at );
+    DAS_API const AnnotationInfo & rtti_builtin_func_annotation ( const FuncInfo & info, int32_t index, Context * context, LineInfoArg * at );
+    DAS_API const AnnotationInfo & rtti_builtin_enum_annotation ( const EnumInfo & info, int32_t index, Context * context, LineInfoArg * at );
+    DAS_API const AnnotationArgumentInfo & rtti_builtin_annotation_argument ( const AnnotationInfo & info, int32_t index, Context * context, LineInfoArg * at );
+    DAS_API const AnnotationArgumentInfo & rtti_builtin_var_annotation_argument ( const VarInfo & info, int32_t index, Context * context, LineInfoArg * at );
+    DAS_API Annotation * rtti_builtin_resolve_annotation ( const AnnotationInfo & info );
 
     DAS_API int32_t rtti_getDimTypeInfo(const TypeInfo & ti, int32_t index, Context * context, LineInfoArg * at);
     DAS_API int32_t rtti_getDimVarInfo(const VarInfo & ti, int32_t index, Context * context, LineInfoArg * at);

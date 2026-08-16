@@ -57,6 +57,7 @@ struct FrameInfo
   uint64_t start = 0, end = 0, gpuStart = ~0ULL;
   uint64_t frameNo = 0;
   uint32_t addFrameCount = 0; // amount of addFrame called within a frame
+  uint32_t gpuClockMhz = 0;
   int64_t duration() const { return (int64_t)end - (int64_t)start; }
 }; //, gpuEnd = ~0ULL
 

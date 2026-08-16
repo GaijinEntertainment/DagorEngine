@@ -475,6 +475,7 @@ void resolve_node_pins(GraphData::Node &node, const DataBlock *base_nodes_blk)
     p.isInput = true;
     p.singleConnect = false;
     p.hidden = true;
+    p.separator = false;
   }
   node.allowLoop = desc->getBool("allowLoop", false);
 
@@ -506,12 +507,14 @@ void resolve_node_pins(GraphData::Node &node, const DataBlock *base_nodes_blk)
     parse_pin_types_csv(descPin->getStr("types", ""), p.types);
     p.type = p.types.empty() ? PinType::Unknown : p.types.front();
     p.typeGroup.assign(descPin->getStr("typeGroup", ""));
+    p.separator = descPin->getBool("separator", false);
     // singleConnect default mirrors graphEditor.js: outputs are single-connect, inputs are not.
     p.singleConnect = descPin->getBool("singleConnect", p.role == PinRole::Out);
     p.hidden = descPin->getBool("hidden", false);
     // shader_editor: outputs whose first type is not texture/particles are hidden -- mirrors
-    // mainNodes.js GE_preprocessDescription.
-    if (isShaderEditor && !p.isInput && !is_texture_or_particles(p.type))
+    // mainNodes.js GE_preprocessDescription. Separators are exempt: they carry no types, so the
+    // rule would swallow every section divider on a shader node.
+    if (isShaderEditor && !p.isInput && !p.separator && !is_texture_or_particles(p.type))
     {
       p.hidden = true;
     }
@@ -868,6 +871,11 @@ void find_dead_input_boundaries(const GraphData &gd, eastl::vector<DeadInputBoun
       // Walk outgoing edges (the ones leaving an out-role pin on `cur`).
       for (const GraphData::Edge &e : gd.edges)
       {
+        // A muted edge carries no data, so a boundary reachable only through one really is dead.
+        if (e.muted)
+        {
+          continue;
+        }
         int nextId = -1;
         if (e.elemA == curId && e.pinA >= 0 && e.pinA < static_cast<int>(cur.pins.size()) && cur.pins[e.pinA].role == PinRole::Out)
         {
@@ -948,6 +956,10 @@ eastl::string effective_subgraph_boundary_name(const GraphData &gd, int boundary
   // we pick the first by edge-vector order -- deterministic across reloads since edges
   // are persisted in stable order, and the consumer names are usually the same anyway
   // (the boundary connects to one named param on the downstream node).
+  //
+  // Muted edges deliberately still count here. This name is the splice key that
+  // expand_subgraphs matches parent edges against, so letting a mute change it would silently
+  // unwire the parent instead of just starving it.
   for (const GraphData::Edge &e : gd.edges)
   {
     int otherNodeId = -1;
@@ -1117,6 +1129,10 @@ bool save_graph_data_blk(const GraphData &d, const char *blk_path)
     eb->setInt("pinA", e.pinA);
     eb->setInt("elemB", e.elemB);
     eb->setInt("pinB", e.pinB);
+    if (e.muted)
+    {
+      eb->setBool("muted", true);
+    }
   }
 
   if (!root.saveToTextFile(blk_path))
@@ -1227,6 +1243,7 @@ bool load_graph_data_blk(GraphData &out, const char *blk_path, const char * /*sh
       ed.pinA = b->getInt("pinA", 0);
       ed.elemB = b->getInt("elemB", 0);
       ed.pinB = b->getInt("pinB", 0);
+      ed.muted = b->getBool("muted", false);
       out.edges.push_back(ed);
     }
   }

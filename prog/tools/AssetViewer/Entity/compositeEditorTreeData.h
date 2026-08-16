@@ -21,7 +21,7 @@ public:
   static bool isCompositeAsset(const DagorAsset *asset);
   static CompositeEditorTreeDataNode *getTreeDataNodeByDataBlockId(CompositeEditorTreeDataNode &treeDataNode, unsigned dataBlockId);
 
-  static CompositeEditorTreeDataNode *getTreeDataNodeParent(CompositeEditorTreeDataNode &searchFor,
+  static CompositeEditorTreeDataNode *getTreeDataNodeParent(const CompositeEditorTreeDataNode &searchFor,
     CompositeEditorTreeDataNode &searchIn, int &nodeIndex);
 
   CompositeEditorTreeDataNode rootNode;

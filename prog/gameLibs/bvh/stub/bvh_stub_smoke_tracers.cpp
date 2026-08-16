@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <bvh/bvh.h>
+#include <dag/dag_vector.h>
 
 namespace bvh
 {
@@ -16,6 +17,7 @@ void connect(smoke_tracers_connect_callback) {}
 void update_instances() {}
 void get_instances(ContextId, Sbuffer *&, Sbuffer *&) {}
 void set_source_buffers(Sbuffer *, Sbuffer *, Sbuffer *) {}
+void collect_blas_addresses(dag::Vector<uint64_t> &) {}
 void get_memory_statistics(int &count, int64_t &vb, int64_t &blas)
 {
   count = 0;

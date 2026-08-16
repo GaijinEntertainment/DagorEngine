@@ -235,8 +235,8 @@ const char *extract_node_name(const char *node_name) { return node_name; }
 #endif // DAGOR_DBGLEVEL > 0
 #endif
 
-void activate_untracked_texture(BaseTexture *tex, uint32_t cflags, const d3d::TextureBarrier &first_use,
-  ResourceActivationAction action, const ResourceClearValue &clear_value)
+void activate_untracked_texture(BaseTexture *tex, const d3d::TextureBarrier &first_use, ResourceActivationAction action,
+  const ResourceClearValue &clear_value)
 {
   const bool clearAsUav = action == ResourceActivationAction::CLEAR_F_AS_UAV || action == ResourceActivationAction::CLEAR_I_AS_UAV;
   const bool clearAsRtvDsv = action == ResourceActivationAction::CLEAR_AS_RTV_DSV;
@@ -247,18 +247,14 @@ void activate_untracked_texture(BaseTexture *tex, uint32_t cflags, const d3d::Te
     return;
   }
 
-  const bool isDepth = get_tex_format_desc(cflags & TEXFMT_MASK).isDepth();
-  const d3d::TextureLayout clearLayout =
-    clearAsUav ? d3d::TextureLayout::UnorderedAccess : (isDepth ? d3d::TextureLayout::DepthRw : d3d::TextureLayout::RenderTarget);
-  d3d::AccessFlags clearAccess = d3d::AccessFlag::UnorderedAccess;
-  if (!clearAsUav)
-    clearAccess = isDepth ? d3d::AccessFlag::DepthStencilWrite : d3d::AccessFlag::RenderTargetWrite;
-  const d3d::PipelineStageFlags clearStage = clearAsUav ? d3d::PipelineStageFlag::Clear : d3d::PipelineStageFlag::OutputMerging;
+  constexpr d3d::TextureLayout clearLayout = d3d::TextureLayout::ClearDest;
+  constexpr d3d::AccessFlags clearAccess{d3d::AccessFlag::ClearWrite};
+  constexpr d3d::PipelineStageFlags clearStage{d3d::PipelineStageFlag::Clear};
 
   const auto firstStage = first_use.pipelineSync.dst;
 
-  d3d::enhanced_texture_barrier(
-    {{firstStage, clearStage}, {{}, clearAccess}, {d3d::TextureLayout::Undefined, clearLayout}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE},
+  d3d::enhanced_texture_barrier({{first_use.pipelineSync.src, clearStage}, {{}, clearAccess},
+                                  {d3d::TextureLayout::Undefined, clearLayout}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE},
     tex);
 
   TextureInfo texInfo = {};
@@ -355,8 +351,12 @@ void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents
         -> BaseTexture * { return getTexture(res_id, history ? prev_frame : curr_frame, history ? historyMultiIdx : multiIndex); },
       [this, prev_frame, curr_frame, multiIndex = irNode.multiplexingIndex, historyMultiIdx](bool history, ResNameId res_id)
         -> Sbuffer * { return getBuffer(res_id, history ? prev_frame : curr_frame, history ? historyMultiIdx : multiIndex); },
-      [this, prev_frame, curr_frame, multiIndex = irNode.multiplexingIndex, historyMultiIdx](bool history, ResNameId res_id)
-        -> BlobView { return getBlobView(res_id, history ? prev_frame : curr_frame, history ? historyMultiIdx : multiIndex); },
+      [this, prev_frame, curr_frame, multiIndex = irNode.multiplexingIndex, historyMultiIdx, nodeId](bool history,
+        ResNameId res_id) -> BlobView {
+        auto blobView = getBlobView(res_id, history ? prev_frame : curr_frame, history ? historyMultiIdx : multiIndex);
+        debug_send_blob_data(nodeId, res_id, blobView);
+        return blobView;
+      },
       [this, multiIndex = irNode.multiplexingIndex](ResNameId res_id) {
         G_ASSERT(res_id != ResNameId::Invalid);
         return mapping.wasResMapped(res_id, multiIndex);
@@ -484,6 +484,13 @@ void NodeExecutor::processEvents(const BarrierScheduler::NodeEvents &events, int
     return drvCode.is(d3d::vulkan) && (rb & RB_FLAG_SPLIT_BARRIER_BEGIN) != 0;
   };
 
+  const auto resolveClearValue =
+    [this, frame](const eastl::variant<ResourceClearValue, intermediate::DynamicParameter> &value) -> ResourceClearValue {
+    if (auto *concrete = eastl::get_if<ResourceClearValue>(&value))
+      return *concrete;
+    return getDynamicParameter<ResourceClearValue>(eastl::get<intermediate::DynamicParameter>(value), frame);
+  };
+
   for (const auto &evt : events)
   {
     const intermediate::Resource &iRes = graph.resources[evt.resource];
@@ -504,16 +511,7 @@ void NodeExecutor::processEvents(const BarrierScheduler::NodeEvents &events, int
         if (auto *data = eastl::get_if<BarrierScheduler::Event::Activation>(&evt.data))
         {
           G_ASSERT(!iRes.isExternal());
-          ResourceClearValue clearValue{};
-          if (auto value = eastl::get_if<ResourceClearValue>(&data->clearValue))
-            clearValue = *value;
-          else if (auto dynValue = eastl::get_if<intermediate::DynamicParameter>(&data->clearValue))
-            clearValue = getDynamicParameter<ResourceClearValue>(*dynValue, frame);
-
-          if (auto *bar = eastl::get_if<d3d::TextureBarrier>(&data->enhancedBarrier))
-            activate_untracked_texture(tex, iRes.asScheduled().getGpuDescription().asBasicRes.cFlags, *bar, data->action, clearValue);
-          else
-            d3d::activate_texture(tex, data->action, clearValue);
+          d3d::activate_texture(tex, data->action, resolveClearValue(data->clearValue));
         }
         else if (auto *data = eastl::get_if<BarrierScheduler::Event::Barrier>(&evt.data))
         {
@@ -522,15 +520,19 @@ void NodeExecutor::processEvents(const BarrierScheduler::NodeEvents &events, int
         }
         else if (auto *data = eastl::get_if<BarrierScheduler::Event::EnhancedTextureBarrier>(&evt.data))
         {
-          d3d::enhanced_texture_barrier(data->barrier, tex);
+          if (data->kind == BarrierScheduler::Event::BarrierKind::FirstUse)
+          {
+            const auto &scheduled = iRes.asScheduled();
+            const auto &basicResDesc = scheduled.getGpuDescription().asBasicRes;
+            activate_untracked_texture(tex, data->barrier, basicResDesc.activation, resolveClearValue(scheduled.clearValue));
+          }
+          else
+            d3d::enhanced_texture_barrier(data->barrier, tex);
         }
-        else if (auto *data = eastl::get_if<BarrierScheduler::Event::Deactivation>(&evt.data))
+        else if (eastl::holds_alternative<BarrierScheduler::Event::Deactivation>(evt.data))
         {
           G_ASSERT(!iRes.isExternal());
-          if (auto *bar = eastl::get_if<d3d::TextureBarrier>(&data->release))
-            d3d::enhanced_texture_barrier(*bar, tex);
-          else
-            d3d::deactivate_texture(tex);
+          d3d::deactivate_texture(tex);
         }
         else
           G_ASSERTF(false, "Unexpected event type!");
@@ -546,16 +548,7 @@ void NodeExecutor::processEvents(const BarrierScheduler::NodeEvents &events, int
         if (auto *data = eastl::get_if<BarrierScheduler::Event::Activation>(&evt.data))
         {
           G_ASSERT(!iRes.isExternal());
-          if (auto *bar = eastl::get_if<d3d::BufferBarrier>(&data->enhancedBarrier))
-          {
-            G_ASSERTF(
-              data->action != ResourceActivationAction::CLEAR_F_AS_UAV && data->action != ResourceActivationAction::CLEAR_I_AS_UAV,
-              "daFG: untracked buffer activation carries a CLEAR action, but the enhanced barrier path only "
-              "discards; clear it explicitly via d3d::zero_rwbufi with matching barriers");
-            d3d::enhanced_buffer_barrier(*bar, buf);
-          }
-          else
-            d3d::activate_buffer(buf, data->action);
+          d3d::activate_buffer(buf, data->action);
         }
         else if (auto *data = eastl::get_if<BarrierScheduler::Event::Barrier>(&evt.data))
         {
@@ -564,15 +557,21 @@ void NodeExecutor::processEvents(const BarrierScheduler::NodeEvents &events, int
         }
         else if (auto *data = eastl::get_if<BarrierScheduler::Event::EnhancedBufferBarrier>(&evt.data))
         {
+#if DAGOR_DBGLEVEL > 0
+          if (data->kind == BarrierScheduler::Event::BarrierKind::FirstUse)
+          {
+            const auto activation = iRes.asScheduled().getGpuDescription().asBasicRes.activation;
+            G_ASSERTF(activation != ResourceActivationAction::CLEAR_F_AS_UAV && activation != ResourceActivationAction::CLEAR_I_AS_UAV,
+              "daFG: untracked buffer first use carries a CLEAR action, but the enhanced barrier path only "
+              "discards; clear it explicitly via d3d::zero_rwbufi with matching barriers");
+          }
+#endif
           d3d::enhanced_buffer_barrier(data->barrier, buf);
         }
-        else if (auto *data = eastl::get_if<BarrierScheduler::Event::Deactivation>(&evt.data))
+        else if (eastl::holds_alternative<BarrierScheduler::Event::Deactivation>(evt.data))
         {
           G_ASSERT(!iRes.isExternal());
-          if (auto *bar = eastl::get_if<d3d::BufferBarrier>(&data->release))
-            d3d::enhanced_buffer_barrier(*bar, buf);
-          else
-            d3d::deactivate_buffer(buf);
+          d3d::deactivate_buffer(buf);
         }
         else
           G_ASSERTF(false, "Unexpected event type!");

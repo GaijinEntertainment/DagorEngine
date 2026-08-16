@@ -238,8 +238,6 @@ void FrameBoundaryBufferManager::update(unsigned int current_frame)
   if (!isSupported)
     return;
 
-  ShaderGlobal::set_int(dafx_frame_boundary_buffer_enabledVarId, isSupported && !disable_frameboundary); //-V560
-
   int maxTargetCapacity = frameBoundaryAllocator.getHeapSize();
   if (bufferElemCnt == 0 || bufferElemCnt < maxTargetCapacity)
   {
@@ -264,6 +262,8 @@ void FrameBoundaryBufferManager::update(unsigned int current_frame)
 void FrameBoundaryBufferManager::prepareRender()
 {
   WinAutoLock lock(g_frame_boundary_cs);
+
+  ShaderGlobal::set_int(dafx_frame_boundary_buffer_enabledVarId, isSupported && !disable_frameboundary);
 
   if (!isSupported)
     return;

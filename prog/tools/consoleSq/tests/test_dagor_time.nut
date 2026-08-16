@@ -1,4 +1,4 @@
-// Squirrel module under test: dagor.time (registered by dagorTime.cpp)
+// Quirrel module under test: dagor.time (registered by dagorTime.cpp)
 
 from "dagor.time" import get_time_msec, get_time_usec, get_local_unixtime, format_unixtime,
   unixtime_to_local_timetbl, local_timetbl_to_unixtime, unixtime_to_utc_timetbl, utc_timetbl_to_unixtime, ref_time_ticks

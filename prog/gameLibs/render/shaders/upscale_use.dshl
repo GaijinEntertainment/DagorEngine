@@ -22,21 +22,42 @@ endmacro
 
 macro USE_UPSCALE_SAMPLING_BASE(code)
   hlsl(code) {
-    float4 sampleUpscaleWeightIndex(uint2 screenpos, uint weightIdx)
+    #include "upscale_sampling_weights.hlsli"
+
+    float4 applyUpscaleBilinearWeights(uint2 screenpos, float4 weights)
     {
-      float4 weights = upscale_sampling_weights[weightIdx];
       float4 bilWeights = select(screenpos.xyxy&1, float4(0.75,0.75, 0.25, 0.25), float4(0.25, 0.25, 0.75,0.75));
       bilWeights = bilWeights.zxzx*bilWeights.yyww;
       weights = weights*bilWeights.wzxy;
       return weights * rcp(dot(weights,1));
     }
+    float4 sampleUpscaleWeightIndex(uint2 screenpos, uint weightIdx)
+    {
+      return applyUpscaleBilinearWeights(screenpos, upscale_sampling_weights[weightIdx]);
+    }
     float4 SampleUpscaleWeight(uint2 screenpos)
     {
       return sampleUpscaleWeightIndex(screenpos, texelFetch(upscale_sampling_tex, screenpos, 0).x&0xF);
     }
+    float4 closeUpscaleWeightMask(uint2 screenpos)
+    {
+      return upscale_sampling_weights[texelFetch(upscale_sampling_tex, screenpos, 0).x>>4];
+    }
     float4 sampleCloseUpscaleWeight(uint2 screenpos)
     {
-      return sampleUpscaleWeightIndex(screenpos, texelFetch(upscale_sampling_tex, screenpos, 0).x>>4);
+      return applyUpscaleBilinearWeights(screenpos, closeUpscaleWeightMask(screenpos));
+    }
+    // Same test encodeMask builds the close mask with.
+    float4 upscaleDepthMatchMask(float4 halfres_linear_depth, float linear_depth)
+    {
+      return abs(halfres_linear_depth - linear_depth) < UPSCALE_DEPTH_MATCH_THRESHOLD * linear_depth;
+    }
+    // The depth match must be unioned into the raw 0/1 mask before the taper: the
+    // normalized weights of sampleCloseUpscaleWeight cannot express a wider match set.
+    float4 sampleCloseUpscaleWeightWithDepthMatch(uint2 screenpos, float4 halfres_linear_depth, float linear_depth)
+    {
+      float4 mask = max(closeUpscaleWeightMask(screenpos), upscaleDepthMatchMask(halfres_linear_depth, linear_depth));
+      return applyUpscaleBilinearWeights(screenpos, mask);
     }
     bool isTrivialUpscaleWeight(uint2 screenpos)
     {

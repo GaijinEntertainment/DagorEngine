@@ -41,6 +41,7 @@ shader
     #include "globalHlslFunctions.hlsl"
     #include "../../../daSkies2/shaders/clouds2/cloud_settings.hlsli"
     #include "../../../daSkies2/shaders/clouds2/clouds_density_height_lut.hlsli"
+    #include "../../../daSkies2/shaders/clouds2/noise_functions.hlsl"
     #include "cloudsNbsCommon.hlsl"
     #include "../../../render/shaders/noise/Value3D.hlsl"
 

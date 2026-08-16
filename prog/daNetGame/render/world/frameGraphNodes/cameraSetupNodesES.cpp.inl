@@ -266,6 +266,8 @@ static void create_camera_setup_nodes_es(const OnCameraNodeConstruction &evt)
     struct HandlesToInit
     {
       BlobHandle<CameraParams> cameraHndl;
+      BlobHandle<CameraParams> cockpitCameraHndl;
+      BlobHandle<const CameraParams> prevCockpitCameraHndl;
       BlobHandle<ViewVecs> viewVecsHndl;
       BlobHandle<Point4> worldViewPosHndl;
       BlobHandle<SubFrameSample> subFrameSampleHndl;
@@ -279,11 +281,14 @@ static void create_camera_setup_nodes_es(const OnCameraNodeConstruction &evt)
       [displayResolution, renderResolution,
         handles = eastl::make_unique<HandlesToInit>(HandlesToInit{
           registry.createBlob<CameraParams>("current_camera").withHistory().handle(),
+          registry.createBlob<CameraParams>("current_cockpit_camera").withHistory().handle(),
+          registry.readBlobHistory<CameraParams>("current_cockpit_camera").handle(),
           registry.createBlob<ViewVecs>("view_vectors").withHistory().handle(), registry.createBlob<Point4>("world_view_pos").handle(),
           registry.createBlob<SubFrameSample>("sub_frame_sample").handle(), registry.readBlob<IPoint2>("super_sub_pixels").handle(),
           registry.createBlob<TMatrix4>("motion_vec_reproject_tm").withHistory().handle()})](
         dafg::multiplexing::Index multiplexing_index) {
-        auto [cameraHndl, viewVecsHndl, worldViewPosHndl, subFrameSampleHndl, subSuperPixelsHndl, motionVecReprojectTmHndl] = *handles;
+        auto [cameraHndl, cockpitCameraHndl, prevCockpitCameraHndl, viewVecsHndl, worldViewPosHndl, subFrameSampleHndl,
+          subSuperPixelsHndl, motionVecReprojectTmHndl] = *handles;
 
         auto &subFrameSample = subFrameSampleHndl.ref();
         auto [superPixels, subPixels] = subSuperPixelsHndl.ref();
@@ -368,6 +373,29 @@ static void create_camera_setup_nodes_es(const OnCameraNodeConstruction &evt)
         viewVecsHndl.ref() = camera.viewVecs;
 
         motionVecReprojectTmHndl.ref() = reprojectionTms.motionVecReprojectionTm;
+
+        {
+          auto &cockpitCamera = cockpitCameraHndl.ref();
+          cockpitCamera = WRDispatcher::getCurrentCockpitCameraParams();
+
+          cockpitCamera.jobsMgr = currentFrameCamera.jobsMgr;
+          cockpitCamera.subSampleIndex = currentFrameCamera.subSampleIndex;
+          cockpitCamera.subSamples = currentFrameCamera.subSamples;
+          cockpitCamera.superSampleIndex = currentFrameCamera.superSampleIndex;
+          cockpitCamera.superSamples = currentFrameCamera.superSamples;
+
+          cockpitCamera.jitterPersp.ox = currentFrameCamera.jitterPersp.ox;
+          cockpitCamera.jitterPersp.oy = currentFrameCamera.jitterPersp.oy;
+          matrix_perspective_add_jitter(cockpitCamera.jitterProjTm, cockpitCamera.jitterPersp.ox, cockpitCamera.jitterPersp.oy);
+          cockpitCamera.jitterGlobtm = TMatrix4(cockpitCamera.viewTm) * cockpitCamera.jitterProjTm;
+          cockpitCamera.jitterOffsetUv = currentFrameCamera.jitterOffsetUv;
+          cockpitCamera.jitterOffset = currentFrameCamera.jitterOffset;
+
+          const ReprojectionTransforms reprojectionTms = calc_reprojection_transforms(prevCockpitCameraHndl.ref(), cockpitCamera);
+          cockpitCamera.jitteredCamPosToUnjitteredHistoryClip = reprojectionTms.jitteredCamPosToUnjitteredHistoryClip;
+
+          cockpitCamera.viewVecs = calc_view_vecs(cockpitCamera.viewTm, cockpitCamera.jitterProjTm);
+        }
       };
   }));
 

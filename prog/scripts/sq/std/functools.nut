@@ -1,5 +1,6 @@
 from "dagor.debug" import logerr
 from "debug" import format_call_stack_string
+from "types" import Function, Integer
 
 let abs = @[pure](v) v > 0 ? v.tointeger() : -v.tointeger()
 //let { log } = require("log.nut")()
@@ -284,7 +285,7 @@ function memoize(func, hashfunc = null, cacheExternal=null, maxCacheNum=DEF_MAX_
   let parametersNum = (parameters?.len() ?? 0)-1
   let isOneParam = (parametersNum == 1) && !isVarargved
   let isNoParams = (parametersNum == 0) && !isVarargved
-  if (type(hashfunc)=="function")
+  if (hashfunc instanceof Function)
     return function memoizedfuncHash(...){
       let args = [null].extend(vargv)
       let hashKey = hashfunc.acall(args)
@@ -358,7 +359,7 @@ function memoize(func, hashfunc = null, cacheExternal=null, maxCacheNum=DEF_MAX_
       return simpleCache
     }
   }
-  else if (type(hashfunc)=="integer") {
+  else if (hashfunc instanceof Integer) {
     if (isVarargved) {
       return function memoizedfuncIntV(...){
         let path = vargv.slice(0, hashfunc)

@@ -13,7 +13,7 @@ let {getbuildinfo=@() {}} = require_optional("debug")
     class are not generated yet
 */
 function saveFile(file_path, data): bool {
-  assert(type(data) == "string", "data should be string")
+  assert(data instanceof String, "data should be string")
   let file = io.file(file_path, "wt+")
   file.writestring(data)
   file.close()

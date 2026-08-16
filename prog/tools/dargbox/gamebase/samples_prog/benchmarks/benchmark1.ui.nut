@@ -6,10 +6,11 @@ from "datetime" import clock
 from "%darg/ui_imports.nut" import *
 from "dagor.workcycle" import setTimeout
 from "%sqstd/underscore.nut" import arrayByRows
+from "types" import String, Function
 let cursors = require("samples_prog/_cursors.nut")
 
 let rand = Rand()
-let isDargStub = type(KEEP_ASPECT_FILL) == "string"
+let isDargStub = KEEP_ASPECT_FILL instanceof String
 
 const componentsNum = 2000 //amount of components
 const borders = true //show borders on each element
@@ -94,7 +95,7 @@ if (__name__ == "__main__" && isDargStub) {
   function testUi(entry){
     if (entry==null)
       return true
-    if (type(entry)=="function")
+    if (entry instanceof Function)
       entry=entry()
     let t = type(entry)
     if (t=="table" || t=="class") {

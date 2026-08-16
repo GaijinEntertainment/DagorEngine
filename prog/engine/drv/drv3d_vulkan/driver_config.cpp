@@ -8,6 +8,7 @@
 #include <drv/shadersMetaData/spirv/compiled_meta_data.h>
 #include "timeline_latency.h"
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_miscApi.h>
 #include "pipeline_barrier.h"
 #include <EASTL/string_view.h>
 #include <gpuVendor.h>
@@ -21,6 +22,7 @@ using namespace drv3d_vulkan;
 
 void DriverConfig::fillConfigBits(const DataBlock *cfg)
 {
+  signalWaitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
   texUploadLimit = cfg->getInt("texUploadLimitMb", 128) * 1024 * 1024 / (TimelineLatency::replayToGPUCompletionRingBufferSize);
   framememBlockSize = cfg->getInt("framememBlockSizeKb", 16) * 1024;
   // don't use it for now, its about 10% slower than with heaps...
@@ -54,6 +56,9 @@ void DriverConfig::fillConfigBits(const DataBlock *cfg)
 
   bits.preRotation = cfg->getBool("preRotation", false);
   debug("vulkan: pre-rotation in swapchain: %s", bits.preRotation ? "yes" : "no");
+
+  bits.appHandledPreRotation = cfg->getBool("appHandledPreRotation", false);
+  debug("vulkan: app handled pre-rotation: %s", bits.appHandledPreRotation ? "yes" : "no");
 
   static const char deferred_exection_name[] = "deferred";
   static const char threaded_exection_name[] = "threaded";
@@ -97,6 +102,8 @@ void DriverConfig::fillConfigBits(const DataBlock *cfg)
   bits.robustBufferAccess = cfg->getBool("robustBufferAccess", false);
   bits.highPriorityQueues = cfg->getBool("highPriorityQueues", true);
   bits.useCustomAllocationCallbacks = cfg->getBool("useCustomAllocationCallbacks", false);
+  bits.guardVulkanAllocations = cfg->getBool("guardVulkanAllocations", false);
+  bits.recordInternalGPUWorkTimestamps = cfg->getBool("recordInternalGPUWorkTimestamps", false);
 
   {
     bits.allowXess = cfg->getBool("allowXESS", true);
@@ -413,6 +420,11 @@ void DriverConfig::configurePerDeviceDriverFeatures()
   bits.delayCompactionSizeCopy = getPerDriverPropertyBlock("delayCompactionSizeCopy")->getBool("affected", false);
   if (bits.delayCompactionSizeCopy)
     debug("vulkan: using delayed compaction copies");
+
+  signalWaitStage =
+    (VkPipelineStageFlags)getPerDriverPropertyBlock("signalWaitStage")->getInt("value", VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+  if (signalWaitStage != VK_PIPELINE_STAGE_ALL_COMMANDS_BIT)
+    debug("vulkan: using signal wait stage %s", formatPipelineStageFlags(signalWaitStage));
 }
 
 const DataBlock *DriverConfig::getPerDriverPropertyBlock(const char *prop_name)
@@ -466,12 +478,17 @@ const DataBlock *DriverConfig::getPerDriverPropertyBlock(const char *prop_name)
   });
 
   if (ret == &DataBlock::emptyBlock)
-    ret = ::dgs_get_settings()
-            ->getBlockByNameEx("vulkan")
-            ->getBlockByNameEx("vendor")
-            ->getBlockByNameEx("default")
-            ->getBlockByNameEx("driverProps")
-            ->getBlockByNameEx(prop_name);
+  {
+    const DataBlock *defaultBlock =
+      ::dgs_get_settings()->getBlockByNameEx("vulkan")->getBlockByNameEx("vendor")->getBlockByNameEx("default");
+
+    ret = defaultBlock->getBlockByNameEx(::get_host_platform_string())->getBlockByNameEx("driverProps")->getBlockByNameEx(prop_name);
+
+    if (ret == &DataBlock::emptyBlock)
+    {
+      ret = defaultBlock->getBlockByNameEx("driverProps")->getBlockByNameEx(prop_name);
+    }
+  }
 
   return ret;
 }
@@ -557,6 +574,7 @@ void DriverConfig::extCapsFillPCWinOnly(DriverDesc &caps)
   caps.caps.hasRayTraceForce2StateOpacityMicroMap = false;
   caps.caps.hasProperUAVSupport = true;
   caps.caps.hasBarrierNone = false;
+  caps.caps.hasEnhancedResourceBarriers = true;
   caps.caps.hasPipelineStatisticsQuery = false; // TODO: add support for this
   if (getPerDriverPropertyBlock("clearColorBug")->getBool("affected", false))
   {
@@ -924,6 +942,7 @@ void DriverConfig::extCapsFillUniversal(DriverDesc &caps)
     dropShaderModel(6.1_sm);
 
   // SV_Barycentrics
+  caps.caps.hasBarycentrics = Globals::VK::phy.hasFragmentShaderBarycentric;
   if (!Globals::VK::phy.hasFragmentShaderBarycentric)
     dropShaderModel(6.0_sm);
 

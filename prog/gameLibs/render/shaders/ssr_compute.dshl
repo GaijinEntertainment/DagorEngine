@@ -308,7 +308,7 @@ shader ssr_temporal_denoise_cs
             depthWeight *= saturate(2 - 10*abs(currentPoint.linearDepth - linearDepth)/currentPoint.linearDepth);
             if (depthWeight > 1e-4 && linearDepth > 0)
             {
-              half sampleVariance = 1-pow16(dot(neighboorNormal, currentPoint.normal)) + 1-pow8(1-abs(neighboor_linear_roughness - currentPoint.linear_roughness));
+              half sampleVariance = 1-pow16(saturate(dot(neighboorNormal, currentPoint.normal))) + 1-pow8(1-abs(neighboor_linear_roughness - currentPoint.linear_roughness));
               confidence += 1-sampleVariance;
             }
           }
@@ -490,10 +490,9 @@ macro RESOLVE_BY_NEIGHBOURS(code)
     {
       float4 neighboordNormalRoughness = LoadShared(NORMAL_ROUGHNESS_SLOT, groupIndex);
 
-      float depthWeight = CalcNeighborhoodSampleDepthWeight(groupIndex, scenePlaneScaled, currentDepth);
-      half weight = neighboordNormalRoughness.w >= 0 ? depthWeight : 0;
+      half weight = CalcNeighborhoodSampleDepthWeight(groupIndex, scenePlaneScaled, currentDepth);
 
-      half sampleVariance = 1-pow16(dot(neighboordNormalRoughness.xyz, normal)) + 1-pow8(1-abs(neighboordNormalRoughness.w - linear_roughness));
+      half sampleVariance = 1-pow16(saturate(dot(neighboordNormalRoughness.xyz, normal))) + 1-pow8(1-abs(neighboordNormalRoughness.w - linear_roughness));
 
       return half2(weight, sampleVariance);
     }
@@ -691,7 +690,6 @@ macro RESOLVE_BY_NEIGHBOURS(code)
         // This adds a significant amount of noise and fireflyies. So ignore that part.
         float hitPDF = 1.0;
         float sampleWeight = D_GGX / max(1e-5, hitPDF);
-        sampleWeight = sampleGGXVNDFPDF(ggx_alpha, NoH, NoV);
         float depthWeight = CalcNeighborhoodSampleDepthWeight(groupIndex, scenePlaneScaled, currentDepth);
         sampleWeight *= depthWeight;
 
@@ -729,7 +727,6 @@ macro RESOLVE_BY_NEIGHBOURS(code)
       half4 avg, avgSq;
       half totalW;
       uint axis = uint(SSRParams.z)&1;
-      axis = 0;
       float4 cColor = ResolvePixelsX(axis, GTid, pointToEyeDir, normal, cameraToPoint, linear_roughness, filterSize, currentDepth, avg, avgSq, totalW, rs);
 
       uint groupIndex = GTid.y*TILE_SIZE + GTid.x;
@@ -1075,6 +1072,9 @@ shader tile_ssr_compute
       half smoothness;
       unpack_material(screenCoord, normal, linear_roughness, smoothness);
 
+      // The material may come from the far-texel vote (downsampled_far_normals in daNetGame),
+      // yet the ray must start on the close depth the HiZ pyramid is built from.
+      // TODO: checkerboard depth + proper fullres reconstruction instead of texel voting.
       float rawDepth = tex2Dlod(src_depth_tex, float4(curViewTc, 0, 0)).x;
 
       float w = linearize_z(rawDepth, zn_zfar.zw);

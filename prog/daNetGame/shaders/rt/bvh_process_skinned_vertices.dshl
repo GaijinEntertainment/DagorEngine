@@ -103,7 +103,7 @@ shader bvh_process_skinned_vertices_batched
 
       float sample_noise(float x, float y)
       {
-        if (params.cloth_noise_combined_tex_slot != 0xFFFFFFFFu)
+        if (params.cloth_noise_combined_tex_slot != 0xFFFFu)
           return NOISE_MULTIPLIER * nonUniformBindlessTex2D(bvh_textures, params.cloth_noise_combined_tex_slot).SampleLevel(global_linear_wrap_sampler, float2(x, y), 0).a;
         else
           return gen_noise(x, y);
@@ -150,6 +150,7 @@ shader bvh_process_skinned_vertices_batched
 
   USE_TORN_WOUND_LOADER(cs)
   USE_ANIMATED_HOLE_RADIUS(cs)
+  USE_WOUND_VERTEX_DEFORM(cs)
   hlsl(cs) {
     static const uint4 INPUT_ENCODING_OFFSET = uint4(16, 8, 0, 24);
     #include "woundsConst.hlsli"
@@ -157,42 +158,6 @@ shader bvh_process_skinned_vertices_batched
     {
       uint4 p4 = uint4((normal.xyz * .5f + .5f) * 0xff, normal.w * 0xff) << INPUT_ENCODING_OFFSET;
       return p4.x | p4.y | p4.z | p4.w;
-    }
-
-    //it's the similar to function that we have in projective_wound
-    float3 do_cut_sphere_for_wounds(float3 input_pos)
-    {
-      if ( bvh_process_skinned_vertices_is_building_prototype)
-        return input_pos;
-      uint2 dataOffsetCount = get_offset_count_additional_data(AAD_HUMAN_COMBINED_PARAMS);
-      if (dataOffsetCount.y == 0)
-        return input_pos;
-      float4 count = get_additional_data(dataOffsetCount, 0);
-      uint cuts_count = (uint)count.x;
-      uint project_wounds_count = (uint)count.y;
-      uint holes_count = (uint)count.z;
-      uint offset = 1 + project_wounds_count * DECAL_WOUND_SIZE;
-
-      for (uint h = 0; h < holes_count; h++)
-      {
-        if (is_inside_wound_hole(dataOffsetCount, offset + h * HOLE_WOUND_SIZE, input_pos, wounds_time))
-          return NaN;
-      }
-      offset += holes_count * HOLE_WOUND_SIZE;
-
-      for (uint i = 0; i < cuts_count; i++)
-      {
-        TornWound woundData = load_torn_wound(dataOffsetCount, offset + i * TORN_WOUND_SIZE);
-        float3 e = mul(woundData.worldToUnitSphere, input_pos - woundData.center);
-        float distToWound = length(e);
-
-        const float trimVerticesTo = woundData.params.y;//[0,1]
-        if (distToWound < trimVerticesTo)
-        {
-          return NaN;
-        }
-      }
-      return input_pos;
     }
 
     [numthreads( 32, 4, 1 )]
@@ -250,7 +215,12 @@ shader bvh_process_skinned_vertices_batched
         }
       ##endif
 
-      input.pos.xyz = do_cut_sphere_for_wounds(input.pos.xyz);
+      BRANCH
+      if (!bvh_process_skinned_vertices_is_building_prototype)
+      {
+        if (apply_wound_vertex_deform(wounds_time, input.normal.xyz, input.pos, input.boneWeights))
+          input.pos.xyz = NaN;
+      }
       float3 localDu = float3(1, 0, 0), localDv = float3(1, 0, 0); // Dummy
       float3 eye_to_point;
       float4 output_pos; // Dummy, equals to eye_to_point, because viewProjTm is a unit matrix

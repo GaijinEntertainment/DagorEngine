@@ -27,7 +27,7 @@ struct AnimcharRenderMainJob final : public cpujobs::IJob
   uint32_t hints;
   const Occlusion *occlusion;
   const Frustum *frustum; // Note: points to `current_camera` blob within dafg
-  dynrend::ContextId dynCtx = dynrend::ContextId::INVALID;
+  dynrend::ContextId dynCtx = dynrend::ContextId::Invalid;
   TexStreamingContext texCtx = TexStreamingContext(0);
 
   void start(AnimcharRenderMainJobCtx *ctx,

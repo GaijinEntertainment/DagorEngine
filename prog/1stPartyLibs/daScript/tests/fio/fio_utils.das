@@ -50,6 +50,14 @@ def test_fread_path(t : T?) {
         let content = fread("{get_das_root()}/_no_such_file_12345.tmp")
         t |> success(empty(content), "expected empty string for missing file")
     }
+    t |> run("UTF-8 Windows path round-trips through file IO") @(t : T?) {
+        let tmp = "{get_das_root()}/_test_unicode-Привет.tmp"
+        let content = "Unicode path contents"
+        t |> success(fwrite(tmp, content), "fwrite should accept a UTF-8 path")
+        t |> success(fexist(tmp), "fexist should accept a UTF-8 path")
+        t |> equal(fread(tmp), content)
+        t |> success(remove(tmp), "remove should accept a UTF-8 path")
+    }
 }
 
 [test]

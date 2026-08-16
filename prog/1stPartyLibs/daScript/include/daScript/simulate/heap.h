@@ -229,11 +229,14 @@ namespace das {
         void impl_freeString ( char * text, uint64_t length );
         void setIntern ( bool on );
         bool isIntern() const { return needIntern; }
+        void setReclaimDisabled ( bool on ) { reclaimDisabled = on; }
+        bool isReclaimDisabled() const { return reclaimDisabled; }
         char * intern ( const char * str, uint64_t length ) const;
         void recognize ( char * str );
     protected:
         das_string_set internMap;
         bool needIntern = false;
+        bool reclaimDisabled = false;
     };
 
 #ifndef DAS_HEAP_DEBUGGER_BREAK_ON_FREE
@@ -484,8 +487,13 @@ namespace das {
             }
         }
 
+        // value-node factory for types that can be TABLE KEYS. The 16/8-bit lattice types
+        // are workhorse but rejected as keys (TypeDecl::isTableKeyType), so the table
+        // SimNode families (TableIndex/TableFind/KeyExists/...) route through here — this
+        // avoids instantiating them for 23 unreachable types (~1MB of dead code). All other
+        // by-value plumbing goes through makeValueNode below, which adds the lattice cases.
         template < template <typename TT> class NodeType, typename... Params>
-        SimNode * makeValueNode(Type baseType, Params... args) {
+        SimNode * makeTableKeyValueNode(Type baseType, Params... args) {
             switch (baseType) {
             case Type::tBool:           return makeNode<NodeType<bool>>(args...);
             case Type::tInt8:           return makeNode<NodeType<int8_t>>(args...);
@@ -532,6 +540,36 @@ namespace das {
                 DAS_ASSERTF(0, "we should not even be here. we are calling makeValueNode on an uspported baseType."
                               "likely new by-value builtin type been added.");
                 return nullptr;
+            }
+        }
+
+        template < template <typename TT> class NodeType, typename... Params>
+        SimNode * makeValueNode(Type baseType, Params... args) {
+            switch (baseType) {
+            case Type::tFloat16:        return makeNode<NodeType<float16_t>>(args...);
+            case Type::tHalf2:          return makeNode<NodeType<half2>>(args...);
+            case Type::tHalf3:          return makeNode<NodeType<half3>>(args...);
+            case Type::tHalf4:          return makeNode<NodeType<half4>>(args...);
+            case Type::tHalf8:          return makeNode<NodeType<half8>>(args...);
+            case Type::tShort2:         return makeNode<NodeType<short2>>(args...);
+            case Type::tShort3:         return makeNode<NodeType<short3>>(args...);
+            case Type::tShort4:         return makeNode<NodeType<short4>>(args...);
+            case Type::tShort8:         return makeNode<NodeType<short8>>(args...);
+            case Type::tUShort2:        return makeNode<NodeType<ushort2>>(args...);
+            case Type::tUShort3:        return makeNode<NodeType<ushort3>>(args...);
+            case Type::tUShort4:        return makeNode<NodeType<ushort4>>(args...);
+            case Type::tUShort8:        return makeNode<NodeType<ushort8>>(args...);
+            case Type::tByte2:          return makeNode<NodeType<byte2>>(args...);
+            case Type::tByte3:          return makeNode<NodeType<byte3>>(args...);
+            case Type::tByte4:          return makeNode<NodeType<byte4>>(args...);
+            case Type::tByte8:          return makeNode<NodeType<byte8>>(args...);
+            case Type::tByte16:         return makeNode<NodeType<byte16>>(args...);
+            case Type::tUByte2:         return makeNode<NodeType<ubyte2>>(args...);
+            case Type::tUByte3:         return makeNode<NodeType<ubyte3>>(args...);
+            case Type::tUByte4:         return makeNode<NodeType<ubyte4>>(args...);
+            case Type::tUByte8:         return makeNode<NodeType<ubyte8>>(args...);
+            case Type::tUByte16:        return makeNode<NodeType<ubyte16>>(args...);
+            default:                    return makeTableKeyValueNode<NodeType>(baseType, args...);
             }
         }
 
@@ -703,7 +741,7 @@ namespace das {
             prefixWithHeader = false;
             initialSize = 1024;
         }
-        virtual uint32_t grow ( uint32_t size ) override {
+        virtual uint64_t grow ( uint64_t size ) override {
             return size;
         }
         char * allocateCachedName ( const string & name );

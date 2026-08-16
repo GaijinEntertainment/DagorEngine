@@ -131,7 +131,7 @@ bool DLSSSuperResolutionDirect::Initialize(ID3D12Device *d3d_device, IDXGIAdapte
   {
     auto featureInitResult = NVSDK_NGX_Result_Fail;
     NVSDK_NGX_Parameter_GetI(ngxParams, NVSDK_NGX_Parameter_SuperSampling_FeatureInitResult, (int *)&featureInitResult);
-    logdbg("NVIDIA DLSS not available on this hardward/platform., FeatureInitResult = 0x%08x, info: %ls", featureInitResult,
+    logdbg("NVIDIA DLSS not available on this hardware/platform, FeatureInitResult = 0x%08x, info: %ls", featureInitResult,
       GetNGXResultAsString(featureInitResult));
     return onFailure();
   }

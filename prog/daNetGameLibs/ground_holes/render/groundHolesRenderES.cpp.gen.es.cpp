@@ -4,6 +4,33 @@
 #include "groundHolesRenderES.cpp.inl"
 ECS_DEF_PULL_VAR(groundHolesRender);
 #include <daECS/core/internal/performQuery.h>
+static constexpr ecs::ComponentDesc underground_zones_draw_debug_es_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("should_render_ground_holes"), ecs::ComponentTypeInfo<bool>()}
+};
+static void underground_zones_draw_debug_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
+  do
+    underground_zones_draw_debug_es(*info.cast<ecs::UpdateStageInfoRenderDebug>()
+    , components.manager()
+    , ECS_RO_COMP(underground_zones_draw_debug_es_comps, "should_render_ground_holes", bool)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc underground_zones_draw_debug_es_es_desc
+(
+  "underground_zones_draw_debug_es",
+  "prog/daNetGameLibs/ground_holes/render/groundHolesRenderES.cpp.inl",
+  ecs::EntitySystemOps(underground_zones_draw_debug_es_all),
+  empty_span(),
+  make_span(underground_zones_draw_debug_es_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<>::build(),
+  (1<<ecs::UpdateStageInfoRenderDebug::STAGE)
+,"dev,render",nullptr,"*");
 static constexpr ecs::ComponentDesc ground_holes_initialize_es_comps[] =
 {
 //start of 4 rw components at [0]
@@ -198,113 +225,6 @@ static ecs::EntitySystemDesc ground_holes_render_when_event_es_es_desc
                        EventLevelLoaded>::build(),
   0
 ,"render");
-static constexpr ecs::ComponentDesc ground_hole_zone_on_appear_es_comps[] =
-{
-//start of 1 rq components at [0]
-  {ECS_HASH("underground_zone"), ecs::ComponentTypeInfo<ecs::Tag>()}
-};
-static void ground_hole_zone_on_appear_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
-{
-  ground_hole_zone_on_appear_es(evt
-        , components.manager()
-    );
-}
-static ecs::EntitySystemDesc ground_hole_zone_on_appear_es_es_desc
-(
-  "ground_hole_zone_on_appear_es",
-  "prog/daNetGameLibs/ground_holes/render/groundHolesRenderES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, ground_hole_zone_on_appear_es_all_events),
-  empty_span(),
-  empty_span(),
-  make_span(ground_hole_zone_on_appear_es_comps+0, 1)/*rq*/,
-  empty_span(),
-  ecs::EventSetBuilder<ecs::EventEntityCreated,
-                       ecs::EventComponentsAppear,
-                       ecs::EventEntityDestroyed,
-                       ecs::EventComponentsDisappear>::build(),
-  0
-,"render");
-static constexpr ecs::ComponentDesc ground_holes_zones_before_render_es_comps[] =
-{
-//start of 2 rw components at [0]
-  {ECS_HASH("hmapHolesZonesBuf"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
-  {ECS_HASH("should_update_ground_holes_zones"), ecs::ComponentTypeInfo<bool>()}
-};
-static void ground_holes_zones_before_render_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
-{
-  G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    ground_holes_zones_before_render_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(ground_holes_zones_before_render_es_comps, "hmapHolesZonesBuf", UniqueBufWithShaderVar)
-    , ECS_RW_COMP(ground_holes_zones_before_render_es_comps, "should_update_ground_holes_zones", bool)
-    );
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc ground_holes_zones_before_render_es_es_desc
-(
-  "ground_holes_zones_before_render_es",
-  "prog/daNetGameLibs/ground_holes/render/groundHolesRenderES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, ground_holes_zones_before_render_es_all_events),
-  make_span(ground_holes_zones_before_render_es_comps+0, 2)/*rw*/,
-  empty_span(),
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
-  0
-,"render",nullptr,"*");
-static constexpr ecs::ComponentDesc ground_holes_zones_after_device_reset_es_comps[] =
-{
-//start of 2 rw components at [0]
-  {ECS_HASH("hmapHolesZonesBuf"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
-  {ECS_HASH("should_update_ground_holes_zones"), ecs::ComponentTypeInfo<bool>()}
-};
-static void ground_holes_zones_after_device_reset_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
-{
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    ground_holes_zones_after_device_reset_es(evt
-        , ECS_RW_COMP(ground_holes_zones_after_device_reset_es_comps, "hmapHolesZonesBuf", UniqueBufWithShaderVar)
-    , ECS_RW_COMP(ground_holes_zones_after_device_reset_es_comps, "should_update_ground_holes_zones", bool)
-    );
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc ground_holes_zones_after_device_reset_es_es_desc
-(
-  "ground_holes_zones_after_device_reset_es",
-  "prog/daNetGameLibs/ground_holes/render/groundHolesRenderES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, ground_holes_zones_after_device_reset_es_all_events),
-  make_span(ground_holes_zones_after_device_reset_es_comps+0, 2)/*rw*/,
-  empty_span(),
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<AfterDeviceReset>::build(),
-  0
-,"render");
-static constexpr ecs::ComponentDesc ground_holes_zones_manager_on_disappear_es_comps[] =
-{
-//start of 1 rw components at [0]
-  {ECS_HASH("hmapHolesZonesBuf"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()}
-};
-static void ground_holes_zones_manager_on_disappear_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
-{
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    ground_holes_zones_manager_on_disappear_es(evt
-        , ECS_RW_COMP(ground_holes_zones_manager_on_disappear_es_comps, "hmapHolesZonesBuf", UniqueBufWithShaderVar)
-    );
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc ground_holes_zones_manager_on_disappear_es_es_desc
-(
-  "ground_holes_zones_manager_on_disappear_es",
-  "prog/daNetGameLibs/ground_holes/render/groundHolesRenderES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, ground_holes_zones_manager_on_disappear_es_all_events),
-  make_span(ground_holes_zones_manager_on_disappear_es_comps+0, 1)/*rw*/,
-  empty_span(),
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<ecs::EventEntityDestroyed,
-                       ecs::EventComponentsDisappear>::build(),
-  0
-,"render");
 static constexpr ecs::ComponentDesc spawn_hole_ecs_query_comps[] =
 {
 //start of 3 ro components at [0]
@@ -337,28 +257,30 @@ inline void spawn_hole_ecs_query(ecs::EntityManager &manager, Callable function)
     }
   );
 }
-static constexpr ecs::ComponentDesc get_underground_zones_buf_ecs_query_comps[] =
+static constexpr ecs::ComponentDesc underground_zones_draw_debug_ecs_query_comps[] =
 {
-//start of 1 rw components at [0]
-  {ECS_HASH("should_update_ground_holes_zones"), ecs::ComponentTypeInfo<bool>()}
+//start of 1 ro components at [0]
+  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
+//start of 1 rq components at [1]
+  {ECS_HASH("underground_zone"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
-static ecs::CompileTimeQueryDesc get_underground_zones_buf_ecs_query_desc
+static ecs::CompileTimeQueryDesc underground_zones_draw_debug_ecs_query_desc
 (
-  "get_underground_zones_buf_ecs_query",
-  make_span(get_underground_zones_buf_ecs_query_comps+0, 1)/*rw*/,
+  "underground_zones_draw_debug_ecs_query",
   empty_span(),
-  empty_span(),
+  make_span(underground_zones_draw_debug_ecs_query_comps+0, 1)/*ro*/,
+  make_span(underground_zones_draw_debug_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void get_underground_zones_buf_ecs_query(ecs::EntityManager &manager, Callable function)
+inline void underground_zones_draw_debug_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(&manager, get_underground_zones_buf_ecs_query_desc.getHandle(),
+  perform_query(&manager, underground_zones_draw_debug_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
           function(
-              ECS_RW_COMP(get_underground_zones_buf_ecs_query_comps, "should_update_ground_holes_zones", bool)
+              ECS_RO_COMP(underground_zones_draw_debug_ecs_query_comps, "transform", TMatrix)
             );
 
         }while (++comp != compE);

@@ -18,16 +18,7 @@ require daslib/macro_boost
 
 [call_macro(name="if_not_null")]
 class ApplyMacro : AstCallMacro {
-    //! This macro transforms::
-    //!
-    //!     ptr |> if_not_null <| call(...)
-    //!
-    //! to::
-    //!
-    //!     var _ptr_var = ptr
-    //!     if _ptr_var
-    //!         call(*_ptr_var,...)
-    //!
+    //! This macro transforms guarded pointer access into null-safe inline code.
     if_not_null_index : int = 0
     def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
         macro_verify(expr.arguments |> length == 2, prog, expr.at, "expecting 2 arguments, expecting ptr |> if_not_null() <| call()")

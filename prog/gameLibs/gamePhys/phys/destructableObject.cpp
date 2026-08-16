@@ -8,12 +8,15 @@
 #include <gameRes/dag_collisionResource.h>
 #include <gameRes/dag_gameResources.h>
 #include <math/dag_geomTree.h>
+#include <util/dag_stlqsort.h>
+#include <vecmath/dag_vecMath.h>
 #include <phys/dag_physDecl.h>
 #include <phys/dag_physObject.h>
 #include <phys/dag_physSysInst.h>
 #include <phys/dag_physics.h>
 #include <math/random/dag_random.h>
 #include <math/dag_mathUtils.h>
+#include <math/dag_noise.h>
 #include <3d/dag_render.h>
 #include <memory/dag_fixedBlockAllocator.h>
 #include <generic/dag_initOnDemand.h>
@@ -50,10 +53,27 @@ struct Context
 
   int removeChecksNextIdx = 0;
 
+  Point3 viewPos = Point3(1e6f, 1e6f, 1e6f);
+  float curTime = 0.f;
+  dag::Vector<vec4f> traceSpheres; // x,y,z,r2
+  dag::Vector<PieceRef> tracePieces;
+
   Context() { destructablesListAllocator.init(sizeof(DestructableObject), (4096 * 2 - 16) / sizeof(DestructableObject)); }
 };
 
 static InitOnDemand<Context, false> g_context;
+
+static void make_phys_group_and_mask(InteractionFlags flags, int &out_group, int &out_mask)
+{
+  out_group = flags & InteractionFlag::Self ? dacoll::EPL_DEFAULT : flags & InteractionFlag::Static ? dacoll::EPL_DEBRIS : 0;
+  out_mask = 0;
+  if (flags & InteractionFlag::Static)
+    out_mask |= dacoll::EPL_STATIC;
+  if (flags & InteractionFlag::Self)
+    out_mask |= dacoll::EPL_DEFAULT;
+  if (flags & InteractionFlag::Character)
+    out_mask |= dacoll::EPL_KINEMATIC | dacoll::EPL_CHARACTER; // walkers & vehicles | ragdolls
+}
 
 void DestructableObjectDeleter::operator()(DestructableObject *object)
 {
@@ -75,6 +95,8 @@ DestructableObject::DestructableObject(destructables::DestructableCreationParams
                              : nullptr),
   resIdx(params.resIdx)
 {
+  using namespace destructables;
+
   mat44f tm44;
   v_mat44_make_from_43cu_unsafe(tm44, params.tm.array);
   mat43f m43;
@@ -84,14 +106,13 @@ DestructableObject::DestructableObject(destructables::DestructableCreationParams
   v_stu(&intialTmAndHash[2].x, m43.row2);
   memcpy(&intialTmAndHash[3].x, &params.hashVal, sizeof(params.hashVal));
 
-  float timeToKinematic = 2.f;
   float ttl = 65.f;
   if (params.timeToLive >= 0.0f)
     ttl = params.timeToLive;
   if (params.inactiveTimeBeforeSink >= 0.0f)
     inactiveTimeBeforeSink = params.inactiveTimeBeforeSink;
   if (params.timeToKinematic >= 0.0f)
-    timeToKinematic = params.timeToKinematic;
+    minInteractiveTime = params.timeToKinematic;
   if (params.timeToSinkUnderground > 0.0f)
     timeToSinkUnderground = params.timeToSinkUnderground;
   if (params.timeToStartDisintegration >= 0.0f)
@@ -104,45 +125,122 @@ DestructableObject::DestructableObject(destructables::DestructableCreationParams
 
   fracturePhysObjects = eastl::move(params.fracturePhysObjects);
 
+  // for physobj assign rendinst material to bodies, that missing material in the resource
+  if (params.physObjData && physObj && params.riPhysMatId >= 0)
+  {
+    const int physBodyMatId = PhysMat::getPhysBodyMaterial(params.riPhysMatId);
+    const dag::ConstSpan<PhysicsResource::Body> bodyDecls = params.physObjData->physRes->getBodies();
+    for (int i = 0; i < bodyDecls.size(); i++)
+    {
+      const auto &decl = bodyDecls[i];
+      if (!decl.materialName.empty())
+        continue;
+      PhysBody *body = physObj->getPhysSys()->getBody(i);
+      G_ASSERT_CONTINUE(body);
+      body->setMaterialId(physBodyMatId);
+    }
+  }
+
+  const DestructablesConfig &cfg = get_config();
   clear_and_resize(pieces, physObj ? physObj->getPhysSys()->getBodyCount() : fracturePhysObjects.size());
   for (int i = 0; i < pieces.size(); i++)
   {
     Piece &piece = pieces[i];
     piece.body = physObj ? physObj->getPhysSys()->getBody(i) : fracturePhysObjects[i].body.get();
     piece.timeToLive = ttl;
-    piece.timeToKinematic = timeToKinematic;
 
     TMatrix bodyTm;
     piece.body->getTm(bodyTm);
     piece.visualLoc.fromTM(bodyTm);
     piece.prevLoc = piece.visualLoc;
     piece.body->getShapeAabb(piece.localPhysBBox[0], piece.localPhysBBox[1]);
+
+    const float pieceSize = piece.localPhysBBox.width().length();
+    piece.isSentinelBody = pieceSize < 0.1f && piece.body->getMass() > 1000.f;
+    const Point3 bboxMaxAbs = max(abs(piece.localPhysBBox.lim[0]), abs(piece.localPhysBBox.lim[1]));
+    piece.boundingRadSq = bboxMaxAbs.lengthSq();
+    piece.isInteractiveDebris = !piece.isSentinelBody && pieceSize > cfg.interactiveDebrisMinSize;
+
+    InteractionFlags flags = InteractionFlag::Static | InteractionFlag::Character;
+    if (piece.isInteractiveDebris)
+      flags |= InteractionFlag::Self | InteractionFlag::Projectile;
+    flags &= cfg.enabledInteractionFlags;
+    piece.interactionFlags = InteractionFlag::None;
+    piece.setInteractionFlags(flags);
   }
   alivePieceCnt = pieces.size();
 
-  rendData.reset(destructables::init_rend_data(physObj.get(), params.isDestroyedByExplosion));
+  rendData.reset(init_rend_data(physObj.get(), params.isDestroyedByExplosion));
 }
 
 bool DestructableObject::Piece::isInteractable() const { return body && body->getInteractionLayer() != 0 && body->isInWorld(); }
+
+void DestructableObject::Piece::setInteractionFlags(destructables::InteractionFlags flags)
+{
+  G_ASSERT_RETURN(isAlive(), );
+  if (interactionFlags == flags)
+    return;
+  interactionFlags = flags;
+  int group = 0, mask = 0;
+  destructables::make_phys_group_and_mask(flags, group, mask);
+  if (int(body->getGroupMask()) != group || int(body->getInteractionLayer()) != mask)
+    body->setGroupAndLayerMask(group, mask);
+}
+
+void DestructableObject::Piece::changeInteractionFlags(destructables::InteractionFlags flags, bool enable)
+{
+  if (interactionFlags)
+    setInteractionFlags(enable ? interactionFlags | flags : interactionFlags & ~flags);
+}
 
 struct gamephys::DestructableObjectAddImpulse final : public AfterPhysUpdateAction
 {
   // Note: it's okay to use direct ref since it would be pointing to pool's memory (`destructablesListAllocator`)
   DestructableObject &dobj;
   int gen;
-  float speedLimit, omegaLimit;
+  TMatrix queryTm;
+  BBox3 queryBox;
   Point3 pos, impulse;
+  bool simpleImpulse;
+  float speedLimit, omegaLimit;
 
-  DestructableObjectAddImpulse(DestructableObject &dobj_, const Point3 &p, const Point3 &i, float sl, float ol) :
-    dobj(dobj_), gen(dobj_.gen), pos(p), impulse(i), speedLimit(sl), omegaLimit(ol)
+  DestructableObjectAddImpulse(DestructableObject &dobj_, const TMatrix &query_tm, const BBox3 &query_box, const Point3 &p,
+    const Point3 &i, bool simple_impulse, float speed_limit, float omega_limit) :
+    dobj(dobj_),
+    gen(dobj_.gen),
+    queryTm(query_tm),
+    queryBox(query_box),
+    pos(p),
+    impulse(i),
+    simpleImpulse(simple_impulse),
+    speedLimit(speed_limit),
+    omegaLimit(omega_limit)
   {}
 
   void doAction(PhysWorld &, bool) override
   {
-    if (gen == dobj.gen) // Wasn't destroyed?
+    if (gen != dobj.gen) // Was destroyed?
+      return;
+    if (simpleImpulse)
       dobj.doAddImpulse(pos, impulse, speedLimit, omegaLimit);
+    else
+      dobj.setupInitialPhysState(queryTm, queryBox, pos, impulse);
   }
 };
+
+void DestructableObject::addImpulseSimple(PhysWorld &pw, const Point3 &pos, const Point3 &impulse, float speed_limit,
+  float omega_limit)
+{
+  exec_or_add_after_phys_action<DestructableObjectAddImpulse>(pw, *this, TMatrix::IDENT, BBox3(), pos, impulse, true, speed_limit,
+    omega_limit);
+}
+
+void DestructableObject::applyInitialImpulse(PhysWorld &pw, const TMatrix &query_tm, const BBox3 &query_box, const Point3 &pos,
+  const Point3 &impulse)
+{
+  exec_or_add_after_phys_action<DestructableObjectAddImpulse>(pw, *this, query_tm, query_box, pos, impulse,
+    destructables::get_config().simpleInitialImpulse, 7.f, 5.f);
+}
 
 void DestructableObject::setTimeToFloat(float time)
 {
@@ -153,11 +251,6 @@ void DestructableObject::setTimeToFloat(float time)
   G_ASSERT_RETURN(destructables::g_context, );
   if (isFloatEnabled() && !wasFloatEnabled)
     destructables::g_context->numFloatable++;
-}
-
-void DestructableObject::addImpulse(PhysWorld &pw, const Point3 &pos, const Point3 &impulse, float speedLimit, float omegaLimit)
-{
-  exec_or_add_after_phys_action<DestructableObjectAddImpulse>(pw, *this, pos, impulse, speedLimit, omegaLimit);
 }
 
 void DestructableObject::Piece::addImpulse(const Point3 &pos, const Point3 &impulseDir, float impulseLen, float speedLimit,
@@ -214,176 +307,154 @@ void DestructableObject::doAddImpulse(const Point3 &pos, const Point3 &impulse, 
       piece.addImpulse(pos, impulseDir, impulseLen, speedLimit, omegaLimit);
 }
 
-void DestructableObject::setupInitialPhysState(const TMatrix &query_tm, const BBox3 &query_box, const Point3 &impact_pos,
-  const Point3 &impact_impulse)
+
+void DestructableObject::setupInitialPhysState(const TMatrix &, const BBox3 &, const Point3 &impact_pos, const Point3 &impact_impulse)
 {
+  static constexpr int MAX_BURST_SAMPLES_PER_AXIS = 8;
+
   TIME_PROFILE(destructable_init_phys)
-  struct DestructablePhysSettings
-  {
-    const float directVelFalloff = 1.f;
-    const float radialVelBaseRadius = 0.5f;
-    const float pieceImpactSpeed = 5.f;  // m/s along the impact direction at the impact point
-    const float pieceRadialSpeed = 5.f;  // m/s of crater burst away from the impact point
-    const float piecePushoutSpeed = 2.f; // m/s along the pushout direction for pieces that had to be pushed
-    const float pieceSpeedJitter = 0.4f; // random isotropic speed
-    const float pieceTumbleFactor = 1.f; // fraction of the orbital omega implied by v around the impact point
-    const float pieceRandomOmega = 3.f;  // rad/s of random tumble for a 1m piece, scaled by 1/size
-    const float pieceMaxSpeed = 10.f;
-    const float pieceMaxOmega = 10.f;
+  const destructables::DestructablesConfig::DestructionBurst &burst = destructables::get_config().destructionBurst;
 
-    const float riContactGatherMarginXZ = 2.5f;
-    const float pieceContactGatherMargin = 0.1f; // lateral inflation of the swept bbox (never along the sweep axis)
-    const float pieceMaxPushoutBboxPart = 0.6f;  // cap the applied move to this fraction of the bbox extent along the axis
-    const float pieceMaxPushoutAbs = 1.f;        // absolute cap on the applied move, meters
-    const float piecePushoutSearchDist = 2.5f;   // how far the sweep looks for a point-free spot when pricing directions
-  } settings;
-
+  // setup burst parameters
   int seed = grnd();
-  PhysWorld *physWorld = dacoll::get_phys_world();
+  const float impulseLen = length(impact_impulse);
+  const Point3 impulseNorm = impact_impulse / max(0.05f, impulseLen);
+  const float intensity =
+    min(1.f + burst.impulseIntensityGain * powf(impulseLen / max(burst.refImpulse, VERY_SMALL_NUMBER), burst.impulseIntensityExponent),
+      burst.maxIntensity);
+  const float directVelBias = burst.maxIntensity > 1.f ? cvt(intensity, 1.f, burst.maxIntensity, 1.f, burst.maxDirectVelBias) : 1.f;
+  const float radialIntensity = sqrtf(intensity);
+  const float penDepth = burst.maxIntensity > 1.f
+                           ? cvt(intensity, 1.f, burst.maxIntensity, burst.penetrationBase, burst.penetrationMax)
+                           : burst.penetrationBase;
+  const float maxSpeed = burst.hardMaxSpeed;
 
-  Tab<gamephys::CollisionContactData> contacts;
-  if (!query_box.isempty())
+  const float cellSize = max(burst.samplingScale * safeinv(burst.directVelFalloff), 0.1f);
+  const int maxSamplesPerAxis = clamp(burst.maxSamplesPerAxis, 2, MAX_BURST_SAMPLES_PER_AXIS);
+  const float linVelSampleWeightExp = burst.linVelSampleWeightExp;
+
+  // setup velocity field
+  struct BurstVelocityField
   {
-    TIME_PROFILE(destructable_query_bbox)
-    PhysBodyCreationData pbcd;
-    pbcd.addToWorld = false;
-    pbcd.group = destructables::get_config().defaultFGroup;
-    pbcd.mask = destructables::get_config().defaultFMask;
-    // translate so query box is centered at origin
-    TMatrix queryCenteredTm = TMatrix::IDENT;
-    queryCenteredTm.setcol(3, query_box.center());
-    queryCenteredTm = query_tm * queryCenteredTm;
-    BBox3 queryCenteredBox(-query_box.width() * 0.5f, query_box.width() * 0.5f);
-    queryCenteredBox.inflateXZ(settings.riContactGatherMarginXZ);
-    PhysBoxCollision queryColl(queryCenteredBox.width().x, queryCenteredBox.width().y, queryCenteredBox.width().z);
-    PhysBody queryBody(physWorld, 1.f, &queryColl, queryCenteredTm, pbcd);
-    dacoll::test_collision_ri(CollisionObject(&queryBody, nullptr), queryCenteredBox, contacts, true, -1.f, nullptr, PHYSMAT_DEFAULT,
-      false);
-  }
+    Point3 impactPos = Point3::ZERO;
+    Point3 impulseNorm = Point3::ZERO;
+    float impactSpeed = 0.f;
+    float lateralFalloff = 0.f;
+    float invPenDepth = 0.f;
+    float radialSpeed = 0.f;
+    float radialBaseRadius = 0.f;
+    Point3 noiseOffset = Point3::ZERO;
+    float noiseAmplitude = 0.f;
+    float invNoiseScale = 0.f;
+    float noiseLateralFrac = 0.f;
 
-  Tab<Point3> localCloud(framemem_ptr());
-  localCloud.reserve(contacts.size());
-  for (auto &piece : pieces)
-  {
-    PhysBody *body = piece.body;
-    TMatrix bodyTm, bodyModifiedTm;
-    body->getTm(bodyTm);
-    bodyModifiedTm = bodyTm;
-    BBox3 pieceBbox = piece.localPhysBBox;
-
-    const Point3 rImpact = bodyTm.getcol(3) - impact_pos;
-    const float dist = length(rImpact);
-
-    const TMatrix bodyItm = inverse(bodyTm);
-    BBox3 gateBbox = pieceBbox;
-    gateBbox.inflate(settings.pieceContactGatherMargin);
-
-    // piece-local point cloud (transformed once, shared by all candidate directions)
-    localCloud.clear();
-    for (const auto &contact : contacts)
-      localCloud.push_back(bodyItm * contact.wposB);
-
-    bool anyPointInside = false;
-    for (const Point3 &pl : localCloud)
-      if (gateBbox & pl)
-      {
-        anyPointInside = true;
-        break;
-      }
-
-    Point3 piecePushout(0.f, 0.f, 0.f);
-    if (anyPointInside)
+    static __forceinline Point3 sampleNoise(const Point3 &p)
     {
-      float bestDist = FLT_MAX;
-      Point3 bestDirW(0.f, 0.f, 0.f);
-      for (int axis = 0; axis < 3; axis++)
-        for (int sign = -1; sign <= 1; sign += 2)
-        {
-          const Point3 dirW = normalize(query_tm.getcol(axis)) * float(sign);
-          if (fabsf(dirW.y) > 0.7f)
-            continue;
-          const Point3 v = -(bodyItm % dirW);
-          BBox3 sweepBbox = pieceBbox;
-          for (int c = 0; c < 3; c++)
-          {
-            const float infl = settings.pieceContactGatherMargin * (1.f - fabsf(v[c]));
-            sweepBbox.lim[0][c] -= infl;
-            sweepBbox.lim[1][c] += infl;
-          }
-          float t = 0.f;
-          for (int pass = 0; pass < 16 && t < bestDist && t <= settings.piecePushoutSearchDist; pass++)
-          {
-            bool changed = false;
-            for (const Point3 &pl : localCloud)
-            {
-              float tEnter = -FLT_MAX, tExit = FLT_MAX;
-              bool empty = false;
-              for (int c = 0; c < 3 && !empty; c++)
-              {
-                if (fabsf(v[c]) > 1e-6f)
-                {
-                  float t0 = (sweepBbox.lim[0][c] - pl[c]) / v[c];
-                  float t1 = (sweepBbox.lim[1][c] - pl[c]) / v[c];
-                  if (t0 > t1)
-                    eastl::swap(t0, t1);
-                  tEnter = max(tEnter, t0);
-                  tExit = min(tExit, t1);
-                  empty = tEnter > tExit;
-                }
-                else
-                  empty = pl[c] < sweepBbox.lim[0][c] || pl[c] > sweepBbox.lim[1][c];
-              }
-              if (empty)
-                continue;
-              if (t >= tEnter - 1e-4f && t < tExit)
-              {
-                t = tExit + 1e-4f;
-                changed = true;
-              }
-            }
-            if (!changed)
-              break;
-          }
-          if (t < bestDist)
-          {
-            bestDist = t;
-            bestDirW = dirW;
-          }
-        }
-      const Point3 bestV = bodyItm % bestDirW;
-      const Point3 bboxWidth = pieceBbox.width();
-      const float extentAlong = fabsf(bestV.x) * bboxWidth.x + fabsf(bestV.y) * bboxWidth.y + fabsf(bestV.z) * bboxWidth.z;
-      piecePushout = bestDirW * min(bestDist, min(settings.pieceMaxPushoutBboxPart * extentAlong, settings.pieceMaxPushoutAbs));
-      bodyModifiedTm.setcol(3, bodyModifiedTm.getcol(3) + piecePushout);
+      return Point3(perlin_noise::noise3(p), perlin_noise::noise3(Point3(p.y + 19.7f, p.z + 33.4f, p.x + 47.2f)),
+               perlin_noise::noise3(Point3(p.z + 71.3f, p.x + 3.9f, p.y + 15.6f))) *
+             2.f;
     }
 
-    const Point3 impulseNorm = impact_impulse / max(0.05f, length(impact_impulse));
+    Point3 sample(const Point3 &pos) const
+    {
+      const Point3 rImpact = pos - impactPos;
+      const float dist = length(rImpact);
+      const float depth = dot(rImpact, impulseNorm);
+      const float lateral = invPenDepth > 0.f ? length(rImpact - impulseNorm * depth) : dist;
+      const float impactFalloff = expf(-lateral * lateralFalloff - max(depth, 0.f) * invPenDepth);
+      const float radialFalloff = sqrtf(radialBaseRadius / (dist + radialBaseRadius));
+      const Point3 vDet = impulseNorm * (impactSpeed * impactFalloff) + rImpact * (safeinv(dist) * radialSpeed * radialFalloff);
+      const Point3 np = (pos + noiseOffset) * invNoiseScale;
+      const Point3 noise = sampleNoise(np) + sampleNoise(np * 4.f) * 0.5f;
+      const Point3 vDir = vDet * safeinv(length(vDet));
+      const Point3 noisePar = vDir * dot(noise, vDir);
+      return vDet + (noisePar + (noise - noisePar) * noiseLateralFrac) * noiseAmplitude;
+    }
+  };
+  BurstVelocityField field;
+  field.impactPos = impact_pos;
+  field.impulseNorm = impulseNorm;
+  field.impactSpeed = burst.impactSpeed * intensity * directVelBias;
+  field.lateralFalloff = burst.directVelFalloff;
+  field.invPenDepth = penDepth > 0.f ? 1.f / penDepth : 0.f;
+  field.radialSpeed = burst.radialSpeed * radialIntensity;
+  field.radialBaseRadius = burst.radialVelBaseRadius;
+  field.noiseAmplitude = burst.noiseScale > 0.f ? burst.noiseAmplitude : 0.f;
+  field.invNoiseScale = safeinv(burst.noiseScale);
+  field.noiseLateralFrac = clamp(burst.noiseLateralFrac, 0.f, 1.f);
+  field.noiseOffset = Point3(_srnd(seed), _srnd(seed), _srnd(seed)) * 100.f;
 
-    // velocity = [impact direction push + radial burst] + pushout speed + jitter, first two terms are clamped against pushout dir
-    const Point3 radialDir = rImpact * safeinv(dist);
-    const float impactFalloff = expf(-dist * settings.directVelFalloff);
-    const float radialFalloff = sqrtf(settings.radialVelBaseRadius / (dist + settings.radialVelBaseRadius));
-    const Point3 pushoutDir = piecePushout * safeinv(length(piecePushout));
-    Point3 vel = impulseNorm * (settings.pieceImpactSpeed * impactFalloff) + radialDir * (settings.pieceRadialSpeed * radialFalloff);
-    const float velAgainstPushout = dot(vel, pushoutDir);
-    if (velAgainstPushout < 0.f)
-      vel -= pushoutDir * velAgainstPushout;
-    vel += pushoutDir * settings.piecePushoutSpeed + Point3(_srnd(seed), _srnd(seed), _srnd(seed)) * settings.pieceSpeedJitter;
+  for (Piece &piece : pieces)
+  {
+    if (piece.isSentinelBody)
+      continue;
+    PhysBody *body = piece.body;
+    TMatrix bodyTm;
+    body->getTm(bodyTm);
+    BBox3 pieceBbox = piece.localPhysBBox;
+    const TMatrix bodyItm = inverse(bodyTm);
+    const Point3 pieceExtents = pieceBbox.width();
+    const float pieceSize = max(float(pieceExtents.length()), 0.2f);
+
+    // sample and fit velocity field
+    float sampleOffsets[3][MAX_BURST_SAMPLES_PER_AXIS];
+    int sampleCount[3];
+    for (int axis = 0; axis < 3; axis++)
+    {
+      const float spread = max(pieceExtents[axis], burst.minSampleSpread);
+      const int count = clamp(int(ceilf(spread / cellSize)), 2, maxSamplesPerAxis);
+      sampleCount[axis] = count;
+      for (int i = 0; i < count; i++)
+        sampleOffsets[axis][i] = spread * ((float(i) + 0.5f) / float(count) - 0.5f);
+    }
+    const Point3 bboxCenter = pieceBbox.center();
+    Point3 velSum = Point3::ZERO, torque = Point3::ZERO, inertiaDiag = Point3::ZERO;
+    float weightSum = 0.f;
+    for (int ix = 0; ix < sampleCount[0]; ix++)
+      for (int iy = 0; iy < sampleCount[1]; iy++)
+        for (int iz = 0; iz < sampleCount[2]; iz++)
+        {
+          const Point3 r(sampleOffsets[0][ix], sampleOffsets[1][iy], sampleOffsets[2][iz]);
+          const Point3 v = bodyItm % field.sample(bodyTm * (bboxCenter + r));
+          const float speed = length(v);
+          const float weight = powf(speed, linVelSampleWeightExp);
+          velSum += v * weight;
+          weightSum += weight;
+          torque += r % v;
+          inertiaDiag += Point3(sqr(r.y) + sqr(r.z), sqr(r.z) + sqr(r.x), sqr(r.x) + sqr(r.y));
+        }
+    const Point3 velLocal = weightSum > VERY_SMALL_NUMBER ? velSum / weightSum : Point3::ZERO;
+    Point3 omegaLocal(torque.x / max(inertiaDiag.x, VERY_SMALL_NUMBER), torque.y / max(inertiaDiag.y, VERY_SMALL_NUMBER),
+      torque.z / max(inertiaDiag.z, VERY_SMALL_NUMBER));
+
+    // apply max tip speed and small piece jitter
+    Point3 halfDiagPerp;
+    for (int axis = 0; axis < 3; axis++)
+    {
+      const float other0 = pieceExtents[(axis + 1) % 3], other1 = pieceExtents[(axis + 2) % 3];
+      halfDiagPerp[axis] = max(0.5f * sqrtf(sqr(other0) + sqr(other1)), 0.05f);
+    }
+    const float fadeT = max(burst.smallOmegaSizeThreshold, VERY_SMALL_NUMBER);
+    const float fadeU = clamp(pieceSize / fadeT - 0.5f, 0.f, 0.5f) * 2.f; // 0..1 over [T/2, T]
+    const float residualOmega = burst.smallPieceRandomOmega * (1.f - fadeU * fadeU * (3.f - 2.f * fadeU));
+    const Point3 randomTumble = Point3(_srnd(seed), _srnd(seed), _srnd(seed)) * residualOmega;
+    for (int axis = 0; axis < 3; axis++)
+    {
+      omegaLocal[axis] = (omegaLocal[axis] * burst.tumbleFactor + randomTumble[axis]);
+      float maxOmega = burst.hardMaxOmega;
+      if (burst.maxTipSpeed > 0.f)
+        maxOmega = min(maxOmega, burst.maxTipSpeed / halfDiagPerp[axis]);
+      omegaLocal[axis] = clamp(omegaLocal[axis], -maxOmega, maxOmega);
+    }
+
+    // convert to world and apply to body
+    Point3 vel = bodyTm % velLocal;
+    Point3 omega = bodyTm % omegaLocal;
+    // velLocal is at the bbox center, vel is at body center
+    vel += omega % (bodyTm.getcol(3) - bodyTm * bboxCenter);
     const float velLen = length(vel);
-    if (velLen > settings.pieceMaxSpeed)
-      vel *= settings.pieceMaxSpeed / velLen;
-
-    // omega: the rotation the velocity implies around the impact point (as if hinged there), so nearby
-    // pieces tumble consistently with the burst, plus size-scaled random tumble
-    Point3 omega = (rImpact % vel) * (settings.pieceTumbleFactor / max(sqr(0.2f), lengthSq(rImpact)));
-    const float pieceSize = max(float(pieceBbox.width().length()), 0.2f);
-    omega += Point3(_srnd(seed), _srnd(seed), _srnd(seed)) * (settings.pieceRandomOmega / pieceSize);
-    const float omegaLen = length(omega);
-    if (omegaLen > settings.pieceMaxOmega)
-      omega *= settings.pieceMaxOmega / omegaLen;
-
-    // changing TM here will count towards initial jump error and smoothed
-    body->setTm(bodyModifiedTm);
+    if (velLen > maxSpeed)
+      vel *= maxSpeed / velLen;
     body->setVelocity(vel);
     body->setAngularVelocity(omega);
     body->activateBody(true);
@@ -455,6 +526,8 @@ static void spring_cd_quat(Quat &q, Point3 &vel, float omega, float dt)
 
 void DestructableObject::Piece::update(DestructableObject &parent, float dt, float scaled_dt, bool force_inactive_timer)
 {
+  using namespace destructables;
+
   G_ASSERT_RETURN(isAlive(), );
   const bool isBodyInWorld = body->isInWorld();
   const bool isPhysActive = isBodyInWorld && body->isActive() && body->getInteractionLayer() != 0;
@@ -523,21 +596,46 @@ void DestructableObject::Piece::update(DestructableObject &parent, float dt, flo
   outOfViewTime = visibleFrames < VISIBLE_FRAMES_THRESHOLD ? outOfViewTime + dt : 0.f;
   inactiveTime = isPhysActive && !force_inactive_timer ? 0.f : inactiveTime + scaled_dt;
 
-  const float keepAliveMaxHeightAboveGround = destructables::get_config().keepAliveMaxHeightAboveGround;
-  if (const float checkKeepAliveAtTime = parent.inactiveTimeBeforeSink / 2.f;
-      keepAliveMaxHeightAboveGround > 0.f && inactiveTime >= checkKeepAliveAtTime && checkKeepAliveAtTime > inactiveTime - scaled_dt)
+  const DestructablesConfig &cfg = get_config();
+
+  const bool isSinking = interactionFlags == InteractionFlag::None;
+
+  // measurement of a moving piece is stale, it is neither resting on the ground nor floor rubble
+  if (isPhysActive)
+    elevationAboveGround = FLT_MAX;
+
+  if (!isSinking && (cfg.keepAliveMaxHeightAboveGround > 0.f || (isInteractiveDebris && cfg.minInteractiveHeight > 0.f)))
   {
-    TMatrix wtm;
-    body->getTm(wtm);
-    BBox3 bbox = wtm * localPhysBBox;
-    float height = 10.f;
-    keepAlive = dacoll::tracedown_normalized(Point3::xVz(wtm.getcol(3), bbox.lim[1].y), height, nullptr, nullptr) &&
-                height < keepAliveMaxHeightAboveGround;
+    if (const float groundCheckAtTime = parent.inactiveTimeBeforeSink / 2.f;
+        inactiveTime >= groundCheckAtTime && groundCheckAtTime > inactiveTime - scaled_dt)
+    {
+      TMatrix wtm;
+      body->getTm(wtm);
+      BBox3 bbox = wtm * localPhysBBox;
+      float height = 10.f;
+      const bool traced = dacoll::tracedown_normalized(Point3::xVz(wtm.getcol(3), bbox.lim[1].y), height, nullptr, nullptr);
+      elevationAboveGround = traced ? height : FLT_MAX;
+    }
+  }
+  const bool keepAlive = !isSinking && !isSentinelBody && elevationAboveGround < cfg.keepAliveMaxHeightAboveGround;
+
+  if (!isSinking && !isSentinelBody)
+  {
+    const bool isInteractive = elevationAboveGround > cfg.minInteractiveHeight && isInteractiveDebris;
+    bool isCharacterInteractive = parent.minInteractiveTime > lifeTime;
+    if (!isCharacterInteractive && isInteractive && cfg.characterCollisionDist > 0.f)
+    {
+      const float distHysteresis = interactionFlags & InteractionFlag::Character ? cfg.characterCollisionDistHysteresis : 0.f;
+      isCharacterInteractive =
+        lengthSq(Point3::xyz(visualLoc.P) - g_context->viewPos) < sqr(cfg.characterCollisionDist + distHysteresis);
+    }
+    changeInteractionFlags(InteractionFlag::Projectile & cfg.enabledInteractionFlags, isInteractive);
+    changeInteractionFlags(InteractionFlag::Character, isCharacterInteractive);
   }
 
   if (!keepAlive && (inactiveTime > parent.inactiveTimeBeforeSink || timeToLive <= parent.timeToSinkUnderground))
   {
-    if (body->getInteractionLayer() != 0)
+    if (!isSinking)
     {
       TMatrix wtm;
       body->getTm(wtm);
@@ -549,7 +647,7 @@ void DestructableObject::Piece::update(DestructableObject &parent, float dt, flo
         eastl::max(0.1f, sinkDist / sqr(max(parent.timeToSinkUnderground - 0.5f, 0.1f) / safediv(scaled_dt, dt)) * 2.0f /
                            /* adjust for damping */ 0.75f);
       // disable all collision and sink
-      body->setGroupAndLayerMask(0, 0);
+      setInteractionFlags(InteractionFlag::None);
       body->setGravity(Point3(0.f, -sinkUndergroundGravity, 0.f));
       body->setVelocity(Point3::ZERO);
       body->setAngularVelocity(Point3::ZERO);
@@ -564,13 +662,6 @@ void DestructableObject::Piece::update(DestructableObject &parent, float dt, flo
     }
   }
 
-  if (timeToKinematic >= 0.f)
-  {
-    timeToKinematic -= scaled_dt;
-    if (timeToKinematic < 0.f)
-      makeKinematic();
-  }
-
   if (timeToFloat >= 0.f)
     timeToFloat -= scaled_dt;
   lifeTime += scaled_dt;
@@ -581,24 +672,19 @@ void DestructableObject::Piece::update(DestructableObject &parent, float dt, flo
     destroy();
 }
 
-void DestructableObject::Piece::makeKinematic()
-{
-  G_ASSERT_RETURN(isAlive(), );
-  if (body->getInteractionLayer() && body->isInWorld())
-    body->setGroupAndLayerMask(destructables::get_config().defaultFGroup,
-      destructables::get_config().defaultFMask ^ dacoll::EPL_KINEMATIC);
-}
-
 void DestructableObject::Piece::destroy()
 {
   G_ASSERT_RETURN(isAlive(), );
   if (body->isInWorld())
     body->getPhysWorld()->removeBody(body);
   body = nullptr;
+  interactionFlags = destructables::InteractionFlag::None;
 }
 
 bool DestructableObject::update(float dt, float cur_dt_scale, bool force_inactive_timer)
 {
+  using namespace destructables;
+
   if (alivePieceCnt < 0)
     return false;
   TIME_PROFILE(DestructableObject__update);
@@ -611,6 +697,20 @@ bool DestructableObject::update(float dt, float cur_dt_scale, bool force_inactiv
     if (piece.isAlive())
       piece.update(*this, dt, scaledDt, forceInactiveTimer);
     alivePieceCnt += piece.isAlive();
+  }
+  if (get_config().enabledInteractionFlags & InteractionFlag::Projectile)
+  {
+    Context &ctx = *g_context;
+    PieceRef pieceRef{getId(), gen, 0};
+    for (const Piece &piece : pieces)
+    {
+      if (!piece.isAlive())
+        continue;
+      const Point3 pos = Point3::xyz(piece.visualLoc.P);
+      ctx.traceSpheres.push_back(v_make_vec4f(pos.x, pos.y, pos.z, piece.boundingRadSq));
+      pieceRef.pieceIdx = int(&piece - pieces.data());
+      ctx.tracePieces.push_back(pieceRef);
+    }
   }
   if (disintegrationTime < disintegrationParameters.duration)
     disintegrationTime += scaledDt;
@@ -651,6 +751,53 @@ void DestructablesConfig::loadFromBlk(const DataBlock *destr_blk)
   outOfViewDisappear.minSizeTime = outOfViewBlk->getPoint2("minSizeTime", outOfViewDisappear.minSizeTime);
   outOfViewDisappear.maxSizeTime = outOfViewBlk->getPoint2("maxSizeTime", outOfViewDisappear.maxSizeTime);
   outOfViewDisappear.maxRelSize = outOfViewBlk->getPoint2("maxRelSize", outOfViewDisappear.maxRelSize);
+
+  // world collision is always enabled, character collision is enabled at start and disabled by distance/size later
+  enabledInteractionFlags = InteractionFlag::Static | InteractionFlag::Character;
+  if (destr_blk->getBool("selfCollision", false))
+    enabledInteractionFlags |= InteractionFlag::Self;
+  if (destr_blk->getBool("projectileInteraction", false))
+    enabledInteractionFlags |= InteractionFlag::Projectile;
+  make_phys_group_and_mask(enabledInteractionFlags, defaultFGroup, defaultFMask);
+
+  interactiveDebrisMinSize = destr_blk->getReal("interactiveDebrisMinSize", interactiveDebrisMinSize);
+  characterCollisionDist = destr_blk->getReal("characterCollisionDist", characterCollisionDist);
+  characterCollisionDistHysteresis = destr_blk->getReal("characterCollisionDistHysteresis", characterCollisionDistHysteresis);
+  minInteractiveHeight = destr_blk->getReal("minInteractiveHeight", minInteractiveHeight);
+
+  simpleInitialImpulse = destr_blk->getBool("simpleInitialImpulse", simpleInitialImpulse);
+  const DataBlock *burstBlk = destr_blk->getBlockByNameEx("destructionBurst");
+  // baseline values and scaling
+  destructionBurst.impactSpeed = burstBlk->getReal("impactSpeed", destructionBurst.impactSpeed);
+  destructionBurst.radialSpeed = burstBlk->getReal("radialSpeed", destructionBurst.radialSpeed);
+  destructionBurst.directVelFalloff = burstBlk->getReal("directVelFalloff", destructionBurst.directVelFalloff);
+  destructionBurst.radialVelBaseRadius =
+    max(burstBlk->getReal("radialVelBaseRadius", destructionBurst.radialVelBaseRadius), VERY_SMALL_NUMBER);
+  destructionBurst.maxDirectVelBias = max(burstBlk->getReal("maxDirectVelBias", destructionBurst.maxDirectVelBias), 1.f);
+  destructionBurst.penetrationBase = burstBlk->getReal("penetrationBase", destructionBurst.penetrationBase);
+  destructionBurst.penetrationMax = burstBlk->getReal("penetrationMax", destructionBurst.penetrationMax);
+  destructionBurst.tumbleFactor = burstBlk->getReal("tumbleFactor", destructionBurst.tumbleFactor);
+  // intensity scaling
+  destructionBurst.refImpulse = max(burstBlk->getReal("refImpulse", destructionBurst.refImpulse), VERY_SMALL_NUMBER);
+  destructionBurst.impulseIntensityGain = burstBlk->getReal("impulseIntensityGain", destructionBurst.impulseIntensityGain);
+  destructionBurst.impulseIntensityExponent = burstBlk->getReal("impulseIntensityExponent", destructionBurst.impulseIntensityExponent);
+  destructionBurst.maxIntensity = max(burstBlk->getReal("maxIntensity", destructionBurst.maxIntensity), 1.f);
+  // velocity field sampling
+  destructionBurst.samplingScale = burstBlk->getReal("samplingScale", destructionBurst.samplingScale);
+  destructionBurst.maxSamplesPerAxis = burstBlk->getInt("maxSamplesPerAxis", destructionBurst.maxSamplesPerAxis);
+  destructionBurst.minSampleSpread = burstBlk->getReal("minSampleSpread", destructionBurst.minSampleSpread);
+  destructionBurst.linVelSampleWeightExp = burstBlk->getReal("linVelSampleWeightExp", destructionBurst.linVelSampleWeightExp);
+  // noise & jitter
+  destructionBurst.noiseAmplitude = burstBlk->getReal("noiseAmplitude", destructionBurst.noiseAmplitude);
+  destructionBurst.noiseScale = burstBlk->getReal("noiseScale", destructionBurst.noiseScale);
+  destructionBurst.noiseLateralFrac = burstBlk->getReal("noiseLateralFrac", destructionBurst.noiseLateralFrac);
+  destructionBurst.smallPieceRandomOmega = burstBlk->getReal("smallPieceRandomOmega", destructionBurst.smallPieceRandomOmega);
+  destructionBurst.smallOmegaSizeThreshold = burstBlk->getReal("smallOmegaSizeThreshold", destructionBurst.smallOmegaSizeThreshold);
+  // limits
+  destructionBurst.hardMaxSpeed = burstBlk->getReal("hardMaxSpeed", destructionBurst.hardMaxSpeed);
+  destructionBurst.hardMaxOmega = burstBlk->getReal("hardMaxOmega", destructionBurst.hardMaxOmega);
+  destructionBurst.maxTipSpeed = burstBlk->getReal("maxTipSpeed", destructionBurst.maxTipSpeed);
+
   keepAliveMaxHeightAboveGround = destr_blk->getReal("keepAliveMaxHeightAboveGround", keepAliveMaxHeightAboveGround);
   visualErrorSmoothTime = destr_blk->getReal("visualErrorSmoothTime", visualErrorSmoothTime);
   visualErrorAccumulateTime = destr_blk->getReal("visualErrorAccumulateTime", visualErrorAccumulateTime);
@@ -662,7 +809,7 @@ void DestructablesConfig::loadFromBlk(const DataBlock *destr_blk)
 }
 
 
-void init(const DataBlock *blk, int fgroup)
+void init(const DataBlock *blk)
 {
   g_context.demandInit();
   DestructablesConfig &config = g_context->config;
@@ -680,8 +827,6 @@ void init(const DataBlock *blk, int fgroup)
       config.numOfDestrBodiesForScaleDt = config.maxNumberOfDestructableBodies / 2;
   }
 #endif
-
-  config.defaultFGroup = fgroup;
 }
 
 void close() { g_context.demandDestroy(); }
@@ -738,6 +883,8 @@ id_t addDestructable(gamephys::DestructableObject **out_destr, DynamicPhysObject
 void clear()
 {
   G_ASSERT_RETURN(g_context, );
+  clear_and_shrink(g_context->traceSpheres);
+  clear_and_shrink(g_context->tracePieces);
   clear_and_shrink(g_context->destructablesList);
   g_context->destructablesListAllocator.clear();
 }
@@ -788,12 +935,17 @@ static void overflow_handler()
 #endif
 }
 
-void update(float dt, const Point3 &view_pos)
+void update(float dt, float cur_time, const Point3 &view_pos)
 {
   G_ASSERT_RETURN(g_context, );
   TIME_PROFILE(destructables_update);
   Context &ctx = *g_context;
   const DestructablesConfig &config = ctx.config;
+  ctx.viewPos = view_pos;
+  ctx.curTime = cur_time;
+
+  ctx.traceSpheres.clear();
+  ctx.tracePieces.clear();
 
   const float dtUpdateScale = config.numOfDestrBodiesForScaleDt > 0 ? cvt(ctx.numAliveBodies, config.numOfDestrBodiesForScaleDt,
                                                                         config.maxNumberOfDestructableBodies, 1.f, config.maxScaleDt)
@@ -880,6 +1032,59 @@ void update(float dt, const Point3 &view_pos)
       }
     }
   }
+}
+
+static __forceinline bool trace_local_bbox(vec3f from, vec3f to, vec3f dir, const BBox3 &box, float &in_out_t, vec3f &out_norm)
+{
+  const bbox3f vbox = v_ldu_bbox3(box);
+  if (v_bbox3_test_pt_inside(vbox, from))
+  {
+    in_out_t = 0.f;
+    out_norm = v_neg(dir);
+    return true;
+  }
+  float atMin = 0.f, atMaxUnused = 0.f;
+  const int side = v_segment_box_intersection_side(from, to, vbox, atMin, atMaxUnused);
+  if (side < 0)
+    return false;
+  vec4f_const BOX_SIDE_NORMALS[6] = {{-1.f, 0.f, 0.f, 0.f}, {0.f, -1.f, 0.f, 0.f}, {0.f, 0.f, -1.f, 0.f}, {1.f, 0.f, 0.f, 0.f},
+    {0.f, 1.f, 0.f, 0.f}, {0.f, 0.f, 1.f, 0.f}};
+  in_out_t *= atMin;
+  out_norm = BOX_SIDE_NORMALS[side];
+  return true;
+}
+
+void trace_ray(const Point3 &from, const Point3 &dir, float max_t, TraceHitList &out_hits)
+{
+  G_ASSERT_RETURN(g_context, );
+  Context &ctx = *g_context;
+  const vec4f vFrom = v_ldu_p3(&from.x), vDir = v_ldu_p3(&dir.x), vMaxT = v_splats(max_t);
+  for (int i = 0; i < ctx.traceSpheres.size(); i++)
+  {
+    const vec4f sphere = ctx.traceSpheres[i];
+    if (DAGOR_LIKELY(!v_test_ray_sphere_intersection(vFrom, vDir, vMaxT, sphere, v_splat_w(sphere))))
+      continue;
+    const PieceRef &ref = ctx.tracePieces[i];
+    const DestructableObject::Piece &piece = static_cast<DestructableObject *>(ref.id)->pieces[ref.pieceIdx];
+    if (!piece.isAlive())
+      continue;
+    const Point3 piecePos = Point3::xyz(piece.visualLoc.P);
+    const quat4f rot = v_ldu(&piece.visualLoc.O.getQuat().x);
+    const quat4f invRot = v_quat_conjugate(rot);
+    const vec3f localFrom = v_quat_mul_vec3(invRot, v_sub(vFrom, v_ldu_p3(&piecePos.x)));
+    const vec3f localDir = v_quat_mul_vec3(invRot, vDir);
+    float hitT = max_t;
+    vec3f localNorm;
+    if (!trace_local_bbox(localFrom, v_madd(localDir, vMaxT, localFrom), localDir, piece.localPhysBBox, hitT, localNorm))
+      continue;
+    TraceHit &hit = out_hits.push_back();
+    hit.ref = ref;
+    hit.t = hitT;
+    hit.pos = from + dir * hitT;
+    v_stu_p3(&hit.normal.x, v_quat_mul_vec3(rot, localNorm));
+    hit.physMatId = PhysMat::getMaterialIdByPhysBodyMaterial(piece.body->getMaterialId());
+  }
+  stlsort::sort_branchless(out_hits.begin(), out_hits.end(), [](const auto &a, const auto &b) { return a.t < b.t; });
 }
 
 dag::ConstSpan<gamephys::DestructableObject *> getDestructableObjects()

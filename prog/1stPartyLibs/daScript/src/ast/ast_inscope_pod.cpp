@@ -46,9 +46,8 @@ namespace das {
                         *logs << "skipping POD optimization for consumed variable '" << var->name << "' in function '" << func->module->name << "::" << func->name << "'\n";
                     }
                 } else if (
-                           func->generated
+                           (func->generated && !func->lambda && !func->localFunction)  // lambda/@@{} bodies are verbatim user blocks - collectable
                         || func->generator
-                        || func->lambda
                         || func->hasTryRecover
                         || func->hasUnsafe
                         || !func->module->allowPodInscope
@@ -59,9 +58,8 @@ namespace das {
                             *logs << var->at.fileInfo->name << ":" << var->at.line << ":" << var->at.column << " ";
                         }
                         *logs << "warning: POD optimization failed for '" << var->name << "' in function '" << func->module->name << "::" << func->name << "'\n";
-                        if ( func->generated ) *logs << "\tfunction is generated\n";
+                        if ( func->generated && !func->lambda && !func->localFunction ) *logs << "\tfunction is generated\n";
                         if ( func->generator ) *logs << "\tfunction is generator\n";
-                        if ( func->lambda ) *logs << "\tfunction is lambda\n";
                         if ( func->hasTryRecover ) *logs << "\tfunction has try-recover\n";
                         if ( func->hasUnsafe ) *logs << "\tfunction has unsafe\n";
                         if ( !func->module->allowPodInscope ) *logs << "\tmodule " << func->module->name << " does not allow in-scope POD\n";
@@ -86,7 +84,8 @@ namespace das {
             return Visitor::visitLet(expr,var,last);
         }
         virtual ExpressionPtr visit ( ExprFor * expr ) override {
-            if ( expr->generated || !func || func->generated || func->generator || func->lambda || func->hasTryRecover || func->hasUnsafe) {
+            if ( expr->generated || !func || (func->generated && !func->lambda && !func->localFunction)
+                || func->generator || func->hasTryRecover || func->hasUnsafe) {
                 return Visitor::visit(expr);
             }
             // so, we check arguments, and if there are any POD with pod_delete, we make temp variables for them (which will cause yet another POD delete)

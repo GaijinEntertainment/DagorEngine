@@ -59,12 +59,15 @@ struct InitialNodes
 };
 
 
-enum class ContextId : int
+enum class ContextId : uint32_t
 {
-  INVALID = -1,
-  MAIN = 0,
-  IMMEDIATE = 1,
-  FIRST_USER_CONTEXT = 2, // User contexts follow.
+  Invalid = 0,
+  INVALID_BVH = 0,
+  INVALID_BVH_NO_SHADOWS = 1,
+  // id < MAIN are invalid by ContextPool
+  MAIN = 32,
+  IMMEDIATE,
+  FIRST_USER_CONTEXT, // User contexts follow.
 };
 
 
@@ -99,28 +102,29 @@ struct BasePerInstanceRenderData
 struct PerInstanceRenderData : public BasePerInstanceRenderData
 {
   dag::RelocatableFixedVector<Point4, NUM_GENERIC_PER_INSTANCE_PARAMS, true, framemem_allocator> params;
-  bool additionalDataAppended = false; // params are terminated by an additional-data block, adding anything after will result in
-                                       // malformed data
-  PerInstanceRenderData() = default;
-  PerInstanceRenderData(const struct AddedPerInstanceRenderData &o);
+  // Optional additional-data block (payload + 2-float4 metadata tail, see animCharRenderAdditionalData.h)
+  dag::RelocatableFixedVector<Point4, 2, true, framemem_allocator> additionalData;
 };
 struct AddedPerInstanceRenderData : public BasePerInstanceRenderData
 {
-  dag::RelocatableFixedVector<Point4, NUM_GENERIC_PER_INSTANCE_PARAMS, false> inplaceParams;
+  dag::RelocatableFixedVector<Point4, NUM_GENERIC_PER_INSTANCE_PARAMS + 2, false> inplaceParams;
   dag::ConstSpan<Point4> params;
   AddedPerInstanceRenderData() = default;
   AddedPerInstanceRenderData(const PerInstanceRenderData &o, dag::Vector<Point4> &extraParams);
+  AddedPerInstanceRenderData(const BasePerInstanceRenderData &base, dag::ConstSpan<Point4> merged_params,
+    dag::Vector<Point4> &extraParams);
 };
 
-// Appends an additional-data block (payload + 2-float4 metadata tail, see animCharRenderAdditionalData.h)
-// after the generic params, first zero-padding up to NUM_GENERIC_PER_INSTANCE_PARAMS if the caller pushed fewer
-void append_animchar_additional_data(PerInstanceRenderData &render_data,
-  const animchar_additional_data::AnimcharAdditionalDataView &additional_data);
+inline void set_animchar_additional_data(PerInstanceRenderData &render_data,
+  const animchar_additional_data::AnimcharAdditionalDataView &additional_data)
+{
+  render_data.additionalData.assign(additional_data.data(), additional_data.data() + additional_data.size());
+}
 
 struct InstanceContextData
 {
   const DynamicRenderableSceneInstance *instance = NULL;
-  ContextId contextId = ContextId(-1);
+  ContextId contextId = ContextId::Invalid;
   int instanceOffsetRenderData = -1;
   int nodeOffsetRenderData = -1;
 };
@@ -272,7 +276,12 @@ struct MaterialFilterScope
 ContextId create_context(const char *name);
 ContextId get_or_create_context(const char *name);
 ContextId find_context(const char *name);
+
+// NOTE: delete_context(ctx) requires is_user_context(ctx) == true
 void delete_context(ContextId context_id);
+bool is_user_context(ContextId context_id);
+
+bool is_valid_context(ContextId context_id);
 
 void update_reprojection_data(ContextId contextId);
 

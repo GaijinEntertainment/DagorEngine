@@ -26,6 +26,7 @@ module toml shared public
 //! return ``null`` with a descriptive message in the ``error`` out-param,
 //! matching ``daslib/json::read_json``.
 
+require math
 require strings
 require daslib/strings_boost
 require daslib/utf8_utils
@@ -224,9 +225,8 @@ def private read_basic_string(data : array<uint8>&; var st : LexState&; var err 
     return ""
 }
 
-def private read_ml_basic_string(data : array<uint8>&; var st : LexState&; var err : string&) : string {
-    // st.pos is just past the opening """
-    // Per TOML §Multi-line Basic Strings: an immediate newline after opening """ is trimmed.
+def private read_ml_basic_string(data : array<uint8>&; var st : LexState&; var err : string&) : string {  // nolint:STYLE037,STYLE038 - one linear scan; escape/quote cases share cursor state
+    // st.pos is just past the opening """ Per TOML §Multi-line Basic Strings: an immediate newline after opening """ is trimmed.
     if (st.pos < st.n && int(data[st.pos]) == '\r' && st.pos + 1 < st.n && int(data[st.pos + 1]) == '\n') {
         advance(data, st); advance(data, st)
     } elif (st.pos < st.n && int(data[st.pos]) == '\n') {
@@ -261,8 +261,7 @@ def private read_ml_basic_string(data : array<uint8>&; var st : LexState&; var e
                     look++
                 }
                 if (look < st.n && (int(data[look]) == '\n' || int(data[look]) == '\r')) {
-                    // Line-ending backslash. Consume the backslash, the trailing ws,
-                    // the newline, and all leading whitespace on subsequent lines.
+                    // Line-ending backslash. Consume the backslash, the trailing ws, the newline, and all leading whitespace on subsequent lines.
                     advance(data, st)  // consume backslash
                     while (st.pos < st.n) {
                         let cc = int(data[st.pos])
@@ -397,8 +396,7 @@ def private looks_like_time(data : array<uint8>&; pos : int) : bool {
 }
 
 def private read_datetime(data : array<uint8>&; var st : LexState&; allow_time : bool) : string {
-    // Consume a TOML date-time / local-date / local-time. Max length is
-    // ~35 (date+T+time+frac+offset); reserve once to avoid PERF006 churn.
+    // Consume a TOML date-time / local-date / local-time. Max length is ~35 (date+T+time+frac+offset); reserve once to avoid PERF006 churn.
     var buf : array<uint8>
     buf |> reserve(40)
     let n = st.n
@@ -509,11 +507,7 @@ def private parse_int_prefixed(rest : string; radix : int; var err : string&) : 
 }
 
 def private rewind_to_bare(data : array<uint8>&; var st : LexState&; start_pos, start_line, start_row : int; var out : TomlTokenAt&) : void {
-    // Rewinds the lexer to `start_pos` and re-scans a bare key. If the leading
-    // byte at start_pos is `+` (not a TOML bare-key char), the rewind would
-    // produce an empty token (F13). Per TOML 1.0 ABNF, `+` cannot begin a key —
-    // emit a stray-sign error so the parser sees the failure at the right
-    // location.
+    // Rewinds the lexer to `start_pos` and re-scans a bare key. If the leading byte at start_pos is `+` (not a TOML bare-key char), the rewind would produce an empty token (F13). Per TOML 1.0 ABNF, `+` cannot begin a key — emit a stray-sign error so the parser sees the failure at the right location.
     st.pos = start_pos
     st.line = start_line
     st.row = start_row
@@ -527,19 +521,8 @@ def private rewind_to_bare(data : array<uint8>&; var st : LexState&; start_pos, 
     out = TomlTokenAt(value = TomlToken(_bare = bs), line = start_line, row = start_row)
 }
 
-def private classify_number_or_datetime(data : array<uint8>&; var st : LexState&; var out : TomlTokenAt&) : bool {
+def private classify_number_or_datetime(data : array<uint8>&; var st : LexState&; var out : TomlTokenAt&) : bool {  // nolint:STYLE037,STYLE038 - TOML's number/datetime grammar is one disambiguation ladder
     // Decides whether to lex a numeric / datetime token at st.pos. Returns true if consumed.
-    //
-    // Key vs value ambiguity: the scan may run, then discover the token is
-    // actually a bare key with a numeric prefix (e.g. `2024-01-15`, `123abc`,
-    // `infinity_count`). When the cursor would land on a bare-char
-    // continuation after a numeric/datetime/inf/nan match, we rewind to
-    // `start_pos` and re-emit as `_bare` so the parser sees the full
-    // identifier. Unsigned `inf`/`nan` always emit `_bare` — the parser
-    // re-interprets them as float values at value position, or accepts them
-    // as keys at key position. Signed `+inf`/`-inf`/`+nan`/`-nan` keep
-    // emitting `_float` since `+` is not a bare-key char (those are
-    // unambiguously values).
     let start_line = st.line
     let start_row = st.row
     let n = st.n
@@ -553,12 +536,9 @@ def private classify_number_or_datetime(data : array<uint8>&; var st : LexState&
             rewind_to_bare(data, st, start_pos, start_line, start_row, out)
             return true
         }
-        // F16: `2024-01-15:...` (a stray `:` directly after a date) almost
-        // certainly means the user mis-formatted a date-time. Surface a
-        // dedicated diagnostic instead of letting the parser hit the `:`
-        // as a generic "unexpected character".
+        // F16: `2024-01-15:...` (a stray `:` directly after a date) almost certainly means the user mis-formatted a date-time. Surface a dedicated diagnostic instead of letting the parser hit the `:` as a generic "unexpected character".
         if (st.pos < n && int(data[st.pos]) == ':') {
-            out = TomlTokenAt(value = TomlToken(_error = "':' after date '{s}' — expected 'T' or space before the time at {start_line}:{start_row}"), line = start_line, row = start_row)
+            out = TomlTokenAt(value = TomlToken(_error = "':' after date '{s}' - expected 'T' or space before the time at {start_line}:{start_row}"), line = start_line, row = start_row)
             return true
         }
         out = TomlTokenAt(value = TomlToken(_datetime = s), line = start_line, row = start_row)
@@ -635,10 +615,6 @@ def private classify_number_or_datetime(data : array<uint8>&; var st : LexState&
             advance(data, st); advance(data, st)
             var tail : array<uint8>
             // Per TOML 1.0: `_` is only allowed between two valid digits.
-            // Leading (`0x_ff`), trailing (`0xff_`), and doubled (`0xff__aa`)
-            // underscores are rejected. If the run continues into bare-char
-            // territory (e.g. `0xff_oops`), the bare-key fallback below
-            // catches it as a single bare identifier instead.
             while (st.pos < n) {
                 let c = int(data[st.pos])
                 if (is_hex(c)) {
@@ -679,8 +655,6 @@ def private classify_number_or_datetime(data : array<uint8>&; var st : LexState&
         }
     }
     // Decimal integer or float. Per TOML 1.0: `_` must sit between two digits.
-    // If the run continues into bare-char territory, rewind to a bare-key
-    // scan rather than emit a number-syntax error.
     var saw_digit = false
     while (st.pos < n) {
         let c = int(data[st.pos])
@@ -741,8 +715,7 @@ def private classify_number_or_datetime(data : array<uint8>&; var st : LexState&
             push(buf, data[st.pos])
             advance(data, st)
         }
-        // Exponent must have at least one digit; track separately from mantissa
-        // so `1e` / `1e+` (where the mantissa already saw a digit) fail-fast.
+        // Exponent must have at least one digit; track separately from mantissa so `1e` / `1e+` (where the mantissa already saw a digit) fail-fast.
         var exp_saw_digit = false
         while (st.pos < n) {
             let c = int(data[st.pos])
@@ -774,9 +747,6 @@ def private classify_number_or_datetime(data : array<uint8>&; var st : LexState&
         return true
     }
     // Bare-key fallback: '123abc' — digits followed by alpha/dash/underscore.
-    // Only applies to unsigned tokens; signed '+'/'-' aren't valid bare-key prefixes
-    // (well, '-' is, but a '-'-prefix bare key wouldn't enter classify_* since the
-    // next_token gate routes those to the bare-key path).
     if (st.pos < n && is_bare_char(int(data[st.pos]))) {
         rewind_to_bare(data, st, start_pos, start_line, start_row, out)
         return true
@@ -790,7 +760,7 @@ def private classify_number_or_datetime(data : array<uint8>&; var st : LexState&
     return true
 }
 
-def private next_token(data : array<uint8>&; var st : LexState&; var out : TomlTokenAt&) : bool {
+def private next_token(data : array<uint8>&; var st : LexState&; var out : TomlTokenAt&) : bool {  // nolint:STYLE038 - one lexer dispatch, one arm per token kind
     // Skip inline whitespace + comments. Newline IS a token.
     while (st.pos < st.n) {
         let c = int(data[st.pos])
@@ -865,9 +835,7 @@ def private next_token(data : array<uint8>&; var st : LexState&; var out : TomlT
     if (is_number(c) || c == '+' || c == '-'
             || (c == 'i' && starts_with_at(data, st.pos, "inf"))
             || (c == 'n' && starts_with_at(data, st.pos, "nan"))) {
-        // For sign-prefixed forms, lookahead: '+'/'-' must be followed by digit/inf/nan to
-        // start a numeric value. Otherwise it's a bare key starting with '-' (valid per
-        // TOML ABNF) or a stray '+' (illegal — '+' isn't a bare-key char).
+        // For sign-prefixed forms, lookahead: '+'/'-' must be followed by digit/inf/nan to start a numeric value. Otherwise it's a bare key starting with '-' (valid per TOML ABNF) or a stray '+' (illegal — '+' isn't a bare-key char).
         if (c == '+' || c == '-') {
             let nx = peek(data, st, 1)
             let is_value_continuation = (is_number(nx) ||
@@ -958,7 +926,6 @@ def private get_array(var v : JsonValue?) : array<JsonValue?>& {
 
 def private ensure_table(var parent : JsonValue?; key : string; var err : string&; at_line, at_row : int) : JsonValue? {
     // Find or create a child table named `key` in `parent`'s _object.
-    // Returns null on conflict (existing non-table value at that key).
     var tab & = get_object(parent)
     if (key_exists(tab, key)) {
         var child : JsonValue? = tab[key]
@@ -1020,12 +987,6 @@ def private parse_key_path(var ts : TomlTokenStream&; var out : array<string>&; 
 
 def private extract_key_segment(tk : TomlTokenAt; var out : array<string>&; var err : string&) : bool {
     // Accept any lexical form whose source text is a valid TOML bare key:
-    //  - `_bare`     ordinary alphanumeric / dash / underscore identifier
-    //  - `_string`   quoted (basic or literal) key, already unescaped
-    //  - `_integer`  digit-only key (e.g. `123 = 1`)
-    //  - `_datetime` date-shaped key (e.g. `2024-01-15 = 1`) — the lexer
-    //    recognized the date shape; per TOML ABNF the same chars are a
-    //    valid bare key, so we use the raw lexical form.
     if (tk.value is _bare) {
         out |> push(tk.value as _bare)
         return true
@@ -1119,10 +1080,7 @@ def private parse_inline_array(var ts : TomlTokenStream&; var err : string&) : J
 }
 
 def private parse_inline_table(var ts : TomlTokenStream&; var err : string&) : JsonValue? {
-    // Inline-table-internal closure tracking (F6): once a key inside the literal
-    // is bound to a nested `{...}` value, later dotted keys in the SAME literal
-    // cannot walk through it. Pointer-keyed for the same reason as the
-    // top-level set in TomlState.
+    // Inline-table-internal closure tracking (F6): once a key inside the literal is bound to a nested `{...}` value, later dotted keys in the SAME literal cannot walk through it. Pointer-keyed for the same reason as the top-level set in TomlState.
     var tab : table<string; JsonValue?>
     var root : JsonValue? = JV(tab)
     var inline_closed_local : table<uint64>
@@ -1203,26 +1161,17 @@ struct private TomlState {
     //! [a] implicitly creates `a.b`). Per TOML 1.0 these cannot be re-opened by
     //! a later [header] line. Keyed by joined path (path_key).
     dotted_keyed : table<string>
-    //! Tables whose value was assigned by an inline-table literal `{...}`. Per
-    //! TOML 1.0 these are immutable — neither dotted keys nor [header] may
-    //! extend them. Keyed by the JsonValue pointer (so AoT entries are tracked
-    //! distinctly: items[0].b and items[1].b are different pointers).
+    //! Tables whose value was assigned by an inline-table literal `{...}`. Per TOML 1.0 these are immutable — neither dotted keys nor [header] may extend them. Keyed by the JsonValue pointer (so AoT entries are tracked distinctly: items[0].b and items[1].b are different pointers).
     inline_closed : table<uint64>
 }
 
 def private jvkey(p : JsonValue?) : uint64 {
-    // Identity key for an _object node — used to mark inline-table-literal
-    // subtrees as immutable (TomlState.inline_closed). Distinct heap nodes get
-    // distinct keys, so the same logical path under different AoT entries does
-    // NOT collide.
+    // Identity key for an _object node — used to mark inline-table-literal subtrees as immutable (TomlState.inline_closed). Distinct heap nodes get distinct keys, so the same logical path under different AoT entries does NOT collide.
     return intptr(unsafe(reinterpret<void?>(p)))
 }
 
 def private mark_inline_subtree(var closed : table<uint64>&; v : JsonValue?) : void {
-    //! Recursively marks every `_object` JsonValue in `v`'s subtree as
-    //! inline-closed. Caller-supplied target table lets us reuse the walker
-    //! for both top-level state (apply_keyval) and inline-table-internal
-    //! tracking (parse_inline_table).
+    //! Recursively marks every `_object` JsonValue in `v`'s subtree as inline-closed. Caller-supplied target table lets us reuse the walker for both top-level state (apply_keyval) and inline-table-internal tracking (parse_inline_table).
     if (v == null || !(v.value is _object)) return
     let k = jvkey(v)
     if (!key_exists(closed, k)) {
@@ -1251,8 +1200,6 @@ def private path_key(path : array<string>) : string {
 
 def private resolve_header(var state : TomlState&; path : array<string>; is_array_of_tables : bool; var err : string&; at_line, at_row : int) : JsonValue? {
     // Walks `path` inside state.root, creating intermediate tables.
-    // For array-of-tables: appends a new entry at the leaf.
-    // For standard tables: creates (or accepts an existing empty) table at the leaf.
     var cur = state.root
     let n = length(path)
     for (i in range(n - 1)) {
@@ -1266,13 +1213,12 @@ def private resolve_header(var state : TomlState&; path : array<string>; is_arra
             }
             // F5: header walk cannot descend into an inline-bound table.
             if (existing.value is _object && key_exists(state.inline_closed, jvkey(existing))) {
-                err = "cannot open header [{path |> join(".")}] — '{key}' is an inline table (closed) at {at_line}:{at_row}"
+                err = "cannot open header [{path |> join(".")}] - '{key}' is an inline table (closed) at {at_line}:{at_row}"
                 return null
             }
             if (existing.value is _array) {
-                // Array of tables — descend into last entry (TOML semantics: super-path of
-                // [[a]] is the LAST [[a]] element).
-                var arr & = get_array(existing)                    // nolint:LINT003 — index must yield mutable for `cur = ...`
+                // Array of tables — descend into last entry (TOML semantics: super-path of [[a]] is the LAST [[a]] element).
+                var arr & = get_array(existing)                    // nolint:LINT003,LINT019 — index must yield mutable for `cur = ...`; LINT003 fires only in downstream compiles
                 if (empty(arr)) {
                     err = "empty array-of-tables traversal at '{key}'"
                     return null
@@ -1305,7 +1251,7 @@ def private resolve_header(var state : TomlState&; path : array<string>; is_arra
         }
         // F5: header cannot open an inline-bound table.
         if (key_exists(state.inline_closed, jvkey(existing))) {
-            err = "cannot open header [{path |> join(".")}] — '{leaf}' is an inline table (closed) at {at_line}:{at_row}"
+            err = "cannot open header [{path |> join(".")}] - '{leaf}' is an inline table (closed) at {at_line}:{at_row}"
             return null
         }
         let pk = path_key(path)
@@ -1313,11 +1259,9 @@ def private resolve_header(var state : TomlState&; path : array<string>; is_arra
             err = "duplicate table header [{path |> join(".")}] at {at_line}:{at_row}"
             return null
         }
-        // F4: header cannot re-open a table that was implicitly created by a
-        // dotted-key statement. (Per TOML 1.0: "using dotted keys to redefine
-        // tables already defined ... is not allowed", same in reverse.)
+        // F4: header cannot re-open a table that was implicitly created by a dotted-key statement. (Per TOML 1.0: "using dotted keys to redefine tables already defined ... is not allowed", same in reverse.)
         if (key_exists(state.dotted_keyed, pk)) {
-            err = "cannot open header [{path |> join(".")}] — table already implicitly defined by dotted key at {at_line}:{at_row}"
+            err = "cannot open header [{path |> join(".")}] - table already implicitly defined by dotted key at {at_line}:{at_row}"
             return null
         }
         state.explicitly_defined |> insert(pk)
@@ -1331,14 +1275,7 @@ def private resolve_header(var state : TomlState&; path : array<string>; is_arra
 }
 
 def private apply_keyval(var state : TomlState&; var current : JsonValue?; path : array<string>; var v : JsonValue?; var err : string&; at_line, at_row : int) : bool {
-    // Walks `path` inside `current` (the active section's table). Each
-    // intermediate step:
-    //   - F5: rejects if the existing sub-table was bound by an inline literal.
-    //   - F4: marks the prefix path (current section + path[0..i]) as
-    //     implicitly created by a dotted key, so a later [header] line cannot
-    //     re-open it.
-    // The leaf write rejects duplicate keys and, when `v` is an inline-table
-    // _object literal, marks the assigned subtree as inline-closed (F5/F6).
+    // Walks `path` inside `current` (the active section's table). Each intermediate step:
     var holder = current
     let n = length(path)
     for (i in range(n - 1)) {
@@ -1378,7 +1315,7 @@ def private apply_keyval(var state : TomlState&; var current : JsonValue?; path 
     return true
 }
 
-def public read_toml(text : string implicit; var error : string&) : JsonValue? {
+def public read_toml(text : string implicit; var error : string&) : JsonValue? {  // nolint:STYLE037,STYLE038 - the table/array-of-tables/key-path state machine is one document walk
     //! Reads TOML 1.0 from ``text``. On parse failure returns ``null`` and
     //! populates ``error``; on success returns the root table as a
     //! ``JsonValue?`` (``_object`` variant).
@@ -1481,4 +1418,247 @@ def public read_toml(text : string implicit; var error : string&) : JsonValue? {
         }
     }
     return state.root
+}
+
+// ---------------------------------------------------------------------------
+// TOML writer
+// ---------------------------------------------------------------------------
+
+def private write_toml_string(var writer : StringBuilderWriter; s : string) {
+    // hand-rolled escaper: builtin escapeString emits \v (illegal in TOML) and leaves 0x7f raw
+    write_char(writer, '"')
+    peek_data(s) $(bytes) {
+        for (b in bytes) {
+            let c = int(b)
+            if (c == '"') {
+                write(writer, "\\\"")
+            } elif (c == '\\') {
+                write(writer, "\\\\")
+            } elif (c == 8) {
+                write(writer, "\\b")
+            } elif (c == 9) {
+                write(writer, "\\t")
+            } elif (c == 10) {
+                write(writer, "\\n")
+            } elif (c == 12) {
+                write(writer, "\\f")
+            } elif (c == 13) {
+                write(writer, "\\r")
+            } elif (c < 32 || c == 127) {
+                let hi = (c >> 4) & 15
+                let lo = c & 15
+                write(writer, "\\u00")
+                write_char(writer, hi < 10 ? '0' + hi : 'a' + hi - 10)
+                write_char(writer, lo < 10 ? '0' + lo : 'a' + lo - 10)
+            } else {
+                write_char(writer, c)
+            }
+        }
+    }
+    write_char(writer, '"')
+}
+
+def private write_toml_key(var writer : StringBuilderWriter; k : string) {
+    var bare = !empty(k)
+    peek_data(k) $(bytes) {
+        for (b in bytes) {
+            if (!is_bare_char(int(b))) {
+                bare = false
+            }
+        }
+    }
+    if (bare) {
+        write(writer, k)
+    } else {
+        write_toml_string(writer, k)
+    }
+}
+
+def private write_section_header(var writer : StringBuilderWriter; path : array<string>; dbl : bool) {
+    write(writer, dbl ? "[[" : "[")
+    for (i in range(length(path))) {
+        if (i > 0) {
+            write_char(writer, '.')
+        }
+        write_toml_key(writer, path[i])
+    }
+    write(writer, dbl ? "]]\n" : "]\n")
+}
+
+def private write_toml_float(var writer : StringBuilderWriter; v : double) {
+    if (is_nan(v)) {
+        write(writer, "nan")
+    } elif (v == DBL_POS_INF) {
+        write(writer, "inf")
+    } elif (v == DBL_NEG_INF) {
+        write(writer, "-inf")
+    } elif (v != 0.0lf && (abs(v) < 1e-4lf || abs(v) >= 1e17lf)) {
+        // exponent form: fixed-point truncates tiny magnitudes (|v| < ~1e-17 becomes 0.0)
+        var m = fmt(":.17e", v)
+        let e = find(m, "e")
+        if (e > 0) {
+            var mant = slice(m, 0, e) |> rtrim("0")
+            if (mant |> ends_with(".")) {
+                mant += "0"
+            }
+            m = mant + slice(m, e)
+        }
+        write(writer, m)
+    } else {
+        // keep a trailing digit after '.' so the value re-reads as a float, not an integer
+        let base = fmt(":.17f", v) |> rtrim("0")
+        write(writer, base)
+        if (base |> ends_with(".")) {
+            write_char(writer, '0')
+        }
+    }
+}
+
+def private is_table_array(v : JsonValue?) : bool {
+    if (v == null || !(v.value is _array) || empty(v.value as _array)) {
+        return false
+    }
+    for (e in v.value as _array) {
+        if (e == null || !(e.value is _object)) {
+            return false
+        }
+    }
+    return true
+}
+
+def private sorted_keys(tab : table<string; JsonValue?>) : array<string> {
+    var ks : array<string>
+    ks |> reserve(length(tab))
+    for (k in keys(tab)) {
+        ks |> push(k)
+    }
+    ks |> sort() $(a, b) => a < b
+    return <- ks
+}
+
+def private write_toml_inline(var writer : StringBuilderWriter; v : JsonValue?; var path : array<string>; var error : string&) : bool {
+    if (v == null || v.value is _null) {
+        error = "TOML has no null: key '{join(path, ".")}'"
+        return false
+    }
+    if (v.value is _string) {
+        write_toml_string(writer, v.value as _string)
+    } elif (v.value is _longint) {
+        write(writer, v.value as _longint)
+    } elif (v.value is _number) {
+        write_toml_float(writer, v.value as _number)
+    } elif (v.value is _bool) {
+        write(writer, (v.value as _bool) ? "true" : "false")
+    } elif (v.value is _array) {
+        write_char(writer, '[')
+        var idx = 0
+        path |> push("")
+        for (e in v.value as _array) {
+            if (idx > 0) {
+                write(writer, ", ")
+            }
+            path[length(path) - 1] = "{idx}"
+            if (!write_toml_inline(writer, e, path, error)) {
+                return false
+            }
+            idx++
+        }
+        path |> pop()
+        write_char(writer, ']')
+    } elif (v.value is _object) {
+        write_char(writer, '{')
+        var first = true
+        path |> push("")
+        for (k in sorted_keys(v.value as _object)) {
+            write(writer, first ? " " : ", ")
+            first = false
+            write_toml_key(writer, k)
+            write(writer, " = ")
+            path[length(path) - 1] = k
+            if (!write_toml_inline(writer, (v.value as _object)?[k] ?? null, path, error)) {
+                return false
+            }
+        }
+        path |> pop()
+        write(writer, first ? "}" : " }")
+    } else {
+        error = "unsupported value at '{join(path, ".")}'"
+        return false
+    }
+    return true
+}
+
+def private write_toml_table(var writer : StringBuilderWriter; tab : table<string; JsonValue?>; var path : array<string>; var error : string&; var wrote : bool&) : bool {
+    let ks <- sorted_keys(tab)
+    for (k in ks) {
+        let e = tab?[k] ?? null
+        continue if ((e != null && (e.value is _object)) || is_table_array(e))
+        write_toml_key(writer, k)
+        write(writer, " = ")
+        path |> push(k)
+        if (!write_toml_inline(writer, e, path, error)) {
+            return false
+        }
+        path |> pop()
+        write_char(writer, '\n')
+        wrote = true
+    }
+    for (k in ks) {
+        let e = tab?[k] ?? null
+        if (e == null || !(e.value is _object)) {
+            continue
+        }
+        path |> push(k)
+        if (wrote) {
+            write_char(writer, '\n')
+        }
+        write_section_header(writer, path, false)
+        wrote = true
+        if (!write_toml_table(writer, e.value as _object, path, error, wrote)) {
+            return false
+        }
+        path |> pop()
+    }
+    for (k in ks) {
+        let e = tab?[k] ?? null
+        continue if (!is_table_array(e))
+        path |> push(k)
+        for (el in e.value as _array) {
+            if (wrote) {
+                write_char(writer, '\n')
+            }
+            write_section_header(writer, path, true)
+            wrote = true
+            if (!write_toml_table(writer, el.value as _object, path, error, wrote)) {
+                return false
+            }
+        }
+        path |> pop()
+    }
+    return true
+}
+
+[temp_string_result]
+def public write_toml(root : JsonValue?; var error : string&) : string {
+    //! Serializes a ``read_toml``-shaped tree back to TOML 1.0 text: keys sorted per table,
+    //! sub-tables as ``[a.b]`` sections, all-table arrays as ``[[a.b]]``. Date-times round-trip
+    //! as quoted strings (the tree has no date type). Nulls are unrepresentable → ``""`` + ``error``.
+    error = ""
+    if (root == null || !(root.value is _object)) {
+        error = "TOML document must be a table"
+        return ""
+    }
+    var ok = true
+    let st = build_string() $(var writer) {
+        var path : array<string>
+        var wrote = false
+        ok = write_toml_table(writer, root.value as _object, path, error, wrote)
+    }
+    return ok ? st : ""
+}
+
+def public write_toml(root : JsonValue?) : string {
+    //! ``write_toml`` without the error out-param — returns ``""`` on unrepresentable input.
+    var err = ""
+    return write_toml(root, err)
 }

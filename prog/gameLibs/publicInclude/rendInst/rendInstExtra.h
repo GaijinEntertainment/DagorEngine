@@ -86,6 +86,46 @@ inline bool moveRIGenExtra44(riex_handle_t id, mat44f_cref tm, bool moved, bool 
   return moveRIGenExtra43(id, m43, moved, do_not_wait);
 }
 
+// Batches the per-instance bookkeeping of a burst of moves (e.g. moving a whole composit of thousands of
+// sub-entities in the editor). While open, moveRIGenExtra* only records the spatial-grid cells it touches,
+// and every riExtra tiled scene keeps a moved instance in its old tile with only the tile bounds grown, so
+// queries stay conservative; end() rebuilds each recorded cell once, applies the tiled scenes' deferred
+// moves (main thread only) and re-buckets their touched tiles. Ref-counted so nested scopes are safe.
+// Not thread-safe -- intended for the single-threaded editor move path.
+void beginRIExtraBulkUpdate();
+void endRIExtraBulkUpdate();
+bool isRIExtraBulkUpdateInProgress(); // callers may skip per-instance tiled-scene flushes while true
+
+// While set, moveRIGenExtra* takes a moved instance out of the collision grid instead of re-inserting
+// it at every step (the tiled scene still moves it, so it renders). The instance is absent from the
+// grid rather than present at a stale position, so a query can never hit it in the wrong place; it is
+// put back by flushRIExtraGridDefer(), or by the normal add path if the object is recreated.
+// Used while an object is interactively dragged, where its own collision volume is not queried.
+// Not thread-safe -- intended for the single-threaded editor move path, like the bulk update above.
+void setRIExtraDeferGridUpdate(bool defer);
+bool getRIExtraDeferGridUpdate();
+// re-inserts every deferred instance at its current position; deferring stays on, so a drag can flush
+// mid-way. Only setRIExtraDeferGridUpdate(false) or the scope below turns it off.
+void flushRIExtraGridDefer();
+// defer is "should this scope defer", not "force the flag": false does nothing at all, and the
+// destructor restores what it found, so an inner scope never ends an outer one's deferral
+struct ScopedRIExtraDeferGridUpdate
+{
+  bool prev;
+  ScopedRIExtraDeferGridUpdate(bool defer) : prev(getRIExtraDeferGridUpdate())
+  {
+    if (defer)
+      setRIExtraDeferGridUpdate(true);
+  }
+  ~ScopedRIExtraDeferGridUpdate() { setRIExtraDeferGridUpdate(prev); }
+};
+
+struct ScopedRIExtraBulkUpdate
+{
+  ScopedRIExtraBulkUpdate() { beginRIExtraBulkUpdate(); }
+  ~ScopedRIExtraBulkUpdate() { endRIExtraBulkUpdate(); }
+};
+
 using riex_render_info_t = uint32_t;
 __forceinline rendinst::riex_render_info_t make_riex_render_info_handle(uint32_t scene, uint32_t node_index)
 {
@@ -97,6 +137,8 @@ void setCASRIGenExtraData(riex_render_info_t id, uint32_t start, const uint32_t 
   uint32_t cnt); // this would set new data only if it was equal to wasdata
 void setRIGenExtraNodeShadowsVisibility(riex_render_info_t id, bool visible);
 const mat44f &getRIGenExtraTiledSceneNode(rendinst::riex_render_info_t);
+
+void setRIGenExtraRenderVisible(riex_handle_t id, bool visible);
 
 bool isRiGenExtraValid(riex_handle_t id);
 bool delRIGenExtra(riex_handle_t id); // return true if ri exta was actually deleted and false otherwise

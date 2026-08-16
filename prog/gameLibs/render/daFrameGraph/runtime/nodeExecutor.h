@@ -21,8 +21,8 @@
 namespace dafg
 {
 
-void activate_untracked_texture(BaseTexture *tex, uint32_t cflags, const d3d::TextureBarrier &first_use,
-  ResourceActivationAction action, const ResourceClearValue &clear_value);
+void activate_untracked_texture(BaseTexture *tex, const d3d::TextureBarrier &first_use, ResourceActivationAction action,
+  const ResourceClearValue &clear_value);
 
 class NodeExecutor
 {

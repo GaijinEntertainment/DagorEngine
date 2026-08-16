@@ -21,6 +21,10 @@ verified against csq 1.0.37 behavior, not just docs.
 
 ## Bindings and declarations
 
+- `const` for compile-time scalar constants (folded into bytecode, no lookup;
+  also usable inline inside expressions). `global const` / `global enum` when
+  it must be visible across the module boundary. Prefer const for literals and immutable data.
+  Functions can be const if they do not reference any outer variables.
 - `let` = non-reassignable binding, `local` = reassignable. Default to `let`;
   use `local` only when you actually reassign. `let t = {}` still allows
   `t.x <- 1` (the binding is fixed, the object stays mutable; use `freeze()`
@@ -28,12 +32,7 @@ verified against csq 1.0.37 behavior, not just docs.
 - `let name;` forward-declares a binding; a later statement of the *same* scope
   must define it exactly once. Reading it earlier is an error except from a
   nested closure, which sees null until the definition runs.
-- Declare functions as `function foo() {}`. `let function foo() {}` and
-  `let foo = function foo() {}` mean the same thing and are legacy style; plain
-  `function foo() {}` is already a non-reassignable declaration.
-- `const` for compile-time scalar constants (folded into bytecode, no lookup;
-  also usable inline inside expressions). `global const` / `global enum` when
-  it must be visible across the module boundary.
+- Declare functions as `function foo() {}`. This is a non-reassignable declaration.
 - `static <expr>` evaluates once and memoizes; expression must be const-like
   (w316, w317).
 - Mark side-effect-free functions `function [pure] f()` / `@[pure](x) ...`:
@@ -98,6 +97,10 @@ verified against csq 1.0.37 behavior, not just docs.
   analyzer tracks nullability (w200/208/210/220/248/339 family) and useless
   checks (w285 expr-cannot-be-null).
 - Priority trap (w240): `a ?? b > c` parses as `a ?? (b > c)`; parenthesize.
+- `.` and `?.` fall back to the type methods, so a missing slot named like one
+  reads as a function: `params?.filter` is `Table.filter`, not null (same for
+  `map`, `len`, `keys`, ...). Indexing does not: use `key in t` and `t[key]`
+  to read caller-supplied fields.
 - Default param values evaluate at call time, and a mutable default (table or
   array) is shared between calls: never mutate it (w335).
 

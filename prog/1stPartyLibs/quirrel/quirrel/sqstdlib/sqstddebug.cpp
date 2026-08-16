@@ -124,7 +124,7 @@ static SQInteger debug_doc(HSQUIRRELVM v)
             key._unVal.pUserPointer = (void *)_closure(subject)->_function;
             break;
         case OT_NATIVECLOSURE:
-            key._unVal.pUserPointer = (void *)_nativeclosure(subject)->_function;
+            key._unVal.pUserPointer = (void *)_nativeclosure(subject);
             break;
         case OT_INSTANCE:
             key._unVal.pUserPointer = (void *)_instance(subject)->_class;
@@ -200,10 +200,10 @@ static SQInteger debug_get_function_info_table(HSQUIRRELVM v)
         case OT_NATIVECLOSURE: {
             native = true;
 
-            key._unVal.pUserPointer = (void *)_nativeclosure(subject)->_function;
+            key = sq_docstring_key(_nativeclosure(subject));
             _table(_ss(v)->doc_objects)->Get(key, docObject);
 
-            key._unVal.pUserPointer = (void *)((size_t)(void *)_nativeclosure(subject)->_function ^ ~size_t(0));
+            key = sq_declstring_key(_nativeclosure(subject));
             if (_table(_ss(v)->doc_objects)->Get(key, value)) {
                 SQInteger errorPos = -1;
                 SQObjectPtr errorString;
@@ -334,7 +334,7 @@ static SQInteger debug_get_function_decl_string(HSQUIRRELVM v)
         }
 
         case OT_NATIVECLOSURE:
-            key._unVal.pUserPointer = (void *)((size_t)(void *)_nativeclosure(subject)->_function ^ ~size_t(0));
+            key = sq_declstring_key(_nativeclosure(subject));
             if (_table(_ss(v)->doc_objects)->Get(key, value)) {
                 sq_pushobject(v, value);
                 return 1;

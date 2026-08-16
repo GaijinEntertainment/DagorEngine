@@ -66,6 +66,7 @@
 #include <drv/3d/dag_viewScissor.h>
 #include <3d/dag_nvFeatures.h>
 #include <render/dasModules/bvh.h>
+#include <generic/dag_sort.h>
 
 // To reduce shader variants these got assumed in raytracing.blk
 // CONSOLE_BOOL_VAL("raytracing", rtr_shadow, false, "Also controls debug view!");
@@ -93,6 +94,7 @@ CONSOLE_BOOL_VAL("raytracing", prepare_ri_extra_job_on_previous_frame, true);
 CONSOLE_BOOL_VAL("raytracing", delay_PUFD, true);
 CONSOLE_FLOAT_VAL("raytracing", animate_all_animchars_range, 30);
 CONSOLE_BOOL_VAL("raytracing", rtr_use_prev_frame_sample, true);
+CONSOLE_BOOL_VAL("raytracing", ptgi_use_prev_frame_sample, true);
 CONSOLE_BOOL_VAL("raytracing", only_impostors_optimization, true);
 CONSOLE_FLOAT_VAL("raytracing", grass_range, 32);
 CONSOLE_FLOAT_VAL_MINMAX("raytracing", grass_fraction_to_keep, 0.25, 0.01, 1);
@@ -104,13 +106,17 @@ CONSOLE_FLOAT_VAL("rt_speed", airplane_detection_speed, 20);
 CONSOLE_FLOAT_VAL("rt_speed", airplane_cockpit_radius, 5);
 
 CONSOLE_BOOL_VAL("raytracing", bvh_mem_overlay, false);
+CONSOLE_INT_VAL("raytracing", bvh_max_skinned_memory_mb, -1, -1, INT_MAX);
+CONSOLE_FLOAT_VAL_MINMAX("raytracing", bvh_animchar_lod_dist_mul, 1, 1, 4, "Only applies to objects failing frustum culling.");
+
+#define DENOISER_VALIDATION DAGOR_DBGLEVEL > 0 && _TARGET_PC
 
 // TODO move these to entity
 static bvh::ContextId bvhRenderingContextId;
 static BVHConnection *fxBvhConnection = nullptr;
 static BVHConnection *smokeTracersBvhConnection = nullptr;
 static bool cablesChanged = false;
-static dynrend::ContextId bvhDynmodelCtx = dynrend::ContextId::INVALID;
+static dynrend::ContextId bvhDynmodelCtx = dynrend::ContextId::Invalid;
 static void bvh_iterate_over_animchars(
   dynrend::BVHIterateOneInstanceCallback iterate_one_instance, const Point3 &view_position, void *user_data);
 static bool rigen_cull_dist_was_increased = false;
@@ -121,7 +127,22 @@ static BVHInstanceMapper *dagdpInstanceMapper = nullptr;
 namespace var
 {
 static ShaderVariableInfo rtr_depth_mode("rtr_depth_mode", true);
-};
+static ShaderVariableInfo rtr_use_prev_frame_sample("rtr_use_prev_frame_sample", true);
+static ShaderVariableInfo rtr_is_binocular("rtr_is_binocular", true);
+static ShaderVariableInfo ptgi_use_prev_frame_sample("ptgi_use_prev_frame_sample", true);
+static ShaderVariableInfo prev_zn_zfar("prev_zn_zfar", true);
+static ShaderVariableInfo bvh_usable("bvh_usable", true);
+static ShaderVariableInfo bvh_instance_data_buffer("bvh_instance_data_buffer", true);
+static ShaderVariableInfo bvh_instance_data_buffer_cur_offset("bvh_instance_data_buffer_cur_offset", true);
+static ShaderVariableInfo bvh_additional_impostor_mip_bias("bvh_additional_impostor_mip_bias", true);
+static ShaderVariableInfo bvh_tan_pixel_angular_radius("bvh_tan_pixel_angular_radius", true);
+static ShaderVariableInfo bvh_max_ahs_calls("bvh_max_ahs_calls", true);
+static ShaderVariableInfo sun_dir_for_shadows("sun_dir_for_shadows", true);
+static ShaderVariableInfo water_rt_frame_index("water_rt_frame_index", true);
+static ShaderVariableInfo water_rt_output_mode("water_rt_output_mode", true);
+static ShaderVariableInfo glass_rtr_shadow("glass_rtr_shadow", true);
+static ShaderVariableInfo burnt_tank_camo("burnt_tank_camo", true);
+} // namespace var
 
 enum class RTRMode
 {
@@ -445,6 +466,9 @@ static void initBVH()
     additionalSettings.ommDataArrayBudget = dgs_get_settings()->getBlockByNameEx("graphics")->getInt("bvhOmmDataArrayBudget", 0);
     additionalSettings.retainOmmBakeResults =
       dgs_get_settings()->getBlockByNameEx("graphics")->getBool("bvhRetainOmmBakeResults", false);
+    additionalSettings.strictAssetChecks = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("bvhStrictAssetChecks", false);
+    bvh_max_skinned_memory_mb = dgs_get_settings()->getBlockByNameEx("graphics")->getInt("bvhMaxSkinnedMemoryMB", -1);
+    bvh_animchar_lod_dist_mul = dgs_get_settings()->getBlockByNameEx("graphics")->getReal("bvhAnimcharLodDistMul", 1);
     bvh::init(bvh::process_elem, nullptr, additionalSettings);
     bvhRenderingContextId = bvh::create_context("Rendering", static_cast<bvh::Features>(features),
       static_cast<bvh::Features>(BVH_FULL_MESH_DYNMODEL_FEATURES));
@@ -492,8 +516,6 @@ static void closeRTFeatures()
   denoiser::teardown();
 }
 
-static ShaderVariableInfo bvh_usableVarId = ShaderVariableInfo("bvh_usable", true);
-
 static void closeBVH(bool device_reset = false)
 {
   if (bvhRenderingContextId)
@@ -505,7 +527,7 @@ static void closeBVH(bool device_reset = false)
     fxBvhConnection = nullptr;
     smokeTracersBvhConnection = nullptr;
     dagdpInstanceMapper = nullptr;
-    ShaderGlobal::set_int(bvh_usableVarId, 0);
+    ShaderGlobal::set_int(var::bvh_usable, 0);
     toggle_rtsm_dynamic(false);
   }
 }
@@ -681,6 +703,7 @@ bool is_rr_enabled() { return get_resolved_rt_settings().isRayReconstructionEnab
 bool is_bvh_dagdp_enabled() { return get_resolved_rt_settings().isDagdpEnabled; }
 
 void draw_rtr_validation() { rtr::render_validation_layer(); }
+void draw_ptgi_validation() { ptgi::render_validation_layer(); }
 bool should_delay_pufd_until_bvh_jobs_done() { return is_bvh_enabled() && delay_PUFD; }
 
 static void (*on_bvh_parallel_jobs_finished_cb)() = nullptr;
@@ -844,7 +867,7 @@ static void bvh_start_before_render_jobs_es(
       }
     }
   }
-  ShaderGlobal::set_int(bvh_usableVarId, bvhBuildingCountdown < 0 ? 1 : 0);
+  ShaderGlobal::set_int(var::bvh_usable, bvhBuildingCountdown < 0 ? 1 : 0);
 }
 
 ECS_TAG(render)
@@ -876,9 +899,6 @@ static void update_fx_for_bvh()
   fxBvhConnection->done();
 }
 
-static ShaderVariableInfo bvh_instance_data_buffer_cur_offsetVarId("bvh_instance_data_buffer_cur_offset", true);
-static ShaderVariableInfo bvh_instance_data_bufferVarId("bvh_instance_data_buffer", true);
-
 static bool bvhDynmodelDataReady = false;
 
 static void upload_dynmodel_instance_data()
@@ -890,8 +910,8 @@ static void upload_dynmodel_instance_data()
     return;
   D3DRESID bufId = dynrend::get_context_buffer_id(bvhDynmodelCtx);
   int bufPos = dynrend::get_context_buffer_pos(bvhDynmodelCtx);
-  ShaderGlobal::set_buffer(bvh_instance_data_bufferVarId, bufId);
-  ShaderGlobal::set_int(bvh_instance_data_buffer_cur_offsetVarId, bufPos);
+  ShaderGlobal::set_buffer(var::bvh_instance_data_buffer, bufId);
+  ShaderGlobal::set_int(var::bvh_instance_data_buffer_cur_offset, bufPos);
   static_cast<const bvh::SkinnedVertexProcessorBatched &>(bvh::ProcessorInstances::getSkinnedVertexProcessorBatched())
     .instanceDataBaseOffset = bufPos;
 }
@@ -946,10 +966,6 @@ void bvh_update_instances(
   rigen_cull_dist_was_increased = false; // Avoid state being stuck when shooter cam is not used next frame
 }
 
-static ShaderVariableInfo bvh_additional_impostor_mip_biasVarId = ShaderVariableInfo("bvh_additional_impostor_mip_bias", true);
-static ShaderVariableInfo bvh_tan_pixel_angular_radiusVarId = ShaderVariableInfo("bvh_tan_pixel_angular_radius", true);
-static ShaderVariableInfo bvh_max_ahs_callsVarId = ShaderVariableInfo("bvh_max_ahs_calls", true);
-
 static dafg::NodeHandle makeBVHUpdateNode()
 {
   if (!is_bvh_enabled())
@@ -994,9 +1010,9 @@ static dafg::NodeHandle makeBVHUpdateNode()
       ShaderGlobal::set_int(rt_debug_rt_shadowVarId, rtr_shadow ? 1 : 0);
       ShaderGlobal::set_int(rt_debug_use_csmVarId, rtr_use_csm ? 1 : 0);
       float tanPixelAngularRadius = cameraHndl.ref().jitterPersp.hk * tan(0.5f / resolution.get().x);
-      ShaderGlobal::set_float(bvh_additional_impostor_mip_biasVarId, additional_impostor_mip_bias);
-      ShaderGlobal::set_float(bvh_tan_pixel_angular_radiusVarId, tanPixelAngularRadius);
-      ShaderGlobal::set_int(bvh_max_ahs_callsVarId, max_ahs_calls);
+      ShaderGlobal::set_float(var::bvh_additional_impostor_mip_bias, additional_impostor_mip_bias);
+      ShaderGlobal::set_float(var::bvh_tan_pixel_angular_radius, tanPixelAngularRadius);
+      ShaderGlobal::set_int(var::bvh_max_ahs_calls, max_ahs_calls);
       rtWaterHndl.ref() = is_rt_water_enabled();
       bvh::start_frame();
       bvh::update_terrain(bvhRenderingContextId, Point2::xz(cameraPos));
@@ -1065,7 +1081,7 @@ struct RtTexturesDescriptors
     RtTexturesDescriptors res;
 
     rtr::get_required_persistent_texture_descriptors(res.persistentTextures);
-#if DAGOR_DBGLEVEL > 0
+#if DENOISER_VALIDATION
     res.persistentTextures[::denoiser::ReflectionDenoiser::TextureNames::rtr_validation] = {};
 #endif
     rtr::get_required_transient_texture_descriptors(res.transientTextures);
@@ -1412,8 +1428,6 @@ static dafg::NodeHandle makeDenoiserPrepareNode(RTPersistentTexturesECS &rt_pers
     });
 }
 
-static ShaderVariableInfo sun_dir_for_shadowsVarId = ShaderVariableInfo("sun_dir_for_shadows", true);
-
 static eastl::array<dafg::NodeHandle, 3> makeRTSMNode(RTPersistentTexturesECS &rt_persistent_textures)
 {
   rt_persistent_textures.clear(RTPersistentTexturesECS::Type::RTSM);
@@ -1443,7 +1457,7 @@ static eastl::array<dafg::NodeHandle, 3> makeRTSMNode(RTPersistentTexturesECS &r
     return [ctxHndl, textureMaps = eastl::move(textureMaps)] {
       Color4 sunDirC = ShaderGlobal::get_float4(from_sun_directionVarId);
       Point3 sunDir = Point3(sunDirC.r, sunDirC.g, sunDirC.b);
-      ShaderGlobal::set_float4(sun_dir_for_shadowsVarId, sunDir); // For WT compatibility
+      ShaderGlobal::set_float4(var::sun_dir_for_shadows, sunDir); // For WT compatibility
       textureMaps->clearTransient();
       denoiser::TexMap textures = textureMaps->resolveToPair();
 
@@ -1535,10 +1549,6 @@ dafg::NodeHandle make_rtsm_dynamic_node()
   });
 }
 
-static ShaderVariableInfo prev_zn_zfarVarId = ShaderVariableInfo("prev_zn_zfar", true);
-static ShaderVariableInfo rtr_use_prev_frame_sampleVarId = ShaderVariableInfo("rtr_use_prev_frame_sample", true);
-static ShaderVariableInfo rtr_is_binocularVarId = ShaderVariableInfo("rtr_is_binocular", true);
-
 template <typename Callable>
 static void bvh_check_is_binocular_ecs_query(ecs::EntityManager &manager, Callable c);
 
@@ -1560,7 +1570,7 @@ static eastl::array<dafg::NodeHandle, 3> makeRTRNodes(RTPersistentTexturesECS &r
   denoiser::TexInfoMap persistentTextures;
   rtr::get_required_persistent_texture_descriptors(persistentTextures);
 
-#if DAGOR_DBGLEVEL > 0
+#if DENOISER_VALIDATION
   // TODO make this created and destroyed dynamically!
   auto &validation = persistentTextures[::denoiser::ReflectionDenoiser::TextureNames::rtr_validation];
   int width, height;
@@ -1639,14 +1649,14 @@ static eastl::array<dafg::NodeHandle, 3> makeRTRNodes(RTPersistentTexturesECS &r
     return [cameraHndl, prevCameraHndl](const dafg::multiplexing::Index &multiplexing_index) {
       camera_in_camera::ApplyPostfxState camcam{multiplexing_index, cameraHndl.ref(), prevCameraHndl.ref()};
 
-      ShaderGlobal::set_float4(prev_zn_zfarVarId, prevCameraHndl.ref().znear, prevCameraHndl.ref().zfar);
-      ShaderGlobal::set_int(rtr_use_prev_frame_sampleVarId, rtr_use_prev_frame_sample ? 1 : 0);
+      ShaderGlobal::set_float4(var::prev_zn_zfar, prevCameraHndl.ref().znear, prevCameraHndl.ref().zfar);
+      ShaderGlobal::set_int(var::rtr_use_prev_frame_sample, rtr_use_prev_frame_sample ? 1 : 0);
 
       bool isBinocular = false;
       bvh_check_is_binocular_ecs_query(*g_entity_mgr,
         [&isBinocular](ECS_REQUIRE(ecs::Tag cockpitEntity) ECS_REQUIRE(ecs::EntityId watchedByPlr)
             ecs::EntityId human_binocular__cockpitEid) { isBinocular |= human_binocular__cockpitEid != ecs::INVALID_ENTITY_ID; });
-      ShaderGlobal::set_int(rtr_is_binocularVarId, isBinocular ? 1 : 0);
+      ShaderGlobal::set_int(var::rtr_is_binocular, isBinocular ? 1 : 0);
 
       auto &lights = WRDispatcher::getClusteredLights();
       lights.setOutOfFrustumLightsToShader();
@@ -1813,6 +1823,21 @@ static dafg::NodeHandle makePTGINode(RTPersistentTexturesECS &rt_persistent_text
 
   denoiser::TexInfoMap persistentTextures;
   ptgi::get_required_persistent_texture_descriptors(persistentTextures);
+
+#if DENOISER_VALIDATION
+  // TODO make this created and destroyed dynamically!
+  auto &validation = persistentTextures[::denoiser::GIDenoiser::TextureNames::gi_validation];
+  int width, height;
+  d3d::get_screen_size(width, height);
+  constexpr auto isHalfRes = true;
+  validation.w = isHalfRes ? width / 2 : width;
+  validation.h = isHalfRes ? height / 2 : height;
+  validation.a = 1;
+  validation.d = 1;
+  validation.cflg = TEXCF_UNORDERED;
+  validation.mipLevels = 1;
+#endif
+
   rt_persistent_textures.allocate(persistentTextures, RTPersistentTexturesECS::Type::PTGI);
 
   return dafg::register_node("ptgi", DAFG_PP_NODE_SRC, [&rt_persistent_textures](dafg::Registry registry) {
@@ -1823,12 +1848,24 @@ static dafg::NodeHandle makePTGINode(RTPersistentTexturesECS &rt_persistent_text
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
     registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
     bvh_read_all_gbuffer_bindlessly(registry);
+
+    auto prevCameraHndl = registry.readBlobHistory<CameraParams>("current_camera").handle();
+    registry.readTextureHistory("prev_frame_tex").atStage(dafg::Stage::CS).bindToShaderVar("prev_frame_tex");
+    registry.read("prev_frame_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("prev_frame_tex_samplerstate");
+    registry.historyFor("far_downsampled_depth").texture().atStage(dafg::Stage::CS).bindToShaderVar("prev_downsampled_far_depth_tex");
+    registry.read("far_downsampled_depth_sampler")
+      .blob<d3d::SamplerHandle>()
+      .bindToShaderVar("prev_downsampled_far_depth_tex_samplerstate");
+
     // TODO remove this from the interface of ptgi::render
     auto closeDepthHndl =
       registry.read("close_depth").texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
     denoiser::TexInfoMap persistentTextures;
     ptgi::get_required_persistent_texture_descriptors(persistentTextures);
+#if DENOISER_VALIDATION
+    persistentTextures[::denoiser::GIDenoiser::TextureNames::gi_validation] = {};
+#endif
     denoiser::TexInfoMap transientTextures;
     ptgi::get_required_transient_texture_descriptors(transientTextures);
     denoiser::TexInfoMap denoiserTextures;
@@ -1836,7 +1873,10 @@ static dafg::NodeHandle makePTGINode(RTPersistentTexturesECS &rt_persistent_text
     auto textureMaps = RTTextureMaps::makeForInitNode(registry, rt_persistent_textures, persistentTextures, transientTextures,
       denoiserTextures, eastl::vector_map<const char *, const char *>{}, true);
 
-    return [cameraHndl, closeDepthHndl, textureMaps = eastl::move(textureMaps)]() {
+    return [cameraHndl, prevCameraHndl, closeDepthHndl, textureMaps = eastl::move(textureMaps)]() {
+      ShaderGlobal::set_float4(var::prev_zn_zfar, prevCameraHndl.ref().znear, prevCameraHndl.ref().zfar);
+      ShaderGlobal::set_int(var::ptgi_use_prev_frame_sample, ptgi_use_prev_frame_sample ? 1 : 0);
+
       auto &lights = WRDispatcher::getClusteredLights();
       lights.setOutOfFrustumLightsToShader();
       textureMaps->clearTransient();
@@ -1848,8 +1888,6 @@ static dafg::NodeHandle makePTGINode(RTPersistentTexturesECS &rt_persistent_text
   });
 }
 
-static ShaderVariableInfo water_rt_frame_indexVarId = ShaderVariableInfo("water_rt_frame_index", true);
-static ShaderVariableInfo water_rt_output_modeVarId = ShaderVariableInfo("water_rt_output_mode", true);
 enum class WaterRTOutputMode
 {
   REGULAR = 0,
@@ -1928,11 +1966,11 @@ dafg::NodeHandle makeWaterRTNode(WaterRenderMode mode)
       auto &lights = WRDispatcher::getClusteredLights();
       lights.setOutOfFrustumLightsToShader();
       static int frameIdx = 0;
-      ShaderGlobal::set_int(water_rt_frame_indexVarId, (frameIdx++) % 32);
-      ShaderGlobal::set_float4(sun_dir_for_shadowsVarId, ShaderGlobal::get_float4(from_sun_directionVarId)); // For WT compatibility
+      ShaderGlobal::set_int(var::water_rt_frame_index, (frameIdx++) % 32);
+      ShaderGlobal::set_float4(var::sun_dir_for_shadows, ShaderGlobal::get_float4(from_sun_directionVarId)); // For WT compatibility
       ShaderGlobal::set_int(rtr_shadowVarId, rtr_shadow ? 1 : 0);
       ShaderGlobal::set_int(rtr_use_csmVarId, rtr_use_csm ? 1 : 0);
-      ShaderGlobal::set_int(water_rt_output_modeVarId,
+      ShaderGlobal::set_int(var::water_rt_output_mode,
         is_rr_enabled() ? eastl::to_underlying(WaterRTOutputMode::RR) : eastl::to_underlying(WaterRTOutputMode::REGULAR));
       IPoint2 res = resHndl.get();
       bvh::bind_resources(bvhRenderingContextId, res.x);
@@ -1953,14 +1991,12 @@ dafg::NodeHandle makeWaterRTNode(WaterRenderMode mode)
   });
 }
 
-static ShaderVariableInfo glass_rtr_shadowVarId = ShaderVariableInfo("glass_rtr_shadow", true);
-
 ECS_TAG(render)
 ECS_ON_EVENT(OnRenderSettingsReady, ChangeRenderFeaturesEarly)
 ECS_TRACK(render_settings__enableRTTRShadows)
 static void set_glass_rtr_shadow_es(const ecs::Event &, bool render_settings__enableRTTRShadows)
 {
-  ShaderGlobal::set_int(glass_rtr_shadowVarId, render_settings__enableRTTRShadows);
+  ShaderGlobal::set_int(var::glass_rtr_shadow, render_settings__enableRTTRShadows);
 }
 
 template <typename Callable>
@@ -2167,6 +2203,8 @@ static void bvh_render_settings_changed_es(const ecs::Event &,
   bool render_settings__useRTRCheckerboardDepth,
   bool render_settings__useRTRSmartDepth)
 {
+  static bool enableAllRTFeatures = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableAllRTFeatures", false);
+
   ResolvedRTSettings oldSettings = get_resolved_rt_settings();
 
   ResolvedRTSettings settings;
@@ -2176,12 +2214,13 @@ static void bvh_render_settings_changed_es(const ecs::Event &,
     isBVHAvailable && (render_settings__enableRTSM == "sun_and_dynamic" || render_settings__enableRTSM == "sun");
   settings.isRTSMDynamicEnabled = isBVHAvailable && render_settings__enableRTSM == "sun_and_dynamic";
   settings.isRTTREnabled = isBVHAvailable && render_settings__enableRTTR;
-  settings.isRTAOEnabled = isBVHAvailable && render_settings__enableRTAO;
-  settings.isRTGIEnabled = isBVHAvailable && render_settings__enableRTGI;
-  settings.isPTGIEnabled = isBVHAvailable && render_settings__enablePTGI && !settings.isRTGIEnabled && !settings.isRTAOEnabled;
   settings.isRTWaterEnabled = isBVHAvailable && render_settings__RTRWater;
   settings.isRayReconstructionEnabled =
     isBVHAvailable && render_settings__antialiasing_mode == "dlss" && render_settings__rayReconstruction && is_rr_supported();
+  settings.isPTGIEnabled =
+    isBVHAvailable && render_settings__enablePTGI && (enableAllRTFeatures || settings.isRayReconstructionEnabled);
+  settings.isRTAOEnabled = isBVHAvailable && render_settings__enableRTAO && !settings.isPTGIEnabled;
+  settings.isRTGIEnabled = isBVHAvailable && render_settings__enableRTGI && enableAllRTFeatures && !settings.isPTGIEnabled;
 
   if (settings.isRayReconstructionEnabled)
     settings.rtrMode = RTRMode::full;
@@ -2266,6 +2305,9 @@ static void bvh_render_settings_changed_es(const ecs::Event &,
   }
 }
 
+bool bvh_do_early_occlusion_culling() { return is_bvh_enabled() && (bvh_animchar_lod_dist_mul > 1 || bvh_max_skinned_memory_mb >= 0); }
+float get_bvh_animchar_lod_dist_mul() { return bvh_animchar_lod_dist_mul; }
+
 ECS_TAG(render)
 ECS_AFTER(animchar_before_render_es)
 ECS_REQUIRE(dafg::NodeHandle bvh__update_node)
@@ -2278,7 +2320,7 @@ static void bvh_update_animchar_es(const UpdateStageInfoBeforeRender &stg)
   TIME_PROFILE(bvh_update_animchar)
   TMatrix4 cullingMatrix = get_bvh_culling_matrix(stg.camPos);
   Frustum frustum = cullingMatrix;
-  preprocess_visible_animchars_in_frustum(stg, frustum, v_ldu_p3(&stg.camPos.x), VISFLG_BVH);
+  preprocess_visible_animchars_in_frustum(stg, frustum, v_ldu_p3(&stg.camPos.x), VISFLG_BVH, get_bvh_animchar_lod_dist_mul());
 }
 
 static void bvh_set_dynmodel_instance_data(int instance_offset)
@@ -2293,12 +2335,38 @@ template <typename Callable>
 static void bvh_iterate_over_animchars_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
 static void bvh_query_camo_params_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
-static ShaderVariableInfo burnt_tank_camoVarId("burnt_tank_camo", true);
+
+struct BVHAnimcharCallbackData
+{
+  const DynamicRenderableSceneInstance *inst = nullptr;
+  const DynamicRenderableSceneResource *res = nullptr;
+  dynrend::PathFilterView filter = dynrend::PathFilterView::NULL_FILTER;
+  uint8_t filterMask = 0;
+  eastl::vector<int, framemem_allocator> offsets;
+  bool animate = false;
+  dynrend::BVHCamoData bvhCamoData;
+
+  float skinPriority; // higher priority gets added first up to a max memory limit
+};
+static dag::Vector<BVHAnimcharCallbackData> animcharCallbackDatas;
 
 static void bvh_iterate_over_animchars(
   dynrend::BVHIterateOneInstanceCallback iterate_one_instance, const Point3 &view_position, void *user_data)
 {
-  TEXTUREID burnt_tank_camo = burnt_tank_camoVarId.get_texture();
+  constexpr animchar_visbits_t FLAGS_TO_TEST =
+    VISFLG_MAIN_VISIBLE | VISFLG_MAIN_AND_SHADOW_VISIBLE | VISFLG_CSM_SHADOW_RENDERED | VISFLG_COCKPIT_VISIBLE;
+
+  vec3f viewPosition = v_ldu(&view_position.x);
+  auto calculate_priority = [&](animchar_visbits_t animchar_visbits, const vec4f &position) {
+    constexpr float VISIBLE_BOOST = 1; // prioritize rasterized objects above all
+    float distSq = v_extract_x(v_length3_sq_x(v_sub(position, viewPosition)));
+    float weight = 1.f / (1.f + distSq); // [0;1]
+    if (animchar_visbits & VISFLG_BVH_MAIN_VISIBLE)
+      weight += VISIBLE_BOOST;
+    return weight;
+  };
+
+  TEXTUREID burntTankCamo = var::burnt_tank_camo.get_texture();
   auto getCamoData = [&](ecs::EntityId eid) {
     dynrend::BVHCamoData bvhCamoData;
     bvh_query_camo_params_ecs_query(*g_entity_mgr, eid,
@@ -2307,73 +2375,114 @@ static void bvh_iterate_over_animchars(
         bvhCamoData.scale = vehicle_camo_scale;
         bvhCamoData.rotation = vehicle_camo_rotation;
       });
-    bvhCamoData.burntCamo = burnt_tank_camo;
+    bvhCamoData.burntCamo = burntTankCamo;
     return bvhCamoData;
   };
-  vec3f viewPosition = v_ldu(&view_position.x);
-  bvh_iterate_over_animchars_ecs_query(*g_entity_mgr,
-    [&](ECS_REQUIRE_NOT(ecs::Tag excludeFromAnimcharRender, ecs::Tag invisibleUpdatableAnimchar) ecs::EntityId eid,
-      const animchar_visbits_t &animchar_visbits_copy_for_bvh, const AnimV20::AnimcharRendComponent &animchar_render,
-      const ecs::Point4List *additional_data, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters,
-      const vec4f &animchar_bsph) {
-      if (!(animchar_visbits_copy_for_bvh & VISFLG_BVH))
-        return;
 
-      const DynamicRenderableSceneInstance *inst = animchar_render.getSceneInstance();
-      G_ASSERT_RETURN(inst != nullptr, );
-      const auto res = inst->getCurSceneResource();
-      if (!res)
-        return;
+  {
+    TIME_PROFILE(iterate_entities)
+    bvh_iterate_over_animchars_ecs_query(*g_entity_mgr,
+      [&](ECS_REQUIRE_NOT(ecs::Tag excludeFromAnimcharRender, ecs::Tag invisibleUpdatableAnimchar) ecs::EntityId eid,
+        const animchar_visbits_t &animchar_visbits_copy_for_bvh, const AnimV20::AnimcharRendComponent &animchar_render,
+        const ecs::Point4List *additional_data, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters,
+        const vec4f &animchar_bsph) {
+        if (!(animchar_visbits_copy_for_bvh & VISFLG_BVH))
+          return;
 
-      auto filter = dynrend::PathFilterView(animchar_render__nodeVisibleStgFilters);
-      G_ASSERT(!animchar_render__nodeVisibleStgFilters || filter.size() == inst->getNodeCount());
+        const DynamicRenderableSceneInstance *inst = animchar_render.getSceneInstance();
+        G_ASSERT_RETURN(inst != nullptr, );
+        const auto res = inst->getCurSceneResource();
+        if (!res)
+          return;
 
-      animchar_additional_data::AnimcharAdditionalDataView additionalDataView =
-        animchar_additional_data::get_optional_data(additional_data);
+        auto filter = dynrend::PathFilterView(animchar_render__nodeVisibleStgFilters);
+        G_ASSERT(!animchar_render__nodeVisibleStgFilters || filter.size() == inst->getNodeCount());
 
-      // Only checking for shadow, because vehicles might be hidden in main rendering in cockpit mode!
-      constexpr uint8_t filterMask = UpdateStageInfoRender::RENDER_SHADOW;
+        animchar_additional_data::AnimcharAdditionalDataView additionalDataView =
+          animchar_additional_data::get_optional_data(additional_data);
 
-      eastl::vector<int, framemem_allocator> offsets;
-      dynrend::add_animchar(bvhDynmodelCtx, ShaderMesh::STG_opaque, ShaderMesh::STG_atest, inst, res, additionalDataView,
-        draw_debug_dynmodels ? dynrend::NeedPreviousMatrices::Yes : dynrend::NeedPreviousMatrices::No, {}, filter, filterMask,
-        dynrend::RenderPriority::DEFAULT, nullptr, TexStreamingContext(0), &offsets);
+        // Only checking for shadow, because vehicles might be hidden in main rendering in cockpit mode!
+        constexpr uint8_t filterMask = UpdateStageInfoRender::RENDER_SHADOW;
 
-      dynrend::BVHCamoData bvhCamoData = getCamoData(eid);
-      bool animate = [viewPosition, animchar_visbits_copy_for_bvh, position = animchar_bsph]() {
-        constexpr animchar_visbits_t FLAGS_TO_TEST =
-          VISFLG_MAIN_VISIBLE | VISFLG_MAIN_AND_SHADOW_VISIBLE | VISFLG_CSM_SHADOW_RENDERED | VISFLG_COCKPIT_VISIBLE;
-        if (static_cast<bool>(animchar_visbits_copy_for_bvh & FLAGS_TO_TEST))
-          return true;
-        if (v_extract_x(v_length3_sq_x(v_sub(position, viewPosition))) < animate_all_animchars_range * animate_all_animchars_range)
-          return true;
-        return false;
-      }();
-      iterate_one_instance(*inst, *res, filter.begin(), filter.size(), filterMask, offsets, bvh_set_dynmodel_instance_data, animate,
-        bvhCamoData, user_data);
-    });
-  BVHAdditionalAnimcharIterateCallback additonalAnimcharCallback =
-    [&](ecs::EntityId eid, DynamicRenderableSceneInstance *inst, DynamicRenderableSceneResource *res,
-      animchar_additional_data::AnimcharAdditionalDataView additional_data_view,
-      const animchar_visbits_t &animchar_visbits_copy_for_bvh) {
-      if (!(animchar_visbits_copy_for_bvh & VISFLG_BVH))
-        return;
-      if (!res)
-        return;
+        auto &data = animcharCallbackDatas.push_back();
 
-      animchar_additional_data::AnimcharAdditionalDataView additionalDataView = additional_data_view;
+        dynrend::add_animchar(bvhDynmodelCtx, ShaderMesh::STG_opaque, ShaderMesh::STG_atest, inst, res, additionalDataView,
+          draw_debug_dynmodels ? dynrend::NeedPreviousMatrices::Yes : dynrend::NeedPreviousMatrices::No, {}, filter, filterMask,
+          dynrend::RenderPriority::DEFAULT, nullptr, TexStreamingContext(0), &data.offsets);
 
-      eastl::vector<int, framemem_allocator> offsets;
-      dynrend::add_animchar(bvhDynmodelCtx, ShaderMesh::STG_opaque, ShaderMesh::STG_atest, inst, res, additionalDataView,
-        draw_debug_dynmodels ? dynrend::NeedPreviousMatrices::Yes : dynrend::NeedPreviousMatrices::No, {},
-        dynrend::PathFilterView::NULL_FILTER, 0, dynrend::RenderPriority::DEFAULT, nullptr, TexStreamingContext(0), &offsets);
+        dynrend::BVHCamoData bvhCamoData = getCamoData(eid);
+        bool animate = [viewPosition, animchar_visbits_copy_for_bvh, position = animchar_bsph]() {
+          if (static_cast<bool>(animchar_visbits_copy_for_bvh & FLAGS_TO_TEST))
+            return true;
+          if (v_extract_x(v_length3_sq_x(v_sub(position, viewPosition))) < animate_all_animchars_range * animate_all_animchars_range)
+            return true;
+          return false;
+        }();
 
-      dynrend::BVHCamoData bvhCamoData = getCamoData(eid);
-      bool animate = static_cast<bool>(
-        animchar_visbits_copy_for_bvh & (VISFLG_MAIN_CAMERA_RENDERED | VISFLG_CSM_SHADOW_RENDERED | VISFLG_COCKPIT_VISIBLE));
-      iterate_one_instance(*inst, *res, nullptr, 0, 0, offsets, bvh_set_dynmodel_instance_data, animate, bvhCamoData, user_data);
-    };
-  g_entity_mgr->broadcastEventImmediate(BVHAdditionalAnimcharIterate(additonalAnimcharCallback));
+        data.inst = inst;
+        data.res = res;
+        data.filter = filter;
+        data.filterMask = filterMask;
+        data.animate = animate;
+        data.bvhCamoData = bvhCamoData;
+        data.skinPriority = calculate_priority(animchar_visbits_copy_for_bvh, animchar_bsph);
+      });
+    BVHAdditionalAnimcharIterateCallback additonalAnimcharCallback =
+      [&](ecs::EntityId eid, DynamicRenderableSceneInstance *inst, DynamicRenderableSceneResource *res,
+        animchar_additional_data::AnimcharAdditionalDataView additional_data_view,
+        const animchar_visbits_t &animchar_visbits_copy_for_bvh) {
+        if (!(animchar_visbits_copy_for_bvh & VISFLG_BVH))
+          return;
+        if (!res)
+          return;
+
+        auto &data = animcharCallbackDatas.push_back();
+
+        dynrend::add_animchar(bvhDynmodelCtx, ShaderMesh::STG_opaque, ShaderMesh::STG_atest, inst, res, additional_data_view,
+          draw_debug_dynmodels ? dynrend::NeedPreviousMatrices::Yes : dynrend::NeedPreviousMatrices::No, {},
+          dynrend::PathFilterView::NULL_FILTER, 0, dynrend::RenderPriority::DEFAULT, nullptr, TexStreamingContext(0), &data.offsets);
+
+        dynrend::BVHCamoData bvhCamoData = getCamoData(eid);
+        bool animate = static_cast<bool>(animchar_visbits_copy_for_bvh & FLAGS_TO_TEST);
+
+        data.inst = inst;
+        data.res = res;
+        data.filter = dynrend::PathFilterView::NULL_FILTER;
+        data.filterMask = 0;
+        data.animate = animate;
+        data.bvhCamoData = bvhCamoData;
+        data.skinPriority = calculate_priority(animchar_visbits_copy_for_bvh, v_ldu_p3_safe(&inst->getNodeWtm(0).getcol(3).x));
+      };
+    g_entity_mgr->broadcastEventImmediate(BVHAdditionalAnimcharIterate(additonalAnimcharCallback));
+  }
+
+  {
+    TIME_PROFILE(sort)
+    stlsort::sort(animcharCallbackDatas.begin(), animcharCallbackDatas.end(),
+      [](auto &a, auto &b) { return a.skinPriority > b.skinPriority; });
+  }
+
+  {
+    TIME_PROFILE(add_entities_to_bvh)
+    dynrend::BVHSkinnedMemoryUsage skinMem = {.max_bytes = int64_t(bvh_max_skinned_memory_mb) * (1ll << 20), .current_bytes = 0ll};
+    for (auto &data : animcharCallbackDatas)
+    {
+      iterate_one_instance(*data.inst, *data.res, data.filter.begin(), data.filter.size(), data.filterMask, data.offsets,
+        bvh_set_dynmodel_instance_data, data.animate, data.bvhCamoData, skinMem, user_data);
+    }
+#if DA_PROFILER_ENABLED
+    if (bvh_max_skinned_memory_mb >= 0)
+    {
+      auto mb = [](int64_t v) { return double(v) / (1024.0 * 1024.0); };
+      float currentMemMB = mb(skinMem.current_bytes);
+      DA_PROFILE_TAG(add_entities_to_bvh, "Skinned Memory: %fMB of %dMB", currentMemMB, bvh_max_skinned_memory_mb.get())
+    }
+#endif
+  }
+
+  // Clear all offsets stored in framemem
+  // Keeping the vector allocated to avoid potential perf spikes
+  animcharCallbackDatas.clear();
 }
 
 static dafg::NodeHandle makeBvhDrawDebugNode()
@@ -2391,7 +2500,7 @@ static dafg::NodeHandle makeBvhDrawDebugNode()
 
     return [cameraHndl, dyn_model_render_passVarId = ::get_shader_variable_id("dyn_model_render_pass"),
              dynamicSceneBlockId = ShaderGlobal::getBlockId("dynamic_scene"), displayResolution]() {
-      if (bvhDynmodelCtx == dynrend::ContextId::INVALID || !bvhDynmodelDataReady)
+      if (!dynrend::is_valid_context(bvhDynmodelCtx) || !bvhDynmodelDataReady)
         return;
       ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
       SCOPE_VIEW_PROJ_MATRIX;

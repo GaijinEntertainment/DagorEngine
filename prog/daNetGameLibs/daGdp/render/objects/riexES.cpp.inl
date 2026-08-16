@@ -76,7 +76,7 @@ static inline void riex_object_group_process_es(
       {
         // Expected to be preloaded by RiexPreload -> GameresPreLoaded flag is applicable
         const auto riAddFlag = rendinst::AddRIFlag::UseShadow | rendinst::AddRIFlag::GameresPreLoaded;
-        const rendinst::ClientRiexPool riExId = rendinst::ClientRiexPool::add(assetName.c_str(), riAddFlag);
+        const rendinst::ClientRiexPoolId riExId = rendinst::ClientRiexPoolId::add(assetName.c_str(), riAddFlag);
         eastl::shared_ptr<GameResource> gameRes(get_game_resource_ex(assetName.c_str(), RendInstGameResClassId), GameResDeleter());
 
         if (!gameRes.get() || !riExId.valid())

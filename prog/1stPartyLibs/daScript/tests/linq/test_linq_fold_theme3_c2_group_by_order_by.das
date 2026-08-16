@@ -1,7 +1,5 @@
 options gen2
 
-require math
-require strings
 require daslib/linq
 require daslib/linq_boost
 require daslib/linq_fold
@@ -9,7 +7,7 @@ require daslib/decs
 require daslib/decs_boost
 require dastest/testing_boost public
 
-// Theme 3 Phase 2 (audit `benchmarks/sql/linq_fold_chain_audit.md` probe C2): the
+// Theme 3 Phase 2 (audit `history/linq_fold/linq_fold_chain_audit.md` probe C2): the
 // canonical SQL `GROUP BY ... ORDER BY COUNT(*)` shape ("brands sorted by
 // frequency"). plan_group_by_core gained an `orderName`/`orderKey` lane that
 // emits an inline-cmp `sort(buf, ...)` right after the to_array buf-fill,
@@ -177,7 +175,7 @@ struct C2Sale {
 def populate_c2_decs() {
     restart()
     // R×4, S×2, T×1 sales → desc by count: R, S, T.
-    create_entities(7) $(eid : EntityId; i : int; var cmp : ComponentMap) {
+    create_entities(7) $ [unused_argument(eid)] (eid : EntityId; i : int; var cmp : ComponentMap) {
         let region = (i < 4 ? "R" : (i < 6 ? "S" : "T"))
         apply_decs_template(cmp, C2Sale(region = region, amount = i * 10))
     }
@@ -222,11 +220,11 @@ struct C2JoinDealer {
 def populate_c2_decs_join() {
     restart()
     // 6 cars: dealer_ids cycle 1,2,3,1,2,3 → 2 cars per dealer.
-    create_entities(6) $(eid : EntityId; i : int; var cmp : ComponentMap) {
+    create_entities(6) $ [unused_argument(eid)] (eid : EntityId; i : int; var cmp : ComponentMap) {
         apply_decs_template(cmp, C2JoinCar(id = i, dealer_id = i % 3 + 1))
     }
     // 3 dealers; ids 1,2 → "north" (4 cars), id 3 → "south" (2 cars).
-    create_entities(3) $(eid : EntityId; i : int; var cmp : ComponentMap) {
+    create_entities(3) $ [unused_argument(eid)] (eid : EntityId; i : int; var cmp : ComponentMap) {
         let region = (i == 2 ? "south" : "north")
         apply_decs_template(cmp, C2JoinDealer(id = i + 1, region = region))
     }

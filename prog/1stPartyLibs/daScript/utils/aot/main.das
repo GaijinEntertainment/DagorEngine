@@ -1,4 +1,11 @@
 options gen2
+// The AOT emitter (daslib/aot_cpp::describeCppTypeEx) recurses once per type-nesting
+// level and runs in THIS driver's context, so its depth is bounded by
+// getContextStackSize() here -- NOT by aot_cpp's own `options stack` (that governs only
+// the direct `daslang -aot` C++ driver, where aot_cpp is the root program). A deeply
+// nested type (#3065) overflows the default ~16KB stack; bump so realistic depths emit.
+// Pathological depths still fail-closed (aot_cpp::fail_on_aot_emit_error).
+options stack = 1_048_576
 require daslib/aot_cpp
 require daslib/aot_standalone
 
@@ -18,6 +25,12 @@ def updateCOP(var cop : CodeOfPolicies; gen2 : bool; gen2_make : bool; aot_lib :
     cop.ignore_shared_modules = false;
     cop.version_2_syntax = gen2;
     cop.gen2_make_syntax = gen2_make;
+    // AOT output is a cross-box artifact — per-box [tune] stamps must not leak into the
+    // generated stubs (the das twin of utils/daScript/main.cpp's -aot policy; without it the
+    // stubs record stamped-world hashes while the AOT-consuming runtime compiles gated →
+    // error[50101] on any function with a [tune] family in its static call graph)
+    cop.tune_frozen = true;
+    cop.no_aliasing = true;
 }
 
 

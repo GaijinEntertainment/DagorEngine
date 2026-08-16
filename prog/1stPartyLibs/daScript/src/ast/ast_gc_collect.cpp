@@ -156,9 +156,9 @@ namespace das {
 
     // ---- ExprAddr: TypeDeclPtr only ----
 
-    void ExprAddr::gc_collect ( gc_root * target, gc_root * from ) {
-        Expression::gc_collect(target, from);
-        if ( funcType ) funcType->gc_collect(target, from);
+    void ExprAddr::gc_collect ( gc_root * to, gc_root * from ) {
+        Expression::gc_collect(to, from);
+        if ( funcType ) funcType->gc_collect(to, from);
     }
 
     // ---- two subexprs ----

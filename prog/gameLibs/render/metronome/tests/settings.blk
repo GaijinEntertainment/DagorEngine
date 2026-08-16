@@ -1,0 +1,10 @@
+video {
+  driver:t="dx12"
+  resolution:t="640x480"
+  mode:t="windowed"
+}
+dx12 {
+  debug {
+    level:i=3
+  }
+}

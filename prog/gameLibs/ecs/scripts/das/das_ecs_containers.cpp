@@ -63,48 +63,48 @@ das::TypeInfo get_type_info(ecs::component_type_t component_type)
     case ecs::ComponentTypeInfo<ecs::string>::type:
     {
       res.type = das::Type::tHandle;
-      das::Module *builintModule = das::Module::require("$");
-      res.annotation_or_name = (das::TypeAnnotation *)builintModule->findAnnotation("das_string");
+      static das::AnnotationInfo ai_das_string("das_string", "$", nullptr, 0);
+      res.annotation_info = &ai_das_string;
       return res;
     }
 
     case ecs::ComponentTypeInfo<ecs::EntityId>::type:
     {
       res.type = das::Type::tHandle;
-      das::Module *ecsModule = das::Module::require("ecs");
-      res.annotation_or_name = (das::TypeAnnotation *)ecsModule->findAnnotation("EntityId");
+      static das::AnnotationInfo ai_EntityId("EntityId", "ecs", nullptr, 0);
+      res.annotation_info = &ai_EntityId;
       return res;
     }
 
     case ecs::ComponentTypeInfo<ecs::Object>::type:
     {
       res.type = das::Type::tHandle;
-      das::Module *ecsModule = das::Module::require("ecs");
-      res.annotation_or_name = (das::TypeAnnotation *)ecsModule->findAnnotation("Object");
+      static das::AnnotationInfo ai_Object("Object", "ecs", nullptr, 0);
+      res.annotation_info = &ai_Object;
       return res;
     }
 
     case ecs::ComponentTypeInfo<ecs::Array>::type:
     {
       res.type = das::Type::tHandle;
-      das::Module *ecsModule = das::Module::require("ecs");
-      res.annotation_or_name = (das::TypeAnnotation *)ecsModule->findAnnotation("Array");
+      static das::AnnotationInfo ai_Array("Array", "ecs", nullptr, 0);
+      res.annotation_info = &ai_Array;
       return res;
     }
 
     case ecs::ComponentTypeInfo<TMatrix>::type:
     {
       res.type = das::Type::tHandle;
-      das::Module *ecsModule = das::Module::require("math");
-      res.annotation_or_name = (das::TypeAnnotation *)ecsModule->findAnnotation("float3x4");
+      static das::AnnotationInfo ai_float3x4("float3x4", "math", nullptr, 0);
+      res.annotation_info = &ai_float3x4;
       return res;
     }
 
     case ecs::ComponentTypeInfo<E3DCOLOR>::type:
     {
       res.type = das::Type::tHandle;
-      das::Module *ecsModule = das::Module::require("DagorMath");
-      res.annotation_or_name = (das::TypeAnnotation *)ecsModule->findAnnotation("E3DCOLOR");
+      static das::AnnotationInfo ai_E3DCOLOR("E3DCOLOR", "DagorMath", nullptr, 0);
+      res.annotation_info = &ai_E3DCOLOR;
       return res;
     }
   }

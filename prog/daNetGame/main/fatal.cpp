@@ -144,12 +144,12 @@ static void enable_breakpad()
 static void statsd_report_fatal(const char *fatal_type)
 {
   if (strcmp(fatal_type, "D3D") != 0)
-    statsd::counter("fatal", 1, {{"type", fatal_type}});
+    statsd::counter("fatal", 1, {{"type", fatal_type}, {"version", get_exe_version_str()}});
   else
   {
     // Note: driver_version, error_code, etc... can't be used here due high cardinality (backend restriction)
     statsd::counter("fatal", 1,
-      {{"type", fatal_type}, {"d3d_driver", d3d::get_driver_name()},
+      {{"type", fatal_type}, {"version", get_exe_version_str()}, {"d3d_driver", d3d::get_driver_name()},
         {"gpu_vendor", d3d_get_vendor_name(d3d::get_driver_desc().info.vendor)}});
   }
 }

@@ -7,6 +7,7 @@ include "../../../../prog/gameLibs/render/omm/shaders/build.blk"
 "@override:source"
 {
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_hwinstance_copy.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_lru_collision_normals.dshl"
   file:t = "depth_hierarchy.dshl"
   file:t = "motion_vrs.dshl"
   file:t = "shading_vrs.dshl"
@@ -19,13 +20,14 @@ include "../../../../prog/gameLibs/render/omm/shaders/build.blk"
   "@override:fsh":t="5.0"
   "@override:assume_vars" {
     "@delete:film_grain":i=0
-     //gi_voxelize_use_multidraw:i=1
+    "@delete:supports_barycentrics":i = 0
     "@delete:dagi_sp_calc_exposure":i=1
     "@delete:hdr_ps_output_mode":i=0
     "@delete:can_use_half_precision":i=0
     "@delete:deform_occupied_tiles_bitvector":i=0
     "@delete:bvh_has_omm_support":i=0
     combined_shadows_allow_half_precision:i=1
+    gi_voxelize_use_multidraw:i=1
   }
 }
 

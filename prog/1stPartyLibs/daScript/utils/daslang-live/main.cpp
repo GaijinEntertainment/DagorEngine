@@ -37,6 +37,10 @@
 #include <cstdio>
 #include <cstring>
 
+#if !defined(DAS_ENABLE_DLL) || !defined(DAS_ENABLE_DYN_INCLUDES)
+#include "modules/external_declare.inc"
+#endif
+
 using namespace das;
 
 void require_project_specific_modules();
@@ -182,8 +186,7 @@ static void auto_tick_agents() {
 
 struct CompileResult {
     // moduleGroup owns the non-builtin dep modules (deletes them on reset()).
-    // Program/Context hold raw Module* into it via library.modules and TypeInfo
-    // (vi->annotation_arguments → FieldDeclaration::annotation), so it must
+    // Program/Context hold raw Module* into it via library.modules, so it must
     // outlive program+ctx. Declared first → destroyed last.
     unique_ptr<ModuleGroup> moduleGroup;
     ProgramPtr program;
@@ -208,6 +211,7 @@ static CompileResult compile_script(const string & fn) {
     policies.rtti = true;
     policies.track_allocations = trackAllocations;
 
+    double t_compile = get_time_sec();
     result.program = compileDaScript(fn, result.access, tout, *result.moduleGroup, policies);
     if (!result.program) {
         result.errors = "failed to compile " + fn;
@@ -226,7 +230,13 @@ static CompileResult compile_script(const string & fn) {
         return result;
     }
 
+    // [startup] timing — bisect a slow boot (seen on starved macOS CI runners). compile =
+    // parse+infer+codegen; simulate = context creation, which runs module [init] (the libhv
+    // HTTP server starts here). A 40s stall localizes to one of these spans, or to init() below.
+    tout << "daslang-live: [startup] compile took " << int((get_time_sec() - t_compile) * 1000.0) << " ms\n";
+    double t_simulate = get_time_sec();
     result.ctx = SimulateWithErrReport(result.program, tout);
+    tout << "daslang-live: [startup] simulate took " << int((get_time_sec() - t_simulate) * 1000.0) << " ms (incl. module [init]; HTTP server starts here)\n";
     // Check for compiler leaks (TypeDecl nodes left on thread root after compile+simulate)
     {
         auto & root = gc_root::gc_get_thread_root();
@@ -324,6 +334,7 @@ static void set_watched_files(Context * ctx) {
 // --- Main lifecycle loop ---
 
 static int run_lifecycle(const string & fn) {
+    double t_launch = get_time_sec();
     auto cr = compile_script(fn);
 
     Context * ctx = cr.ctx ? cr.ctx.get() : nullptr;
@@ -381,7 +392,9 @@ static int run_lifecycle(const string & fn) {
         ctx->restart();
 
         // Call init()
+        double t_init = get_time_sec();
         ctx->evalWithCatch(fnInit, nullptr);
+        tout << "daslang-live: [startup] init() took " << int((get_time_sec() - t_init) * 1000.0) << " ms\n";
         if (auto ex = ctx->getException()) {
             string msg = string("EXCEPTION in init(): ") + ex + " at " + ctx->exceptionAt.describe();
             tout << msg << "\n";
@@ -396,6 +409,7 @@ static int run_lifecycle(const string & fn) {
     double startTime = lastTime;
     int frameCount = 0;
     double fpsTimer = lastTime;
+    bool firstFrameLogged = false;   // [startup] one-shot: time to first rendered frame (host serve-ready)
 
     // Main loop
     while (!(dll_exit_requested && dll_exit_requested())) {
@@ -446,6 +460,11 @@ static int run_lifecycle(const string & fn) {
                 if (dll_clear_store) dll_clear_store();
                 ctx_had_exception = true;
             }
+            if (!firstFrameLogged && !ctx_had_exception) {
+                firstFrameLogged = true;
+                tout << "daslang-live: [startup] first frame rendered, serve-ready "
+                     << int((get_time_sec() - t_launch) * 1000.0) << " ms after launch\n";
+            }
         }
         // Avoid busy-spinning when there's no context or paused
         if (!ctx || paused || ctx_had_exception) {
@@ -478,14 +497,19 @@ static int run_lifecycle(const string & fn) {
             if (dll_set_is_reload) dll_set_is_reload(true);
 
             // Call [before_reload] functions and shutdown (skip if no context, e.g. initial compile failed)
-            // After exception: skip before_reload (state is corrupted) but still call shutdown
-            // so resources (audio, GL) are properly released before context is destroyed.
+            // Reload teardown always starts from a clean context: restart()
+            // clears any stale exception/stopFlags left by an unchecked eval
+            // (the failed-reload re-init below used to leave them behind), so
+            // before_reload/shutdown never run on a corrupted frame.
             if (ctx) {
-                if (ctx_had_exception) {
-                    // Clear stale exception state so before_reload/shutdown can run
+                ctx->restart();
+                if (!call_annotated_list(ctx, g_annotated.before_reload)) {
+                    // The hook's exception was already reported under its own
+                    // name; evalWithCatch never clears prior state, so restart
+                    // again or shutdown()'s getException() re-blames the hook
+                    // failure as a shutdown failure.
                     ctx->restart();
                 }
-                call_annotated_list(ctx, g_annotated.before_reload);
                 if (fnShutdown) {
                     ctx->evalWithCatch(fnShutdown, nullptr);
                     if (auto ex = ctx->getException()) {
@@ -524,13 +548,26 @@ static int run_lifecycle(const string & fn) {
                     if (dll_set_last_error) dll_set_last_error(newCr.errors.c_str());
                     if (dll_set_paused) dll_set_paused(true);
                     if (dll_clear_reload_flags) dll_clear_reload_flags();
-                    // Re-init old context if we have one (shutdown was already called)
+                    // Re-init old context if we have one (shutdown was already called).
+                    // Every eval here is exception-checked: leaving a throw
+                    // unrecorded meant the next reload ran teardown on a
+                    // corrupted context ("stack overflow while calling
+                    // __before_reload_live_vars" and the crash that followed).
                     if (ctx && !ctx_had_exception) {
                         if (dll_set_is_reload) dll_set_is_reload(true);
                         ctx->restart();
-                        call_annotated_list(ctx, g_annotated.after_reload);
-                        if (fnInit) {
+                        bool reinit_ok = call_annotated_list(ctx, g_annotated.after_reload);
+                        if (reinit_ok && fnInit) {
                             ctx->evalWithCatch(fnInit, nullptr);
+                            if (auto ex = ctx->getException()) {
+                                tout << "EXCEPTION in init() after failed reload: " << ex
+                                     << " at " << ctx->exceptionAt.describe() << "\n";
+                                reinit_ok = false;
+                            }
+                        }
+                        if (!reinit_ok) {
+                            if (dll_clear_store) dll_clear_store();
+                            ctx_had_exception = true;
                         }
                     }
                     bumpGen();
@@ -606,7 +643,10 @@ static int run_lifecycle(const string & fn) {
         }
     }
 
-    // Shutdown
+    // Shutdown — the real one, not a reload teardown. The flag stays true from
+    // the last reload otherwise, and shutdown()-time checks like glfw_live's
+    // live_destroy_window skip their final cleanup.
+    if (dll_set_is_reload) dll_set_is_reload(false);
     if (ctx && fnShutdown) {
         ctx->evalWithCatch(fnShutdown, nullptr);
         if (auto ex = ctx->getException()) {
@@ -701,6 +741,7 @@ static HANDLE g_singleInstanceMutex = nullptr;
 #else
 #include <sys/file.h>
 #include <unistd.h>
+#include <cerrno>
 static int g_lockFd = -1;
 #endif
 
@@ -860,12 +901,23 @@ int main(int argc, char * argv[]) {
     if (changeCwd && !scriptFile.empty()) {
         auto slash = scriptFile.find_last_of("\\/");
         if (slash != string::npos) {
-            string dir = scriptFile.substr(0, slash);
+            // Keep the separator for root-level paths so the directory stays valid:
+            // POSIX "/foo.das" -> "/", Windows drive root "C:\foo.das" -> "C:\".
+            size_t cut = (slash == 0 || (slash == 2 && scriptFile[1] == ':')) ? slash + 1 : slash;
+            string dir = scriptFile.substr(0, cut);
             scriptFile = scriptFile.substr(slash + 1);
 #ifdef _WIN32
-            SetCurrentDirectoryA(dir.c_str());
+            if (!SetCurrentDirectoryA(dir.c_str())) {
+                fprintf(stderr, "ERROR: -cwd failed to change directory to %s (error %lu)\n",
+                        dir.c_str(), (unsigned long)GetLastError());
+                return 1;
+            }
 #else
-            chdir(dir.c_str());
+            if (chdir(dir.c_str()) != 0) {
+                fprintf(stderr, "ERROR: -cwd failed to change directory to %s: %s\n",
+                        dir.c_str(), strerror(errno));
+                return 1;
+            }
 #endif
         }
     }
@@ -886,7 +938,7 @@ int main(int argc, char * argv[]) {
     require_project_specific_modules();
 
 #if !defined(DAS_ENABLE_DLL) || !defined(DAS_ENABLE_DYN_INCLUDES)
-    #include "modules/external_need.inc"
+    #include "modules/external_pull.inc"
 #endif
 
 #ifdef DAS_ENABLE_DYN_INCLUDES

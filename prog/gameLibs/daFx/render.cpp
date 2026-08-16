@@ -449,7 +449,8 @@ bool prepare_render_queue(Context &ctx, CullingState *cull, uint32_t tag, DrawQu
     queue.drawCalls.push_back({(int)queue.states.size() - 1, state.aliveCount});
 
     if constexpr (INST_RENDERABLE_TRIS >= 0)
-      stat_add(ctx.stats.renderedTriangles, *stream.getOpt<INST_RENDERABLE_TRIS, uint>(sid) * 2);
+      stat_add(ctx.stats.renderedTriangles[*stream.getOpt<INST_STAT_GROUP, uint8_t>(sid)],
+        *stream.getOpt<INST_RENDERABLE_TRIS, uint>(sid) * 2);
   }
 
   return queue.drawCalls.size() > 0;
@@ -467,7 +468,7 @@ bool update_dispatch_buffer(Context &ctx, DrawQueue &queue)
     if (!buf)
     {
       eastl::string name;
-      name.append_sprintf("dafx_render_dispatch_buffer_%d", bufIdx);
+      name.append_sprintf("dafx_render_dispatch_buffer_%d%s", bufIdx, ctx.cfg.gpu_res_suffix.c_str());
       buf = &ctx.renderDispatchBuffers.push_back();
       if (!create_gpu_cb_res(buf->res, sizeof(RenderDispatchDesc), DAFX_RENDER_GROUP_SIZE, name.c_str()))
         return false;
@@ -500,7 +501,7 @@ bool update_multidraw_buffer(Context &ctx, dag::ConstSpan<DrawIndexedIndirectArg
     if (!buf)
     {
       eastl::string name;
-      name.append_sprintf("dafx_multidraw_buffer_%d_%d", ctx.currentMutltidrawBufferRingId, bufIdx);
+      name.append_sprintf("dafx_multidraw_buffer_%d_%d%s", ctx.currentMutltidrawBufferRingId, bufIdx, ctx.cfg.gpu_res_suffix.c_str());
       buf = &multidrawBufRing.push_back();
       *buf = dag::create_sbuffer(INDIRECT_BUFFER_ELEMENT_SIZE, ctx.cfg.multidraw_buffer_size * DRAW_INDEXED_INDIRECT_NUM_ARGS,
         SBCF_INDIRECT, 0, name.c_str(), RESTAG_FX);
@@ -708,6 +709,8 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, flo
     reducedRenderMask = calc_reduced_render_mask(reduced_render);
 
   ShaderGlobal::set_int(ctx.reducedRenderVarId, reducedRenderMask);
+  // Set every render call in case we have multiple contexts.
+  ShaderGlobal::set_int(ctx.sbufferSupportedVarId, ctx.cfg.use_render_sbuffer ? 1 : 0);
 
   CullingState *cull = ctx.cullingStates.get(cull_id);
   G_ASSERT_RETURN(cull, false);

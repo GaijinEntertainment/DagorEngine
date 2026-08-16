@@ -10,7 +10,7 @@
 #include <render/lights/omniLightsManager.h>
 #include <render/lights/spotLightsManager.h>
 #include <render/lights/lightsPartition.h>
-#include <render/lights/clusteredLightsSorter.h>
+#include <render/lights/lightsSorter.h>
 #include <render/lights/frustumClusters.h>
 #include <render/lights/tiledLights.h>
 #include <render/lights/clusteredLightsGrid.h>

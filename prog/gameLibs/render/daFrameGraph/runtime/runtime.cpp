@@ -274,25 +274,37 @@ Runtime::IrNodesChanged Runtime::scheduleNodes(const IrNodesChanged &irNodesChan
   }
 #endif
 
-  currentStage = CompilationStage::REQUIRES_BARRIER_SCHEDULING;
+  currentStage = CompilationStage::REQUIRES_RESOURCE_LIFETIME_CALCULATION;
 
   return schedulingNodesChanged;
 }
 
-auto Runtime::scheduleBarriers(const IrNodesChanged &nodesChanged, const IrResourcesChanged &resourcesChanged) -> IrResourcesChanged
+auto Runtime::calculateResourceLifetimes() -> IrResourcesChanged
+{
+  TIME_PROFILE(calculateResourceLifetimes);
+  if (verbose)
+    debug("daFG: Calculating resource lifetimes...");
+
+  auto lifetimeChangedResources = resourceLifetimeCalculator.recalculate(intermediateGraph, passColoring);
+
+  currentStage = CompilationStage::REQUIRES_BARRIER_SCHEDULING;
+
+  return lifetimeChangedResources;
+}
+
+void Runtime::scheduleBarriers(const IrNodesChanged &nodesChanged, const IrResourcesChanged &resourcesChanged,
+  const IrResourcesChanged &lifetimeChangedResources)
 {
   TIME_PROFILE(scheduleBarriers);
   if (verbose)
     debug("daFG: Scheduling barriers...");
 
-  auto lifetimeChangedResources =
-    barrierScheduler.scheduleEvents(allResourceEvents, intermediateGraph, passColoring, nodesChanged, resourcesChanged);
+  barrierScheduler.scheduleEvents(allResourceEvents, intermediateGraph, resourceLifetimeCalculator.lifetimes(), passColoring,
+    nodesChanged, resourcesChanged, lifetimeChangedResources);
 
   cacheUntrackedReleaseBarriers();
 
   currentStage = CompilationStage::REQUIRES_STATE_DELTA_RECALCULATION;
-
-  return lifetimeChangedResources;
 }
 
 void Runtime::cacheUntrackedReleaseBarriers()
@@ -300,10 +312,18 @@ void Runtime::cacheUntrackedReleaseBarriers()
   for (const auto &frameEvents : allResourceEvents)
     for (const auto &nodeEvents : frameEvents.values())
       for (const auto &ev : nodeEvents)
-        if (auto *deact = eastl::get_if<BarrierScheduler::Event::Deactivation>(&ev.data);
-            deact && !eastl::holds_alternative<eastl::monostate>(deact->release))
-          if (intermediateGraph.resources.isMapped(ev.resource) && intermediateGraph.resources[ev.resource].isScheduled())
-            intermediateGraph.resources[ev.resource].asScheduled().untrackedReleaseBarrier = deact->release;
+      {
+        if (BarrierScheduler::barrier_kind(ev) != BarrierScheduler::Event::BarrierKind::Release)
+          continue;
+        if (!intermediateGraph.resources.isMapped(ev.resource) || !intermediateGraph.resources[ev.resource].isScheduled())
+          continue;
+
+        auto &releaseBarrier = intermediateGraph.resources[ev.resource].asScheduled().untrackedReleaseBarrier;
+        if (auto *bufferBarrier = eastl::get_if<BarrierScheduler::Event::EnhancedBufferBarrier>(&ev.data))
+          releaseBarrier.emplace<d3d::BufferBarrier>(bufferBarrier->barrier).pipelineSync.dst = d3d::PipelineStageFlag::All;
+        else if (auto *textureBarrier = eastl::get_if<BarrierScheduler::Event::EnhancedTextureBarrier>(&ev.data))
+          releaseBarrier.emplace<d3d::TextureBarrier>(textureBarrier->barrier).pipelineSync.dst = d3d::PipelineStageFlag::All;
+      }
 }
 
 void Runtime::recalculateStateDeltas(const IrNodesChanged &nodesChanged, const IrResourcesChanged &resourcesChanged)
@@ -399,9 +419,9 @@ void Runtime::scheduleResources(const IrResourcesChanged &lifetimeChangedResourc
 
   const auto corrections = badResolutionTracker.getTexSizeCorrections();
 
-  const ResourceScheduler::SchedulingContext schedulingCtx{intermediateGraph, allResourceEvents, lifetimeChangedResources,
-    historyPairing, corrections, *resourceAllocator, resourceAllocator->allocatedHeaps, intermediateGraph.resources,
-    intermediateGraph.resourceNames};
+  const ResourceScheduler::SchedulingContext schedulingCtx{intermediateGraph, resourceLifetimeCalculator.lifetimes(),
+    lifetimeChangedResources, historyPairing, corrections, *resourceAllocator, resourceAllocator->allocatedHeaps,
+    intermediateGraph.resources, intermediateGraph.resourceNames};
 
   const auto &schedule = resourceScheduler.computeSchedule(prevFrame, schedulingCtx);
 
@@ -412,10 +432,58 @@ void Runtime::scheduleResources(const IrResourcesChanged &lifetimeChangedResourc
 
   resourceAllocator->applySchedule(prevFrame, schedule, intermediateGraph, dynResolutions, corrections, pendingDeactivations);
 
+  applyAliasSyncStages(schedule, corrections);
+
   // Rescheduling may swap physical resources behind the slots, so force a refresh.
   bindlessSlotManager.invalidateSlotCache();
 
   currentStage = CompilationStage::REQUIRES_HISTORY_UPDATE;
+}
+
+void Runtime::applyAliasSyncStages(const ResourceSchedule &schedule, const BadResolutionTracker::Corrections &corrections)
+{
+  TIME_PROFILE(applyAliasSyncStages);
+
+  FRAMEMEM_VALIDATE;
+
+  dag::Vector<intermediate::ResourceIndex, framemem_allocator> untrackedResources;
+  for (auto resIdx : intermediateGraph.resources.keys())
+    if (intermediateGraph.resources.isMapped(resIdx) && intermediateGraph.resources[resIdx].isScheduled() &&
+        intermediateGraph.resources[resIdx].isUntracked())
+      untrackedResources.push_back(resIdx);
+
+  const auto sizeOf = [&schedule, &corrections](intermediate::ResourceIndex res_idx, int frame) {
+    return corrections[frame][res_idx] != 0 ? corrections[frame][res_idx] : schedule.resourceProperties[res_idx].sizeInBytes;
+  };
+
+  const auto aliases = [&](intermediate::ResourceIndex lhs_idx, intermediate::ResourceIndex rhs_idx) {
+    for (int frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
+    {
+      const auto lhs = schedule.allocationLocations[frame][lhs_idx];
+      const auto rhs = schedule.allocationLocations[frame][rhs_idx];
+      if (lhs.heap != rhs.heap || lhs.heap == HeapIndex::Invalid)
+        continue;
+      if (lhs.offset < rhs.offset + sizeOf(rhs_idx, frame) && rhs.offset < lhs.offset + sizeOf(lhs_idx, frame))
+        return true;
+    }
+    return false;
+  };
+
+  const auto &usageStages = barrierScheduler.usageSyncStages();
+  for (auto resIdx : untrackedResources)
+  {
+    auto syncBefore = usageStages[resIdx].lastUse;
+    auto syncAfter = usageStages[resIdx].firstUse;
+
+    for (auto otherIdx : untrackedResources)
+      if (otherIdx != resIdx && aliases(resIdx, otherIdx))
+      {
+        syncBefore |= usageStages[otherIdx].lastUse;
+        syncAfter |= usageStages[otherIdx].firstUse;
+      }
+
+    barrierScheduler.setAliasSyncStages(allResourceEvents, resIdx, syncBefore, syncAfter);
+  }
 }
 
 void Runtime::updateHistory()
@@ -433,14 +501,24 @@ void Runtime::updateHistory()
           if (res.release)
             d3d::enhanced_texture_barrier(*res.release, res.texture);
           else
-            d3d::deactivate_texture(res.texture);
+          {
+            TextureInfo texInfo = {};
+            if (res.texture)
+              res.texture->getinfo(texInfo);
+            if ((texInfo.cflg & TEXCF_NO_STATE_TRACKING) == 0)
+              d3d::deactivate_texture(res.texture);
+          }
         }
         else if constexpr (eastl::is_same_v<eastl::remove_cvref_t<decltype(res)>, BufferDeactivation>)
         {
           if (res.release)
             d3d::enhanced_buffer_barrier(*res.release, res.buffer);
           else
-            d3d::deactivate_buffer(res.buffer);
+          {
+            const uint32_t flags = res.buffer ? res.buffer->getFlags() : 0;
+            if ((flags & SBCF_NO_STATE_TRACKING) == 0)
+              d3d::deactivate_buffer(res.buffer);
+          }
         }
         else if constexpr (eastl::is_same_v<eastl::remove_cvref_t<decltype(res)>, BlobDeactivationRequest>)
           res.destructor(res.blob);
@@ -475,6 +553,13 @@ void Runtime::updateHistory()
   // frameIndex will be incremented after this function completes,
   // so the current index is actually the previous frame index.
   const uint32_t prevFrame = frameIndex % SCHEDULE_FRAME_WINDOW;
+
+  IdIndexedMapping<intermediate::ResourceIndex, eastl::optional<intermediate::ResourceUsage>, framemem_allocator>
+    firstDeclaredHistoryUsage(intermediateGraph.resources.totalKeys());
+  for (const auto &node : intermediateGraph.nodes.values())
+    for (const auto &req : node.resourceRequests)
+      if (req.fromLastFrame && req.usage.type != Usage::UNKNOWN && !firstDeclaredHistoryUsage[req.resource])
+        firstDeclaredHistoryUsage[req.resource] = req.usage;
 
   // Nodes are topologically sorted at this point. Find first usage
   // for history resources and activate them according as requested
@@ -522,6 +607,9 @@ void Runtime::updateHistory()
         DesiredActivationBehaviour behavior =
           history == History::DiscardOnFirstFrame ? DesiredActivationBehaviour::Discard : DesiredActivationBehaviour::Clear;
 
+        // Falling back to an UNKNOWN usage still yields a barrier. TODO: check if can be avoided.
+        const auto historyUsage = res.isUntracked() ? firstDeclaredHistoryUsage[resIdx].value_or(usage) : usage;
+
         switch (res.getResType())
         {
           case ResourceType::Texture:
@@ -530,7 +618,7 @@ void Runtime::updateHistory()
 
             if (res.isUntrackedTexture())
             {
-              const auto activationScope = enhanced_texture_barrier_for_activation(usage);
+              const auto activationScope = enhanced_texture_barrier_for_activation(historyUsage, d3d::PipelineStageFlag::All);
               bool copied = false;
               if (historySourceResIdx != intermediate::RESOURCE_NOT_MAPPED)
               {
@@ -579,7 +667,7 @@ void Runtime::updateHistory()
                 const auto &baseRes = res.asScheduled().getGpuDescription().asBasicRes;
                 const auto channels = get_tex_format_desc(baseRes.cFlags & TEXFMT_MASK).mainChannelsType;
                 const bool isInt = channels == ChannelDType::UINT || channels == ChannelDType::SINT;
-                activate_untracked_texture(tex, baseRes.cFlags, activationScope,
+                activate_untracked_texture(tex, activationScope,
                   get_history_activation(DesiredActivationBehaviour::Clear, baseRes.activation, isInt), ResourceClearValue{});
               }
               else
@@ -636,7 +724,7 @@ void Runtime::updateHistory()
 
             if (res.isUntrackedBuffer())
             {
-              const auto usageScope = enhanced_buffer_barrier_for_activation(usage);
+              const auto usageScope = enhanced_buffer_barrier_for_activation(historyUsage, d3d::PipelineStageFlag::All);
               bool copied = false;
               if (historySourceResIdx != intermediate::RESOURCE_NOT_MAPPED)
               {
@@ -658,10 +746,10 @@ void Runtime::updateHistory()
               else
               {
                 d3d::enhanced_buffer_barrier(
-                  {{d3d::PipelineStageFlag::All, d3d::PipelineStageFlag::Clear}, {{}, d3d::AccessFlag::UnorderedAccess}}, buf);
+                  {{d3d::PipelineStageFlag::All, d3d::PipelineStageFlag::Clear}, {{}, d3d::AccessFlag::ClearWrite}}, buf);
                 d3d::zero_rwbufi(buf);
                 d3d::enhanced_buffer_barrier({{d3d::PipelineStageFlag::Clear, usageScope.pipelineSync.dst},
-                                               {d3d::AccessFlag::UnorderedAccess, usageScope.memorySync.dst}},
+                                               {d3d::AccessFlag::ClearWrite, usageScope.memorySync.dst}},
                   buf);
               }
               break;
@@ -985,6 +1073,7 @@ void Runtime::resetIncrementalState()
   dependencyDataCalculator.resetIncrementalState();
   irGraphBuilder.resetIncrementalState();
   passColorer.resetIncrementalState();
+  resourceLifetimeCalculator.resetIncrementalState();
   barrierScheduler.resetIncrementalState();
   deltaCalculator.resetIncrementalState();
   resourceScheduler.resetIncrementalState();
@@ -1035,7 +1124,7 @@ void Runtime::recompile()
   }
 
   IrResourcesChanged lifetimeChangedResources;
-  if (currentStage > CompilationStage::REQUIRES_BARRIER_SCHEDULING)
+  if (currentStage > CompilationStage::REQUIRES_RESOURCE_LIFETIME_CALCULATION)
   {
     lifetimeChangedResources.resize(intermediateGraph.resources.totalKeys(), false);
   }
@@ -1109,8 +1198,12 @@ void Runtime::recompile()
       irNodesChanged = scheduleNodes(unsortedIrNodesChanged, irResourcesChanged);
       [[fallthrough]];
 
+    case CompilationStage::REQUIRES_RESOURCE_LIFETIME_CALCULATION:
+      lifetimeChangedResources = calculateResourceLifetimes();
+      [[fallthrough]];
+
     case CompilationStage::REQUIRES_BARRIER_SCHEDULING:
-      lifetimeChangedResources = scheduleBarriers(irNodesChanged, irResourcesChanged);
+      scheduleBarriers(irNodesChanged, irResourcesChanged, lifetimeChangedResources);
       [[fallthrough]];
 
     case CompilationStage::REQUIRES_STATE_DELTA_RECALCULATION:

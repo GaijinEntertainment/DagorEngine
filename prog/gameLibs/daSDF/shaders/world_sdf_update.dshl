@@ -92,7 +92,7 @@ shader world_sdf_copy_slice_cs
       project_world_sdf_copy_slice(src_world_coord.xy, world_sdf_update_mip, gId.z);
       #else
       //dx11:
-      src_world_coord.z = world_sdf_coord_from_target_coord(world_sdf_update_mip, src_targetCoord).z;
+      src_world_coord.z = world_sdf_coord_from_lt_target_coord(world_sdf_update_mip_coord_lt.xyz, src_targetCoord).z;
       uint3 rasterCoord = world_sdf_raster_target_coord_from_world(src_world_coord);
       if (rasterCoord.z >= world_sdf_raster_width().z)
         return;
@@ -139,7 +139,7 @@ shader world_sdf_ping_pong_cs, world_sdf_ping_pong_final_cs
     [numthreads(4, 4, 4)]
     void world_sdf_ping_pong_cs( uint3 dtId : SV_DispatchThreadID, uint threadIndex : SV_GroupIndex)
     {
-      int4 coordVoxel = sample_world_sdf_coord_lt(world_sdf_update_mip);
+      int4 coordVoxel = world_sdf_update_mip_coord_lt;
       float voxelSize = asfloat(coordVoxel.w);
       int3 base_lt_world_coord = coordVoxel.xyz;
       int3 world_coord = world_sdf_update_lt_coord + int3(dtId);

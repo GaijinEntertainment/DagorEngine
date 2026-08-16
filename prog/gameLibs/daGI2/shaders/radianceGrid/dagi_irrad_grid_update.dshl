@@ -5,6 +5,7 @@ include "dagi_rad_grid_temporal_common.dshl"
 include "dagi_lit_scene_helper.dshl"
 include "dagi_media_scene_common.dshl"
 include "world_sdf.dshl"
+include "dagi_project_trace_common.dshl"
 include "gbuffer.dshl"
 
 include "project_light_point.dshl"
@@ -75,6 +76,7 @@ endmacro
 macro IRRADIANCE_GRID_TRACE_PROBE(code)
   READ_WORLD_SDF(code)
   WORLD_SDF_STEP_OUT(code)
+  PROJECT_TRACE(code, false)
   PROJECT_GET_WORLD_VOXELS_LIT_SCENE_AT(code)
   PROJECT_GET_SKY_RADIANCE_AT(code)
   DAGI_ALBEDO_SAMPLE(code)
@@ -109,6 +111,16 @@ macro IRRADIANCE_GRID_TRACE_PROBE(code)
             worldPos.y = max(worldPos.y, world_height + probeSize*0.1);
         }
       #endif
+      // same trace the radiance grid probes use: exact hw rt when the project
+      // provides it, sdf otherwise
+      #if DAGI_HAS_PROJECT_TRACE
+      DaGiProjectHitRes hit;
+      if (!dagi_project_trace_surface(worldPos, 0, rayDir, maxT, hit))
+        return false;
+      float t = hit.hitAt;
+      float3 worldPosAt = hit.hitCamPos;
+      float3 worldNormal = hit.hitNormal;
+      #else
       uint sdfStartClip = startSDF, sdfClip;
       //sdfStartClip = world_sdf_find_clip(worldPos);//to reduce divergence between threads
       float t = 0;
@@ -122,11 +134,18 @@ macro IRRADIANCE_GRID_TRACE_PROBE(code)
       FLATTEN
       if (dot(worldNormal, rayDir) > 0)
         worldNormal = -rayDir;
+      #endif
       //radiance = dagi_get_radiance_at(worldPosAt - rayDir*min(t, world_sdf_voxel_size(sdfClip)*0.5), worldNormal);
       if (!dagi_get_voxels_lit_scene_radiance_at(worldPosAt, worldNormal, radiance))
       {
+        #if DAGI_HAS_PROJECT_TRACE && DAGI_PROJECT_TRACE_HAS_ALBEDO
+        float3 albedo = hit.hitAlbedo;
+        #else
+        // albedo scene at the hit, not the ray origin; without meaningful
+        // trace albedo (a collision only bvh returns white) it is the best source
         float3 albedo = DAGI_MISSED_ALBEDO;
-        dagi_sample_albedo_best(worldPos, albedo);
+        dagi_sample_albedo_best(worldPosAt, albedo);
+        #endif
         float3 sunLighting = dagi_get_sun_color(worldPosAt, worldNormal);
         //fixme: manual trilinear irradiance filtering of upper irradiance cascades if typed uav. if not (Keppler and lower), we should only have skylight only anyway
         float3 ambient = 0.05*GetSkySHDiffuseSimple(worldNormal);

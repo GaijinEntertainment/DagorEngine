@@ -10,6 +10,8 @@ texture motion_gbuf;
 float4 uv_temporal_jitter = (0,0,0,0);//.xy - current, .zw - prev in uv
 texture bvh_gbuf;
 
+float impostor_shadow_offset = -10;
+
 int4 gbuffer_view_size = (1, 1, 0, 0);
 
 hlsl {
@@ -96,6 +98,7 @@ hlsl(code) {
     uint sss_profile;//&SSS_PROFILE_MASK!. Currently SSS_PROFILE_EYE || 0
     uint isLandscape;
     uint isHeroCockpit;
+    uint enviCoverOverwrite; // Only valid in normal packed gbuffer
 
     bool isGlass; // Dummy
     bool isGrass;
@@ -123,6 +126,7 @@ hlsl(code) {
     gbuffer.shadow = gbuf.shadow;
     gbuffer.dynamic = gbuf.dynamic;
     gbuffer.isHeroCockpit = gbuf.isHeroCockpit;
+    gbuffer.enviCoverOverwrite = gbuf.enviCoverOverwrite;
     gbuffer.specularColor = decodeSpecularColor(gbuf.reflectance, gbuffer.metalness, gbuf.albedo);
     gbuffer.reflectance = gbuf.reflectance;
     gbuffer.ao = gbuf.ao;
@@ -151,6 +155,7 @@ hlsl(code) {
     result.isLandscape = 0;
     result.isHeroCockpit = GBUFFER_IS_HERO_COCKPIT;
     result.dynamicMask = 0;
+    result.enviCoverOverwrite = 0;
     result.motion = 0;
     result.reactive = 0;
     result.sheen = 0;
@@ -198,6 +203,8 @@ hlsl(code) {
     {result.reactive = reactive;}
   void init_glass(inout UnpackedGbuffer result)
     {}
+  void init_envi_cover_overwrite(inout UnpackedGbuffer result, uint overwrite_bit)
+    {result.enviCoverOverwrite = overwrite_bit;}
 #endif
 }
 endmacro

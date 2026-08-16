@@ -44,18 +44,31 @@ struct RefTarget {
 }
 
 def to_void(p) : void? {
-    return unsafe(reinterpret<void?> p)
+    return unsafe(reinterpret<void?>(p))
 }
 
-// Build a RefTarget from a cursor hit
-def identify_target(hit : CursorHit) : RefTarget {
-    let expr = hit.expr
-    // ExprCall → function
+// Field target from a field-access value expression (unwraps Foo? → Foo); none-kind when not a struct field
+def field_target_of(value : Expression const?; fname : string) : RefTarget {
+    if (value == null || value._type == null) return RefTarget()
+    var vt = value._type
+    // unwrap pointer types (Foo? → Foo)
+    if (vt.structType == null && vt.firstType != null) {
+        vt = vt.firstType
+    }
+    if (vt.structType == null) return RefTarget()
+    return RefTarget(
+        kind = RefTargetKind.field,
+        field_struct_ptr = to_void(vt.structType),
+        field_name = fname,
+        name = "{vt.structType.name}.{fname}")
+}
+
+// ExprCall / ExprAddr / ExprInvoke → function, function-pointer variable, or method field
+def identify_callable_target(expr : Expression const?) : RefTarget {
     if (expr is ExprCall) {
         let c = expr as ExprCall
         if (c.func != null) return RefTarget(kind = RefTargetKind.func, target_ptr = to_void(c.func), name = string(c.func.name))
     }
-    // ExprAddr → function pointer
     if (expr is ExprAddr) {
         let a = expr as ExprAddr
         if (a.func != null) return RefTarget(kind = RefTargetKind.func, target_ptr = to_void(a.func), name = string(a.func.name))
@@ -76,22 +89,15 @@ def identify_target(hit : CursorHit) : RefTarget {
             // first arg is a field access (struct method pointer)
             if (callable is ExprField) {
                 let f = callable as ExprField
-                if (f.value != null && f.value._type != null) {
-                    var vt = f.value._type
-                    if (vt.structType == null && vt.firstType != null) {
-                        vt = vt.firstType
-                    }
-                    if (vt.structType != null) return RefTarget(
-                            kind = RefTargetKind.field,
-                            field_struct_ptr = to_void(vt.structType),
-                            field_name = string(f.name),
-                            name = "{vt.structType.name}.{f.name}"
-                        )
-                }
+                return field_target_of(f.value, string(f.name))
             }
         }
     }
-    // ExprVar → variable
+    return RefTarget()
+}
+
+// ExprVar / ExprField / ExprSafeField → variable or field
+def identify_value_target(expr : Expression const?) : RefTarget {
     if (expr is ExprVar) {
         let v = expr as ExprVar
         if (v.variable != null) {
@@ -99,58 +105,43 @@ def identify_target(hit : CursorHit) : RefTarget {
             return RefTarget(kind = RefTargetKind.variable, target_ptr = to_void(variable), name = string(variable.name))
         }
     }
-    // ExprField / ExprSafeField → field
-    if (expr is ExprField || expr is ExprSafeField) {
-        var fname : string
-        var value_type : TypeDecl const?
-        if (expr is ExprField) {
-            let f = expr as ExprField
-            fname = string(f.name)
-            if (f.value != null && f.value._type != null) {
-                value_type = f.value._type
-            }
-        } else {
-            let f = expr as ExprSafeField
-            fname = string(f.name)
-            if (f.value != null && f.value._type != null) {
-                value_type = f.value._type
-            }
-        }
-        // unwrap pointer types (Foo? → Foo)
-        if (value_type != null && value_type.structType == null && value_type.firstType != null) {
-            value_type = value_type.firstType
-        }
-        if (value_type != null && value_type.structType != null) return RefTarget(
-                kind = RefTargetKind.field,
-                field_struct_ptr = to_void(value_type.structType),
-                field_name = fname,
-                name = "{value_type.structType.name}.{fname}"
-            )
+    if (expr is ExprField) {
+        let f = expr as ExprField
+        return field_target_of(f.value, string(f.name))
     }
-    // ExprConstEnumeration → enum
+    if (expr is ExprSafeField) {
+        let f = expr as ExprSafeField
+        return field_target_of(f.value, string(f.name))
+    }
+    return RefTarget()
+}
+
+// Enum constants, type aliases (typedef, bitfield, variant, tuple), and fallback type references
+def identify_type_target(expr : Expression const?) : RefTarget {
     if (expr is ExprConstEnumeration) {
         let e = expr as ExprConstEnumeration
         if (e.enumType != null) return RefTarget(kind = RefTargetKind.enumeration, target_ptr = to_void(e.enumType), name = string(e.enumType.name))
     }
-    // ExprConstBitfield → alias (bitfield type)
-    if (expr is ExprConstBitfield) {
-        if (expr._type != null) {
-            let td = expr._type
-            if (!empty(td.alias)) return RefTarget(kind = RefTargetKind.alias, alias_name = string(td.alias), name = string(td.alias))
-        }
-    }
-    // Type alias reference (typedef, bitfield, variant, tuple)
     if (expr._type != null) {
         let td = expr._type
         if (!empty(td.alias)) return RefTarget(kind = RefTargetKind.alias, alias_name = string(td.alias), name = string(td.alias))
-    }
-    // Fallback: type reference
-    if (expr._type != null) {
-        let td = expr._type
         if (td.structType != null) return RefTarget(kind = RefTargetKind.structure, target_ptr = to_void(td.structType), name = string(td.structType.name))
         if (td.enumType != null) return RefTarget(kind = RefTargetKind.enumeration, target_ptr = to_void(td.enumType), name = string(td.enumType.name))
     }
     return RefTarget()
+}
+
+// Build a RefTarget from a cursor hit
+def identify_target(hit : CursorHit) : RefTarget {
+    let expr = hit.expr
+    var t = identify_callable_target(expr)
+    if (t.kind == RefTargetKind.none) {
+        t = identify_value_target(expr)
+    }
+    if (t.kind == RefTargetKind.none) {
+        t = identify_type_target(expr)
+    }
+    return t
 }
 
 // Visitor that collects all references to a given target

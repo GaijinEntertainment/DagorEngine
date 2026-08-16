@@ -74,6 +74,32 @@ def sum_pure_builtin() : int {
     return total
 }
 
+// a pure SCRIPT function: only reads the pointee, never stores it -> its parameter provably does
+// not escape, so a local passed only here is freed at scope exit
+def read_node(p : Node?) : int => p.x + p.y
+
+// transitive: read_node_t leaks nothing because the only thing it does with p is hand it to
+// read_node, whose parameter is itself escape-free
+def read_node_t(p : Node?) : int => read_node(p)
+
+def sum_pure_script() : int {
+    var total = 0
+    for (i in range(N)) {
+        var p = new Node(x = i, y = i * 2)
+        total += read_node(p)
+    }
+    return total
+}
+
+def sum_pure_script_transitive() : int {
+    var total = 0
+    for (i in range(N)) {
+        var p = new Node(x = i, y = i * 2)
+        total += read_node_t(p)
+    }
+    return total
+}
+
 // non-escaping owner of a heap field; the raw collect frees the owned array too
 def sum_owning() : int {
     var total = 0
@@ -121,6 +147,27 @@ def test_escape_free_pure_call(t : T?) {
     let s = sum_pure_builtin()
     let grew = heap_bytes_allocated() - before
     t |> equal(s, 0)
+    t |> success(grew < uint64(40 * (typeinfo sizeof(type<Node>))))
+}
+
+// passed only to a pure SCRIPT function whose parameter provably does not escape -> freed
+[test]
+def test_escape_free_pure_script_call(t : T?) {
+    let before = heap_bytes_allocated()
+    let s = sum_pure_script()
+    let grew = heap_bytes_allocated() - before
+    t |> equal(s, 3 * ((N - 1) * N / 2))
+    t |> success(grew < uint64(40 * (typeinfo sizeof(type<Node>))))
+}
+
+// the parameter-escape result is interprocedural: read_node_t only forwards p to read_node, so the
+// escape-free property transits the call chain and the local is still freed
+[test]
+def test_escape_free_pure_script_transitive(t : T?) {
+    let before = heap_bytes_allocated()
+    let s = sum_pure_script_transitive()
+    let grew = heap_bytes_allocated() - before
+    t |> equal(s, 3 * ((N - 1) * N / 2))
     t |> success(grew < uint64(40 * (typeinfo sizeof(type<Node>))))
 }
 

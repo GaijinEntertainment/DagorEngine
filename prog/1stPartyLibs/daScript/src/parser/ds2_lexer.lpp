@@ -79,11 +79,10 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 %%
 
 <normal>\#[0-9]+,[0-9]+,\"[^\"]+\"\# {
-    string txt = yytext;
     int lRow, lCol;
-    char lFile[256];
-    if ( sscanf ( yytext, "#%i,%i,\"%255s\"#", &lRow, &lCol, lFile )==3 ) {
-        lFile[strlen(lFile)-2] = 0;
+    if ( sscanf ( yytext, "#%i,%i,", &lRow, &lCol )==2 ) {
+        // file name is the quote-bounded span; sscanf %s would stop at whitespace inside it
+        string lFile ( strchr(yytext,'\"')+1, yytext+yyleng-2 );
         auto cfi = yyextra->g_FileAccessStack.back();
         string incFileName = yyextra->g_Access->getIncludeFileName(cfi->name,lFile);
         auto info = yyextra->g_Access->getFileInfo(incFileName);
@@ -232,6 +231,9 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 <strfmt>\}                {
     BEGIN(normal);
     unput('}');
+    // the '}' will be lexed again in <normal> — undo this match's column
+    // advance or every token after a `{x:fmt}` interpolation shifts right
+    YYCOLUMN(yyextra->das_yycolumn--, "UNPUT } after string format");
 }
 <strfmt>.                 {
     yylval_param->ch = *yytext;
@@ -377,6 +379,29 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 <normal>"float2"                                        return DAS_TFLOAT2;
 <normal>"float3"                                        return DAS_TFLOAT3;
 <normal>"float4"                                        return DAS_TFLOAT4;
+<normal>"float16"                                       return DAS_TFLOAT16;
+<normal>"half2"                                         return DAS_THALF2;
+<normal>"half3"                                         return DAS_THALF3;
+<normal>"half4"                                         return DAS_THALF4;
+<normal>"half8"                                         return DAS_THALF8;
+<normal>"short2"                                        return DAS_TSHORT2;
+<normal>"short3"                                        return DAS_TSHORT3;
+<normal>"short4"                                        return DAS_TSHORT4;
+<normal>"short8"                                        return DAS_TSHORT8;
+<normal>"ushort2"                                       return DAS_TUSHORT2;
+<normal>"ushort3"                                       return DAS_TUSHORT3;
+<normal>"ushort4"                                       return DAS_TUSHORT4;
+<normal>"ushort8"                                       return DAS_TUSHORT8;
+<normal>"byte2"                                         return DAS_TBYTE2;
+<normal>"byte3"                                         return DAS_TBYTE3;
+<normal>"byte4"                                         return DAS_TBYTE4;
+<normal>"byte8"                                         return DAS_TBYTE8;
+<normal>"byte16"                                        return DAS_TBYTE16;
+<normal>"ubyte2"                                        return DAS_TUBYTE2;
+<normal>"ubyte3"                                        return DAS_TUBYTE3;
+<normal>"ubyte4"                                        return DAS_TUBYTE4;
+<normal>"ubyte8"                                        return DAS_TUBYTE8;
+<normal>"ubyte16"                                       return DAS_TUBYTE16;
 <normal>[_[:alpha:]][_[:alnum:]\`]* {
     yylval_param->s = new string(yytext);
     #if DAS_TRACK_ALLOC
@@ -616,6 +641,42 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
     }
     return DOUBLE;
 }
+<normal>([0-9]*)?\.[0-9]+([eE][+\-]?[0-9]+)?(h|H) {
+    auto res = fast_float::from_chars(yytext, yytext+strlen(yytext), yylval_param->fd);
+    if ( res.ec == std::errc::result_out_of_range ) {
+        das2_yyfatalerror(yylloc_param,yyscanner,"float16 constant out of range", CompilationError::exceeds_constant);
+    } else if ( res.ec != std::errc() ) {
+        return LEXER_ERROR;
+    }
+    return DAS_FLOAT16_CONST;
+}
+<normal>[0-9][0-9]*\.[0-9]+?([eE][+\-]?[0-9]+)?(h|H) {
+    auto res = fast_float::from_chars(yytext, yytext+strlen(yytext), yylval_param->fd);
+    if ( res.ec == std::errc::result_out_of_range ) {
+        das2_yyfatalerror(yylloc_param,yyscanner,"float16 constant out of range", CompilationError::exceeds_constant);
+    } else if ( res.ec != std::errc() ) {
+        return LEXER_ERROR;
+    }
+    return DAS_FLOAT16_CONST;
+}
+<normal>[0-9]+(h|H) {
+    auto res = fast_float::from_chars(yytext, yytext+strlen(yytext), yylval_param->fd);
+    if ( res.ec == std::errc::result_out_of_range ) {
+        das2_yyfatalerror(yylloc_param,yyscanner,"float16 constant out of range", CompilationError::exceeds_constant);
+    } else if ( res.ec != std::errc() ) {
+        return LEXER_ERROR;
+    }
+    return DAS_FLOAT16_CONST;
+}
+<normal>[0-9]+[eE][+\-]?[0-9]+(h|H) {
+    auto res = fast_float::from_chars(yytext, yytext+strlen(yytext), yylval_param->fd);
+    if ( res.ec == std::errc::result_out_of_range ) {
+        das2_yyfatalerror(yylloc_param,yyscanner,"float16 constant out of range", CompilationError::exceeds_constant);
+    } else if ( res.ec != std::errc() ) {
+        return LEXER_ERROR;
+    }
+    return DAS_FLOAT16_CONST;
+}
 <normal>\)                                  {
     if ( !yyextra->das_nested_parentheses ) {
         das2_yyfatalerror(yylloc_param,yyscanner,"mismatching parentheses", CompilationError::mismatching_parens);
@@ -691,14 +752,14 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 <normal>"\|\>"                              return RPIPE;
 <normal>"\<\|"                              return LPIPE;
 <normal>"\$\$"                              return MTAG_E;
-<normal>\$e([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); return MTAG_E;
-<normal>\$i([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); return MTAG_I;
-<normal>\$v([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); return MTAG_V;
-<normal>\$b([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); return MTAG_B;
-<normal>\$a([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); return MTAG_A;
-<normal>\$t([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); return MTAG_T;
-<normal>\$c([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); return MTAG_C;
-<normal>\$f([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); return MTAG_F;
+<normal>\$e([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); YYCOLUMN(yyextra->das_yycolumn--, "UNPUT MTAG"); return MTAG_E;
+<normal>\$i([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); YYCOLUMN(yyextra->das_yycolumn--, "UNPUT MTAG"); return MTAG_I;
+<normal>\$v([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); YYCOLUMN(yyextra->das_yycolumn--, "UNPUT MTAG"); return MTAG_V;
+<normal>\$b([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); YYCOLUMN(yyextra->das_yycolumn--, "UNPUT MTAG"); return MTAG_B;
+<normal>\$a([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); YYCOLUMN(yyextra->das_yycolumn--, "UNPUT MTAG"); return MTAG_A;
+<normal>\$t([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); YYCOLUMN(yyextra->das_yycolumn--, "UNPUT MTAG"); return MTAG_T;
+<normal>\$c([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); YYCOLUMN(yyextra->das_yycolumn--, "UNPUT MTAG"); return MTAG_C;
+<normal>\$f([^a-zA-Z0-9_])                  unput(yytext[yyleng-1]); YYCOLUMN(yyextra->das_yycolumn--, "UNPUT MTAG"); return MTAG_F;
 <normal>"\?\?"                              return QQ;
 <normal>"\?\["                              {
     yyextra->das_nested_square_braces ++;

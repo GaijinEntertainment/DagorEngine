@@ -36,6 +36,15 @@ static bool is_url(const char *name) // starts with "http:" or "https:"
   return strncmp(name, http, sizeof(http) - 1) == 0 && (name[4] == ':' || (name[4] == 's' && name[5] == ':'));
 }
 
+static void make_raw_http_cache_key(const char *url, char *out_key, size_t out_key_size)
+{
+  uint8_t urlHash[SHA_DIGEST_LENGTH];
+  char urlHashStr[SHA_DIGEST_LENGTH * 2 + 1];
+  SHA1((const uint8_t *)url, strlen(url), urlHash);
+  hashstr(urlHash, urlHashStr);
+  SNPRINTF(out_key, out_key_size, "%s/%.2s/%s", RAW_HTTP_CACHE, urlHashStr, urlHashStr + 2);
+}
+
 WebBackend::WebBackend() :
   UBMagic(INIT_UB_MAGIC),
   indexState(INDEX_NOT_LOADED),
@@ -934,17 +943,12 @@ Entry *WebBackend::getEntryNoIndex(const char *key, const char *url, ErrorCode *
   if (!filecache->hasFreeSpace())
     RETURN_ENTRY(NULL, ERR_MEMORY_LIMIT);
 
-  char realKey[DAGOR_MAX_PATH], urlHashStr[SHA_DIGEST_LENGTH * 2 + 1];
-  uint8_t urlHash[SHA_DIGEST_LENGTH];
+  char realKey[DAGOR_MAX_PATH];
 
   if (key)
     get_real_key(key, realKey);
   else
-  {
-    SHA1((const uint8_t *)url, strlen(url), urlHash);
-    hashstr(urlHash, urlHashStr);
-    SNPRINTF(realKey, sizeof(realKey), "%s/%.2s/%s", RAW_HTTP_CACHE, urlHashStr, urlHashStr + 2);
-  }
+    make_raw_http_cache_key(url, realKey, sizeof(realKey));
 
   WinAutoLockOpt lock(csMgr);
   if (tryAddExistingJobCb(key ? realKey : url, user_cb))
@@ -1134,7 +1138,18 @@ void WebBackend::poll()
     ctx->poll();
 }
 
-bool WebBackend::del(const char *key) { return noIndex ? filecache->del(key) : false; }
+bool WebBackend::del(const char *key)
+{
+  if (!noIndex)
+    return false;
+  if (is_url(key))
+  {
+    char realKey[DAGOR_MAX_PATH];
+    make_raw_http_cache_key(key, realKey, sizeof(realKey));
+    return filecache->del(realKey);
+  }
+  return filecache->del(key);
+}
 
 void WebBackend::delAll()
 {

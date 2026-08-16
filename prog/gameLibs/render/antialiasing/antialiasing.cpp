@@ -46,9 +46,9 @@
 #include <SnapdragonSuperResolution/SnapdragonSuperResolution.h>
 #endif
 
-static bool dlss_without_streamline()
+static constexpr bool dlss_without_streamline()
 {
-#if _TARGET_PC_LINUX || (_TARGET_PC_WIN && _M_ARM64)
+#if _TARGET_PC_LINUX
   return true;
 #else
   return false;
@@ -1298,6 +1298,7 @@ struct Context
         ? qualityOverride
         : dgs_get_settings()->getBlockByNameEx("graphics")->getInt("armAsrShaderQuality", int(amd::FSR::UpscalingMode::Balanced));
     args.mode = amd::FSR::UpscalingMode(shaderQuality);
+    args.applyPreRotation = !hdrrender::is_hdr_enabled();
     if (!initFsrUpscaling(args))
       return false;
 
@@ -1336,6 +1337,7 @@ struct Context
     args.nearPlane = ctx.persp.zf; // near and far are swapped as for inverted depth,
     args.farPlane = ctx.persp.zn;  // FSR require far to be closer than near
     args.frameIndex = dagor_get_global_frame_id();
+    args.applyPreRotation = !hdrrender::is_hdr_enabled();
     d3d::driver_command(Drv3dCommand::EXECUTE_FSR, (void *)&args);
   }
 #endif

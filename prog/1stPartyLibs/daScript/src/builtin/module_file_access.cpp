@@ -17,10 +17,9 @@ namespace das {
         if (context) delete context;
     }
 
-    ModuleFileAccess::ModuleFileAccess ( const string & pak, const FileAccessPtr & access ) {
-        ModuleGroup dummyLibGroup;
+    ModuleFileAccess::ModuleFileAccess ( const string & pak, const ProgramPtr & program ) {
         TextWriter tout;
-        if ( auto program = compileDaScript(pak, access, tout, dummyLibGroup) ) {
+        if ( program ) {
             if ( program->failed() ) {
                 for ( auto & err : program->errors ) {
                     tout << reportError(err.at, err.what, err.extra, err.fixme, err.cerr );
@@ -43,6 +42,7 @@ namespace das {
                 includeGet = context->findFunction("include_get");          // note, this one CAN be null
                 moduleAllowed = context->findFunction("module_allowed");    // note, this one CAN be null
                 moduleUnsafe = context->findFunction("module_allowed_unsafe");    // note, this one CAN be null
+                withModuleUnsafe = context->findFunction("with_module_unsafe");    // note, this one CAN be null
                 canModuleBeRequired = context->findFunction("can_module_be_required");    // note, this one CAN be null
                 sameFileName = context->findFunction("is_same_file_name");    // note, this one CAN be null
                 optionAllowed = context->findFunction("option_allowed");    // note, this one CAN be null
@@ -95,6 +95,17 @@ namespace das {
         auto res = context->evalWithCatch(moduleUnsafe, args, nullptr);
         auto exc = context->getException(); exc;
         DAS_ASSERTF(!exc, "exception failed in `module_unsafe`: %s", exc);
+        return cast<bool>::to(res);
+    }
+
+    bool ModuleFileAccess::isWithModuleUnsafe ( const string & mod, const string & fileName ) const {
+        if(failed() || !withModuleUnsafe) return FileAccess::isWithModuleUnsafe(mod,fileName);
+        vec4f args[2];
+        args[0] = cast<const char *>::from(mod.c_str());
+        args[1] = cast<const char *>::from(fileName.c_str());
+        auto res = context->evalWithCatch(withModuleUnsafe, args, nullptr);
+        auto exc = context->getException(); exc;
+        DAS_ASSERTF(!exc, "exception failed in `with_module_unsafe`: %s", exc);
         return cast<bool>::to(res);
     }
 

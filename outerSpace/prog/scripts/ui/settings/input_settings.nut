@@ -1,6 +1,7 @@
 from "%scripts/ui/ui_library.nut" import *
 import "dainput2" as dainput
 from "%scripts/ui/widgets/style.nut" import *
+from "types" import Array
 
 let { eventbus_send_foreign } = require("eventbus")
 let {CONTROLS_SETUP_CHANGED_EVENT_ID} = require("%scripts/ui/settings/input_generation.nut")
@@ -746,7 +747,7 @@ function bindingCell(ah, column, action_prop, list, tag, selection, name=null, x
   })
 }
 
-let colorTextHdr = Color(120,120,120)
+const colorTextHdr = Color(120,120,120)
 function bindingColHeader(typ){
   return {
     size = bindingColumnCellSize
@@ -870,7 +871,7 @@ let invertFields = {
 }
 
 function invertCheckbox(action_names, column, axis) {
-  if (type(action_names) != "array")
+  if (!(action_names instanceof Array))
     action_names = [action_names]
 
   let bindings = action_names.map(function(aname) {
@@ -902,7 +903,7 @@ let mkRounded = @(val) round_by_value(val, 0.01)
 
 function axisSetupSlider(action_names, column, prop, params) {
   let group = ElemGroup()
-  if (type(action_names) != "array")
+  if (!(action_names instanceof Array))
     action_names = [action_names]
 
   let bindings = action_names.map(function(aname) {

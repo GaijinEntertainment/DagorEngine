@@ -6,7 +6,7 @@
 class ENodeCB
 {
 public:
-  virtual ~ENodeCB() {}
+  virtual ~ENodeCB() = default;
   virtual int proc(INode *) = 0;
 };
 

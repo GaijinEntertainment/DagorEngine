@@ -216,7 +216,7 @@ def test_super(t : T?) {
         t |> equal(d->get_base_value(), 10)
         t |> equal(d->add(3, 4), 14)
         // cast to base pointer — virtual dispatch still calls Derived methods
-        var b = cast<Base?> d
+        var b = cast<Base?>(d)
         t |> equal(b->get_value(), 30)
         t |> equal(b->add(3, 4), 14)
         unsafe {

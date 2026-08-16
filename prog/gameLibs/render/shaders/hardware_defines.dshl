@@ -567,6 +567,7 @@ hlsl(ps) {
     //http://www.humus.name/Articles/Persson_LowlevelShaderOptimization.pdf
     return asfloat(BitFieldInsert(face, asuint(normal), asuint(-normal)));
   }
+  // Warning: parameter a must be declared with custominterp annotation
   #define GetAttributeAtVertex(a, b) PPCAT(GetParameterP, b)(a)
   #define INPUT_VFACE , uint vface : SV_IsFrontFace
   #define MUL_VFACE(a) ps4_mul_vface(vface, a)

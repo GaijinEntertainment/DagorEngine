@@ -168,9 +168,25 @@ def test_is_symlink(t : T?) {
         t |> success(empty(error), "unexpected error: {error}")
         remove(tmp)
     }
+    t |> run("UTF-8 regular file is not symlink") @(t : T?) {
+        let root = get_das_root()
+        let tmp = root + "/_test_fs_symlink-Привет.tmp"
+        fopen(tmp, "wb") <| $(f) {
+            fwrite(f, "test")
+        }
+        var error : string
+        t |> success(!is_symlink(tmp, error))
+        t |> success(empty(error), "unexpected error: {error}")
+        remove(tmp)
+    }
     t |> run("missing path") @(t : T?) {
         var error : string
         t |> success(!is_symlink("/no/such/path", error))
+    }
+    t |> run("empty path") @(t : T?) {
+        var error : string
+        t |> success(!is_symlink("", error))
+        t |> equal(error, "empty path")
     }
 }
 

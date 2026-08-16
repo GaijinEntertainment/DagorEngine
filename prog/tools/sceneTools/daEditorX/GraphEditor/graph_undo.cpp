@@ -102,6 +102,18 @@ size_t UndoDeleteEdges::size() { return sizeof(*this) + edges.size() * sizeof(Gr
 
 void UndoDeleteEdges::get_description(String &s) { s = "Delete edges"; }
 
+UndoToggleEdgeMuted::UndoToggleEdgeMuted(GraphEditorPlg &plg, int edge_id, bool old_muted) :
+  plugin(plg), edgeId(edge_id), oldMuted(old_muted)
+{}
+
+void UndoToggleEdgeMuted::restore(bool /*save_redo_data*/) { plugin.setEdgeMuted(edgeId, oldMuted); }
+
+void UndoToggleEdgeMuted::redo() { plugin.setEdgeMuted(edgeId, !oldMuted); }
+
+size_t UndoToggleEdgeMuted::size() { return sizeof(*this); }
+
+void UndoToggleEdgeMuted::get_description(String &s) { s = oldMuted ? "Unmute edge" : "Mute edge"; }
+
 UndoSelection::UndoSelection(GraphEditorPlg &plg, GraphSelection old_selection, GraphSelection new_selection) :
   plugin(plg), oldSelection(eastl::move(old_selection)), newSelection(eastl::move(new_selection))
 {}

@@ -7,6 +7,7 @@
 #include <imgui/imgui.h>
 #include "propPanel/c_common.h"
 #include "propPanel/imguiHelper.h"
+#include <EASTL/optional.h>
 
 namespace PropPanel
 {
@@ -51,6 +52,7 @@ public:
     bool isHovered;
   };
 
+  virtual eastl::optional<ImU32> getBorderColor() const { return eastl::nullopt; }
   virtual bool treeNodeStart(const NodeStartData &data) = 0;
   virtual void treeNodeRender(ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool show_arrow) = 0;
   virtual void treeNodeEnd(ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData &end_data) = 0;

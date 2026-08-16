@@ -1,6 +1,7 @@
 from "string" import regexp, format
 from "iostream" import blob
 from "math" import clamp, log10, min
+from "types" import Table, Array, String, Function, Integer, Float
 import "string" as string
 
 let utf8 = require_optional("utf8")
@@ -53,7 +54,7 @@ function split(joined: string, glue: string, isIgnoreEmpty = false): array {
 
 const intre = @"^-?\d+$"
 const floatre = @"^-?\d+\.?\d*([eE][-+]?\d{1,3})?$"
-let notstringre = @"(^-?\d+$)|(^-?\d+\.?\d*([eE][-+]?\d{1,3})?$)|^(null|true|false)$"
+const notstringre = @"(^-?\d+$)|(^-?\d+\.?\d*([eE][-+]?\d{1,3})?$)|^(null|true|false)$"
 let intRegExp = regexp(intre)
 let possibleNotStrRegExp = regexp(notstringre)
 let floatRegExp = regexp(floatre)
@@ -160,9 +161,9 @@ let function_types = ["function", "generator"]
 function tostring_any(input, tostringfunc=null, compact=true) {
   local typ = type(input)
   if (tostringfunc!=null) {
-    if (type(tostringfunc) == "table")
+    if (tostringfunc instanceof Table)
       tostringfunc = [tostringfunc]
-    if (type(tostringfunc) == "array") {
+    if (tostringfunc instanceof Array) {
       foreach (tf in tostringfunc){
         if (tf?.compare != null && tf.compare(input)){
           return tf.tostring(input)
@@ -214,7 +215,7 @@ const openSymByType = {
 }
 
 let openSym = @(value) openSymByType?[type(value)] ?? "{"
-let closeSym = @(value) type(value) == "array" ? "]" : "}"
+let closeSym = @(value) value instanceof Array ? "]" : "}"
 
 function tostring_r(inp, params=defTostringParams): string {
   local newline = params?.newline ?? defTostringParams.newline
@@ -229,7 +230,7 @@ function tostring_r(inp, params=defTostringParams): string {
   function tostringLeaf(val) {
     local typ = type(val)
     if (tostringfunc!=null) {
-      if (type(tostringfunc) == "table")
+      if (tostringfunc instanceof Table)
         tostringfunc = [tostringfunc]
       foreach (tf in tostringfunc)
         if (tf.compare(val))
@@ -243,7 +244,7 @@ function tostring_r(inp, params=defTostringParams): string {
     if (typ == "array" && val.len() == 0)
       return const [true, "[]"]
     if (typ == "instance") {
-      let str = type(val?.tostring) == "function" ? val.tostring() : null
+      let str = val?.tostring instanceof Function ? val.tostring() : null
       return [str != null && str.indexof("(instance : 0x") != 0, str]
     }
     return const [false, null]
@@ -261,7 +262,7 @@ function tostring_r(inp, params=defTostringParams): string {
     local li = 0
     local maxind = -1
     try {
-      if (type(input?.len)=="function") {
+      if (input?.len instanceof Function) {
         let info = input.len.getfuncinfos()
         if (!info.native && info.parameters.len()==1)
           maxind = input.len()-1
@@ -333,7 +334,7 @@ function tostring_r(inp, params=defTostringParams): string {
           stream.writestring(newline)
           stream.writestring(arrInd)
         }
-        else if (arrayElem && li < maxind && type(input[li+1]) != "table"){
+        else if (arrayElem && li < maxind && !(input[li+1] instanceof Table)){
           stream.writestring(newline)
           stream.writestring(indent)
         }
@@ -552,17 +553,17 @@ function [pure] floatToStringRounded(value: number, presize: number): string {
 }
 
 function [pure] isStringInteger(str): bool {
-  if (type(str) == "integer")
+  if (str instanceof Integer)
     return true
-  if (type(str) != "string")
+  if (!(str instanceof String))
     return false
   return intRegExp.match(str)
 }
 
 function [pure] isStringFloat(str, separator="."): bool {
-  if (type(str) == "integer" || type(str) == "float")
+  if (str instanceof Integer || str instanceof Float)
     return true
-  if (type(str) != "string")
+  if (!(str instanceof String))
     return false
   if (separator == ".")
     return floatRegExp.match(str)
@@ -604,7 +605,7 @@ function [pure] isStringFloat(str, separator="."): bool {
 }
 
 function [pure] toIntegerSafe(str, defValue = 0, needAssert = true) {
-  if (type(str) == "string")
+  if (str instanceof String)
     str = str.strip()
   if (isStringInteger(str))
     return str.tointeger()
@@ -614,7 +615,7 @@ function [pure] toIntegerSafe(str, defValue = 0, needAssert = true) {
 }
 
 function [pure] toFloatSafe(str, defValue = 0.0, needAssert = true) {
-  if (type(str) == "string")
+  if (str instanceof String)
     str = str.strip()
   if (isStringFloat(str))
     return str.tofloat()
@@ -751,7 +752,7 @@ function [pure] stripTags(str) {
 }
 
 function [pure] escape(str): string {
-  if (type(str) != "string") {
+  if (!(str instanceof String)) {
     assert(false, @() $"wrong escape param type: {type(str)}")
     return ""
   }
@@ -808,7 +809,7 @@ function pprint(...){
 }
 
 function validateEmail(no_dump_email): bool {
-  if (type(no_dump_email) != "string")
+  if (!(no_dump_email instanceof String))
     return false
 
   local str = split(no_dump_email,"@")
@@ -869,12 +870,11 @@ function [pure] splitStringBySize(str, maxSize): array {
 function obj2stringarray(obj, curpath = null): array {
   let res = []
   curpath = curpath ?? []
-  let t = type(obj)
-  if (t=="array") {
+  if (obj instanceof Array) {
     foreach(i in obj)
       res.extend(obj2stringarray(i, [].extend(curpath)))
   }
-  else if (t=="table") {
+  else if (obj instanceof Table) {
     foreach( k, v in obj)
       res.extend(obj2stringarray(v, [].extend(curpath).append(k)))
   }

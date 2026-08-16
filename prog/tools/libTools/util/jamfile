@@ -34,7 +34,6 @@ Sources =
   genericCache.cpp
   twoStepRelPath.cpp
   iesReader.cpp
-  riexsync_stub.cpp
 ;
 
 if $(Platform) in windows {

@@ -105,11 +105,14 @@ void GenericBufferInterface::useExternalResource(Buffer *resource)
 void GenericBufferInterface::afterBufferResourceAllocated()
 {
   Globals::Dbg::naming.setBufName(ref.buffer, getName());
+  if (bufFlags & SBCF_NO_STATE_TRACKING)
+    ref.buffer->disableSyncTracking();
   if (FormatStore(0) != uavFormat)
     ref.buffer->addBufferView(uavFormat);
 
   if (bufFlags & SBCF_ZEROMEM)
   {
+    G_ASSERTF((bufFlags & SBCF_NO_STATE_TRACKING) == 0, "vulkan: can't track requested internal zero mem work");
     unsigned char *data = nullptr;
     if (lock(0, bufSize, (void **)&data, VBLOCK_WRITEONLY) && data)
     {
@@ -122,6 +125,9 @@ void GenericBufferInterface::afterBufferResourceAllocated()
 GenericBufferInterface::~GenericBufferInterface()
 {
   auto &ctx = Globals::ctx;
+
+  if (rld)
+    rld->destroySelf();
 
   if (stagingBuffer)
     ctx.dispatchCmd<CmdDestroyBuffer>({stagingBuffer});

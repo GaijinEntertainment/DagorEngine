@@ -35,6 +35,8 @@
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 #include <util/dag_console.h>
+#include <util/dag_pull_console_proc.h>
+#include <rendInst/riGridDump.h>
 #include <util/dag_hash.h>
 #include <math/dag_mathUtils.h>
 #include <dag/dag_vectorSet.h>
@@ -192,6 +194,11 @@ static void init_ri_extra_grid(const DataBlock *level_blk)
   }
 
   riextra_additional_data_manager = eastl::make_unique<rendinst::RiExtraAdditionalDataManager>();
+#if DAGOR_DBGLEVEL > 0
+  debug("riExtraGrid: cell %u maxMainExt %.1f maxSubExt %.1f maxSubRad %.1f objToSub %d maxLeafObj %d", riExtraGrid.getCellSize(),
+    riExtraGrid.configMaxMainExtension, riExtraGrid.configMaxSubExtension, riExtraGrid.configMaxSubRadius,
+    riExtraGrid.configObjectsToCreateSubGrid, riExtraGrid.configMaxLeafObjects);
+#endif
 
   rendinst::init_tiled_scenes(level_blk);
 }
@@ -1218,14 +1225,14 @@ int rendinst::getOrAddMissingRIGenExtraResIdx(const char *ri_res_name, AddRIFlag
   return resIdx;
 }
 
-rendinst::ClientRiexPool rendinst::ClientRiexPool::get(const char *ri_res_name)
+rendinst::ClientRiexPoolId rendinst::ClientRiexPoolId::get(const char *ri_res_name)
 {
-  return ClientRiexPool{getRIGenExtraResIdx(ri_res_name)};
+  return ClientRiexPoolId{getRIGenExtraResIdx(ri_res_name)};
 }
 
-rendinst::ClientRiexPool rendinst::ClientRiexPool::add(const char *ri_res_name, AddRIFlags ri_flags)
+rendinst::ClientRiexPoolId rendinst::ClientRiexPoolId::add(const char *ri_res_name, AddRIFlags ri_flags)
 {
-  return ClientRiexPool{getOrAddMissingRIGenExtraResIdx(ri_res_name, ri_flags)};
+  return ClientRiexPoolId{getOrAddMissingRIGenExtraResIdx(ri_res_name, ri_flags)};
 }
 
 void rendinst::reloadRIExtraResources(const char *ri_res_name)
@@ -1681,6 +1688,8 @@ void rendinst::removeFromTiledScene(riex_handle_t id)
     rendinst::remove_instance_from_tiled_scene(pool.tsNodeIdx[idx]);
 }
 
+static bool ri_extra_defer_grid_update = false;                     // see setRIExtraDeferGridUpdate; checked by moveRIGenExtra43 below
+static Tab<rendinst::riex_handle_t> ri_extra_grid_deferred(inimem); // instances taken out of the grid while deferring
 bool rendinst::moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bool do_not_wait)
 {
   ScopedRIExtraWriteTryLock wr(do_not_wait);
@@ -1706,6 +1715,18 @@ bool rendinst::moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bo
   vec4f bsphere = make_pos_and_rad(tm44, pool.bsphXYZR);
   bbox3f newWbb;
   v_bbox3_init(newWbb, tm44, pool.collBb);
+  if (moved && ri_extra_defer_grid_update && pool.collRes && pool.isInGrid(idx))
+  {
+    // Take the instance out of the grid for the whole deferral instead of re-inserting it at every step.
+    // Being absent cannot put a query on the wrong geometry the way a stale entry would, and the next
+    // moves of this instance are free because isInGrid() is now false.
+    riExtraGrid.erase(id, pool.riXYZR[idx]);
+    ri_extra_grid_deferred.push_back(id);
+    pool.riTm[idx] = tm;
+    pool.riXYZR[idx] = v_perm_xyzd(bsphere, v_or(bsphere, V_CI_SIGN_MASK));
+    v_bbox3_add_box(pool.fullWabb, newWbb);
+    return true;
+  }
   if (moved && pool.collRes && pool.isInGrid(idx))
   {
     mat43f oldTm = pool.riTm[idx];
@@ -1744,6 +1765,74 @@ bool rendinst::moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bo
   }
 
   return true;
+}
+
+static int ri_extra_bulk_update_depth = 0;
+bool rendinst::isRIExtraBulkUpdateInProgress() { return ri_extra_bulk_update_depth > 0; }
+void rendinst::setRIExtraDeferGridUpdate(bool defer) { ri_extra_defer_grid_update = defer; }
+bool rendinst::getRIExtraDeferGridUpdate() { return ri_extra_defer_grid_update; }
+
+void rendinst::flushRIExtraGridDefer()
+{
+  if (ri_extra_grid_deferred.empty())
+    return;
+
+  ScopedRIExtraWriteLock wr;
+  for (riex_handle_t id : ri_extra_grid_deferred)
+  {
+    uint32_t res_idx = handle_to_ri_type(id);
+    uint32_t idx = handle_to_ri_inst(id);
+    if (!riExtra.isValid(res_idx))
+      continue;
+    RiExtraPool &pool = riExtra[res_idx];
+    // the slot may have been freed and handed to another instance, which the add path already inserted
+    if (!pool.isValid(idx) || !pool.collRes || pool.isInGrid(idx))
+      continue;
+
+    mat44f tm44;
+    v_mat43_transpose_to_mat44(tm44, pool.riTm[idx]);
+    vec4f bsphere = make_pos_and_rad(tm44, pool.bsphXYZR);
+    if (!(v_extract_w(bsphere) > VERY_SMALL_NUMBER))
+      continue;
+
+    bbox3f wabb;
+    v_bbox3_init(wabb, tm44, pool.collBb);
+    pool.riXYZR[idx] = bsphere;
+    riExtraGrid.insert(id, pool.riXYZR[idx], wabb, false);
+    riutil::world_version_inc(wabb);
+    update_max_ri_extra_height(static_cast<int>(v_extract_y(wabb.bmax) - v_extract_y(wabb.bmin)) + 1);
+    ri_extra_max_height_on_ri_added_or_moved(pool, v_extract_y(wabb.bmax));
+  }
+  ri_extra_grid_deferred.clear();
+}
+
+void rendinst::beginRIExtraBulkUpdate()
+{
+  if (ri_extra_bulk_update_depth++ == 0)
+  {
+    ScopedRIExtraWriteLock wr;
+    riExtraGrid.beginDeferRebuild();
+    for (auto &s : riExTiledScenes.scenes())
+      s.beginBulkTransformUpdate();
+  }
+}
+void rendinst::endRIExtraBulkUpdate()
+{
+  G_ASSERTF(ri_extra_bulk_update_depth > 0, "endRIExtraBulkUpdate without matching begin");
+  if (ri_extra_bulk_update_depth > 0 && --ri_extra_bulk_update_depth == 0)
+  {
+    {
+      ScopedRIExtraWriteLock wr;
+      riExtraGrid.endDeferRebuild();
+    }
+    // Flush the tiled-scene transforms deferred during the bulk move once here, instead of once per
+    // instance (showRiExtraInstance skips its per-instance flush while a bulk update is in progress).
+    // This has to run before the scenes leave bulk mode, so that the queued moves are batched too.
+    if (is_main_thread())
+      applyTiledScenesUpdateForRIGenExtra(1 << 30, 0);
+    for (auto &s : riExTiledScenes.scenes())
+      s.endBulkTransformUpdate();
+  }
 }
 
 bool rendinst::delRIGenExtra(riex_handle_t id)
@@ -2281,6 +2370,14 @@ bool rendinst::rayHitRIGenExtraCollidable(const Point3 &from, const Point3 &dir,
   return ret != RIEX_HANDLE_NULL;
 }
 
+bool rendinst::rayhitRIExtraOnlyNormalized(const Point3 &from, const Point3 &dir, float t, int ray_mat_id,
+  rendinst::RendInstDesc *out_ri_desc, float min_size)
+{
+  MaterialRayStrat strategy(ray_mat_id);
+  rendinst::RendInstDesc tmp;
+  return rayHitRIGenExtraCollidable(from, dir, t, out_ri_desc ? *out_ri_desc : tmp, strategy, min_size);
+}
+
 void rendinst::reapplyLodRanges()
 {
   iterateRIExtra([](int id, RiExtraPool &pool) {
@@ -2734,6 +2831,33 @@ void rendinst::hideRIGenExtraNotCollidable(const BBox3 &_box, bool hide_immortal
   }
 }
 
+void rendinst::setRIGenExtraRenderVisible(riex_handle_t id, bool visible)
+{
+  if (id == RIEX_HANDLE_NULL)
+    return;
+
+  ScopedRIExtraReadLock rd;
+  const uint32_t resIdx = handle_to_ri_type(id);
+  G_ASSERT_RETURN(riExtra.isValid(resIdx), );
+  RiExtraPool &pool = riExtra[resIdx];
+  const uint32_t idx = handle_to_ri_inst(id);
+  if (!pool.isValid(idx))
+    return;
+  const RiExtraPool::NodeIdxAndTs tsNodeIdx = pool.getNodeIdx(idx);
+  if (tsNodeIdx.nodeIdx == scene::INVALID_NODE)
+    return;
+
+  mat44f tm44;
+  v_mat43_transpose_to_mat44(tm44, pool.riTm[idx]);
+  if (!visible)
+  {
+    tm44.col0 = v_zero();
+    tm44.col1 = v_zero();
+    tm44.col2 = v_zero();
+  }
+  riExTiledScenes[tsNodeIdx.tsIndex].setTransform(tsNodeIdx.nodeIdx, tm44);
+}
+
 float rendinst::getRIGenExtraTiledScenesMaxObjectHeight()
 {
   float h = 0.f;
@@ -2894,3 +3018,22 @@ static bool rigrid_console_handler(const char *argv[], int argc)
 }
 
 REGISTER_CONSOLE_HANDLER(rigrid_console_handler);
+
+#if DAGOR_DBGLEVEL > 0
+// riGridDump.cpp holds nothing anyone calls, so without this the linker drops the whole
+// object file and its console command never registers
+PULL_CONSOLE_PROC(rigrid_dump_console_handler)
+
+// riExtraGrid is private to this TU, so the reader stays a wrapper here like every other grid entry
+// point rather than the dump owning it.
+void rigrid_get_dump_config(rigrid_dump::GridConfig &out)
+{
+  out.cellSize = (int)riExtraGrid.getCellSize();
+  out.maxMainExtension = riExtraGrid.configMaxMainExtension;
+  out.maxSubExtension = riExtraGrid.configMaxSubExtension;
+  out.maxSubRadius = riExtraGrid.configMaxSubRadius;
+  out.objectsToCreateSubGrid = riExtraGrid.configObjectsToCreateSubGrid;
+  out.maxLeafObjects = riExtraGrid.configMaxLeafObjects;
+  out.reserveObjectsOnGrow = riExtraGrid.configReserveObjectsOnGrow;
+}
+#endif

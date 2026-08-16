@@ -35,15 +35,14 @@ static inline bool is_transparent(uint32_t phys_mat_id)
   return uint32_t(phys_mat_id) < PhysMat::physMatCount() && PhysMat::getMaterial(phys_mat_id).lightTransparent;
 }
 
-CONSOLE_BOOL_VAL("render", gi_voxelize_cs, false);
 CONSOLE_BOOL_VAL("render", gi_voxelize_md, true);
 
 #define GLOBAL_VARS_LIST           \
   VAR(gi_voxelize_with_instancing) \
   VAR(gi_voxelize_use_multidraw)   \
-  VAR(gi_voxelize_with_colors)     \
   VAR(gi_voxelization_vbuffer)     \
-  VAR(gi_voxelization_ibuffer)
+  VAR(gi_voxelization_ibuffer)     \
+  VAR(supports_barycentrics)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
@@ -78,36 +77,15 @@ LRURendinstCollision::LRURendinstCollision() :
     (supportNoOverwrite ? (SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE) : 0) | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0,
     "collision_voxelization_tm", RESTAG_COLLISION);
   // if we don't support nooverwrite do not use SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE
-  voxelizeCollisionMat.reset(new_shader_material_by_name_optional("voxelize_collision"));
-  if (voxelizeCollisionMat)
-  {
-    voxelizeCollisionMat->addRef();
-    voxelizeCollisionElem = voxelizeCollisionMat->make_elem();
-  }
-  voxelize_collision_cs.reset();
-  auto csMat = new_shader_material_by_name_optional("voxelize_collision_cs");
-  if (csMat)
-    voxelize_collision_cs.reset(new ComputeShaderElement(&csMat->native()));
   const bool multiDrawIndirectSupported = d3d::get_driver_desc().caps.hasWellSupportedIndirect;
   if (multiDrawIndirectSupported)
   {
     serialBuf.init(MAX_VOXELIZATION_INSTANCES * 3); // 3 is for 3-axis projection
-    VSDTYPE vsdInstancing[] = {VSD_STREAM_PER_VERTEX_DATA(0), VSD_REG(VSDR_POS, VSDT_HALF4), VSD_STREAM_PER_INSTANCE_DATA(1),
-      VSD_REG(VSDR_TEXC0, VSDT_INT1), VSD_END};
-    if (voxelizeCollisionElem)
-      voxelizeCollisionElem->replaceVdecl(d3d::create_vdecl(vsdInstancing));
-
     multiDrawBuf = dag::create_sbuffer(INDIRECT_BUFFER_ELEMENT_SIZE,
       getMaxBatchSize() * DRAW_INDEXED_INDIRECT_NUM_ARGS / INDIRECT_BUFFER_ELEMENT_SIZE, SBCF_INDIRECT, 0,
       "collision_voxelization_indirect", RESTAG_COLLISION);
     debug("%s support multi draw indirect", __FUNCTION__);
   }
-}
-
-LRURendinstCollision::~LRURendinstCollision()
-{
-  if (multiDrawBuf && voxelizeCollisionElem)
-    d3d::delete_vdecl(voxelizeCollisionElem->getEffectiveVDecl());
 }
 
 // getRiData (size) and updateLRU (fill) must agree byte-for-byte or the updateData G_ASSERTF fires;
@@ -138,29 +116,31 @@ bool LRURendinstCollision::voxelization_node_size(const CollisionResource *coll_
 
 LRURendinstCollision::RiDataInfo LRURendinstCollision::getRiData(uint32_t type)
 {
-  uint32_t oldSize = riInfo.size();
-  if (type >= oldSize)
+  if (type >= riInfo.size())
   {
     G_ASSERTF(type < (1 << 21), "%d", type);
     riInfo.resize(type + 1);
-    for (uint32_t i = oldSize, ei = riInfo.size(); i < ei; ++i)
+    riInfoSettled.resize(type + 1, false);
+  }
+  RiDataInfo &info = riInfo[type];
+  if (!riInfoSettled[type])
+  {
+    if (const CollisionResource *collRes = lru_collision_get_collres(type))
     {
-      const CollisionResource *collRes = lru_collision_get_collres(i);
-      if (!collRes)
-        continue;
       for (int ni = 0, ne = collRes->getAllNodes().size(); ni < ne; ++ni)
       {
         uint32_t nodeIbSize, nodeVbSize;
         if (voxelization_node_size(collRes, ni, collRes->getNode(ni), nodeIbSize, nodeVbSize))
         {
-          riInfo[i].ibSize += nodeIbSize;
-          riInfo[i].vbSize += nodeVbSize;
+          info.ibSize += nodeIbSize;
+          info.vbSize += nodeVbSize;
         }
       }
-      riInfo[i].ibSize = (riInfo[i].ibSize + 3) & ~3; // align size to 4
+      info.ibSize = (info.ibSize + 3) & ~3; // align size to 4
+      riInfoSettled[type] = true;
     }
   }
-  return riInfo[type];
+  return info;
 }
 
 uint32_t LRURendinstCollision::getVbCapacity() const
@@ -387,7 +367,7 @@ bool LRURendinstCollision::updateLRU(dag::ConstSpan<rendinst::riex_handle_t> ri)
       else
       {
         CollisionVertex *__restrict vertsDest = (CollisionVertex *)vertices;
-        if ((node->flags & (node->IDENT | node->TRANSLATE)) == node->IDENT)
+        if (collRes->isIdentNode(ni))
         {
           collRes->iterateNodeVerts(ni, [&](int, vec4f v) { v_float_to_half(&(vertsDest++)->x, v); });
         }
@@ -569,6 +549,14 @@ void LRURendinstCollision::drawInstances(dag::ConstSpan<rendinst::riex_handle_t>
 void LRURendinstCollision::drawInstances(uint32_t start_instance, const uint32_t *types_counts, uint32_t batches, VolTexture *color,
   VolTexture *alpha, uint32_t instMul, bool primitives)
 {
+#if DAGOR_DBGLEVEL > 0
+  // (primitives, supports_barycentrics == on) is dont_render in collision rasterize
+  // shaders; a wrong blk assume or a caller ignoring caps.hasBarycentrics
+  // would silently draw nothing here
+  if (primitives && ShaderGlobal::get_interval_current_value(supports_barycentricsVarId.get_var_id()) != 0)
+    LOGERR_ONCE("LRU collision: primitives rasterize while supports_barycentrics == on (%s)",
+      ShaderGlobal::is_var_assumed(supports_barycentricsVarId) ? "assumed in shader blk" : "set at runtime");
+#endif
   uint32_t offset = start_instance * instMul;
   if (multiDrawBuf.getBuf() && gi_voxelize_md.get() && !primitives)
   {
@@ -723,28 +711,11 @@ void LRURendinstCollision::draw(dag::ConstSpan<rendinst::riex_handle_t> handles,
     drawInstances(handles, color, alpha, inst_mul, elem, prims);
 }
 
-void LRURendinstCollision::voxelize(dag::ConstSpan<rendinst::riex_handle_t> handles, VolTexture *color, VolTexture *alpha)
-{
-  if (handles.empty())
-    return;
-  ShaderGlobal::set_int(gi_voxelize_with_colorsVarId, color ? 1 : 0);
-  if (voxelize_collision_cs && gi_voxelize_cs.get() &&
-      (ibAllocator.getHeap().getBuf() && ibAllocator.getHeap().getBuf()->getFlags() & SBCF_BIND_SHADER_RES)) // otherwise we can't
-                                                                                                             // dispatch
-  {
-    dispatchInstances(handles, color, alpha, *voxelize_collision_cs);
-  }
-  else
-  {
-    if (voxelizeCollisionElem)
-      drawInstances(handles, color, alpha, 3, *voxelizeCollisionElem, false);
-  }
-}
-
 void LRURendinstCollision::clearRiInfo()
 {
   reset();
   riInfo = {};
+  riInfoSettled = {};
 }
 
 eastl::optional<LRURendinstCollision::MeshData> LRURendinstCollision::getModelData(int modelId) const
@@ -768,4 +739,16 @@ eastl::optional<LRURendinstCollision::MeshData> LRURendinstCollision::getModelDa
   ret.positionOffset = 0;
   ret.positionFormat = VSDT_HALF4;
   return ret;
+}
+
+eastl::shared_ptr<LRURendinstCollision> LRURendinstCollision::acquire()
+{
+  static eastl::weak_ptr<LRURendinstCollision> instance;
+  auto shared = instance.lock();
+  if (!shared)
+  {
+    shared = eastl::make_shared<LRURendinstCollision>();
+    instance = shared;
+  }
+  return shared;
 }

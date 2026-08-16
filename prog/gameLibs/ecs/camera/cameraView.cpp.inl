@@ -31,7 +31,7 @@ CameraSetup get_active_camera_setup(ecs::EntityManager &manager)
     [&active_camera_eid, &active_camera_found, &camSetup](ECS_REQUIRE(eastl::true_type camera__active)
                                                             ECS_REQUIRE(ecs::Tag camera_view) const ecs::EntityManager &manager,
       ecs::EntityId eid, const TMatrix &transform, const DPoint3 *camera__accuratePos = nullptr, float fov = 90.0f,
-      float fovSettings = 90.0f, float znear = 0.1f, float zfar = 5000.f, bool camera__fovHorPlus = true,
+      float cockpit_fov = -1.0f, float fovSettings = 90.0f, float znear = 0.1f, float zfar = 5000.f, bool camera__fovHorPlus = true,
       bool camera__fovHybrid = false) {
       G_UNUSED(manager);
 #if DAGOR_DBGLEVEL > 0
@@ -49,6 +49,7 @@ CameraSetup get_active_camera_setup(ecs::EntityManager &manager)
         camSetup.accuratePos = transform.getcol(3);
       camSetup.fovSettings = fovSettings;
       camSetup.fov = fov;
+      camSetup.cockpitFov = cockpit_fov;
       camSetup.znear = znear;
       camSetup.zfar = zfar;
       camSetup.fovMode = camera__fovHybrid ? EFM_HYBRID : camera__fovHorPlus ? EFM_HOR_PLUS : EFM_HOR_PLUS;

@@ -1,4 +1,4 @@
-// Squirrel module under test: dagor.shell (registered by dagorShell.cpp)
+// Quirrel module under test: dagor.shell (registered by dagorShell.cpp)
 // shell_execute would launch external programs / open URLs / files; that
 // mutates OS state and is unsafe for an unattended test. The smallest
 // deterministic subset we can exercise is shell_execute's argument validation

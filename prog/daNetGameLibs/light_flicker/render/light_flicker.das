@@ -25,10 +25,6 @@ def calc_effect_tm(pos : float3; norm : float3)
   tm[3] = pos
   return tm
 
-def smoothstep(edge0 : float; edge1 : float; x : float)
-   // Scale, and clamp x to 0..1 range
-  let c = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0)
-  return c * c * (3.0 - 2.0 * c)
 
 def lf_hash(v : uint)
   var n = (v << 13U) ^ v

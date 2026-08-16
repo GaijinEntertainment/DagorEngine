@@ -15,7 +15,7 @@ namespace dafg
 {
 
 // One descriptor slot per in-flight frame (frame f uses baseBindlessSlot + f).
-static constexpr uint32_t FRAME_WINDOW = BarrierScheduler::SCHEDULE_FRAME_WINDOW;
+static constexpr uint32_t FRAME_WINDOW = SCHEDULE_FRAME_WINDOW;
 
 // Allocates FRAME_WINDOW slots per resource and turns each resource's provisional
 // in-range index into its final base slot.

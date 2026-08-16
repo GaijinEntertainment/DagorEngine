@@ -135,6 +135,442 @@ var GE_nodeDescriptionsAdditional =
     allowLoop:false,
     width:240
   },
+  {
+    name: "sample perlin_worley 3d noise (low frequency)",
+    category: "Noise",
+    synonyms: "perlin, worley, noise, 3d, low",
+    pins:[
+      {name: "uvw", types:["float3"], singleConnect:true, role:"in"},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"tex3Dlod(gen_cloud_shape, float4($uvw$, 0)).x"}}
+    ],
+    properties:[],
+    allowLoop:false,
+    width:200
+  },
+  {
+    name: "sample worley 3d noise (high frequency)",
+    category: "Noise",
+    synonyms: "worley, noise, 3d, high",
+    pins:[
+      {name: "uvw", types:["float3"], singleConnect:true, role:"in"},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"tex3Dlod(gen_cloud_detail, float4($uvw$, 0)).x"}}
+    ],
+    properties:[],
+    allowLoop:false,
+    width:200
+  },
+  {
+    name: "sample vector 2d noise",
+    category: "Noise",
+    synonyms: "vector, noise, 2d, high",
+    pins:[
+      {name: "uv", types:["float2"], singleConnect:true, role:"in"},
+      {name: "noise vector", types:["float2"], singleConnect:false, role:"out", data:{code:"tex2Dlod(clouds_curl_2d, float4($uv$, 0, 0)).xy"}}
+    ],
+    properties:[],
+    allowLoop:false,
+    width:200
+  },
+  {
+    name: "perlin 3d noise",
+    category: "Noise",
+    synonyms: "perlin, noise, 3d, procedural, signed",
+    pins:[
+      {name: "uvw", types:["float3"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"perlin($uvw$, $scale$, bool3(%tile x%, %tile y%, %tile z%))"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"tile x", type:"bool", val:"false"},
+      {name:"tile y", type:"bool", val:"false"},
+      {name:"tile z", type:"bool", val:"false"}
+    ],
+    allowLoop:false,
+    width:220
+  },
+  {
+    name: "perlin 2d noise",
+    category: "Noise",
+    synonyms: "perlin, noise, 2d, procedural, signed",
+    pins:[
+      {name: "uv", types:["float2"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"perlin($uv$, $scale$, bool2(%tile x%, %tile y%))"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"tile x", type:"bool", val:"false"},
+      {name:"tile y", type:"bool", val:"false"}
+    ],
+    allowLoop:false,
+    width:220
+  },
+  {
+    name: "perlin 3d noise with derivative",
+    category: "Noise",
+    synonyms: "perlin, noise, 3d, procedural, derivative, gradient",
+    pins:[
+      {name: "uvw", types:["float3"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "result", caption:"x: value, yzw: deriv", types:["float4"], singleConnect:false, role:"out", data:{code:"perlin_deriv($uvw$, $scale$, bool3(%tile x%, %tile y%, %tile z%))"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"tile x", type:"bool", val:"false"},
+      {name:"tile y", type:"bool", val:"false"},
+      {name:"tile z", type:"bool", val:"false"}
+    ],
+    allowLoop:false,
+    width:240
+  },
+  {
+    name: "perlin 2d noise with derivative",
+    category: "Noise",
+    synonyms: "perlin, noise, 2d, procedural, derivative, gradient",
+    pins:[
+      {name: "uv", types:["float2"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "result", caption:"x: value, yz: deriv", types:["float3"], singleConnect:false, role:"out", data:{code:"perlin_deriv($uv$, $scale$, bool2(%tile x%, %tile y%))"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"tile x", type:"bool", val:"false"},
+      {name:"tile y", type:"bool", val:"false"}
+    ],
+    allowLoop:false,
+    width:240
+  },
+  {
+    name: "voronoi 3d noise",
+    category: "Noise",
+    synonyms: "voronoi, worley, cellular, noise, 3d, procedural",
+    pins:[
+      {name: "uvw", types:["float3"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "result", caption:"x: F1sq, y: F2sq, z: id", types:["float3"], singleConnect:false, role:"out", data:{code:"voronoi($uvw$, $scale$, %inverted%)"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"inverted", type:"bool", val:"false"}
+    ],
+    allowLoop:false,
+    width:240
+  },
+  {
+    name: "voronoi 2d noise",
+    category: "Noise",
+    synonyms: "voronoi, worley, cellular, noise, 2d, procedural",
+    pins:[
+      {name: "uv", types:["float2"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "result", caption:"x: F1sq, y: F2sq, z: id", types:["float3"], singleConnect:false, role:"out", data:{code:"voronoi($uv$, $scale$, %inverted%)"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"inverted", type:"bool", val:"false"}
+    ],
+    allowLoop:false,
+    width:240
+  },
+  {
+    name: "worley 3d noise",
+    category: "Noise",
+    synonyms: "worley, cellular, octaves, noise, 3d, procedural",
+    pins:[
+      {name: "uvw", types:["float3"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"get_worley($uvw$, $scale$)"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"}
+    ],
+    allowLoop:false,
+    width:220
+  },
+  {
+    name: "worley 2d noise",
+    category: "Noise",
+    synonyms: "worley, cellular, octaves, noise, 2d, procedural",
+    pins:[
+      {name: "uv", types:["float2"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"get_worley($uv$, $scale$)"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"}
+    ],
+    allowLoop:false,
+    width:220
+  },
+  {
+    name: "worley 3d - 2 octaves",
+    category: "Noise",
+    synonyms: "worley, cellular, octaves, noise, 3d, procedural",
+    pins:[
+      {name: "uvw", types:["float3"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"get_worley_2_octaves($uvw$, $scale$)"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"}
+    ],
+    allowLoop:false,
+    width:220
+  },
+  {
+    name: "worley 2d - 2 octaves",
+    category: "Noise",
+    synonyms: "worley, cellular, octaves, noise, 2d, procedural",
+    pins:[
+      {name: "uv", types:["float2"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"get_worley_2_octaves($uv$, $scale$)"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"}
+    ],
+    allowLoop:false,
+    width:220
+  },
+  {
+    name: "worley 3d - 3 octaves",
+    category: "Noise",
+    synonyms: "worley, cellular, octaves, noise, 3d, procedural",
+    pins:[
+      {name: "uvw", types:["float3"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"get_worley_3_octaves($uvw$, $scale$)"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"}
+    ],
+    allowLoop:false,
+    width:220
+  },
+  {
+    name: "worley 2d - 3 octaves",
+    category: "Noise",
+    synonyms: "worley, cellular, octaves, noise, 2d, procedural",
+    pins:[
+      {name: "uv", types:["float2"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"get_worley_3_octaves($uv$, $scale$)"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"}
+    ],
+    allowLoop:false,
+    width:220
+  },
+  {
+    name: "perlin fbm 3 octaves",
+    category: "Noise",
+    synonyms: "perlin, fbm, octaves, noise, 3d, procedural",
+    pins:[
+      {name: "uvw", types:["float3"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "frequency factor", types:["float"], singleConnect:true, role:"in", data:{def_val:"%frequency factor%"}},
+      {name: "amplitude factor", types:["float"], singleConnect:true, role:"in", data:{def_val:"%amplitude factor%"}},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"get_perlin_3_octaves($uvw$, $scale$, bool3(%tile x%, %tile y%, %tile z%), $frequency factor$, $amplitude factor$)"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"frequency factor", type:"float", minVal:"0", maxVal:"8", step:"0.01", val:"2"},
+      {name:"amplitude factor", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"0.5"},
+      {name:"tile x", type:"bool", val:"false"},
+      {name:"tile y", type:"bool", val:"false"},
+      {name:"tile z", type:"bool", val:"false"}
+    ],
+    allowLoop:false,
+    width:240
+  },
+  {
+    name: "perlin fbm 3 octaves 2d",
+    category: "Noise",
+    synonyms: "perlin, fbm, octaves, noise, 2d, procedural",
+    pins:[
+      {name: "uv", types:["float2"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "frequency factor", types:["float"], singleConnect:true, role:"in", data:{def_val:"%frequency factor%"}},
+      {name: "amplitude factor", types:["float"], singleConnect:true, role:"in", data:{def_val:"%amplitude factor%"}},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"get_perlin_3_octaves($uv$, $scale$, bool2(%tile x%, %tile y%), $frequency factor$, $amplitude factor$)"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"frequency factor", type:"float", minVal:"0", maxVal:"8", step:"0.01", val:"2"},
+      {name:"amplitude factor", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"0.5"},
+      {name:"tile x", type:"bool", val:"false"},
+      {name:"tile y", type:"bool", val:"false"}
+    ],
+    allowLoop:false,
+    width:240
+  },
+  {
+    name: "perlin fbm 5 octaves",
+    category: "Noise",
+    synonyms: "perlin, fbm, octaves, noise, 3d, procedural",
+    pins:[
+      {name: "uvw", types:["float3"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "frequency factor", types:["float"], singleConnect:true, role:"in", data:{def_val:"%frequency factor%"}},
+      {name: "amplitude factor", types:["float"], singleConnect:true, role:"in", data:{def_val:"%amplitude factor%"}},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"get_perlin_5_octaves($uvw$, $scale$, bool3(%tile x%, %tile y%, %tile z%), $frequency factor$, $amplitude factor$)"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"frequency factor", type:"float", minVal:"0", maxVal:"8", step:"0.01", val:"2"},
+      {name:"amplitude factor", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"0.5"},
+      {name:"tile x", type:"bool", val:"false"},
+      {name:"tile y", type:"bool", val:"false"},
+      {name:"tile z", type:"bool", val:"false"}
+    ],
+    allowLoop:false,
+    width:240
+  },
+  {
+    name: "perlin fbm 5 octaves 2d",
+    category: "Noise",
+    synonyms: "perlin, fbm, octaves, noise, 2d, procedural",
+    pins:[
+      {name: "uv", types:["float2"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "frequency factor", types:["float"], singleConnect:true, role:"in", data:{def_val:"%frequency factor%"}},
+      {name: "amplitude factor", types:["float"], singleConnect:true, role:"in", data:{def_val:"%amplitude factor%"}},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"get_perlin_5_octaves($uv$, $scale$, bool2(%tile x%, %tile y%), $frequency factor$, $amplitude factor$)"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"frequency factor", type:"float", minVal:"0", maxVal:"8", step:"0.01", val:"2"},
+      {name:"amplitude factor", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"0.5"},
+      {name:"tile x", type:"bool", val:"false"},
+      {name:"tile y", type:"bool", val:"false"}
+    ],
+    allowLoop:false,
+    width:240
+  },
+  {
+    name: "perlin fbm 5 octaves with derivative",
+    category: "Noise",
+    synonyms: "perlin, fbm, octaves, noise, 3d, procedural, derivative, gradient",
+    pins:[
+      {name: "uvw", types:["float3"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "result", caption:"x: value, yzw: deriv", types:["float4"], singleConnect:false, role:"out", data:{code:"get_perlin_5_octaves_deriv($uvw$, $scale$, bool3(%tile x%, %tile y%, %tile z%))"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"tile x", type:"bool", val:"false"},
+      {name:"tile y", type:"bool", val:"false"},
+      {name:"tile z", type:"bool", val:"false"}
+    ],
+    allowLoop:false,
+    width:240
+  },
+  {
+    name: "perlin fbm 5 octaves with derivative 2d",
+    category: "Noise",
+    synonyms: "perlin, fbm, octaves, noise, 2d, procedural, derivative, gradient",
+    pins:[
+      {name: "uv", types:["float2"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "result", caption:"x: value, yz: deriv", types:["float3"], singleConnect:false, role:"out", data:{code:"get_perlin_5_octaves_deriv($uv$, $scale$, bool2(%tile x%, %tile y%))"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"tile x", type:"bool", val:"false"},
+      {name:"tile y", type:"bool", val:"false"}
+    ],
+    allowLoop:false,
+    width:240
+  },
+  {
+    name: "perlin fbm 7 octaves",
+    category: "Noise",
+    synonyms: "perlin, fbm, octaves, noise, 3d, procedural, tiled",
+    pins:[
+      {name: "uvw", types:["float3"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "frequency factor", types:["float"], singleConnect:true, role:"in", data:{def_val:"%frequency factor%"}},
+      {name: "amplitude factor", types:["float"], singleConnect:true, role:"in", data:{def_val:"%amplitude factor%"}},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"get_perlin_7_octaves($uvw$, $scale$, $frequency factor$, $amplitude factor$)"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"frequency factor", type:"float", minVal:"0", maxVal:"8", step:"0.01", val:"2"},
+      {name:"amplitude factor", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"0.5"}
+    ],
+    allowLoop:false,
+    width:240
+  },
+  {
+    name: "perlin fbm 7 octaves 2d",
+    category: "Noise",
+    synonyms: "perlin, fbm, octaves, noise, 2d, procedural, tiled",
+    pins:[
+      {name: "uv", types:["float2"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "frequency factor", types:["float"], singleConnect:true, role:"in", data:{def_val:"%frequency factor%"}},
+      {name: "amplitude factor", types:["float"], singleConnect:true, role:"in", data:{def_val:"%amplitude factor%"}},
+      {name: "noise value", types:["float"], singleConnect:false, role:"out", data:{code:"get_perlin_7_octaves($uv$, $scale$, $frequency factor$, $amplitude factor$)"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"frequency factor", type:"float", minVal:"0", maxVal:"8", step:"0.01", val:"2"},
+      {name:"amplitude factor", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"0.5"}
+    ],
+    allowLoop:false,
+    width:240
+  },
+  {
+    name: "curl noise 3d",
+    category: "Noise",
+    synonyms: "curl, turbulence, swirl, noise, 3d, procedural, divergence free",
+    pins:[
+      {name: "uvw", types:["float3"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "curl", types:["float3"], singleConnect:false, role:"out", data:{code:"curl_noise($uvw$, $scale$, bool3(%tile x%, %tile y%, %tile z%))"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"tile x", type:"bool", val:"true"},
+      {name:"tile y", type:"bool", val:"true"},
+      {name:"tile z", type:"bool", val:"false"}
+    ],
+    allowLoop:false,
+    width:220
+  },
+  {
+    name: "curl noise 2d",
+    category: "Noise",
+    synonyms: "curl, turbulence, swirl, noise, 2d, procedural, divergence free",
+    pins:[
+      {name: "uv", types:["float2"], singleConnect:true, role:"in"},
+      {name: "scale", types:["float"], singleConnect:true, role:"in", data:{def_val:"%scale%"}},
+      {name: "curl", types:["float2"], singleConnect:false, role:"out", data:{code:"curl_noise($uv$, $scale$, bool2(%tile x%, %tile y%))"}}
+    ],
+    properties:[
+      {name:"scale", type:"float", minVal:"0", maxVal:"100", step:"0.01", val:"1"},
+      {name:"tile x", type:"bool", val:"true"},
+      {name:"tile y", type:"bool", val:"true"}
+    ],
+    allowLoop:false,
+    width:220
+  },
+  {
+    name: "fbm 5 octaves normalization",
+    category: "Noise",
+    synonyms: "normalize, fbm, octaves, amplitude, factor",
+    pins:[
+      {name: "amplitude factor", types:["float"], singleConnect:true, role:"in", data:{def_val:"%amplitude factor%"}},
+      {name: "factor", types:["float"], singleConnect:false, role:"out", data:{code:"normalize_5_octaves($amplitude factor$)"}}
+    ],
+    properties:[
+      {name:"amplitude factor", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"0.5"}
+    ],
+    allowLoop:false,
+    width:220
+  },
 ];
 
 var GE_defaultExternalsAdditional = [];

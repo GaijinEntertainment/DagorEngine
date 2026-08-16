@@ -79,14 +79,25 @@ def test_split_and_join(t : T?) {
     }
 
     t |> equal(join([ "1", "2", "3"], ","), "1,2,3")
+}
+
+[test]
+def test_join_block_forms(t : T?) {
     t |> run("fuzz join") @@(t : T?) {
         let limit = int(re_gen_get_rep_limit())
         var fake <- Faker()
         fuzz() {
             let elem = fake |> random_uint % 10u
-            var arr <- [for (x in urange(elem)); fake |> any_string]
+            let arr <- [for (_x in urange(elem)); fake |> any_string]
             t |> accept(join(arr, fake |> any_string))
         }
+    }
+    t |> run("join block forms instantiate") @@(t : T?) {
+        // the block overloads are generics - an uncompilable one is inert until a call
+        // site instantiates it (the iterator+block form sat broken exactly this way)
+        let arr <- [ 1, 2, 3 ]
+        t |> equal(join(arr, "-") $(var writer; elem) { write(writer, elem * 10) }, "10-20-30")
+        t |> equal(join(unsafe(each(arr)), "-") $(var writer; elem) { write(writer, elem + 1) }, "2-3-4")
     }
 }
 
@@ -107,7 +118,7 @@ def tricky_test_split_and_join(t : T?) {
     t |> equal(join(spl, ","), splStr)
 
 
-    split(splStr, ",") $(splb) {
+    split(splStr, ",") $(_splb) {
         t |> equal(length(spl), 8)
         t |> equal(spl[0], "")
         t |> equal(spl[1], "")

@@ -1,4 +1,5 @@
 import "math" as math
+from "types" import Integer, Float
 
 const GOLDEN_RATIO = 1.618034
 
@@ -101,12 +102,11 @@ let romanNumeralLookup = [
   "","X","XX","XXX","XL","L","LX","LXX","LXXX","XC",
   "","C","CC","CCC","CD","D","DC","DCC","DCCC","CM"
 ]
-let maxRomanDigit = 3
+const maxRomanDigit = 3
 
 //Function from http://blog.stevenlevithan.com/archives/javascript-roman-numeral-converter
 function getRomanNumeral(num): string {
-  let t = type(num)
-  if ((t != "integer" && t != "float") || num < 0)
+  if (!(num instanceof Integer || num instanceof Float) || num < 0)
     return ""
 
   num = num.tointeger()

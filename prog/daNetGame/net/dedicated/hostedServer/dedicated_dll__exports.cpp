@@ -8,12 +8,64 @@
 #include <daECS/scene/scene.h>
 #include <supp/dag_dllexport.h>
 #include <debug/dag_debug.h>
+#include <debug/dag_logSys.h>
+#include <debug/dag_log.h>
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
+#include <util/dag_string.h>
+#include <memory/dag_framemem.h>
 #include <atomic>
 
 static std::atomic<void (*)()> on_server_loaded_callback{nullptr};
 static std::atomic<bool> auto_fire_server_ready{true};
+
+typedef void(__cdecl *hosted_server_log_forwarder_t)(int level, const char *message, const char *filename, int code_line);
+static std::atomic<hosted_server_log_forwarder_t> log_forwarder{nullptr};
+static debug_log_callback_t prev_hosted_debug_log_cb = nullptr;
+static bool hosted_debug_log_installed = false;
+
+static int hosted_server_debug_log_cb(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+{
+  if (hosted_server_log_forwarder_t fwd = log_forwarder.load(std::memory_order_acquire))
+  {
+    // Host sink owns console display for the HIS lifetime; do not chain to the
+    // previous callback (would double-emit ERR into logsBuff via console_output_listener).
+    String buf(framemem_ptr());
+    buf.avprintf(0, fmt, (const DagorSafeArg *)arg, anum);
+    fwd(lev_tag, buf.c_str(), ctx_file ? ctx_file : "", ctx_line);
+    return 1;
+  }
+  if (prev_hosted_debug_log_cb)
+    return prev_hosted_debug_log_cb(lev_tag, fmt, arg, anum, ctx_file, ctx_line);
+  return 1;
+}
+
+void hosted_server_install_debug_log_forward()
+{
+  if (hosted_debug_log_installed)
+    return;
+  hosted_debug_log_installed = true;
+  prev_hosted_debug_log_cb = debug_set_log_callback(hosted_server_debug_log_cb);
+}
+
+void hosted_server_uninstall_debug_log_forward()
+{
+  if (!hosted_debug_log_installed)
+    return;
+  hosted_debug_log_installed = false;
+  debug_set_log_callback(prev_hosted_debug_log_cb);
+  prev_hosted_debug_log_cb = nullptr;
+}
+
+DAG_DLL_EXPORT void hosted_server_set_log_forwarder(hosted_server_log_forwarder_t cb)
+{
+  log_forwarder.store(cb, std::memory_order_release);
+}
+
+DAG_DLL_EXPORT hosted_server_log_forwarder_t hosted_server_get_log_forwarder()
+{
+  return log_forwarder.load(std::memory_order_acquire);
+}
 
 static void fire_server_loaded_once()
 {
@@ -31,9 +83,9 @@ const char *local_server_connection_url(eastl::string &str)
 DAG_DLL_EXPORT
 void hosted_server_on_loaded(void *callback) { on_server_loaded_callback.store((void (*)())callback, std::memory_order_release); }
 
-extern "C" void hosted_server_signal_ready() { fire_server_loaded_once(); }
+void hosted_server_signal_ready() { fire_server_loaded_once(); }
 
-extern "C" void hosted_server_disable_auto_ready() { auto_fire_server_ready.store(false, std::memory_order_release); }
+void hosted_server_disable_auto_ready() { auto_fire_server_ready.store(false, std::memory_order_release); }
 
 DAG_DLL_EXPORT
 void try_start_relay_and_subscribe(void(__cdecl *relay_status_subscribe)(bool enabled))

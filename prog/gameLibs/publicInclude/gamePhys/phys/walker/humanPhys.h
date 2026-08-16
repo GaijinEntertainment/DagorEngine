@@ -12,6 +12,7 @@
 #include <util/dag_simpleString.h>
 #include <gamePhys/collision/collisionLinks.h>
 #include <gamePhys/phys/walker/humanWeapPosInfo.h>
+#include <gamePhys/phys/walker/humanSegPhys.h>
 #include <math/dag_mathUtils.h>
 #include <limits.h>
 #include "humanWeapState.h"
@@ -491,6 +492,7 @@ public:
 
   Point3 climbOnPos = Point3(0.4f, 2.f, 0.f);
   float climbOnRad = 0.2f;
+  float climbCeilRad = 0.2f;
   float climbLadderHeight = 0.6f;
   int climbPositions = 4;
 
@@ -530,41 +532,6 @@ public:
   float climbOverMinHeightBehindObstacle = 0.5f;
   float climbOverMaxHeightBehindObstacle = 2.0f;
   float climbOverStaticVelocity = 2.f;
-
-  struct ClimbTrajectoryPoint
-  {
-    ClimbTrajectoryPoint(Point3 p, float t) : position(p), time(t) {}
-
-    Point3 position;
-    float time;
-  };
-
-  enum ClimbTrajectoryStage
-  {
-    CLIMB_STAGE_JUMP_UP = 0,
-    CLIMB_STAGE_CLIMB = 1,
-    CLIMB_STAGE_JUMP_DOWN = 2,
-    CLIMB_STAGE_FLY_DOWN = 3,
-    CLIMB_STAGE_LANDING = 4,
-    CLIMB_STAGE_STAND_UP = 5,
-  };
-
-  bool useClimbTrajectory = false;
-  Tab<ClimbTrajectoryPoint> climbTrajectoryClimb;
-  Tab<ClimbTrajectoryPoint> climbTrajectoryJumpDown;
-  int climbTrajectoryPrevStage = 0;
-  int climbTrajectoryNextStage = 0;
-  float climbTime = 0.f;
-  float climbProgress = 0.f;
-  float climbTrajectoryClimbMaxProgress = 0.f;
-  float climbTrajectoryJumpDownMaxProgress = 0.f;
-  float climbTrajectorySpeedCoef = 1.f;
-  float climbTrajectoryTransitionK = -1.f;
-  Point3 climbTrajectoryStartPositionOffset;
-  Point3 climbTrajectoryPrevPosition = {0.f, 0.f, 0.f};
-  Point3 climbTrajectoryNextPosition = {0.f, 0.f, 0.f};
-  float climbTrajectoryPrevProgress = 0.f;
-  float climbTrajectoryNextProgress = 0.f;
 
   CollisionObject torsoCollision;
   CollisionObject climberCollision;
@@ -619,7 +586,6 @@ public:
 
   void updateClimbing(float at_time, float dt, const TMatrix &tm, const Point3 &vert_dir, const Point3 &cur_coll_center,
     bool torso_collided, const Point3 &torso_coll_norm);
-  void updateClimbingWithTrajectory(float dt, const TMatrix &tm, const Point3 &vert_dir, const Point3 &cur_coll_center);
 
   bool checkWallClimbing(const TMatrix &tm);
 
@@ -737,6 +703,31 @@ public:
   HumanWeaponParamsVec weaponParams;
   const PrecomputedWeaponPositions *precompWeaponPos = nullptr; // if not null points to shared comp data
 
+  const SegmentedHumanPhysics *segPhysShared = nullptr; // if not null point to shared comp data
+  SegmentedHumanPhysicsState segPhysState;
+
+  enum SegPhysUpdateType
+  {
+    SEGPHYS_UPDATE_INIT,
+    SEGPHYS_UPDATE_STEP,
+    SEGPHYS_UPDATE_STEP_QUICK,
+    SEGPHYS_UPDATE_STEP_QUICK_FAR,
+  };
+  enum SegPhysResultType
+  {
+    SEGPHYS_RESULT_CONTINUE,
+    SEGPHYS_RESULT_NEXT,
+    SEGPHYS_RESULT_END,
+    SEGPHYS_RESULT_HALT_ON_ERROR,
+  };
+  struct SegPhysUpdateContext
+  {
+    SegPhysUpdateType update = SEGPHYS_UPDATE_STEP;
+    SegPhysResultType result = SEGPHYS_RESULT_CONTINUE;
+    float stepTime = 0.f;
+    float usedTime = 0.f;
+  };
+
   HumanPhys(ptrdiff_t physactor_offset, PhysVars *phys_vars, float time_step);
   ~HumanPhys();
 
@@ -745,6 +736,15 @@ public:
   void validateTraceCache() override;
   void updatePhys(double at_time, float dt, bool is_for_real);
   void updatePhysInWorld(const TMatrix &tm) override;
+
+  void segPhysInit(int init_seg);
+  void segPhysUpdate(SegPhysUpdateType update_type, float step_time);
+  void segPhysUpdateSegment(SegPhysUpdateContext &ctx, const SegPhysSegment &seg);
+  void segPhysClimbMoveToPullUpPos(SegPhysUpdateContext &ctx, const SegPhysSegment &seg);
+  void segPhysClimbByTrajectory(SegPhysUpdateContext &ctx, const SegPhysSegment &seg);
+  void segPhysClimbEnd(SegPhysUpdateContext &ctx);
+  bool segPhysClimbCheckFloor(float trace_len);
+
   int getCollisionMatId() const { return humanCollision->collObjUd.matId; }
   void setCollisionMatId(int mat_id) { humanCollision->collObjUd.matId = mat_id; }
   HumanPhysState *getAuthorityApprovedState() const { return authorityApprovedState.get(); }

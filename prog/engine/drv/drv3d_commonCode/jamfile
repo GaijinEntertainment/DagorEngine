@@ -52,7 +52,7 @@ if $(Platform) in macOS iOS tvOS {
   ;
 }
 
-if $(Platform) in windows && $(PlatformArch) in x86 x86_64 {
+if $(Platform) in windows && $(PlatformArch) in x86 x86_64 arm64 {
   local NvApiDir = $(_DEVTOOL)/nvapi-$(NvApiVer) ;
   if ! [ GLOB $(NvApiDir) : * ] { exit FATAL\: \"$(NvApiDir)\" not found!  Please, update DEVTOOLS ; }
 
@@ -60,6 +60,7 @@ if $(Platform) in windows && $(PlatformArch) in x86 x86_64 {
   CPPopt += -DHAS_NVAPI ;
   Sources += nvLowLatency.cpp ;
   switch $(PlatformArch) {
+    case arm64 :  AddLibs += $(NvApiDir)/aarch64/nvapia64.lib ;
     case x86 :    AddLibs += $(NvApiDir)/x86/nvapi.lib ;
     case x86_64 : AddLibs += $(NvApiDir)/amd64/nvapi64.lib ;
   }
@@ -77,7 +78,7 @@ if $(Platform) in windows &&
 }
 
 if $(Platform) in windows &&
-   $(PlatformArch) in x86 x86_64 &&
+   $(PlatformArch) in x86 x86_64 arm64 &&
    [ GLOB $(Root)/prog/3rdPartyLibs/streamline : * ] {
   AddIncludes +=
     $(Root)/prog/3rdPartyLibs/streamline/include

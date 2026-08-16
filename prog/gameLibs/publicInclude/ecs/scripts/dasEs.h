@@ -166,7 +166,8 @@ void set_sandbox(bool is_sandbox);
 void set_game_mode(bool is_active);
 
 void bind_das_events(SqModules *modules_mgr);
-void bind_das(SqModules *modules_mgr);
+// environment is rebound when bound funcs are called from threads without a live one
+void bind_das(SqModules *modules_mgr, das::daScriptEnvironment *environment);
 void unload_all_das_scripts_without_debug_agents();
 void das_load_ecs_templates();
 

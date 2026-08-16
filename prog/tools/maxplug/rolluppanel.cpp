@@ -47,7 +47,7 @@ enum
 class EDataBlockCB
 {
 public:
-  virtual ~EDataBlockCB() {}
+  virtual ~EDataBlockCB() = default;
   virtual int procCheck(bool val) = 0;
   virtual int procInt(int val) = 0;
   virtual int procCombo(const char *val, const std::vector<std::string> &items) = 0;
@@ -570,30 +570,30 @@ int enum_params(const DataBlock *blk, EDataBlockCB *cb)
   for (int j = 0; j < blk->blockCount(); j++)
   {
     DataBlock *paramBlk = blk->getBlock(j);
-    if (stricmp(paramBlk->getBlockName(), "parameter") == NULL)
+    if (_stricmp(paramBlk->getBlockName(), "parameter") == 0)
     {
       const char *type = paramBlk->getStr("type", "string");
       int result = ECB_SKIP;
       cb->name = (char *)paramBlk->getParamName(1);
       cb->paramId = id;
-      if (stricmp(type, "bool") == NULL)
+      if (_stricmp(type, "bool") == 0)
         result = cb->procCheck(paramBlk->getBool(1));
-      else if (stricmp(type, "int") == NULL)
+      else if (_stricmp(type, "int") == 0)
         result = cb->procInt(paramBlk->getInt(1));
-      else if (stricmp(type, "real") == NULL)
+      else if (_stricmp(type, "real") == 0)
         result = cb->procReal(paramBlk->getReal(1));
-      else if (stricmp(type, "string") == NULL)
+      else if (_stricmp(type, "string") == 0)
         result = cb->procStr(paramBlk->getStr(1));
-      else if (stricmp(type, "p3") == NULL)
+      else if (_stricmp(type, "p3") == 0)
       {
         result = cb->procPoint3(paramBlk->getPoint3(1));
         id += 2;
       }
-      else if (stricmp(type, "combo") == NULL)
+      else if (_stricmp(type, "combo") == 0)
       {
         std::vector<std::string> items;
         for (int i = 0; i < paramBlk->paramCount(); i++)
-          if (!stricmp(paramBlk->getParamName(i), "item") && paramBlk->getParamType(i) == DataBlock::ParamType::TYPE_STRING)
+          if (!_stricmp(paramBlk->getParamName(i), "item") && paramBlk->getParamType(i) == DataBlock::ParamType::TYPE_STRING)
             items.emplace_back(paramBlk->getStr(i));
         cb->procCombo(paramBlk->getStr(1), items);
       }
@@ -613,7 +613,7 @@ public:
   SyncMaxParams(RollupPanel *panel_, const char *group_, const char *type_, const char *name_) :
     panel(panel_), group(group_), name(name_), type(type_)
   {}
-  ~SyncMaxParams() override {}
+  ~SyncMaxParams() override = default;
   int proc(INode *n) override
   {
     if (n->Selected())
@@ -627,26 +627,17 @@ public:
       DataBlock blk(std::make_shared<NameMap>());
       blk.loadText(blkStr.data(), blkStr.length(), NULL);
 
-      if (stricmp(type, "string") == NULL)
-      {
-        static char val[0x10000];
-        panel->getInput(group, name, val);
-        blk.setStr(name, val);
-      }
-
-      if (stricmp(type, "combo") == NULL)
-      {
-        static char val[0x10000];
-        panel->getCombo(group, name, val);
-        blk.setStr(name, val);
-      }
-      else if (stricmp(type, "int") == NULL)
+      if (_stricmp(type, "string") == 0)
+        blk.setStr(name, panel->getInput(group, name).c_str());
+      else if (_stricmp(type, "combo") == 0)
+        blk.setStr(name, panel->getCombo(group, name).c_str());
+      else if (_stricmp(type, "int") == 0)
         blk.setInt(name, (int)panel->getRealInput(group, name));
-      else if (stricmp(type, "real") == NULL)
+      else if (_stricmp(type, "real") == 0)
         blk.setReal(name, panel->getRealInput(group, name));
-      else if (stricmp(type, "bool") == NULL)
+      else if (_stricmp(type, "bool") == 0)
         blk.setBool(name, panel->getCheck(group, name));
-      else if (stricmp(type, "p3") == NULL)
+      else if (_stricmp(type, "p3") == 0)
         blk.setPoint3(name, panel->getPoint3Input(group, name));
 
       panel->bindCommand(n, name, blk);
@@ -667,7 +658,7 @@ class SyncPanelParams : public ENodeCB
 {
 public:
   SyncPanelParams(RollupPanel *panel_) : panel(panel_), found(false) {}
-  ~SyncPanelParams() override {}
+  ~SyncPanelParams() override = default;
   int proc(INode *n) override
   {
     if (n->Selected())
@@ -715,25 +706,17 @@ private:
 // Panel
 //////////////////////////////////////////////////////////////////////////////
 RollupPanel *RollupPanel::instance = NULL;
-DataBlock *RollupPanel::templateBlk = NULL;
+std::unique_ptr<DataBlock> RollupPanel::templateBlk;
 
-RollupPanel::RollupPanel(Interface *ip_, const HWND dlg_hwnd) : ip(ip_)
-{
-  iRoll = GetIRollup(GetDlgItem(dlg_hwnd, IDC_ROLLUPWINDOW));
-  debug("load defparams.blk");
-  fs::path filename = get_cfg_filename(L"defparams.blk");
-  templateBlk = new DataBlock(std::make_shared<NameMap>());
-  templateBlk->load(filename);
-}
+RollupPanel::RollupPanel(Interface *ip_, const HWND dlg_hwnd) : ip(ip_) { iRoll = GetIRollup(GetDlgItem(dlg_hwnd, IDC_ROLLUPWINDOW)); }
 
 DataBlock &RollupPanel::getTemplateBlk()
 {
   if (!templateBlk)
   {
     debug("load defparams.blk");
-    fs::path filename = get_cfg_filename(L"defparams.blk");
-    templateBlk = new DataBlock(std::make_shared<NameMap>());
-    templateBlk->load(filename);
+    templateBlk = std::make_unique<DataBlock>(std::make_shared<NameMap>());
+    templateBlk->load(get_cfg_filename(L"defparams.blk"));
   }
   return *templateBlk;
 }
@@ -748,7 +731,7 @@ void RollupPanel::fillFromBlk(const DataBlock &blk, bool enable)
     DataBlock *groupBlk = blk.getBlock(i);
     int psCount = 0;
     for (int j = 0; j < groupBlk->blockCount(); j++)
-      if (!stricmp(groupBlk->getBlock(j)->getStr(0), "p3"))
+      if (!_stricmp(groupBlk->getBlock(j)->getStr(0), "p3"))
         psCount++;
     HWND hGroupNew = addGroup(iRoll, groupBlk->blockCount() + psCount * 2, groupBlk->getBlockName());
     FillCB cb(hGroupNew, this, enable);
@@ -827,8 +810,8 @@ void RollupPanel::analyzeCfg(DataBlock &blk, CStr &source)
               {
                 if (!strcmp(paramType, "bool"))
                 {
-                  const bool v = !stricmp(valStr.c_str(), "yes") || !stricmp(valStr.c_str(), "on") ||
-                                 !stricmp(valStr.c_str(), "true") || !stricmp(valStr.c_str(), "1");
+                  const bool v = !_stricmp(valStr.c_str(), "yes") || !_stricmp(valStr.c_str(), "on") ||
+                                 !_stricmp(valStr.c_str(), "true") || !_stricmp(valStr.c_str(), "1");
 
                   blk.setBool(paramName, v);
                 }
@@ -1073,7 +1056,7 @@ void RollupPanel::onPPChange(const char *group, const char *type, const char *na
 
 void RollupPanel::fillPanel()
 {
-  fillFromBlk(*templateBlk, false);
+  fillFromBlk(getTemplateBlk(), false);
   iRoll->Enable(false);
   SyncPanelParams cb(this);
   enum_nodes(ip->GetRootNode(), &cb);
@@ -1083,11 +1066,8 @@ RollupPanel::~RollupPanel()
 {
   ReleaseIRollup(iRoll);
   instance = NULL;
-  if (templateBlk)
-  {
-    delete templateBlk;
-    templateBlk = NULL;
-  }
+  // dropped so that reopening the panel picks up edits to defparams.blk, as before
+  templateBlk.reset();
 }
 
 BOOL RollupPanel::generalRollupProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -1104,10 +1084,10 @@ BOOL RollupPanel::generalRollupProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM l
       int groupID = instance->iRoll->GetPanelIndex(hWnd);
       char group[32] = {0}, name[32] = {0}, type[32] = {0};
       if (find_param(groupID, nameID, group, name, type))
-        if (stricmp(type, "bool") == NULL || stricmp(type, "string") == NULL)
+        if (_stricmp(type, "bool") == 0 || _stricmp(type, "string") == 0)
           instance->onPPChange(group, type, name);
 
-      if ((!stricmp(type, "combo") && HIWORD(wParam) == BN_BUTTONUP))
+      if ((!_stricmp(type, "combo") && HIWORD(wParam) == BN_BUTTONUP))
       {
         const int valControlIdc = LOWORD(wParam) - (LOWORD(wParam) % PARAM_IDC_COUNT) + PARAM_EDIT_IDC;
 
@@ -1353,46 +1333,57 @@ real RollupPanel::getRealInput(const char *group, const char *name)
 
   const int valControlIdc = paramID * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
   ICustEdit *iEdit = GetICustEdit(GetDlgItem(iRoll->GetPanelDlg(groupID), valControlIdc));
+  if (!iEdit)
+    return 0;
+
   real val = iEdit->GetFloat();
   ReleaseICustEdit(iEdit);
   return val;
 }
 
-void RollupPanel::getCombo(const char *group, const char *name, char *val)
+std::string RollupPanel::getCombo(const char *group, const char *name)
 {
   int groupID, paramID;
   if (!find_param(group, name, groupID, paramID))
-    return;
+    return std::string();
 
   const int valControlIdc = paramID * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
 
+  std::string val;
   for (int i = 0; i < 5; i++)
   {
     ICustButton *iEdit = GetICustButton(GetDlgItem(iRoll->GetPanelDlg(groupID), valControlIdc + i));
-    if (iEdit && iEdit->IsChecked())
+    if (!iEdit)
+      continue;
+
+    if (iEdit->IsChecked())
     {
       TCHAR sw[32];
       iEdit->GetText(sw, 32);
-      strcpy(val, wideToStr(sw).c_str());
+      val = wideToStr(sw);
     }
     ReleaseICustButton(iEdit);
   }
+  return val;
 }
 
-void RollupPanel::getInput(const char *group, const char *name, char *val)
+std::string RollupPanel::getInput(const char *group, const char *name)
 {
   int groupID, paramID;
   if (!find_param(group, name, groupID, paramID))
-    return;
+    return std::string();
 
   const int valControlIdc = paramID * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
   ICustEdit *iEdit = GetICustEdit(GetDlgItem(iRoll->GetPanelDlg(groupID), valControlIdc));
+  if (!iEdit)
+    return std::string();
 
   TCHAR sw[32];
   iEdit->GetText(sw, 32);
-  strcpy(val, wideToStr(sw).c_str());
+  std::string val = wideToStr(sw);
 
   ReleaseICustEdit(iEdit);
+  return val;
 }
 
 Point3 RollupPanel::getPoint3Input(const char *group, const char *name)
@@ -1401,11 +1392,14 @@ Point3 RollupPanel::getPoint3Input(const char *group, const char *name)
   if (!find_param(group, name, groupID, paramID))
     return Point3(0, 0, 0);
 
-  Point3 val;
+  Point3 val(0, 0, 0);
   for (int i = 0; i < 3; i++)
   {
     const int valControlIdc = (paramID + i) * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
     ICustEdit *iEdit = GetICustEdit(GetDlgItem(iRoll->GetPanelDlg(groupID), valControlIdc));
+    if (!iEdit)
+      continue;
+
     val[i] = iEdit->GetFloat();
     ReleaseICustEdit(iEdit);
   }

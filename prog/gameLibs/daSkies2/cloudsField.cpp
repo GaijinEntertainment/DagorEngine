@@ -51,7 +51,7 @@ void CloudsField::initCompressed()
   // todo: on consoles we don't need temp, we can alias memory
   genCloudsFieldCmpr.initVoltex(cloudsFieldVolTemp, resXZ / 4, resXZ / 4, resY, TEXFMT_R32G32UI | CLOUDS_ESRAM_ONLY, 1,
     "clouds_field_volume_tmp");
-  cloudsFieldVolCompressed = dag::create_voltex(resXZ, resXZ, resY, TEXFMT_ATI1N | TEXCF_UPDATE_DESTINATION, 1,
+  cloudsFieldVolCompressed = dag::create_voltex(resXZ, resXZ, resY, TEXFMT_ATI1N | TEXCF_UPDATE_DESTINATION | TEXCF_CLEAR_ON_CREATE, 1,
     "clouds_field_volume_compressed", RESTAG_DASKIES2);
   d3d::SamplerInfo smpInfo;
   smpInfo.address_mode_u = d3d::AddressMode::Wrap;
@@ -206,8 +206,8 @@ void CloudsField::initDownsampledField()
 {
   cloudsDownSampledField.close();
   downsampleCloudsField.initVoltex(cloudsDownSampledField, (resXZ + downsampleRatio - 1) / downsampleRatio,
-    (resXZ + downsampleRatio - 1) / downsampleRatio, (resY + downsampleRatio - 1) / downsampleRatio, TEXFMT_R8, 1,
-    "clouds_field_volume_low");
+    (resXZ + downsampleRatio - 1) / downsampleRatio, (resY + downsampleRatio - 1) / downsampleRatio, TEXFMT_R8 | TEXCF_CLEAR_ON_CREATE,
+    1, "clouds_field_volume_low");
   d3d::SamplerInfo smpInfo;
   smpInfo.address_mode_u = d3d::AddressMode::Wrap;
   smpInfo.address_mode_v = d3d::AddressMode::Wrap;
@@ -237,7 +237,7 @@ void CloudsField::init()
   if (!cloudsFieldVolTemp)
   {
     genCloudsField.init("gen_cloud_field", "gen_cloud_field_ps");
-    genCloudsField.initVoltex(cloudsFieldVol, resXZ, resXZ, resY, TEXFMT_R8, 1, "clouds_field_volume");
+    genCloudsField.initVoltex(cloudsFieldVol, resXZ, resXZ, resY, TEXFMT_R8 | TEXCF_CLEAR_ON_CREATE, 1, "clouds_field_volume");
     if (!genCloudsField.isComputeLoaded())
       genCloudLayersNonEmpty.init("gen_cloud_layers_non_empty", nullptr, 0, "gen_cloud_layers_non_empty", false);
     {
@@ -264,7 +264,8 @@ void CloudsField::init()
     refineAltitudesPs.init("clouds_refine_altitudes_ps");
   if (!layersHeights)
   {
-    layersHeights = dag::create_tex(nullptr, 2, 1, (refineAltitudes ? TEXCF_UNORDERED : TEXCF_RTARGET) | TEXFMT_A32B32G32R32F, 1,
+    layersHeights = dag::create_tex(nullptr, 2, 1,
+      (refineAltitudes ? TEXCF_UNORDERED : TEXCF_RTARGET) | TEXFMT_A32B32G32R32F | TEXCF_CLEAR_ON_CREATE, 1,
       "cloud_layers_altitudes_tex", RESTAG_DASKIES2);
   }
   if (!readbackData.query)

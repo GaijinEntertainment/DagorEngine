@@ -1605,7 +1605,7 @@ class ScriptedShadersBinDumpManager
 public:
   ScriptedShadersBinDumpOwner *getDump(uint32_t group) { return dumps[group].owner; }
   template <typename T>
-  void enumerateShaderFromHash(const dxil::HashValue &hash, T reciever) const
+  void enumerateShaderFromHash(const dxil::HashValue &hash, T receiver) const
   {
     for (uint32_t gi = 0; gi < countof(dumps); ++gi)
     {
@@ -1625,7 +1625,7 @@ public:
         {
           continue;
         }
-        if (!reciever(gi, si, v2->vprCount))
+        if (!receiver(gi, si, v2->vprCount))
         {
           break;
         }
@@ -2374,7 +2374,7 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
   }
 
   template <typename U>
-  void visitShaderClassesForComputeShader(const dxil::HashValue &hash, U hanlder)
+  void visitShaderClassesForComputeShader(const dxil::HashValue &hash, U handler)
   {
     auto [group, index] = findComputeShader(0, hash);
     if (group >= max_scripted_shaders_bin_groups)
@@ -2406,7 +2406,7 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
             continue;
           }
 
-          visitForShaderClassCodes(cls, si, di, false, false, false, false, hanlder);
+          visitForShaderClassCodes(cls, si, di, false, false, false, false, handler);
         }
       }
     }
@@ -2426,17 +2426,17 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
   template <typename U>
   void visitForShaderClassCodes(const shaderbindump::ShaderClass &shader_class, uint32_t static_index, uint32_t dynamic_index,
     bool use_static_state_override, bool use_null_pixel_shader, bool use_with_pixel_shader_override, bool is_pixel_shader_override,
-    U hanlder)
+    U handler)
   {
     auto &sVar = shader_class.code[static_index];
 
     shader_class.stVariants.enumerateCodesForVariant(static_index,
-      [&shader_class, &sVar, dynamic_index, &hanlder, use_static_state_override, use_null_pixel_shader, use_with_pixel_shader_override,
+      [&shader_class, &sVar, dynamic_index, &handler, use_static_state_override, use_null_pixel_shader, use_with_pixel_shader_override,
         is_pixel_shader_override](uint32_t s_code) {
         sVar.dynVariants.enumerateCodesForVariant(dynamic_index,
-          [&shader_class, s_code, &hanlder, use_static_state_override, use_null_pixel_shader, use_with_pixel_shader_override,
+          [&shader_class, s_code, &handler, use_static_state_override, use_null_pixel_shader, use_with_pixel_shader_override,
             is_pixel_shader_override](uint32_t d_code) {
-            hanlder(shader_class, s_code, d_code, use_static_state_override, use_null_pixel_shader, use_with_pixel_shader_override,
+            handler(shader_class, s_code, d_code, use_static_state_override, use_null_pixel_shader, use_with_pixel_shader_override,
               is_pixel_shader_override);
           });
       });
@@ -2444,7 +2444,7 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
 
   template <typename T, typename U>
   uint32_t visitMatchingRenderPasses(uint32_t group, T checker, bool use_static_state_override, bool use_null_pixel_shader,
-    bool use_with_pixel_shader_override, bool is_pixel_shader_override, U hanlder)
+    bool use_with_pixel_shader_override, bool is_pixel_shader_override, U handler)
   {
     uint32_t visitCount = 0;
     auto v2 = getDump(group)->getDumpV2();
@@ -2469,7 +2469,7 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
           if (checker(*dVar.rpass))
           {
             visitForShaderClassCodes(cls, si, di, use_static_state_override, use_null_pixel_shader, use_with_pixel_shader_override,
-              is_pixel_shader_override, hanlder);
+              is_pixel_shader_override, handler);
             ++visitCount;
           }
         }

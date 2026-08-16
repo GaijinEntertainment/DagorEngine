@@ -161,14 +161,7 @@ namespace das {
         try {
             cb(*this);
             return true;
-        } catch ( const dasException & ) {
-            failed = true;
-            return false;
         } catch ( ... ) {
-            // this method is noexcept for embedders built without EH; a non-das
-            // exception (e.g. std::bad_alloc deep in deserialization) escaping here
-            // would std::terminate. Contain it the same way and report failure.
-            LOG(LogLevel::warning) << "das: serialize: unknown exception\n";
             failed = true;
             return false;
         }
@@ -750,11 +743,20 @@ namespace das {
                     ser << anno->module->nameHash;
                 }
             } else {
-                // If the macro is from current module, do nothing
-                // it will probably take care of itself during compilation
-                SERIALIZER_VERIFYF( anno->module->macroContext,
-                    "expected to see macro module '%s'", anno->module->name.c_str()
-                );
+                // das-declared distinct-type entities round-trip with the module itself
+                // (Module::serialize registers them before anything that references them
+                // deserializes), so an own-module reference resolves by name
+                bool isDistinct = anno->rtti_isDistinctTypeAnnotation();
+                ser << isDistinct;
+                if ( isDistinct ) {
+                    ser << anno->name;
+                } else {
+                    // If the macro is from current module, do nothing
+                    // it will probably take care of itself during compilation
+                    SERIALIZER_VERIFYF( anno->module->macroContext,
+                        "expected to see macro module '%s'", anno->module->name.c_str()
+                    );
+                }
             }
         } else {
             bool inThisModule = false;
@@ -773,6 +775,16 @@ namespace das {
                     SERIALIZER_VERIFYF(mod!=nullptr, "module '%llu' is not found", moduleNameHash);
                     anno = mod->findAnnotation(name);
                     SERIALIZER_VERIFYF(anno!=nullptr, "annotation '%s' is not found", name.c_str());
+                }
+            } else {
+                bool isDistinct = false;
+                ser << isDistinct;
+                if ( isDistinct ) {
+                    string name;
+                    ser << name;
+                    anno = ser.thisModule->findAnnotation(name);
+                    SERIALIZER_VERIFYF(anno!=nullptr && anno->rtti_isDistinctTypeAnnotation(),
+                        "distinct type '%s' is not found in module '%s'", name.c_str(), ser.thisModule->name.c_str());
                 }
             }
         }
@@ -1209,6 +1221,29 @@ namespace das {
             case tFloat4:
             case tDouble:
             case tString:
+            case tFloat16:
+            case tHalf2:
+            case tHalf3:
+            case tHalf4:
+            case tHalf8:
+            case tShort2:
+            case tShort3:
+            case tShort4:
+            case tShort8:
+            case tUShort2:
+            case tUShort3:
+            case tUShort4:
+            case tUShort8:
+            case tByte2:
+            case tByte3:
+            case tByte4:
+            case tByte8:
+            case tByte16:
+            case tUByte2:
+            case tUByte3:
+            case tUByte4:
+            case tUByte8:
+            case tUByte16:
                 ser << alias;
                 DAS_VERIFYF_MULTI(!annotation, !structType, !enumType, !firstType, !secondType,
                                 argTypes.empty(), argNames.empty());
@@ -1243,6 +1278,11 @@ namespace das {
             case tHandle:
                 ser << alias << annotation;
                 DAS_VERIFYF_MULTI(!!annotation, !structType, !enumType, !firstType, !secondType,
+                                argTypes.empty(), argNames.empty());
+                break;
+            case tDistinct:
+                ser << alias << annotation << firstType;
+                DAS_VERIFYF_MULTI(!!annotation, !structType, !enumType, !secondType,
                                 argTypes.empty(), argNames.empty());
                 break;
             case tEnumeration:
@@ -1392,7 +1432,7 @@ namespace das {
         ser.tag(HASH_TAG("Variable"));
         ser << name << aka << type << init << source << at << index << stackTop
             << extraLocalOffset << module
-            << initStackSize << flags << access_flags << annotation;
+            << initStackSize << flags << access_flags << access_info << annotation;
     }
 
     void Function::AliasInfo::serialize ( AstSerializer & ser ) {
@@ -1440,7 +1480,7 @@ namespace das {
         ser << at            << atDecl          << module;
         ser << hash          << aotHash;  // do not serialize inferStack
         ser << resultAliases << argumentAliases << resultAliasesGlobals;
-        ser << flags         << moreFlags       << sideEffectFlags;
+        ser << flags         << moreFlags       << moreFlags2      << sideEffectFlags;
     }
 
 // Expressions
@@ -1629,7 +1669,7 @@ namespace das {
 
     void SerializeVisitor::serializeMakeArray ( ExprMakeArray * expr ) {
         serializeMakeLocal(expr);
-        ser << expr->recordType << expr->values << expr->gen2;
+        ser << expr->recordType << expr->values << expr->gen2 << expr->makeArrayOnHeap;
     }
 
     void SerializeVisitor::preVisitExpression ( Expression * expr ) {
@@ -1910,7 +1950,7 @@ namespace das {
 
     void SerializeVisitor::preVisit ( ExprWith * expr ) {
         serializeBase(expr);
-        ser << expr->with << expr->body;
+        ser << expr->with << expr->body << expr->moduleName << expr->moduleUnsafeByProject;
     }
 
     void SerializeVisitor::preVisit ( ExprAssume * expr ) {
@@ -2485,6 +2525,38 @@ namespace das {
         ser.tag(HASH_TAG("Module"));
         ser << name << nameHash << moduleFlags;
         ser << annotationData << requireModule;
+        // das-declared distinct types round-trip with the module (C++-module annotations
+        // re-register on load, parser-created ones don't). they stream BEFORE aliasTypes and
+        // enumerations - any TypeDecl deserialized below resolves tDistinct annotation
+        // pointers via findAnnotation, so the entities must exist first
+        if ( ser.writing ) {
+            uint64_t dtSize = 0;
+            for ( auto & [key, ann] : handleTypes ) {
+                (void) key;
+                if ( ann->rtti_isDistinctTypeAnnotation() ) dtSize ++;
+            }
+            ser << dtSize;
+            for ( auto & [key, ann] : handleTypes ) {
+                (void) key;
+                if ( !ann->rtti_isDistinctTypeAnnotation() ) continue;
+                auto dann = static_cast<DistinctTypeAnnotation *>(ann);
+                ser << dann->name << dann->cppName << dann->at << dann->isPrivate << dann->underlyingType;
+            }
+        } else {
+            uint64_t dtSize = 0;
+            ser << dtSize;
+            for ( uint64_t i=0; i<dtSize; ++i ) {
+                string dname, dcppName;
+                LineInfo dat;
+                bool dpriv = false;
+                TypeDeclPtr dunder = nullptr;
+                ser << dname << dcppName << dat << dpriv << dunder;
+                auto dann = new DistinctTypeAnnotation(dname, dunder, dcppName);
+                dann->at = dat;
+                dann->isPrivate = dpriv;
+                addAnnotation(dann, true);
+            }
+        }
         ser << aliasTypes     << enumerations;
         /*
         // serialize handleTypes (annotation lookup table)
@@ -2618,7 +2690,9 @@ namespace das {
         *this << value.aot
               << value.aot_module
               << value.aot_macros
+              << value.tune_frozen
               << value.completion
+              << value.building_documentation
               << value.export_all
               << value.serialize_main_module
               << value.keep_alive
@@ -2638,6 +2712,7 @@ namespace das {
               << value.max_static_variables_size
               << value.max_heap_allocated
               << value.max_string_heap_allocated
+              << value.max_unreserved_size
               << value.track_allocations
               << value.rtti
               << value.unsafe_table_lookup
@@ -2647,6 +2722,7 @@ namespace das {
               << value.relaxed_assign
               << value.no_unsafe
               << value.local_ref_is_unsafe
+              << value.with_module_is_unsafe
               << value.no_global_variables
               << value.no_global_variables_at_all
               << value.no_global_heap
@@ -2667,13 +2743,24 @@ namespace das {
               << value.no_members_functions_in_struct
               << value.no_local_class_members
               << value.no_unsafe_uninitialized_structures
+              << value.default_init_containers
               << value.strict_properties
               << value.no_writing_to_nameless
               << value.no_optimizations
+              << value.fast_math
+              << value.disable_dse
+              << value.disable_cse
+              << value.disable_temp_string_reclaim
+              << value.disable_inline
+              << value.disable_auto_inline
+              << value.auto_inline_functions
+              << value.auto_inline_cost
+              << value.disable_run
               << value.no_infer_time_folding
               << value.fail_on_no_aot
               << value.fail_on_lack_of_aot_export
               << value.no_fast_call
+              << value.fusion
               << value.scoped_stack_allocator
               << value.force_inscope_pod
               << value.log_inscope_pod
@@ -2735,6 +2822,18 @@ namespace das {
 
     void AstSerializer::serializeProgramImpl ( ProgramPtr program, ModuleGroup & libGroup ) {
         auto & ser = *this;
+        // version gate — the module-cache path (trySerializeProgramModule) checks only
+        // mtime+filename before this; a cache written by a different serializer version must
+        // fail cleanly here (the caller falls back to a full parse on ser.failed), not misparse
+        // every field after the first layout difference
+        uint32_t version = getVersion();
+        ser << version;
+        if ( !ser.writing && version != getVersion() ) {
+            LOG(LogLevel::warning) << "das: deserialize: module cache version " << version
+                << " does not match serializer version " << getVersion() << "\n";
+            ser.failed = true;
+            return;
+        }
         // Bump epoch so reused pointer addresses across program boundaries
         // get distinct SerializeNodeIds on this persistent serializer.
         ser.epoch++;
@@ -2776,11 +2875,11 @@ namespace das {
 
             // parseDaScript runs with the placeholder thisModule's gc root as the
             // thread-active root; library.reset() below deletes that module (and its
-            // root) - repoint the active root as we go, or every node deserialized
+            // root) — repoint the active root as we go, or every node deserialized
             // after this line gc_links through a dangling pointer into freed memory
             auto & activeRoot = gc_root::gc_get_active_root();
             const bool activeWasThisModule = program->thisModule && activeRoot == program->thisModule->module_gc_root.get();
-            // throwaway already-exists reads park nodes here - they may be referenced
+            // throwaway already-exists reads park nodes here — they may be referenced
             // through the patch maps until all modules are read, then sweep with scope
             gc_root throwaway_root;
             ActiveRootGuard throwaway_guard { &throwaway_root };
@@ -2830,7 +2929,7 @@ namespace das {
                     deser->setModuleName(name);
                     if ( existing ) {
                         program->library.addModule(existing);
-                        // throwaway read into a temp module - keep nodes off its root
+                        // throwaway read into a temp module — keep nodes off its root
                         // (they may be referenced through the patch maps past `delete deser`)
                         ser.serializeModule(*deser, /*already_exists*/true);
                         deser->builtIn = false; // suppress dtor unlink assert
@@ -2861,7 +2960,7 @@ namespace das {
             }
 
             program->thisModule.reset(program->library.getModules().back());
-            // the deserialized module is the program's module now - new nodes and the
+            // the deserialized module is the program's module now — new nodes and the
             // ModuleGcFinalize collect belong on its root
             if ( activeWasThisModule ) activeRoot = program->thisModule->module_gc_root.get();
         }
@@ -2896,6 +2995,16 @@ namespace das {
 
     // Used in daNetGame currently
     void Program::serialize ( AstSerializer & ser ) {
+        // version gate: any layout change shifts every subsequent field, so a stale stream must
+        // fail cleanly here — not misparse into a patch() throw thousands of fields later
+        uint32_t version = AstSerializer::getVersion();
+        ser << version;
+        if ( !ser.writing && version != AstSerializer::getVersion() ) {
+            LOG(LogLevel::warning) << "das: deserialize: stream version " << version
+                << " does not match serializer version " << AstSerializer::getVersion() << "\n";
+            failToCompile = true;
+            return;
+        }
         // Bump epoch so reused pointer addresses across program boundaries
         // get distinct SerializeNodeIds on this persistent serializer.
         ser.epoch++;
@@ -2934,7 +3043,7 @@ namespace das {
             for ( auto & m : modules ) {
                 bool builtin = m->builtIn, promoted = m->promoted;
                 ser << builtin << promoted;
-                ser << m->name << m->fileName;
+                ser << m->name << m->fileName << m->promotedRequire;
 
                 if ( m->builtIn && m->promoted ) {
                     bool isNew = ser.writingReadyModules.count(m) == 0;
@@ -2979,8 +3088,8 @@ namespace das {
         uint64_t size = 0; ser << size;
         for ( uint64_t i = 0; i < size; i++ ) {
             bool builtin = false, promoted = false;
-            string name, fileName;
-            ser << builtin << promoted << name << fileName;
+            string name, fileName, promotedRequire;
+            ser << builtin << promoted << name << fileName << promotedRequire;
             if ( builtin && !promoted ) {
                 // pass
             } else if ( builtin && promoted ) {
@@ -2992,7 +3101,7 @@ namespace das {
                     mod->fileName = fileName;
                     if ( prev ) {
                         library.addModule(prev);
-                        // throwaway read into a temp module - keep nodes off its root
+                        // throwaway read into a temp module — keep nodes off its root
                         // (they may be referenced through the patch maps past `delete mod`)
                         ser.serializeModule(*mod, /*already_exists*/true);
                         mod->builtIn = false; // suppress assert
@@ -3012,7 +3121,7 @@ namespace das {
                         }
                         if ( activeWasThisModule ) activeRoot = &throwaway_root;
                         mod->builtIn = false; // suppress assert
-                        mod->promoteToBuiltin(nullptr);
+                        mod->promoteToBuiltin(nullptr, promotedRequire);
                     }
                 } else {
                     Module * m = Module::require(name);
@@ -3037,7 +3146,7 @@ namespace das {
         }
 
         thisModule.reset(library.modules.back());
-        // the deserialized module is the program's module now - new nodes (allocateStack
+        // the deserialized module is the program's module now — new nodes (allocateStack
         // init script, etc.) and the ModuleGcFinalize collect belong on its root
         if ( activeWasThisModule ) activeRoot = thisModule->module_gc_root.get();
 
@@ -3087,7 +3196,14 @@ namespace das {
         auto prog = make_smart<Program>();
         {
             gc_guard deserialize_gc_scope;
-            prog->serialize(*state->serializer);
+            // same-version streams can still be truncated/corrupt: the stream readers throw
+            // dasException — turn it into the clean failToCompile path (mirrors serializeScript)
+            try {
+                prog->serialize(*state->serializer);
+            } catch ( const dasException & r ) {
+                prog->failToCompile = true;
+                LOG(LogLevel::warning) << "das: deserialize: " << r.what() << "\n";
+            }
             /*
             // THIS ONES ARE FROM THE "already exist" MODULES
             auto leftover = deserialize_gc_scope.guard_root.gc_count;

@@ -120,7 +120,7 @@ let selections = {
 
 let effectiveSchema = Computed(@() selectedSchema.get())
 
-let hdr = txt("Outer Space Launch Settings", {fontSize = style.H_FONT_SIZE, color = Color(100,100,120, 120) margin = [0,0,hdpx(20), 0]})
+let hdr = txt("Outer Space Launch Settings", {fontSize = style.H_FONT_SIZE, color = Color(100,100,120, 120) margin = const [0,0,hdpx(20), 0]})
 
 let {presetsList} = Preferences({
   fileName = $".saved_selection.ver1.{game}.json",
@@ -209,8 +209,8 @@ let launchPanel = {
 }
 let controls = function() {
   return {
-    padding = [sh(8), hdpx(2), hdpx(2), sh(6)]
-    size = [sw(32), flex()]
+    padding = const [sh(8), hdpx(2), hdpx(2), sh(6)]
+    size = const [sw(32), flex()]
     watch = selectedSchema
     flow = FLOW_VERTICAL
     gap = hdpx(20)
@@ -232,11 +232,11 @@ let controls = function() {
 let toolBar = {
   hplace = ALIGN_RIGHT
   gap = hdpx(2)
-  size = [flex(), SIZE_TO_CONTENT]
-  children = [hdr, {size = [flex(), 0]}, clipboardButton, killButton, startButton]
+  size = const [flex(), SIZE_TO_CONTENT]
+  children = [hdr, {size = const [flex(), 0]}, clipboardButton, killButton, startButton]
   flow = FLOW_HORIZONTAL
 }
-let bottomBar = {size = [flex(), hdpx(50)]} // ?? status?
+let bottomBar = {size = const [flex(), hdpx(50)]} // ?? status?
 
 function niceLauncher(){
   const bkg = "launcher_back.png"

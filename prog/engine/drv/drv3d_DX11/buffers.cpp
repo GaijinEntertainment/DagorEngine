@@ -388,6 +388,8 @@ Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsi
 
 bool d3d::setvsrc_ex(int slot, Sbuffer *vb, int ofs, int stride)
 {
+  D3D_CONTRACT_ASSERTF_RETURN(!vb || (vb->getFlags() & SBCF_BIND_VERTEX), false,
+    "DX11: setvsrc_ex vb '%s' in slot %d does not have the SBCF_BIND_VERTEX flag", vb->getBufName(), slot);
   RenderState &rs = g_render_state;
   rs.nextVertexInput.vertexStream[slot].source = (GenericBuffer *)vb;
   rs.nextVertexInput.vertexStream[slot].offset = ofs;

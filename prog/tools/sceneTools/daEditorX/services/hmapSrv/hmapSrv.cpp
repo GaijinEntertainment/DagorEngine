@@ -1195,11 +1195,16 @@ public:
     if (microDetails != blk)
     {
       debug("load land micro details (%d params, %d blocks)", blk.paramCount(), blk.blockCount());
-      ShaderGlobal::reset_from_vars(landMicrodetailsId);
-      release_managed_tex(landMicrodetailsId);
-      landMicrodetailsId = load_land_micro_details(blk);
       microDetails = blk;
+      reloadLandMicroDetails();
     }
+  }
+
+  void reloadLandMicroDetails() override
+  {
+    ShaderGlobal::reset_from_vars(landMicrodetailsId);
+    release_managed_tex(landMicrodetailsId);
+    landMicrodetailsId = load_land_micro_details(microDetails);
   }
 
   void onLevelBlkLoaded(const DataBlock &level_blk) override
@@ -2932,6 +2937,9 @@ public:
     GlobalVertexDataConnector land_gvd, gvd_lod, decal_gvd, combined_gvd, patches_gvd;
     for (int i = 0; i < land_objects.size(); ++i)
     {
+      if (!tools_internal)
+        land_objects[i].optimizeForCache(false);
+
       BSphere3 bsph;
       bsph = cells[i].box;
       land_gvd.addMeshData(&land_objects[i], bsph.c, bsph.r);
@@ -2939,6 +2947,9 @@ public:
     land_gvd.connectData(false, NULL);
     for (int i = 0; i < lodobjects.size(); ++i)
     {
+      if (!tools_internal)
+        lodobjects[i].optimizeForCache(false);
+
       BSphere3 bsph;
       bsph = cells[i].box;
       gvd_lod.addMeshData(&lodobjects[i], bsph.c, bsph.r);
@@ -2947,16 +2958,26 @@ public:
 
     for (int i = 0; i < decal_objects.size(); ++i)
     {
+      if (!tools_internal)
+        decal_objects[i].optimizeForCache(false);
+
       if (!cells[i].decal_mesh)
         continue;
       BSphere3 bsph;
       bsph = cells[i].box;
       decal_gvd.addMeshData(&decal_objects[i], bsph.c, bsph.r);
     }
-    decal_gvd.connectData(false, NULL);
+    {
+      bool oldAllowBaseVertex = eastl::exchange(GlobalVertexDataConnector::allowBaseVertex, true);
+      decal_gvd.connectData(false, NULL);
+      GlobalVertexDataConnector::allowBaseVertex = oldAllowBaseVertex;
+    }
 
     for (int i = 0; i < combined_objects.size(); ++i)
     {
+      if (!tools_internal)
+        combined_objects[i].optimizeForCache(false);
+
       if (!cells[i].combined_mesh)
         continue;
       BSphere3 bsph;
@@ -2969,6 +2990,9 @@ public:
     {
       for (int i = 0; i < patches_objects.size(); ++i)
       {
+        if (!tools_internal)
+          patches_objects[i].optimizeForCache(false);
+
         if (!cells[i].patches_mesh)
           continue;
         BSphere3 bsph;
@@ -2984,9 +3008,6 @@ public:
     for (int i = 0; i < land_objects.size(); ++i)
     {
       ShaderMeshData &md = land_objects[i];
-      if (!tools_internal)
-        land_objects[i].optimizeForCache(false);
-
       for (int j = 0; j < md.elems.size(); ++j)
         matSaver.addMaterial(md.elems[j].mat, texSaver, NULL);
       md.enumVertexData(matSaver);
@@ -2996,9 +3017,6 @@ public:
     for (int i = 0; i < lodobjects.size(); ++i)
     {
       ShaderMeshData &md = lodobjects[i];
-      if (!tools_internal)
-        lodobjects[i].optimizeForCache(false);
-
       md.enumVertexData(matSaver);
       con.incDone();
     }
@@ -3006,9 +3024,6 @@ public:
     for (int i = 0; i < decal_objects.size(); ++i)
     {
       ShaderMeshData &md = decal_objects[i];
-      if (!tools_internal)
-        decal_objects[i].optimizeForCache(false);
-
       for (int j = 0; j < md.elems.size(); ++j)
         matSaver.addMaterial(md.elems[j].mat, texSaver, NULL);
       md.enumVertexData(matSaver);
@@ -3018,9 +3033,6 @@ public:
     for (int i = 0; i < combined_objects.size(); ++i)
     {
       ShaderMeshData &md = combined_objects[i];
-      if (!tools_internal)
-        combined_objects[i].optimizeForCache(false);
-
       for (int j = 0; j < md.elems.size(); ++j)
         matSaver.addMaterial(md.elems[j].mat, texSaver, NULL);
       md.enumVertexData(matSaver);
@@ -3032,9 +3044,6 @@ public:
       for (int i = 0; i < patches_objects.size(); ++i)
       {
         ShaderMeshData &md = patches_objects[i];
-        if (!tools_internal)
-          patches_objects[i].optimizeForCache(false);
-
         for (int j = 0; j < md.elems.size(); ++j)
           matSaver.addMaterial(md.elems[j].mat, texSaver, NULL);
         md.enumVertexData(matSaver);

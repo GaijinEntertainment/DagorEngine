@@ -1,6 +1,6 @@
 # Node Editor Example
 
-Demonstrates [imgui-node-editor](https://github.com/thedmd/imgui-node-editor) bindings via the `dasImguiNodeEditor` daspkg package.
+Demonstrates [imgui-node-editor](https://github.com/thedmd/imgui-node-editor) bindings via the `dasImguiNodeEditor` daspkg package (`dasImgui` itself ships built-in with the daslang tree).
 
 ## Setup
 
@@ -9,7 +9,7 @@ cd examples/node-editor
 daslang.exe ../../utils/daspkg/main.das -- install
 ```
 
-This installs `dasImgui` and `dasImguiNodeEditor` into `modules/` and builds the C++ shared modules automatically.
+This installs `dasImguiNodeEditor` into `modules/` and builds the C++ shared modules automatically (`dasImgui` is part of this daslang tree — nothing to install).
 
 ## Run
 

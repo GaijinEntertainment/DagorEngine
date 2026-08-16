@@ -2,6 +2,7 @@ from "%darg/ui_imports.nut" import *
 import "math" as math
 import "cursors.nut" as cursors
 from "%sqstd/underscore.nut" import isEqual
+from "types" import String, Function
 
 let closeButton = require("closeButton.nut")
 
@@ -28,9 +29,9 @@ function updateWindowOrder(newOrder){
 }
 
 function showWindow(id){
-  if (type(id) == "string"  && id not in registeredWindows)
+  if (id instanceof String  && id not in registeredWindows)
     logerr($"window {id} is not registered")
-  if (type(id) != "string")
+  if (!(id instanceof String))
     id = id.key
   if (!windowsOrder.contains(id))
     updateWindowOrder((clone windowsOrder).append(id))
@@ -56,22 +57,22 @@ function toggleWindow(window){
 
 function mkHeader(id, headerText, onClose) {
   return {
-    size = [flex(), SIZE_TO_CONTENT]
+    size = const [flex(), SIZE_TO_CONTENT]
     rendObj = ROBJ_BOX
     flow = FLOW_HORIZONTAL
     fillColor = Color(0,10,20,210)
     borderColor = Color(30,30,30,20)
     borderWidth = hdpx(1)
-    padding = [0,hdpx(5)]
+    padding = const [0,hdpx(5)]
 
     children = [
       {
-        size = [flex(), SIZE_TO_CONTENT]
+        size = const [flex(), SIZE_TO_CONTENT]
         halign = ALIGN_LEFT
         valign = ALIGN_CENTER
         rendObj = ROBJ_TEXT
         text = headerText
-        margin = [hdpx(5), 0]
+        margin = const [hdpx(5), 0]
       }
       {
         key = id
@@ -100,7 +101,7 @@ let mkWindow = kwarg(function(id, content=null, mkContent=null,
       onAttach=null, initialSize = const [sw(40), sh(65)], minSize = const [sw(14), sh(25)], maxSize = const [sw(80), sh(90)],
       windowStyle = null, saveState=false, onClose = @() null, headerText = ""
   ) {
-  assert(content!=null || type(mkContent)=="function", "registerWindow should be called with 'content' or 'mkContent'")
+  assert(content!=null || mkContent instanceof Function, "registerWindow should be called with 'content' or 'mkContent'")
   let initialState = {
     pos = [sw(50)-initialSize[0]/2 + registeredWindows.len()*sh(5), sh(46)-initialSize[1]/2+registeredWindows.len()*sh(2)]
     size = initialSize

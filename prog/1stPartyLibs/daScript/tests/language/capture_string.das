@@ -1,5 +1,8 @@
 options gen2
 options no_coverage
+// this test asserts per-function captureString/callCaptureString flags; auto-inline
+// legitimately splices the capture_* calls away, which rewrites exactly those flags
+options auto_inline_functions = false
 
 module foobar
 
@@ -40,7 +43,7 @@ def capture_by_set_arg(var a : string&) {
 }
 
 [export]
-def no_capture_by_set_arg(var a : string&) {
+def no_capture_by_set_arg(var a : string&) {    // nolint:LINT014 - the un-written `var string&` IS the test subject
     feint(a)
 }
 
@@ -53,7 +56,7 @@ def capture_by_calling_builtin_capture(a : string) {
 
 [_macro]
 def test() {
-    for_each_function(this_module(), "") <| $(fn) {
+    for_each_function(this_module(), "") $(fn) {
         if (fn.name == "no_capture") {
             assert(!fn.moreFlags.captureString)
             assert(!fn.moreFlags.callCaptureString)
@@ -85,7 +88,7 @@ def test() {
     }
 }
 
-[test]
+[test, unused_argument(t)]
 def test_capture_string(t : T?) {
     pass    // all good, testing is done in macro
 }

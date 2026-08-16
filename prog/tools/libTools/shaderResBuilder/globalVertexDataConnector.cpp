@@ -540,6 +540,7 @@ void GlobalVertexDataConnector::connectData(bool allow_32_bit, GlobalVertexDataC
         re.vertexData = vDataMap[vdIndex].data;
         re.bv += vDataMap[vdIndex].sv;
         re.si += vDataMap[vdIndex].si;
+        // re.sv is not offseted, thus vertex pointcloud should be accessed through re.sv + re.bv (i.e. re.baseVertex).
       }
     }
   }

@@ -153,9 +153,13 @@ void TreeBaseWindow::getSelectedItems(dag::Vector<TLeafHandle> &items, bool sear
   mTree->getSelectedLeafs(items, search_in_collapsed, include_filtered_out);
 }
 
-void TreeBaseWindow::setSelectedItem(TLeafHandle item) { mTree->setSelectedLeaf(item); }
+void TreeBaseWindow::setSelectedItem(TLeafHandle item, bool keep_selected) { mTree->setSelectedLeaf(item, keep_selected); }
 
 void TreeBaseWindow::setSelectedItems(dag::ConstSpan<TLeafHandle> items) { mTree->setSelectedLeafs(items); }
+
+bool TreeBaseWindow::deselectItem(TLeafHandle item) { return mTree->deselectLeaf(item); }
+
+void TreeBaseWindow::setTreeRenderEx(ITreeRenderEx *interface) { mTree->setTreeRenderEx(interface); }
 
 void TreeBaseWindow::setDragHandler(ITreeDragHandler *drag_handler) { mTree->setDragHandler(drag_handler); }
 

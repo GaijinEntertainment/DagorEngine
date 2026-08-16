@@ -400,11 +400,11 @@ VECTORCALL VECMATH_FINLINE vec4i v_cvtu_vec4i(vec4f a)
 {
 #if defined(__AVX512F__)//only works on clang/gcc
   return _mm_cvtps_epu32(a);
-#elif _TARGET_64BIT //_mm_cvtss_si64 is x64 instruction
-  return v_make_vec4i(uint32_t(_mm_cvtss_si64(a)),
-                      uint32_t(_mm_cvtss_si64(v_splat_y(a))),
-                      uint32_t(_mm_cvtss_si64(v_splat_z(a))),
-                      uint32_t(_mm_cvtss_si64(v_splat_w(a))));
+#elif _TARGET_64BIT //_mm_cvttss_si64 is x64 instruction. cvtt, not cvt: this truncates like the cast it stands for
+  return v_make_vec4i(uint32_t(_mm_cvttss_si64(a)),
+                      uint32_t(_mm_cvttss_si64(v_splat_y(a))),
+                      uint32_t(_mm_cvttss_si64(v_splat_z(a))),
+                      uint32_t(_mm_cvttss_si64(v_splat_w(a))));
 #else
   return v_make_vec4i(uint32_t(v_extract_x(a)),
                       uint32_t(v_extract_y(a)),
@@ -695,16 +695,19 @@ VECTORCALL VECMATH_FINLINE vec4i v_packus16(vec4i a, vec4i b) { return _mm_packu
 VECTORCALL VECMATH_FINLINE vec4i v_packus16(vec4i a) { return _mm_packus_epi16(a,a); }
 
 VECTORCALL VECMATH_FINLINE vec4f v_rcp_unprecise(vec4f a) { return _mm_rcp_ps(a); }
+// Newton step kept as y*(2 - a*y), the form NEON's vrecps computes: the algebraically equal
+// 2y - a*y*y evaluates y*y, which leaves float range long before 1/a does - it overflows below
+// |a| ~ 5e-20 (giving a sign flipped inf) and underflows above |a| ~ 1e19 (giving exactly 2x)
 VECTORCALL VECMATH_FINLINE vec4f v_rcp_est(vec4f a)
 {
   __m128 y0 = _mm_rcp_ps(a);
-  return _mm_sub_ps(_mm_add_ps(y0, y0), _mm_mul_ps(a, _mm_mul_ps(y0, y0)));
+  return _mm_mul_ps(y0, _mm_sub_ps(V_C_TWO, _mm_mul_ps(a, y0)));
 }
 VECTORCALL VECMATH_FINLINE vec4f v_rcp_unprecise_x(vec4f a) { return _mm_rcp_ss(a); }
 VECTORCALL VECMATH_FINLINE vec4f v_rcp_est_x(vec4f a)
 {
   __m128 y0 = _mm_rcp_ss(a);
-  return _mm_sub_ss(_mm_add_ss(y0, y0), _mm_mul_ss(a, _mm_mul_ss(y0, y0)));
+  return _mm_mul_ss(y0, _mm_sub_ss(V_C_TWO, _mm_mul_ss(a, y0)));
 }
 
 VECTORCALL VECMATH_FINLINE vec4f v_rsqrt_unprecise(vec4f a) { return _mm_rsqrt_ps(a); }
@@ -1111,6 +1114,25 @@ VECTORCALL VECMATH_FINLINE vec4f v_dot2(vec4f a, vec4f b) { return sse2_dot2(a,b
 VECTORCALL VECMATH_FINLINE vec4f v_dot2_x(vec4f a, vec4f b) { return sse2_dot2_x(a,b); }
 VECTORCALL VECMATH_FINLINE vec4f v_plane_dist_x(plane3f a, vec3f b) { return sse2_plane_dist_x(a,b); }
 #endif
+
+// both products must stay rounded so a x a is exactly 0; unprotected, the compiler contracts
+// one mul into the sub and returns the other's rounding error instead
+VECTORCALL VECMATH_FINLINE vec3f v_cross3(vec3f a, vec3f b)
+{
+  // (a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x)
+#if defined(__FMA__) || (defined(__AVX2__) && defined(_MSC_VER) && !defined(__clang__))
+  // subtract through hsubps: FMA has no horizontal form, so no compiler can contract the
+  // muls into it and both products stay rounded by construction
+  vec4f u = v_mul(V_SHUFFLE_FWD(a, 1, 2, 2, 0), V_SHUFFLE_FWD(b, 2, 1, 0, 2)); // ay*bz az*by az*bx ax*bz
+  vec4f v = v_mul(V_SHUFFLE_FWD(a, 0, 1, 0, 1), V_SHUFFLE_FWD(b, 1, 0, 1, 0)); // ax*by ay*bx ax*by ay*bx
+  return _mm_hsub_ps(u, v);
+#else
+  // without FMA in the target the mul+sub pair cannot be contracted
+  vec3f yzxw = v_perm_yzxw(a);
+  vec3f bcad = v_perm_yzxw(b);
+  return v_perm_yzxy(v_sub(v_mul(a, bcad), v_mul(yzxw, b)));
+#endif
+}
 
 // v_length*_sq and v_norm2/3/4 live in dag_vecMath_common.h (portable form).
 

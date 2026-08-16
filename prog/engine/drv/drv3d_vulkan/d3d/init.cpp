@@ -786,8 +786,8 @@ struct InitCtx
         SwapchainMode swapchainMode{};
         swapchainMode.surfaceAndWindow = {surface, Globals::window.getMainWindow()};
         swapchainMode.enableSrgb = false;
-        swapchainMode.extent.width = Globals::window.settings.resolutionX;
-        swapchainMode.extent.height = Globals::window.settings.resolutionY;
+        swapchainMode.displayExtent.width = Globals::window.settings.resolutionX;
+        swapchainMode.displayExtent.height = Globals::window.settings.resolutionY;
         swapchainMode.setPresentModeFromConfig();
         swapchainMode.fullscreen = dgs_get_window_mode() == WindowMode::WINDOWED_NO_BORDER ||
                                    dgs_get_window_mode() == WindowMode::WINDOWED_FULLSCREEN ||
@@ -1102,7 +1102,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   {
     Globals::VK::loader.streamlineAdapter->setVulkan();
     Globals::ctx.dispatchCmd<CmdInitializeStreamlineDLSS>(
-      {(int)Frontend::swapchain.getMode().extent.width, (int)Frontend::swapchain.getMode().extent.height});
+      {(int)Frontend::swapchain.getMode().displayExtent.width, (int)Frontend::swapchain.getMode().displayExtent.height});
   }
 #endif
   GpuLatency::create(Globals::VK::phy.vendor);
@@ -1268,7 +1268,7 @@ void restore_all_device_resources()
   {
     Globals::VK::loader.streamlineAdapter->setVulkan();
     Globals::ctx.dispatchCmd<CmdInitializeStreamlineDLSS>(
-      {(int)Frontend::swapchain.getMode().extent.width, (int)Frontend::swapchain.getMode().extent.height});
+      {(int)Frontend::swapchain.getMode().displayExtent.width, (int)Frontend::swapchain.getMode().displayExtent.height});
   }
 #endif
   GpuLatency::create(Globals::VK::phy.vendor);
@@ -1356,7 +1356,7 @@ static void initDLSS()
   if (Globals::VK::loader.streamlineAdapter)
   {
     Globals::ctx.dispatchCmd<CmdInitializeStreamlineDLSS>(
-      {(int)Frontend::swapchain.getMode().extent.width, (int)Frontend::swapchain.getMode().extent.height});
+      {(int)Frontend::swapchain.getMode().displayExtent.width, (int)Frontend::swapchain.getMode().displayExtent.height});
     Globals::ctx.processAllPendingWork();
   }
 #endif
@@ -1414,7 +1414,7 @@ bool d3d::reset_device()
   VkExtent2D cext;
   cext.width = Globals::window.settings.resolutionX;
   cext.height = Globals::window.settings.resolutionY;
-  newMode.extent = cext;
+  newMode.displayExtent = cext;
   newMode.setPresentModeFromConfig();
 #if _TARGET_ANDROID
   // android may send some resize/redraw window commands that do not trigger mode change

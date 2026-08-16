@@ -40,7 +40,7 @@ void main(
 
 	const float2 texCoord		= raster::PS_SV_Position_to_TexCoord(i_svPosition);
 
-	const float4 color			= t_alphaTexture.SampleLevel(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), texCoord.xy, 0);
+	const float4 color			= OMM_ALPHA_SAMPLE_LEVEL(texCoord.xy);
 	const float alpha			= color[g_GlobalConstants.AlphaTextureChannel];
 
 	//o_color = float4(alpha.rgb, 1);

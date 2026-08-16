@@ -4,12 +4,12 @@ include "gbuffer.dshl"
 include "globtm.dshl"
 include "world_sdf_update_common.dshl"
 include "dagi_lit_scene_helper.dshl"
+include "project_is_ambient_ready_at.dshl"
 include "project_is_dynamic_point.dshl"
 
 define_macro_if_not_defined PROJECT_LIGHT_POINT_SCREEN_VOXEL_LIT_SCENE(code)
   PROJECT_LIGHT_POINT_SCREEN_VOXEL(code)
 endmacro
-
 
 int dagi_voxel_lit_scene_stable_update;
 interval dagi_voxel_lit_scene_stable_update:off<1, on;
@@ -22,6 +22,7 @@ macro VOXEL_SCENE_MARK_FROM_GBUF(code)
   PROJECT_LIGHT_POINT_SCREEN_VOXEL_LIT_SCENE(code)
 
   PROJECT_DO_NOT_UPDATE_FROM_POINT(code)
+  PROJECT_DAGI_LIT_SCENE_AMBIENT_READY(code)
   (code) {
     globtm_psf@f44 = {globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3};
     world_view_pos@f3 = world_view_pos;
@@ -39,10 +40,17 @@ macro VOXEL_SCENE_MARK_FROM_GBUF(code)
     #include <monteCarlo.hlsl>
     #include <pcg_hash.hlsl>
     #define DAGI_VOXEL_LIT_SCENE_UPDATE_THREE_AXIS_FROM_GBUF 1
-    void dagi_lit_scene_voxels_update_lit_color(float3 sdf_coord, int sdf_clip, float3 lit_color, float3 geomNormal, float w = 0.05)
+    void dagi_lit_scene_voxels_update_lit_color(float3 sdf_coord, int sdf_clip, float3 lit_color, float3 geomNormal, float ambient_sample_extent = 0, float w = 0.05)
     {
       uint sceneClip = sdf_clip - dagi_lit_scene_voxels_first_sdf_clip();
       if (sceneClip >= dagi_lit_scene_voxels_clip_count())
+        return;
+      // gbuffer lighting includes GI. If the ambient source has not scrolled
+      // in around a point yet (teleport), that lighting is stale, and baking
+      // it into the lit scene would feed the stale light back into the grids.
+      // Callers pre-test the same predicate before lighting; this one is the
+      // contract, so no future caller can write around the gate
+      if (!dagi_project_lit_scene_ambient_ready_at((sdf_coord*world_sdf_voxel_size(sdf_clip)).xzy, ambient_sample_extent))
         return;
 
       int3 sdf_coordI = int3(floor(sdf_coord));
@@ -87,6 +95,10 @@ macro VOXEL_SCENE_MARK_FROM_GBUF(code)
       void voxel_scene_mark_from_gbuf(float3 worldPos, float linearDepth, float2 tc, uint2 tcI, uint random, int sdfCascade, uint2 dim)
       {
         sdfCascade = max(dagi_lit_scene_voxels_first_sdf_clip(), sdfCascade);
+        // cheapest test first: on teleport frames this rejects the pixel
+        // before the gbuffer load and lighting the gate would discard
+        if (!dagi_project_lit_scene_ambient_ready_at(worldPos, 0))
+          return;
         ProcessedGbuffer gbuf = loadProcessedGbuffer(tcI);
         if (get_project_update_from_point(worldPos, linearDepth, tc, tcI, gbuf) == POINT_DYNAMIC)
           return;
@@ -112,6 +124,11 @@ macro VOXEL_SCENE_MARK_FROM_GBUF(code)
         float3 baseVoxelCoord = floor(baseWorldPos.xzy/baseVoxelSize);
 
         float3 voxelCenter = (baseVoxelCoord.xzy + 0.5)*baseVoxelSize;
+        // group-uniform inputs (one voxel per group), so the whole group
+        // returns together and no barrier below is reached divergently:
+        // reject before lighting and reducing 64 samples the gate discards
+        if (!dagi_project_lit_scene_ambient_ready_at(voxelCenter, 0.5*baseVoxelSize))
+          return;
         uint random2 = pcg2d(uint2(random, tid)).x;
         float2 rand2F = (uint2(tid, tid/PIXELS_TO_AVERAGE_SQRT)%PIXELS_TO_AVERAGE_SQRT)*1./PIXELS_TO_AVERAGE_SQRT + float2(uint2(random2, random2>>16)&0xFFFF)/(PIXELS_TO_AVERAGE_SQRT*65536.);
         //float2 rand2F = (uint2(tid, tid/PIXELS_TO_AVERAGE_SQRT)%PIXELS_TO_AVERAGE_SQRT)*1./PIXELS_TO_AVERAGE_SQRT;
@@ -207,7 +224,10 @@ macro VOXEL_SCENE_MARK_FROM_GBUF(code)
         baseNormal = float3(shared_normal)/totalCount*1./128.0 - 1.0;
         //averagedRadiance = float(totalCount)/PIXELS_TO_AVERAGE;
         if (tid == 0)
-          dagi_lit_scene_voxels_update_lit_color(voxelCenter.xzy/world_sdf_voxel_size(sdfCascade), sdfCascade, averagedRadiance, baseNormal);
+          // averaged samples spread over the whole lit voxel around its
+          // center: readiness must hold for that axis-aligned neighborhood
+          // (half a voxel per axis), not only for the center
+          dagi_lit_scene_voxels_update_lit_color(voxelCenter.xzy/world_sdf_voxel_size(sdfCascade), sdfCascade, averagedRadiance, baseNormal, 0.5*baseVoxelSize);
       }
     #endif
   }

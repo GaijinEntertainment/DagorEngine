@@ -21,6 +21,27 @@ def test_ast_gc_guard_basic(t : T?) {
 }
 
 [test]
+def test_ast_gc_guard_panic_recover(t : T?) {
+    var recovered = false
+    try {
+        ast_gc_guard() {
+            var tmp = qmacro(type<int>)
+            panic("boom")
+        }
+    } recover {
+        recovered = true
+    }
+    t |> success(recovered, "panic should propagate out of ast_gc_guard")
+    // pre-fix the panic longjmp'd past the guard destructor, leaving the active gc
+    // root pointing at a dead stack frame — new nodes then miss the thread root
+    let before = gc_thread_root_count()
+    var probe = qmacro(gc_guard_probe)
+    let after = gc_thread_root_count()
+    t |> success(after > before, "allocations must land on the restored thread root (before={before}, after={after})")
+    unsafe(delete_expression(probe))
+}
+
+[test]
 def test_ast_gc_guard_sweeps(t : T?) {
     let before = gc_thread_root_count()
     ast_gc_guard() {

@@ -262,6 +262,97 @@ addFunction ( (new BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,4>,const 
         }
     };
 
+    // ===== 16/8-bit lattice ctors =====
+    // Byte-packed lanes converted per element from the scalar argument type. No SimPolicy
+    // dependency — the storage-only int families deliberately have none.
+
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4244)
+#endif
+
+    template <typename ET> struct SVecConv {
+        template <typename AT> static __forceinline ET conv ( AT v ) { return ET(v); }
+    };
+    template <> struct SVecConv<float16_t> {
+        template <typename AT> static __forceinline float16_t conv ( AT v ) { return float16_t(float(v)); }
+    };
+
+    template <typename VT, typename ET, typename AT>
+    struct SimNode_SVecSplat : SimNode_CallBase {
+        SimNode_SVecSplat(const LineInfo & at) : SimNode_CallBase(at,"") {}
+        virtual SimNode * visit ( SimVisitor & vis ) override {
+            V_BEGIN();
+            V_OP(SVecSplat);
+            V_SUB(arguments[0]);
+            V_END();
+        }
+        DAS_EVAL_ABI virtual vec4f eval(Context & context) override {
+            DAS_PROFILE_NODE
+            vec4f argValue;
+            evalArgs(context, &argValue);
+            VT ret ( SVecConv<ET>::conv(cast<AT>::to(argValue)) );
+            return (vec4f) ret;
+        }
+    };
+
+    template <typename VT, typename ET, typename AT, int vecS>
+    struct SimNode_SVecCtor : SimNode_CallBase {
+        SimNode_SVecCtor(const LineInfo & at) : SimNode_CallBase(at,"") {}
+        virtual SimNode * visit ( SimVisitor & vis ) override {
+            V_BEGIN();
+            V_OP(SVecCtor);
+            for ( int i=0; i!=vecS; ++i ) {
+                arguments[i] = vis.sub(arguments[i],"argument");
+            }
+            V_END();
+        }
+        DAS_EVAL_ABI virtual vec4f eval(Context & context) override {
+            DAS_PROFILE_NODE
+            vec4f argValues[vecS];
+            evalArgs(context, argValues);
+            VT ret;
+            memset(&ret, 0, sizeof(VT));
+            ET * el = (ET *) &ret;
+            for ( int i=0; i!=vecS; ++i ) {
+                el[i] = SVecConv<ET>::conv(cast<AT>::to(argValues[i]));
+            }
+            return (vec4f) ret;
+        }
+    };
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
+#define ADD_SVEC_SPLAT(VTYPE,ETYPE,ATYPE) \
+addFunction ( (new BuiltInFn<SimNode_SVecSplat<VTYPE,ETYPE,ATYPE>,const VTYPE,ATYPE>(#VTYPE,lib,#VTYPE,false)) );
+
+#define ADD_SVEC_CTOR_2(VTYPE,ETYPE,ATYPE) \
+addFunction ( (new BuiltInFn<SimNode_SVecCtor<VTYPE,ETYPE,ATYPE,2>,const VTYPE,ATYPE,ATYPE>(#VTYPE,lib,#VTYPE,false)) );
+
+#define ADD_SVEC_CTOR_3(VTYPE,ETYPE,ATYPE) \
+addFunction ( (new BuiltInFn<SimNode_SVecCtor<VTYPE,ETYPE,ATYPE,3>,const VTYPE,ATYPE,ATYPE,ATYPE>(#VTYPE,lib,#VTYPE,false)) );
+
+#define ADD_SVEC_CTOR_4(VTYPE,ETYPE,ATYPE) \
+addFunction ( (new BuiltInFn<SimNode_SVecCtor<VTYPE,ETYPE,ATYPE,4>,const VTYPE,ATYPE,ATYPE,ATYPE,ATYPE>(#VTYPE,lib,#VTYPE,false)) );
+
+#define ADD_SVEC_CTOR_8(VTYPE,ETYPE,ATYPE) \
+addFunction ( (new BuiltInFn<SimNode_SVecCtor<VTYPE,ETYPE,ATYPE,8>,const VTYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE>(#VTYPE,lib,#VTYPE,false)) );
+
+#define ADD_SVEC_CTOR_16(VTYPE,ETYPE,ATYPE) \
+addFunction ( (new BuiltInFn<SimNode_SVecCtor<VTYPE,ETYPE,ATYPE,16>,const VTYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE,ATYPE>(#VTYPE,lib,#VTYPE,false)) );
+
+// zero + pass-through + {float,double,int,uint} x {splat, N-arg} — mirrors the arg-type
+// coverage the 32-bit vector families get from ADD_VEC_CTOR_*
+#define ADD_SVEC_FAMILY(VTYPE,ETYPE,N) \
+addFunction ( (new BuiltInFn<SimNode_Zero,const VTYPE>(#VTYPE,lib,"das_svec_zero<" #VTYPE ">",false)) ); \
+addFunction ( (new BuiltInFn<SimNode_VecPassThrough, VTYPE, VTYPE>(#VTYPE,lib,#VTYPE,false)) ); \
+ADD_SVEC_SPLAT(VTYPE,ETYPE,float)    ADD_SVEC_CTOR_##N(VTYPE,ETYPE,float) \
+ADD_SVEC_SPLAT(VTYPE,ETYPE,double)   ADD_SVEC_CTOR_##N(VTYPE,ETYPE,double) \
+ADD_SVEC_SPLAT(VTYPE,ETYPE,int32_t)  ADD_SVEC_CTOR_##N(VTYPE,ETYPE,int32_t) \
+ADD_SVEC_SPLAT(VTYPE,ETYPE,uint32_t) ADD_SVEC_CTOR_##N(VTYPE,ETYPE,uint32_t)
+
     void Module_BuiltIn::addVectorCtor(ModuleLibrary & lib) {
         // float2
         ADD_VEC_CTOR_1(float2,"v_splats");
@@ -361,6 +452,134 @@ addFunction ( (new BuiltInFn<SimNode_VecCtor<uint32_t,SimPolicy<VTYPE>,4>,const 
         ADD_VEC64_CTOR_2(urange64,"urange64");
         addFunction( (new BuiltInFn<SimNode_VecPassThrough, urange64, urange64>("urange64",lib,"urange64",false)) );
         addFunction ( (new BuiltInFn<SimNode_VecCtor<uint64_t,SimPolicy<urange64>,2>,urange64,uint64_t,uint64_t>("interval",lib,"urange64",false)) );
+        // ===== 16/8-bit lattice =====
+        ADD_SVEC_FAMILY(half2,  float16_t, 2);
+        ADD_SVEC_FAMILY(half3,  float16_t, 3);
+        ADD_SVEC_FAMILY(half4,  float16_t, 4);
+        ADD_SVEC_FAMILY(half8,  float16_t, 8);
+        // fp16-scalar-argument ctors: half2(1.h, 2.h) and splats from a float16 value
+        ADD_SVEC_SPLAT(half2, float16_t, float16_t) ADD_SVEC_CTOR_2(half2, float16_t, float16_t)
+        ADD_SVEC_SPLAT(half3, float16_t, float16_t) ADD_SVEC_CTOR_3(half3, float16_t, float16_t)
+        ADD_SVEC_SPLAT(half4, float16_t, float16_t) ADD_SVEC_CTOR_4(half4, float16_t, float16_t)
+        ADD_SVEC_SPLAT(half8, float16_t, float16_t) ADD_SVEC_CTOR_8(half8, float16_t, float16_t)
+        ADD_SVEC_FAMILY(short2, int16_t,   2);
+        ADD_SVEC_FAMILY(short3, int16_t,   3);
+        ADD_SVEC_FAMILY(short4, int16_t,   4);
+        ADD_SVEC_FAMILY(short8, int16_t,   8);
+        ADD_SVEC_FAMILY(ushort2, uint16_t, 2);
+        ADD_SVEC_FAMILY(ushort3, uint16_t, 3);
+        ADD_SVEC_FAMILY(ushort4, uint16_t, 4);
+        ADD_SVEC_FAMILY(ushort8, uint16_t, 8);
+        ADD_SVEC_FAMILY(byte2,  int8_t,    2);
+        ADD_SVEC_FAMILY(byte3,  int8_t,    3);
+        ADD_SVEC_FAMILY(byte4,  int8_t,    4);
+        ADD_SVEC_FAMILY(byte8,  int8_t,    8);
+        ADD_SVEC_FAMILY(byte16, int8_t,    16);
+        ADD_SVEC_FAMILY(ubyte2,  uint8_t,  2);
+        ADD_SVEC_FAMILY(ubyte3,  uint8_t,  3);
+        ADD_SVEC_FAMILY(ubyte4,  uint8_t,  4);
+        ADD_SVEC_FAMILY(ubyte8,  uint8_t,  8);
+        ADD_SVEC_FAMILY(ubyte16, uint8_t,  16);
+        // lane-wise converts: widen = ctor-name overload on the wider type; narrow =
+        // ctor-name overload (C-truncation, mirrors the int8(x) scalar cast) plus a
+        // `_sat` variant that clamps to the target range (the Q8-quant shape; the native
+        // sqxtn/PACK lowering is a later JIT wave)
+#define ADD_SVEC_CVT(TO,TOE,FROM,FE) \
+    addExtern<DAS_BIND_FUN((das_sv_cvt<TO,TOE,FROM,FE>))>(*this, lib, #TO, SideEffects::none, "das_sv_cvt<" #TO "," #TOE "," #FROM "," #FE ">");
+#define ADD_SVEC_CVT_SAT(TO,TOE,FROM,FE) \
+    addExtern<DAS_BIND_FUN((das_sv_cvt_sat<TO,TOE,FROM,FE>))>(*this, lib, #TO "_sat", SideEffects::none, "das_sv_cvt_sat<" #TO "," #TOE "," #FROM "," #FE ">");
+        // widen to 32-bit families
+        ADD_SVEC_CVT(int2, int32_t, short2, int16_t);
+        ADD_SVEC_CVT(int3, int32_t, short3, int16_t);
+        ADD_SVEC_CVT(int4, int32_t, short4, int16_t);
+        ADD_SVEC_CVT(int2, int32_t, byte2, int8_t);
+        ADD_SVEC_CVT(int3, int32_t, byte3, int8_t);
+        ADD_SVEC_CVT(int4, int32_t, byte4, int8_t);
+        ADD_SVEC_CVT(uint2, uint32_t, ushort2, uint16_t);
+        ADD_SVEC_CVT(uint3, uint32_t, ushort3, uint16_t);
+        ADD_SVEC_CVT(uint4, uint32_t, ushort4, uint16_t);
+        ADD_SVEC_CVT(uint2, uint32_t, ubyte2, uint8_t);
+        ADD_SVEC_CVT(uint3, uint32_t, ubyte3, uint8_t);
+        ADD_SVEC_CVT(uint4, uint32_t, ubyte4, uint8_t);
+        // widen within the lattice (8-lane included — the Q8 dot shape)
+        ADD_SVEC_CVT(short2, int16_t, byte2, int8_t);
+        ADD_SVEC_CVT(short3, int16_t, byte3, int8_t);
+        ADD_SVEC_CVT(short4, int16_t, byte4, int8_t);
+        ADD_SVEC_CVT(short8, int16_t, byte8, int8_t);
+        ADD_SVEC_CVT(ushort2, uint16_t, ubyte2, uint8_t);
+        ADD_SVEC_CVT(ushort3, uint16_t, ubyte3, uint8_t);
+        ADD_SVEC_CVT(ushort4, uint16_t, ubyte4, uint8_t);
+        ADD_SVEC_CVT(ushort8, uint16_t, ubyte8, uint8_t);
+        // narrow, truncating + saturating
+        ADD_SVEC_CVT(short2, int16_t, int2, int32_t);      ADD_SVEC_CVT_SAT(short2, int16_t, int2, int32_t);
+        ADD_SVEC_CVT(short3, int16_t, int3, int32_t);      ADD_SVEC_CVT_SAT(short3, int16_t, int3, int32_t);
+        ADD_SVEC_CVT(short4, int16_t, int4, int32_t);      ADD_SVEC_CVT_SAT(short4, int16_t, int4, int32_t);
+        ADD_SVEC_CVT(byte2, int8_t, int2, int32_t);        ADD_SVEC_CVT_SAT(byte2, int8_t, int2, int32_t);
+        ADD_SVEC_CVT(byte3, int8_t, int3, int32_t);        ADD_SVEC_CVT_SAT(byte3, int8_t, int3, int32_t);
+        ADD_SVEC_CVT(byte4, int8_t, int4, int32_t);        ADD_SVEC_CVT_SAT(byte4, int8_t, int4, int32_t);
+        ADD_SVEC_CVT(ushort2, uint16_t, uint2, uint32_t);  ADD_SVEC_CVT_SAT(ushort2, uint16_t, uint2, uint32_t);
+        ADD_SVEC_CVT(ushort3, uint16_t, uint3, uint32_t);  ADD_SVEC_CVT_SAT(ushort3, uint16_t, uint3, uint32_t);
+        ADD_SVEC_CVT(ushort4, uint16_t, uint4, uint32_t);  ADD_SVEC_CVT_SAT(ushort4, uint16_t, uint4, uint32_t);
+        ADD_SVEC_CVT(ubyte2, uint8_t, uint2, uint32_t);    ADD_SVEC_CVT_SAT(ubyte2, uint8_t, uint2, uint32_t);
+        ADD_SVEC_CVT(ubyte3, uint8_t, uint3, uint32_t);    ADD_SVEC_CVT_SAT(ubyte3, uint8_t, uint3, uint32_t);
+        ADD_SVEC_CVT(ubyte4, uint8_t, uint4, uint32_t);    ADD_SVEC_CVT_SAT(ubyte4, uint8_t, uint4, uint32_t);
+        ADD_SVEC_CVT(byte8, int8_t, short8, int16_t);      ADD_SVEC_CVT_SAT(byte8, int8_t, short8, int16_t);
+        ADD_SVEC_CVT(ubyte8, uint8_t, ushort8, uint16_t);  ADD_SVEC_CVT_SAT(ubyte8, uint8_t, ushort8, uint16_t);
+        // fp16 <-> float per arity (narrowing rounds RNE per lane), + half8 <-> 2x float4
+        ADD_SVEC_CVT(half2, float16_t, float2, float);
+        ADD_SVEC_CVT(half3, float16_t, float3, float);
+        ADD_SVEC_CVT(half4, float16_t, float4, float);
+        ADD_SVEC_CVT(float2, float, half2, float16_t);
+        ADD_SVEC_CVT(float3, float, half3, float16_t);
+        ADD_SVEC_CVT(float4, float, half4, float16_t);
+        addExtern<DAS_BIND_FUN(das_half8_pack)>(*this, lib, "half8", SideEffects::none, "das_half8_pack");
+        addExtern<DAS_BIND_FUN(das_half8_lo)>(*this, lib, "half8_lo", SideEffects::none, "das_half8_lo");
+        addExtern<DAS_BIND_FUN(das_half8_hi)>(*this, lib, "half8_hi", SideEffects::none, "das_half8_hi");
+        // the idot family — the lattice's first compute ops (exact integer dots; results
+        // always signed, operand signedness selects the overload — the OpSDot/OpSUDot split)
+        addExtern<DAS_BIND_FUN(das_idot4_ss)>(*this, lib, "idot4", SideEffects::none, "das_idot4_ss")->args({"acc","a","b"});
+        addExtern<DAS_BIND_FUN(das_idot4_us)>(*this, lib, "idot4", SideEffects::none, "das_idot4_us")->args({"acc","a","b"});
+        addExtern<DAS_BIND_FUN(das_idot4z_ss)>(*this, lib, "idot4", SideEffects::none, "das_idot4z_ss")->args({"a","b"});
+        addExtern<DAS_BIND_FUN(das_idot4z_us)>(*this, lib, "idot4", SideEffects::none, "das_idot4z_us")->args({"a","b"});
+        addExtern<DAS_BIND_FUN(das_idot_ss)>(*this, lib, "idot", SideEffects::none, "das_idot_ss")->args({"a","b"});
+        addExtern<DAS_BIND_FUN(das_idot_us)>(*this, lib, "idot", SideEffects::none, "das_idot_us")->args({"a","b"});
+        addExtern<DAS_BIND_FUN(das_shuffle_b16)>(*this, lib, "shuffle", SideEffects::none, "das_shuffle_b16")->args({"lut","idx"});
+        // the integer-lattice bit surface, parity with addFunctionVecBit on the 32-bit vector
+        // families: per-lane <<//>> by a scalar count (masked to lane width; signed >> is
+        // arithmetic), bitwise & | ^, and the five compound assigns — the JIT overrides all
+        // of them with native vector IR
+#define ADD_SVEC_BITOPS(VTYPE,ETYPE) \
+    addExtern<DAS_BIND_FUN((das_sv_shr<VTYPE,ETYPE>))>(*this, lib, ">>", SideEffects::none, "das_sv_shr<" #VTYPE "," #ETYPE ">")->args({"v","count"}); \
+    addExtern<DAS_BIND_FUN((das_sv_shl<VTYPE,ETYPE>))>(*this, lib, "<<", SideEffects::none, "das_sv_shl<" #VTYPE "," #ETYPE ">")->args({"v","count"}); \
+    addExtern<DAS_BIND_FUN((das_sv_set_shr<VTYPE,ETYPE>))>(*this, lib, ">>=", SideEffects::modifyArgument, "das_sv_set_shr<" #VTYPE "," #ETYPE ">")->args({"v","count"}); \
+    addExtern<DAS_BIND_FUN((das_sv_set_shl<VTYPE,ETYPE>))>(*this, lib, "<<=", SideEffects::modifyArgument, "das_sv_set_shl<" #VTYPE "," #ETYPE ">")->args({"v","count"}); \
+    addExtern<DAS_BIND_FUN((das_sv_and<VTYPE>))>(*this, lib, "&", SideEffects::none, "das_sv_and<" #VTYPE ">")->args({"a","b"}); \
+    addExtern<DAS_BIND_FUN((das_sv_or<VTYPE>))>(*this, lib, "|", SideEffects::none, "das_sv_or<" #VTYPE ">")->args({"a","b"}); \
+    addExtern<DAS_BIND_FUN((das_sv_xor<VTYPE>))>(*this, lib, "^", SideEffects::none, "das_sv_xor<" #VTYPE ">")->args({"a","b"}); \
+    addExtern<DAS_BIND_FUN((das_sv_set_and<VTYPE>))>(*this, lib, "&=", SideEffects::modifyArgument, "das_sv_set_and<" #VTYPE ">")->args({"a","b"}); \
+    addExtern<DAS_BIND_FUN((das_sv_set_or<VTYPE>))>(*this, lib, "|=", SideEffects::modifyArgument, "das_sv_set_or<" #VTYPE ">")->args({"a","b"}); \
+    addExtern<DAS_BIND_FUN((das_sv_set_xor<VTYPE>))>(*this, lib, "^=", SideEffects::modifyArgument, "das_sv_set_xor<" #VTYPE ">")->args({"a","b"});
+        ADD_SVEC_BITOPS(byte2, int8_t);
+        ADD_SVEC_BITOPS(byte3, int8_t);
+        ADD_SVEC_BITOPS(byte4, int8_t);
+        ADD_SVEC_BITOPS(byte8, int8_t);
+        ADD_SVEC_BITOPS(byte16, int8_t);
+        ADD_SVEC_BITOPS(ubyte2, uint8_t);
+        ADD_SVEC_BITOPS(ubyte3, uint8_t);
+        ADD_SVEC_BITOPS(ubyte4, uint8_t);
+        ADD_SVEC_BITOPS(ubyte8, uint8_t);
+        ADD_SVEC_BITOPS(ubyte16, uint8_t);
+        ADD_SVEC_BITOPS(short2, int16_t);
+        ADD_SVEC_BITOPS(short3, int16_t);
+        ADD_SVEC_BITOPS(short4, int16_t);
+        ADD_SVEC_BITOPS(short8, int16_t);
+        ADD_SVEC_BITOPS(ushort2, uint16_t);
+        ADD_SVEC_BITOPS(ushort3, uint16_t);
+        ADD_SVEC_BITOPS(ushort4, uint16_t);
+        ADD_SVEC_BITOPS(ushort8, uint16_t);
+#undef ADD_SVEC_BITOPS
+#undef ADD_SVEC_CVT
+#undef ADD_SVEC_CVT_SAT
     }
 }
 

@@ -5,42 +5,15 @@
 
 namespace das {
 
-    // local or global
-
-    bool isLocalOrGlobal ( ExpressionPtr expr ) {
-        if ( expr->rtti_isVar() ) {
-            auto ev = static_cast<ExprVar*>(expr);
-            return ev->local || !(ev->argument || ev->block);
-        } else if ( expr->rtti_isAt() ) {
-            auto ea = static_cast<ExprAt*>(expr);
-            if ( ea->subexpr && ea->subexpr->type && ea->subexpr->type->baseType==Type::tFixedArray ) {
-                return isLocalOrGlobal(ea->subexpr);
-            }
-        } else if ( expr->rtti_isField() ) {
-            auto ef = static_cast<ExprField*>(expr);
-            if ( ef->value && ef->value->type && (ef->value->type->baseType!=Type::tHandle || ef->value->type->isLocal()) ) {
-                return isLocalOrGlobal(ef->value);
-            }
-        } else if ( expr->rtti_isSwizzle() ) {
-            auto sw = static_cast<ExprSwizzle*>(expr);
-            if ( sw->value ) {
-                return isLocalOrGlobal(sw->value);
-            }
-        } else if ( expr->rtti_isCallLikeExpr() ) {
-            if ( expr->type && expr->type->ref ) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     // AOT
 
     AotListBase * AotListBase::head = nullptr;
 
     SimNode* AotFactory::operator()(Context& ctx) const
     {
-        if (is_cmres) {
+        if (is_jit) {
+            return makeAotJitNode(ctx, fn);
+        } else if (is_cmres) {
             return ctx.code->makeNode<SimNode_AotCMRES>(fn, wrappedFn);
         } else {
             return ctx.code->makeNode<SimNode_Aot>(fn, wrappedFn);
@@ -475,7 +448,8 @@ namespace das {
                 }
             }
             size = (size + al) & ~al;
-            size += fd.type->getSizeOf64();
+            // an empty struct field is 0 bytes in daScript but occupies >=1 byte in C++.
+            size += das::max(uint64_t(1), fd.type->getSizeOf64());
         }
         circularGuard = false;
         int al = getAlignOf() - 1;
@@ -501,7 +475,7 @@ namespace das {
                 }
             }
             size = (size + al) & ~al;
-            size += fd.type->getSizeOf64(failed);
+            size += das::max(uint64_t(1), fd.type->getSizeOf64(failed));
         }
         circularGuard = false;
         int al = getAlignOfFailed(failed) - 1;
@@ -707,6 +681,7 @@ namespace das {
         pVar->at = at;
         pVar->flags = flags;
         pVar->access_flags = access_flags;
+        pVar->access_info = access_info;
         pVar->initStackSize = initStackSize;
         pVar->annotation = annotation;
         return pVar;
@@ -781,6 +756,7 @@ namespace das {
         cfun->module = nullptr;
         cfun->flags = flags;
         cfun->moreFlags = moreFlags;
+        cfun->moreFlags2 = moreFlags2;
         cfun->sideEffectFlags = sideEffectFlags;
         cfun->inferStack = inferStack;
         cfun->classParent = classParent;
@@ -994,6 +970,11 @@ namespace das {
 
     FunctionPtr Function::setCaptureString() {
         captureString = true;
+        return this;
+    }
+
+    FunctionPtr Function::setTempStringResult() {
+        tempStringResult = true;
         return this;
     }
 
@@ -1749,6 +1730,7 @@ namespace das {
         cexpr->subexpr = subexpr->clone();
         cexpr->index = index->clone();
         cexpr->no_promotion = no_promotion;
+        cexpr->noBoundCheck = noBoundCheck;
         return cexpr;
     }
 
@@ -2459,7 +2441,7 @@ namespace das {
 
     ExpressionPtr ExprWith::visit(Visitor & vis) {
         vis.preVisit(this);
-        with = with->visit(vis);
+        if ( with ) with = with->visit(vis);    // null for the module flavor
         vis.preVisitWithBody(this, body);
         body = body->visit(vis);
         return vis.visit(this);
@@ -2468,8 +2450,10 @@ namespace das {
     ExpressionPtr ExprWith::clone( ExpressionPtr expr ) const {
         auto cexpr = clonePtr<ExprWith>(expr);
         Expression::clone(cexpr);
-        cexpr->with = with->clone();
+        if ( with ) cexpr->with = with->clone();
         cexpr->body = body->clone();
+        cexpr->moduleName = moduleName;
+        cexpr->moduleUnsafeByProject = moduleUnsafeByProject;
         return cexpr;
     }
 
@@ -2777,7 +2761,14 @@ namespace das {
                 cexpr->arguments->push_back(arg->clone());
             }
         }
+        // the positionals (and the piped block, which lands last) live here - a named call
+        // inside a generic body is cloned before it demotes, so dropping these loses arguments
+        cexpr->nonNamedArguments.reserve(nonNamedArguments.size());
+        for ( auto & arg : nonNamedArguments ) {
+            cexpr->nonNamedArguments.push_back(arg->clone());
+        }
         cexpr->methodCall = methodCall;
+        cexpr->pipedCallArgument = pipedCallArgument;
         return cexpr;
     }
 
@@ -2911,6 +2902,7 @@ namespace das {
             cexpr->recordType = new TypeDecl(*recordType);
         }
         cexpr->gen2 = gen2;
+        cexpr->makeArrayOnHeap = makeArrayOnHeap;
         return cexpr;
     }
 

@@ -8,6 +8,7 @@ namespace dafg
 bool debug_graph_generation = false;
 bool should_update_visualization() { return false; }
 void reset_texture_visualization() {}
+void debug_send_blob_data(NodeNameId, ResNameId, const BlobView &) {}
 
 void debug_clear_resource_placements() {}
 void debug_clear_resource_barriers() {}

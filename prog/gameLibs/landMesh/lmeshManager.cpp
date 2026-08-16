@@ -536,7 +536,7 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
         int vDataI = re.vertexData - startVD;
         int *vbData = (int *)re.vertexData->getVBMem();
         const uint8_t *vertSrcPtr = (const uint8_t *)(vbData + 1);
-        vertSrcPtr += re.sv * srcStride;
+        vertSrcPtr += (re.sv + re.baseVertex) * srcStride;
 
         IBBox2 box;
         dag::ConstSpan<ShaderChannelId> channels = re.e->getChannels();
@@ -680,11 +680,11 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
     debug("vdata %d %p", i, smvd->getGlobVData(i));
     int *ibData = (int *)smvd->getGlobVData(i)->getIBMem();
     int *vbData = (int *)smvd->getGlobVData(i)->getVBMem();
+    const int idxStride = smvd->getGlobVData(i)->getIbElemSz();
     // print first indices for future debug in renderdoc/pix
     if (smvd->getGlobVData(i)->getIbSize())
     {
       const int DEBUG_PAIR_COUNT_MAX = 4;
-      const int idxStride = smvd->getGlobVData(i)->getIbElemSz();
       const int DEBUG_PAIR_COUNT = min(DEBUG_PAIR_COUNT_MAX, *ibData / idxStride / 2);
       debug("  ib size = %d, stride = %d, first %d indices:", *ibData, idxStride, DEBUG_PAIR_COUNT * 2);
       const int16_t *idxPtr16 = (int16_t *)(ibData + 1);
@@ -700,7 +700,9 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
     {
       G_ASSERT(i > firstLmeshVdata + maxLodUsed || i < firstLmeshVdata);
       G_ASSERT(i != firstCombinedVdata);
-      vdata[i].initGvdMem(*vbData, smvd->getGlobVData(i)->getStride(), *ibData, VDATA_D3D_RESET_READY, vbData + 1, ibData + 1);
+      bool useIB16 = idxStride == 2;
+      vdata[i].initGvdMem(*vbData, smvd->getGlobVData(i)->getStride(), *ibData,
+        (useIB16 ? VDATA_I16 : VDATA_I32) | VDATA_D3D_RESET_READY, vbData + 1, ibData + 1);
     }
   }
   for (int i = 0; i < vdata.size(); ++i)

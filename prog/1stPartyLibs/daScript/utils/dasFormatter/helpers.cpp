@@ -27,7 +27,6 @@ namespace das::format {
         const string sep = "), ";
         const string suffix = ")";
 
-        const auto front = structs.front();
         string result;
         auto last = start;
         for (size_t i = 0; i < structs.size(); i++) {

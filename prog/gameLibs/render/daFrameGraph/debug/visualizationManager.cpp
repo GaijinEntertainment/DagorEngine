@@ -33,6 +33,12 @@ void VisManager::updateResourceVisualization() { resVisualizer.updateVisualizati
 void VisManager::updateTextureVisualization() {}
 
 
+void VisManager::sendBlobData(NodeNameId node_id, ResNameId res_id, const BlobView &view)
+{
+  userGraphVisualizer.receiveBlobData(node_id, res_id, view);
+}
+
+
 void VisManager::clearResourcePlacements() { resVisualizer.clearResourcePlacements(); }
 
 void VisManager::clearResourceBarriers() { resVisualizer.clearResourceBarriers(); }

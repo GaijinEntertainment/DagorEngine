@@ -33,6 +33,12 @@ struct IGraphCompiler
 {
   virtual ~IGraphCompiler() = default;
   virtual bool compile() = 0;
+
+  // Copy the last-compiled mainGraphBlk / shaderListBlk into caller-owned blocks under the
+  // implementation's graph lock. The worker calls this right after compile() (while the compiler is
+  // still alive) so the slow dsc2 pass assembles from a private snapshot and never reads graphData's
+  // BLKs lock-free -- a main-thread graph load can wipe them under that same lock.
+  virtual void copyCompiledGraph(DataBlock &main_graph_blk, DataBlock &shader_list_blk) = 0;
 };
 
 struct SelectedTextureState
@@ -71,8 +77,8 @@ struct TexGenPipelineStatus
   bool hasErrors = false;
   bool hasWarnings = false;
   bool generationCompleted = false;
-  eastl::string lastError;   // most recent stage-2 error message (empty when none)
-  eastl::string lastWarning; // most recent stage-2 warning message (empty when none)
+  eastl::string lastError;
+  eastl::string lastWarning;
 };
 
 struct IGraphTexGenService
@@ -96,6 +102,13 @@ struct IGraphTexGenService
   // only invokes compile() when both a compiler is installed and the dirty flag
   // is set.
   virtual void setGraphCompiler(IGraphCompiler *compiler) = 0;
+
+  // Stage-1 outcome: whether the compile failed, plus the reason in the user's terms, which only the
+  // compiler can phrase. `failed` picks the channel the message lands on, so both are pushed together
+  // -- the status bar has one severity slot and would otherwise be able to show a message against the
+  // previous compile's verdict. Push from inside compile() on EVERY compile -- nullptr / "" when
+  // there is nothing to say, so a fixed graph clears the bar.
+  virtual void setGraphCompileOutcome(bool failed, const char *msg) = 0;
 
   // Mark the graph as needing recompile + regenerate. Returns instantly -- the
   // texgen worker thread runs the compile asynchronously. Coalesces naturally:

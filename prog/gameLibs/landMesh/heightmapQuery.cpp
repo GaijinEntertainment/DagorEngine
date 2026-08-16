@@ -40,6 +40,7 @@ public:
 
   int query(const Point3 &world_pos, const Point3 &grav_dir);
   GpuReadbackResultState getQueryResult(int query_id, HeightmapQueryResult &result);
+  void cancelQuery(int query_id) { grqSystem->cancelQuery(query_id); }
 
 private:
   eastl::unique_ptr<GpuReadbackQuerySystem<HeightmapQueryInput, HeightmapQueryResult>> grqSystem;
@@ -201,6 +202,13 @@ GpuReadbackResultState heightmap_query::get_query_result(int query_id, Heightmap
 {
   HEIGHTMAP_QUERY_BLOCK;
   return heightmap_query_ctx ? heightmap_query_ctx->getQueryResult(query_id, result) : GpuReadbackResultState::SYSTEM_NOT_INITIALIZED;
+}
+
+void heightmap_query::cancel_query(int query_id)
+{
+  HEIGHTMAP_QUERY_BLOCK;
+  if (heightmap_query_ctx)
+    heightmap_query_ctx->cancelQuery(query_id);
 }
 
 

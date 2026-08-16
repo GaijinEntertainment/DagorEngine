@@ -37,17 +37,24 @@ using namespace AnimV20;
 
 static constexpr int PROFILE_BLENDING = 0;
 
-static eastl::vector<AnimV20::blend_node_creator_t> blend_node_creators;
+// construct-on-first-use so blend_node_creator registering at static-init time
+// cannot touch an unconstructed vector regardless of TU init order
+static eastl::vector<AnimV20::blend_node_creator_t> &get_blend_node_creators()
+{
+  static eastl::vector<AnimV20::blend_node_creator_t> creators;
+  return creators;
+}
 
 void AnimV20::register_blend_node_creator(AnimV20::blend_node_creator_t creator)
 {
-  if (creator && eastl::find(blend_node_creators.begin(), blend_node_creators.end(), creator) == blend_node_creators.end())
-    blend_node_creators.push_back(creator);
+  auto &creators = get_blend_node_creators();
+  if (creator && eastl::find(creators.begin(), creators.end(), creator) == creators.end())
+    creators.push_back(creator);
 }
 
 bool AnimV20::create_blend_node_from_creators(AnimationGraph &graph, const DataBlock &blk)
 {
-  for (AnimV20::blend_node_creator_t creator : blend_node_creators)
+  for (AnimV20::blend_node_creator_t creator : get_blend_node_creators())
     if (creator(graph, blk))
       return true;
   return false;
@@ -2012,9 +2019,6 @@ void add_bn(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix)
 
   else if (dd_stricmp(blk.getBlockName(), "deltaRotateShiftCalc") == 0)
     DeltaRotateShiftCtrl::createNode(graph, blk);
-
-  else if (dd_stricmp(blk.getBlockName(), "footLockerIK") == 0)
-    FootLockerIKCtrl::createNode(graph, blk);
 
   else if (dd_stricmp(blk.getBlockName(), "hasAttachment") == 0)
     AnimPostBlendHasAttachment::createNode(graph, blk);

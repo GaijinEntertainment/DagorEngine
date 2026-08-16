@@ -6,15 +6,18 @@
 
 namespace dafx
 {
-bool init_global_values(GlobalData &dst)
+bool init_global_values(GlobalData &dst, const char *gpu_res_suffix)
 {
   int sz = DAFX_GLOBAL_DATA_SIZE;
   dst.size = sz;
   interlocked_relaxed_store(dst.updateRequired, true);
 
+  char gpuResName[32];
+  snprintf(gpuResName, sizeof(gpuResName), "dafx_global_data%s", gpu_res_suffix);
+
   bool v = true;
   v &= create_cpu_res(dst.cpuRes, DAFX_ELEM_STRIDE * sizeof(int), sz / DAFX_ELEM_STRIDE, "dafx_global_data");
-  v &= create_gpu_cb_res(dst.gpuBuf, DAFX_ELEM_STRIDE * sizeof(int), sz / DAFX_ELEM_STRIDE, "dafx_global_data");
+  v &= create_gpu_cb_res(dst.gpuBuf, DAFX_ELEM_STRIDE * sizeof(int), sz / DAFX_ELEM_STRIDE, gpuResName);
 
   if (v)
     dst.gpuBuf.setVarId(::get_shader_variable_id("dafx_global_data"));

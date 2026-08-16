@@ -144,8 +144,7 @@ static __forceinline void destructables_render(int /*render_pass*/,
   const auto needPreviousMatrices =
     ((render_stage == DestructablesRenderStage::OPAQUE) && !to_depth) ? NeedPreviousMatrices::Yes : NeedPreviousMatrices::No;
   vec3f vCamPos = v_ldu(&cam_pos.x);
-  ecs::Point4List additionalData;
-  additionalData.reserve(7); // 5 payload + 2 metadata elements
+  dag::Vector<Point4, framemem_allocator> additionalData;
   for (const auto destr : destructables::getDestructableObjects())
   {
     if (!destr->physObj || !destr->isAlive())
@@ -169,6 +168,7 @@ static __forceinline void destructables_render(int /*render_pass*/,
         continue;
 
       additionalData.clear();
+      additionalData.reserve(7); // 5 payload + 2 metadata elements
       int initialTmHashvalPos = animchar_additional_data::request_space<AAD_RAW_INITIAL_TM__HASHVAL>(additionalData, 4);
       for (int i = 0; i < 4; ++i)
         additionalData[initialTmHashvalPos + i] = destr->intialTmAndHash[i];

@@ -3,8 +3,8 @@ import "style.nut" as style
 
 let {setTooltip} = require("cursors.nut")
 
-let CheckBoxContentHover = Color(255,255,255)
-let CheckBoxContentDefault = Color(220,220,220)
+const CheckBoxContentHover = Color(255,255,255)
+const CheckBoxContentDefault = Color(220,220,220)
 let boxHeight = style.defControlHeight
 
 let calcColor = @(sf)
@@ -26,7 +26,7 @@ function switchbox(stateFlags, state, group, tooltip=null) {
     watch = state
     children = state.get() ? checkMark : null
     vplace = ALIGN_CENTER
-    margin = [0,0,0,hdpx(2)]
+    margin = const [0,0,0,hdpx(2)]
   }
   return function(){
     let sf = stateFlags.get()
@@ -84,10 +84,10 @@ function mkCheckbox(state, label_text=null, params = null) {
       flow = FLOW_HORIZONTAL
       valign = ALIGN_CENTER
       gap = sh(1)
-      size = [flex(), SIZE_TO_CONTENT]
+      size = const [flex(), SIZE_TO_CONTENT]
       children = [
         label(label_text, group),
-        {size  =[flex(), 0]},
+        {size  =const [flex(), 0]},
         switchbox(stateFlags, state, group, params?.tooltip)
       ]
     }

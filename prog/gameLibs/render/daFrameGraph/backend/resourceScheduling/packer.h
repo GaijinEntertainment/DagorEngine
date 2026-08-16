@@ -35,6 +35,11 @@ struct PackerInput
   // i.e. finish their lifetime before starting it.
   eastl::span<Resource const> resources;
 
+  // Resources that are only placed if they happen to fit into the space
+  // left over by the mandatory ones, i.e. the heap never grows to
+  // accomodate them. Must be neither pinned nor wrapping.
+  eastl::span<Resource const> optionalResources;
+
   // Length of resource lifetime timeline, i.e. moment after which
   // lifetimes wrap around.
   uint32_t timelineSize;
@@ -46,13 +51,16 @@ struct PackerInput
 // Offsets in memory corresponding to each resource in input order
 struct PackerOutput
 {
-  // Resources might have been NOT_ALLOCATED if their size is zero
+  // Resources that were given no memory at all: zero sized ones and ones
+  // that broke the input contract and hence were dropped
   constexpr static uint64_t NOT_ALLOCATED = static_cast<uint64_t>(-1);
   // Resources might receive a NOT_SCHEDULED offset
   // to facilitate the maxHeapSize constraint.
   constexpr static uint64_t NOT_SCHEDULED = static_cast<uint64_t>(-2);
   // WARNING: references memory stored inside the packer object
   eastl::span<uint64_t> offsets;
+  // Empty when the packer does not support optional resources.
+  eastl::span<uint64_t> optionalOffsets;
   uint64_t heapSize;
 };
 

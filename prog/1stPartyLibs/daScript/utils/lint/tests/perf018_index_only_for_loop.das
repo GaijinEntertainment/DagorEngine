@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // PERF018: for (i in range(length(arr))) where i only indexes arr
 //
 // Problem:
@@ -16,7 +17,7 @@ options gen2
 //       use(c)
 //   }
 
-expect 31208:3
+expect 31208:5
 
 require daslib/perf_lint
 
@@ -47,6 +48,24 @@ def bad_array_double_use(arr : array<int>) : int {
     return hi
 }
 
+// The 64-bit spelling LINT017 pushes big-array code toward fires too.
+def bad_array_sum_long(arr : array<int>) : int64 {
+    var s = 0l
+    for (i in range64(long_length(arr))) {
+        s += int64(arr[i])
+    }
+    return s
+}
+
+// Unsigned spelling, with the workhorse-cast wrapper peeled.
+def bad_array_sum_urange(arr : array<int>) : int {
+    var s = 0
+    for (i in urange(uint(length(arr)))) {
+        s += arr[i]
+    }
+    return s
+}
+
 // --- Good: index actually used ---
 
 def good_index_used(arr : array<int>) : int {
@@ -63,10 +82,12 @@ def good_index_passed_to_func(arr : array<int>) {
     }
 }
 
-def good_two_arrays(a : array<int>; b : array<int>) : int {
+// NOTE: two arrays subscripted in lockstep is no longer a silent disqualifier -
+// that shape is PERF029 now (zip the arrays); see perf029_parallel_array_zip.das
+def good_array_and_table(a : array<int>; t : table<int; int>) : int {
     var s = 0
     for (i in range(length(a))) {
-        s += a[i] + b[i]   // b[i] uses i to index a different array — disqualifies
+        s += a[i] + (t?[i] ?? 0)   // t[i] is a key lookup, not a position - disqualifies
     }
     return s
 }

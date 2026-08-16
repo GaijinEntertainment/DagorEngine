@@ -1,4 +1,5 @@
 from "dagor.http" import httpRequest, HTTP_FAILED, HTTP_ABORTED, HTTP_SUCCESS
+from "types" import String, Table, Array, Function
 from "functools.nut" import *
 let { Task } = require("monads.nut")
 //local dlog = require("log.nut")().dlog
@@ -23,32 +24,32 @@ function mkHttpCallback(resolveFn, rejectFn, url){
   )
 }
 function httpGet(url, resolveFn, rejectFn=null, params=null){
-  assert(type(url)=="string", "url should be string")
-  assert(type(resolveFn)=="function", "resolveFn should be function that accepts responce body blob object (has 'as_string' method)")
-  assert(rejectFn==null || type(rejectFn)=="function", "rejectFn should be null or function that accepts error object that can be string or object with 'status', 'http_code' and 'body' fields, or any other error")
+  assert(url instanceof String, "url should be string")
+  assert(resolveFn instanceof Function, "resolveFn should be function that accepts responce body blob object (has 'as_string' method)")
+  assert(rejectFn==null || rejectFn instanceof Function, "rejectFn should be null or function that accepts error object that can be string or object with 'status', 'http_code' and 'body' fields, or any other error")
   httpRequest({url, method = "GET", callback = mkHttpCallback(resolveFn, rejectFn, url)}.__update(params ?? {}))
 }
 
 function httpPost(url, resolveFn, rejectFn=null, params=null){
-  assert(type(url)=="string", "url should be string")
-  assert(type(resolveFn)=="function", "resolveFn should be function that accepts responce body blob object (has 'as_string' method)")
-  assert(rejectFn==null || type(rejectFn)=="function", "rejectFn should be null or function that accepts error object that can be string or object with 'status', 'http_code' and 'body' fields, or any other error")
+  assert(url instanceof String, "url should be string")
+  assert(resolveFn instanceof Function, "resolveFn should be function that accepts responce body blob object (has 'as_string' method)")
+  assert(rejectFn==null || rejectFn instanceof Function, "rejectFn should be null or function that accepts error object that can be string or object with 'status', 'http_code' and 'body' fields, or any other error")
   httpRequest({ method = "POST", url, callback=mkHttpCallback(resolveFn, rejectFn, url)}.__update(params ?? {}))
 }
 
 function httpFormPost(url, data, resolveFn, rejectFn=null) {
-  assert(type(url)=="string", "url should be string")
-  assert(type(resolveFn)=="function", "resolveFn should be function that accepts responce body blob object (has 'as_string' method)")
-  assert(rejectFn==null || type(rejectFn)=="function", "rejectFn should be null or function that accepts error object that can be string or object with 'status', 'http_code' and 'body' fields, or any other error")
-  assert(type(data)=="table", "data should be object with string keys")
+  assert(url instanceof String, "url should be string")
+  assert(resolveFn instanceof Function, "resolveFn should be function that accepts responce body blob object (has 'as_string' method)")
+  assert(rejectFn==null || rejectFn instanceof Function, "rejectFn should be null or function that accepts error object that can be string or object with 'status', 'http_code' and 'body' fields, or any other error")
+  assert(data instanceof Table, "data should be object with string keys")
   httpRequest({ method = "POST", url, data, callback=mkHttpCallback(resolveFn, rejectFn, url)})
 }
 
 function httpJson(url, json, resolveFn, rejectFn=null){
-  assert(type(url)=="string", "url should be string")
-  assert(type(resolveFn)=="function", "resolveFn should be function that accepts responce body blob object (has 'as_string' method)")
-  assert(rejectFn==null || type(rejectFn)=="function", "rejectFn should be null or function that accepts error object that can be string or object with 'status', 'http_code' and 'body' fields, or any other error")
-  assert(type(json)=="table" || type(json)=="string", "'json`' should be object or string")
+  assert(url instanceof String, "url should be string")
+  assert(resolveFn instanceof Function, "resolveFn should be function that accepts responce body blob object (has 'as_string' method)")
+  assert(rejectFn==null || rejectFn instanceof Function, "rejectFn should be null or function that accepts error object that can be string or object with 'status', 'http_code' and 'body' fields, or any other error")
+  assert(json instanceof Table || json instanceof String, "'json`' should be object or string")
   httpRequest({ method = "POST", url, json, callback=mkHttpCallback(resolveFn, rejectFn, url)})
 }
 
@@ -81,8 +82,8 @@ let RESOLVED = persist("RESOLVED", @() {})
 let REJECTED = persist("REJECTED", @() {})
 
 function TaskHttpMultiGet(urls, rejectOne=@(x) x, resolveOne=@(x) x) {
-  assert(type(urls) == "array", @() $"expected urls as 'array' got '{type(urls)}'")
-  assert(type(rejectOne) == "function" && type(resolveOne) == "function", "incorrect type of arguments")
+  assert(urls instanceof Array, @() $"expected urls as 'array' got '{type(urls)}'")
+  assert(rejectOne instanceof Function && resolveOne instanceof Function, "incorrect type of arguments")
   return Task(function(rejectFn, resolveFn) {
     let total = urls.len()
     let res = array(total)

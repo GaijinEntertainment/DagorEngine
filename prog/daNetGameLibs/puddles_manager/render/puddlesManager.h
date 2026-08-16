@@ -21,6 +21,8 @@ class PuddlesManager
 {
 public:
   PuddlesManager() = default;
+  // close() releases the noise_64_tex refcount; entity teardown may skip the UnloadLevel event.
+  ~PuddlesManager() { close(); }
 
   void init(const LandMeshManager *lmesh_mgr, const DataBlock &puddles_settings, int forced_max_resolution = -1);
   void reinit_same_settings(const LandMeshManager *lmesh_mgr, int forced_max_resolution = -1);

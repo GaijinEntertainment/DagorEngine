@@ -1,6 +1,5 @@
 options gen2
 
-require daslib/fio
 require daslib/defer
 require daslib/regex_boost
 require daslib/strings_boost
@@ -8,7 +7,7 @@ require math
 require strings
 
 require sqlite/sqlite_boost
-require sqlite/sqlite_linq
+require daslib/sql_linq
 require bench_table
 require bench_args
 require benchstat
@@ -236,10 +235,7 @@ def run_compare_cmd(db : SqlRunner; parsed : ParsedArgs) : string {
     var old_samples = make_sample_sets(old_entries)
     var new_samples = make_sample_sets(new_entries)
 
-    var bench_order : array<string>
-    for (k in keys(old_samples)) {
-        bench_order |> push(k)
-    }
+    var bench_order <- [for (k in keys(old_samples)); k]
     sort(bench_order) $(x, y) {
         return x < y
     }

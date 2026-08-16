@@ -66,6 +66,41 @@ namespace das {
         }
     }
 
+    AnnotationArgumentInfo * DebugInfoHelper::makeAnnotationArguments ( const AnnotationArgumentList & list, uint32_t & count ) {
+        count = 0;
+        if ( list.empty() ) return nullptr;
+        auto args = (AnnotationArgumentInfo *) debugInfo->allocate(uint32_t(sizeof(AnnotationArgumentInfo) * list.size()));
+        for ( const auto & arg : list ) {
+            switch ( arg.type ) {
+            case Type::tBool: case Type::tInt: case Type::tFloat: case Type::tString:
+                break;
+            default:
+                continue;   // nested aList args only exist during parsing
+            }
+            auto & ai = args[count++];
+            ai.type = arg.type;
+            ai.name = debugInfo->allocateCachedName(arg.name);
+            ai.sValue = arg.type==Type::tString ? debugInfo->allocateCachedName(arg.sValue) : nullptr;
+            ai.iValue = arg.iValue; // raw union copy covers bool/int/float
+        }
+        return count ? args : nullptr;
+    }
+
+    AnnotationInfo * DebugInfoHelper::makeAnnotationList ( const AnnotationList & list, uint32_t & count ) {
+        count = 0;
+        if ( list.empty() ) return nullptr;
+        auto anns = (AnnotationInfo *) debugInfo->allocate(uint32_t(sizeof(AnnotationInfo) * list.size()));
+        for ( const auto & decl : list ) {
+            if ( !decl->annotation ) continue;
+            auto & ai = anns[count++];
+            ai.name = debugInfo->allocateCachedName(decl->annotation->name);
+            ai.module_name = debugInfo->allocateCachedName(decl->annotation->module ? decl->annotation->module->name : "");
+            ai.arguments = makeAnnotationArguments(decl->arguments, ai.count);
+            ai.resolved = nullptr;
+        }
+        return count ? anns : nullptr;
+    }
+
     EnumInfo * DebugInfoHelper::makeEnumDebugInfo ( const Enumeration & en ) {
         auto mangledName = en.getMangledName();
         auto it = emn2e.find(mangledName);
@@ -87,6 +122,7 @@ namespace das {
             eni->fields[i]->value = !ev.value ? -1 : getConstExprIntOrUInt(ev.value);
             i ++;
         }
+        eni->annotations = makeAnnotationList(en.annotations, eni->annotation_count);
         eni->hash = hash_blockz64((uint8_t *)mangledName.c_str());
         emn2e[mangledName] = eni;
         return eni;
@@ -98,7 +134,7 @@ namespace das {
         if ( it!=fmn2f.end() ) return it->second;
         FuncInfo * fni = debugInfo->makeNode<FuncInfo>();
         fni->name = debugInfo->allocateCachedName(fn.name);
-        if ( rtti && fn.builtIn ) {
+        if ( fn.builtIn ) {
             auto bfn = (BuiltInFunction *) &fn;
             fni->cppName = debugInfo->allocateCachedName(bfn->cppName);
         } else {
@@ -124,6 +160,7 @@ namespace das {
         fni->result = makeTypeInfo(nullptr, fn.result);
         fni->locals = nullptr;
         fni->localCount = 0;
+        fni->annotations = makeAnnotationList(fn.annotations, fni->annotation_count);
         fni->hash = hash_blockz64((uint8_t *)mangledName.c_str());
         fmn2f[mangledName] = fni;
         return fni;
@@ -172,6 +209,9 @@ namespace das {
             if (var.privateField) {
                 vi->flags |= TypeInfo::flag_private;
             }
+            if (var.classMethod) {
+                vi->flags |= TypeInfo::flag_classMethod;
+            }
             sti->fields[i] = vi;
         }
         sti->firstGcField = sti->count;
@@ -194,15 +234,16 @@ namespace das {
         sti->init_mnh = 0;
         if ( st.module ) {
             sti->module_name = debugInfo->allocateCachedName(st.module->name);
-            if ( auto fn = st.module->findFunction(st.name) ) {
-                sti->init_mnh = fn->getMangledNameHash();
+            if ( auto it = st.module->functionsByName.find(hash64z(st.name.c_str())) ) {
+                for ( auto * fn : it->second ) {
+                    if ( fn->arguments.empty() && fn->result && fn->result->structType == &st ) {
+                        sti->init_mnh = fn->getMangledNameHash();
+                        break;
+                    }
+                }
             }
         }
-        if ( rtti ) {
-            sti->annotation_list = (void *) &st.annotations;
-        } else {
-            sti->annotation_list = nullptr;
-        }
+        sti->annotations = makeAnnotationList(st.annotations, sti->annotation_count);
         sti->hash = hash_blockz64((uint8_t *)mangledName.c_str());
         return sti;
     }
@@ -213,9 +254,11 @@ namespace das {
         // (size, quals, gc, names) stay on the chain head
         vector<int32_t> dims;
         const TypeDecl * elemType = type;
-        while ( elemType->baseType==Type::tFixedArray ) {
-            dims.push_back(elemType->fixedDim);
-            DAS_ASSERTF(elemType->firstType, "tFixedArray chain without an element");
+        // tDistinct erases to its underlying type here, same boundary as the fixed-array flatten -
+        // runtime TypeInfo (interpreter, JIT, fusion, RTTI) never observes a distinct type
+        while ( elemType->baseType==Type::tFixedArray || elemType->baseType==Type::tDistinct ) {
+            if ( elemType->baseType==Type::tFixedArray ) dims.push_back(elemType->fixedDim);
+            DAS_ASSERTF(elemType->firstType, "tFixedArray/tDistinct chain without an element");
             elemType = elemType->firstType;
         }
         if ( info==nullptr ) {
@@ -238,14 +281,15 @@ namespace das {
         } else if ( elemType->isEnumT() ) {
             info->enumType = elemType->enumType ? makeEnumDebugInfo(*elemType->enumType) : nullptr;
         } else if ( elemType->annotation ) {
-#if DAS_THREAD_SAFE_ANNOTATIONS
-            auto annName = debugInfo->allocateCachedName("~" + elemType->annotation->module->name + "::" + elemType->annotation->name);
-            info->annotation_or_name =  ((TypeAnnotation*)(intptr_t(annName)|1));
-#else
-            info->annotation_or_name = elemType->annotation;
-#endif
+            auto ann = (AnnotationInfo *) debugInfo->allocate(sizeof(AnnotationInfo));
+            ann->name = debugInfo->allocateCachedName(elemType->annotation->name);
+            ann->module_name = debugInfo->allocateCachedName(elemType->annotation->module ? elemType->annotation->module->name : "");
+            ann->arguments = nullptr;
+            ann->count = 0;
+            ann->resolved = nullptr;
+            info->annotation_info = ann;
         } else {
-            info->annotation_or_name = nullptr;
+            info->annotation_info = nullptr;
         }
         info->flags = 0;
         if (type->ref) {
@@ -325,12 +369,8 @@ namespace das {
         makeTypeInfo(vi, var.type);
         vi->name = debugInfo->allocateCachedName(var.name);
         vi->offset = var.offset;
-        if ( rtti && !var.annotation.empty() ) {
-            vi->annotation_arguments = (void *) &var.annotation;
-        } else {
-            vi->annotation_arguments = nullptr;
-        }
-        if ( rtti && var.init && var.init->constexpression ) {
+        vi->annotation_arguments = makeAnnotationArguments(var.annotation, vi->annotation_argument_count);
+        if ( var.init && var.init->constexpression ) {
             if ( var.init->rtti_isStringConstant() ) {
                 auto sval = static_cast<ExprConstString*>(var.init);
                 vi->sValue = debugInfo->allocateCachedName(sval->text);
@@ -357,7 +397,8 @@ namespace das {
         makeTypeInfo(vi, var.type);
         vi->name = debugInfo->allocateCachedName(var.name);
         vi->offset = 0;
-        if ( rtti && var.init && var.init->constexpression ) {
+        vi->annotation_arguments = makeAnnotationArguments(var.annotation, vi->annotation_argument_count);
+        if ( var.init && var.init->constexpression ) {
             if ( var.init->rtti_isStringConstant() ) {
                 auto sval = static_cast<ExprConstString*>(var.init);
                 vi->sValue = debugInfo->allocateCachedName(sval->text);

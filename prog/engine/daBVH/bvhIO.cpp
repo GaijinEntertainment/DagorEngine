@@ -87,8 +87,10 @@ static void writeSubtree(IGenSave &cwr, const uint8_t *blas, int o, int verts_of
     // (W1[24:31]) ride along unchanged. deserialize recomputes the byte base for its own layout.
     const uint32_t vertIdx = uint32_t(apexByte / vert_stride);
     const uint32_t w1p = (vertIdx & QUAD_BASE_MASK) | (w1 & ~QUAD_BASE_MASK);
-    // A single-quad leaf is canonical (W2 = 2nd-tri flip only, W3 = 0, as packQuadA writes it), so both
-    // words are implied by the marker byte: store just W0+W1 and halve the leaf body on disk.
+    // An unstamped single-quad leaf is canonical (W2 = 2nd-tri flip only, W3 = 0, as packQuadA writes
+    // it), so both words are implied by the marker byte: store just W0+W1 and halve the leaf body on
+    // disk. A leaf carrying user bits fails this test and takes the full record, which is the only
+    // place they can be stored.
     if ((w2 & ~QUAD_FLIPA_FLAG) == 0 && w3 == 0)
     {
       const uint8_t cc = (w2 & QUAD_FLIPA_FLAG) ? SHORT_LEAF_FLIP_MARKER : SHORT_LEAF_MARKER;

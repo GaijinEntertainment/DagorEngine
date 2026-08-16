@@ -126,6 +126,7 @@ bool d3d::setvsrc_ex(int stream, Vbuffer *vb, int ofs, int stride_bytes)
 
 bool d3d::setind(Ibuffer *ib)
 {
+  D3D_CONTRACT_ASSERT_RETURN(!ib || ib->getFlags() & SBCF_BIND_INDEX, false);
   LocalAccessor la;
 
   GenericBufferInterface *gb = ((GenericBufferInterface *)ib); //-V522

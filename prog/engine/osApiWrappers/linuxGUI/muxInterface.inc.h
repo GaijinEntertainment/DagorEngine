@@ -6,6 +6,9 @@ void shutdown();
 bool changeGamma(float value);
 void getDisplaySize(int &width, int &height, bool for_primary_output = false);
 void getVideoModeList(Tab<String> &list);
+void getMonitors(Tab<String> &monitorNames);
+bool getMonitorInfo(const char *monitorName, String *friendlyName, int *monitorIndex);
+void getResolutionsFromMonitor(const char *monitorName, Tab<String> &resolutions);
 void *getMainWindowPtrHandle() const;
 bool isMainWindow(void *wnd) const;
 void destroyMainWindow();
@@ -33,5 +36,8 @@ void unclipCursor();
 void hideCursor(bool hide);
 void *getNativeDisplay();
 void *getNativeWindow(void *w);
+
+void lockWindow(void *w);
+void unlockWindow(void *w);
 bool getClipboardUTF8Text(char *dest, int buf_size);
 bool setClipboardUTF8Text(const char *text);

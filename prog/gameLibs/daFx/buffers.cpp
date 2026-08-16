@@ -314,7 +314,7 @@ unsigned char *start_updating_render_buffer(Context &ctx, int tag)
 
     buf.res.close();
     bool r = create_gpu_res(buf.res, DAFX_ELEM_STRIDE, buf.allocSize / DAFX_ELEM_STRIDE, flags, fmt,
-      String(32, "dafx_cpu_render_buffer_tag%d", tag));
+      String(32, "dafx_cpu_render_buffer_tag%d%s", tag, ctx.cfg.gpu_res_suffix.c_str()));
     if (!r)
     {
       buf.usageSize = 0;
@@ -351,8 +351,11 @@ unsigned char *start_updating_staging(Context &ctx, int size)
     ctx.staging.size = max(ctx.cfg.staging_buffer_size, ctx.staging.size + size);
     ctx.staging.ring.reset(ctx.staging.size);
 
+    char stagingBufName[32];
+    snprintf(stagingBufName, sizeof(stagingBufName), "dafx_staging%s", ctx.cfg.gpu_res_suffix.c_str());
+
     bool r = create_gpu_res(ctx.staging.buffer, DAFX_ELEM_STRIDE, ctx.staging.size / DAFX_ELEM_STRIDE,
-      SBCF_DYNAMIC | SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE, 0, "dafx_staging");
+      SBCF_DYNAMIC | SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE, 0, stagingBufName);
     debug("dafx staging reset: %d | %d", ctx.staging.size, r);
 
     if (!r)

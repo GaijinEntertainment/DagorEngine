@@ -50,6 +50,7 @@ static bool initialized = false;
 static String shaderName;
 
 UniqueBufWithShaderVar renderDataVS;
+UniqueBufWithShaderVar deformPressureBuf;
 
 static Tab<BBox3> updated_regions;
 
@@ -147,6 +148,7 @@ private:
 public:
   Tab<TireTrackNode> track;
   bool alive;
+  float deformPressureMult = -1.f;
 
   // start node of track
   int getStart() const
@@ -436,6 +438,7 @@ void init(const char *blk_file, bool has_normalmap, bool stub_render_mode)
 
     defaultTrackWidth = params->getReal("width", defaultTrackWidth);
     trackTextureWidthFactor = 1 / params->getReal("widthTexturePart", 1 / trackTextureWidthFactor);
+    ShaderGlobal::set_float(get_shader_variable_id("tires_texture_width_factor", true), trackTextureWidthFactor);
 
     loadRange(params, "length", segmentLength);
     debug("segmentLength %g %g", segmentLength.getMin(), segmentLength.getMax());
@@ -583,6 +586,7 @@ void release()
   driftTexId = BAD_TEXTUREID;
   clear_and_shrink(trackTypes);
   renderDataVS.close();
+  deformPressureBuf.close();
   trackMaterial.close();
   tiresProjectiveDecalShader.close();
   index_buffer::release_box();
@@ -603,12 +607,14 @@ void clear(bool completeClear)
   }
 }
 
-void before_render(float /*dt*/, const Point3 &origin)
+void before_render(float /*dt*/, const Point3 &origin, bool need_deform_pressure_buffer)
 {
   if (!renderDataVS.getBuf())
     return;
 
-  Tab<TireTrackNode> renderData(framemem_ptr()); // Note: no need to reserve, framemem can resizeInplace
+  FRAMEMEM_REGION;
+  Tab<TireTrackNode> renderData(framemem_ptr());
+  Tab<float> deformPressure(framemem_ptr());
 
   int lastSize = 0;
   int trackStartIndex = 0;
@@ -649,6 +655,8 @@ void before_render(float /*dt*/, const Point3 &origin)
         renderData[trackStartIndex].tc.w = 0;
         renderData.back().tc.w = 0;
       }
+      if (need_deform_pressure_buffer)
+        deformPressure.resize(renderData.size(), tr.deformPressureMult);
       trackStartIndex = renderData.size();
     }
     renderCount[renderType] = renderData.size() - lastSize;
@@ -662,6 +670,14 @@ void before_render(float /*dt*/, const Point3 &origin)
   if (lockCount > 0)
     renderDataVS.getBuf()->updateDataWithLock(0, sizeof(TireTrackNode) * lockCount, renderData.data(), VBLOCK_DISCARD);
   renderDataVS.setVar();
+  if (need_deform_pressure_buffer && lockCount > 0)
+  {
+    // todo: it would be better to rework this buffer if more per emitter params is needed in future
+    if (!deformPressureBuf)
+      deformPressureBuf = dag::buffers::create_one_frame_sr_structured(sizeof(float), nodeCount, "tire_tracks_deform_pressure");
+    if (deformPressureBuf)
+      deformPressureBuf.getBuf()->updateDataWithLock(0, sizeof(float) * lockCount, deformPressure.data(), VBLOCK_DISCARD);
+  }
 }
 
 void invalidate_region(const BBox3 &bbox)
@@ -768,6 +784,13 @@ bool emit(int emitterId, const Point3 &norm, const Point3 &pos, const Point3 &mo
     correct_previous_node, direction_changed);
 }
 
+void set_emitter_deform_pressure(int emitterId, float pressure_mult)
+{
+  if (emitterId < 0 || emitterId >= emitters.size())
+    return;
+  emitters[emitterId].deformPressureMult = pressure_mult;
+}
+
 // delete track emitter.
 void delete_emitter(int emitterId)
 {
@@ -777,7 +800,7 @@ void delete_emitter(int emitterId)
   emitters[emitterId].alive = false;
 }
 
-void render_to_clipmap(bool for_displacement)
+void render_strips(bool apply_clipmap_writemask)
 {
   if (!renderDataVS.getBuf())
     return;
@@ -795,7 +818,7 @@ void render_to_clipmap(bool for_displacement)
     setShaderVars(renderType);
     ShaderGlobal::set_int(tires_start_instVarId, rendered);
 
-    if (!for_displacement)
+    if (apply_clipmap_writemask)
     {
       shaders::overrides::reset();
       shaders::overrides::set(trackTypes[renderType].shaderOverride);
@@ -811,7 +834,7 @@ void render_to_clipmap(bool for_displacement)
     rendered += renderCount[renderType];
   }
 
-  if (!for_displacement)
+  if (apply_clipmap_writemask)
   {
     shaders::overrides::reset();
     shaders::overrides::set(savedStateId);

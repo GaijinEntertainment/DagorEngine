@@ -7,6 +7,7 @@
 #include "device_context.h"
 #include "debug_ui.h"
 #include "backend/cmd/debug.h"
+#include "frontend_pod_state.h"
 
 using namespace drv3d_vulkan;
 
@@ -17,7 +18,7 @@ void d3d::beginEvent(const char *name)
 #if VK_EXT_debug_marker || VK_EXT_debug_utils
   {
     CmdPushEvent cmd;
-    OSSpinlockScopedLock frontLock(Globals::ctx.getFrontLock());
+    OSSpinlockScopedLock frontLock(Frontend::State::pod.reorderTimestamps ? nullptr : &Globals::ctx.getFrontLock());
     cmd.index = StringIndexRef{Frontend::replay->charStore.size()};
     Frontend::replay->charStore.insert(Frontend::replay->charStore.end(), name, name + strlen(name) + 1);
     Globals::ctx.dispatchCmdNoLock(cmd);
@@ -34,7 +35,10 @@ void d3d::endEvent()
   VERIFY_GLOBAL_LOCK_ACQUIRED();
 
 #if VK_EXT_debug_marker || VK_EXT_debug_utils
-  Globals::ctx.dispatchCmd<CmdPopEvent>({});
+  if (Frontend::State::pod.reorderTimestamps)
+    Globals::ctx.dispatchCmdNoLock<CmdPopEvent>({});
+  else
+    Globals::ctx.dispatchCmd<CmdPopEvent>({});
 #endif
 }
 

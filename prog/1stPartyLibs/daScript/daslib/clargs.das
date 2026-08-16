@@ -2,6 +2,7 @@ options gen2
 
 module clargs shared private
 
+require fio
 require daslib/ast_boost
 require daslib/templates_boost
 require daslib/strings_boost
@@ -15,8 +16,11 @@ struct public CommandArgumentInfo {
     field_name : string
     flag_name : string         // long form, e.g. "--verbose"; for positionals this is "<field_name>"
     short_flag_name : string   // e.g. "-v"; empty if no short flag declared
+    env_name : string          // environment twin, e.g. "TOOL_VERBOSE"; "" = none. Command line wins; set-but-empty env counts as unset
     doc_string : string
+    default_doc : string       // default as doc text: @clarg_default_doc, else the rendered field initializer; "" = nothing to show
     value_type : Type
+    is_path : bool             // @clarg_path: a string knob holding a filesystem path (doc/completion hint)
     is_array : bool
     is_required : bool
     is_positional : bool       // declared with @clarg_positional; consumed in declaration order
@@ -66,11 +70,7 @@ def public get_program_args() : array<string> {
     return <- get_program_args(get_command_line_arguments())
 }
 
-// Mode-aware argv source.  Returns argv[1..] when running as a standalone exe
-// (built via `daslang -exe`), and the post-`--` slice when running under the
-// interpreter or in-process JIT.  This is what the macro-generated default
-// `parse_args()` uses, so utilities work the same whether interpreted or
-// shipped as a binary.
+// Mode-aware argv source.  Returns argv[1..] when running as a standalone exe (built via `daslang -exe`), and the post-`--` slice when running under the interpreter or in-process JIT.  This is what the macro-generated default `parse_args()` uses, so utilities work the same whether interpreted or shipped as a binary.
 def public get_user_args() : array<string> {
     let argv <- get_command_line_arguments()
     if (is_standalone_exe()) {
@@ -84,10 +84,7 @@ def clargs_flag_name(field_name : string) : string {
     return "--" + replace_multiple(field_name, [(text="_", replacement="-")])
 }
 
-// Duplicate-flag policy: last occurrence wins.  Matches GNU getopt, Python
-// argparse, Go flag, Rust clap, and most other CLI parsers — lets users
-// override an earlier flag (typically from an alias or wrapper script) by
-// appending a later one.
+// Duplicate-flag policy: last occurrence wins.  Matches GNU getopt, Python argparse, Go flag, Rust clap, and most other CLI parsers — lets users override an earlier flag (typically from an alias or wrapper script) by appending a later one.
 
 def public find_bool_flag_raw_value(args : array<string>; flag_name : string) : Option<string> {
     let prefix = "{flag_name}="
@@ -148,6 +145,150 @@ def public find_array_flag_raw_values(args : array<string>; flag_name : string) 
     return <- result
 }
 
+// Environment twins: an option with a non-empty env_name falls back to that variable when
+// NO spelling of the flag is on the command line — argv always wins, including its errors
+// (a bare value-less "--flag" stays "missing value" even with the variable set).
+
+// the shared boolean rule (build_const / dasllama_env): "", "0", "false", "off", "no" any-case are false
+def env_text_is_true(v : string) : bool {
+    let s = to_lower(v)
+    return !(empty(s) || s == "0" || s == "false" || s == "off" || s == "no")
+}
+
+// set-but-empty counts as unset, matching daslib/build_const — and warns, because the old
+// dasllama registry read FOO= as false, so a silent flip of a disable idiom must be loud
+def public env_config_text(name : string) : Option<string> {
+    if (empty(name) || !has_env_variable(name)) return none(type<string>)
+    let v = get_env_variable(name)
+    if (empty(v)) {
+        to_log(LOG_WARNING, "env {name} is set but empty - treated as unset (use {name}=0 to disable a flag)\n")
+        return none(type<string>)
+    }
+    return some(v)
+}
+
+def env_raw_value(arg_info : CommandArgumentInfo) : Option<string> {
+    return env_config_text(arg_info.env_name)
+}
+
+// ===== [EnvConfig] runtime readers =====
+// unset and set-but-empty yield the default; garbage numeric text logs a warning and yields the default
+
+def public env_config_flag(name : string; dflt : bool) : bool {
+    let v = env_config_text(name)
+    return is_none(v) ? dflt : env_text_is_true(unwrap(v))
+}
+
+def public env_config_int(name : string; dflt : int) : int {
+    let v = env_config_text(name)
+    if (is_none(v)) return dflt
+    let raw = unwrap(v)
+    var result : ConversionResult
+    var offset = 0
+    let parsed = int(raw, result, offset)
+    if (result != ConversionResult.ok || offset != length(raw)) {
+        to_log(LOG_WARNING, "env {name}: invalid int '{raw}', using {dflt}\n")
+        return dflt
+    }
+    return parsed
+}
+
+def public env_config_float(name : string; dflt : float) : float {
+    let v = env_config_text(name)
+    if (is_none(v)) return dflt
+    let raw = unwrap(v)
+    var result : ConversionResult
+    var offset = 0
+    let parsed = float(raw, result, offset)
+    if (result != ConversionResult.ok || offset != length(raw)) {
+        to_log(LOG_WARNING, "env {name}: invalid float '{raw}', using {dflt}\n")
+        return dflt
+    }
+    return parsed
+}
+
+def public env_config_string(name : string; dflt : string) : string {
+    let v = env_config_text(name)
+    return is_none(v) ? dflt : unwrap(v)
+}
+
+def public env_config_int64(name : string; dflt : int64) : int64 {
+    let v = env_config_text(name)
+    if (is_none(v)) return dflt
+    let raw = unwrap(v)
+    var result : ConversionResult
+    var offset = 0
+    let parsed = int64(raw, result, offset)
+    if (result != ConversionResult.ok || offset != length(raw)) {
+        to_log(LOG_WARNING, "env {name}: invalid int64 '{raw}', using {dflt}\n")
+        return dflt
+    }
+    return parsed
+}
+
+// Option-typed twins for tri-state knobs: the field keeps its declared default (usually `none`)
+// when the variable is unset, so a read site can tell "explicitly set" from "compute a default".
+// Garbage numeric text warns and keeps the default, same as the plain readers.
+
+def public env_config_opt_flag(name : string; dflt : Option<bool>) : Option<bool> {
+    let v = env_config_text(name)
+    return is_none(v) ? dflt : some(env_text_is_true(unwrap(v)))
+}
+
+def public env_config_opt_int(name : string; dflt : Option<int>) : Option<int> {
+    let v = env_config_text(name)
+    if (is_none(v)) return dflt
+    let raw = unwrap(v)
+    var result : ConversionResult
+    var offset = 0
+    let parsed = int(raw, result, offset)
+    if (result != ConversionResult.ok || offset != length(raw)) {
+        to_log(LOG_WARNING, "env {name}: invalid int '{raw}', keeping the default\n")
+        return dflt
+    }
+    return some(parsed)
+}
+
+def public env_config_opt_int64(name : string; dflt : Option<int64>) : Option<int64> {
+    let v = env_config_text(name)
+    if (is_none(v)) return dflt
+    let raw = unwrap(v)
+    var result : ConversionResult
+    var offset = 0
+    let parsed = int64(raw, result, offset)
+    if (result != ConversionResult.ok || offset != length(raw)) {
+        to_log(LOG_WARNING, "env {name}: invalid int64 '{raw}', keeping the default\n")
+        return dflt
+    }
+    return some(parsed)
+}
+
+def public env_config_opt_float(name : string; dflt : Option<float>) : Option<float> {
+    let v = env_config_text(name)
+    if (is_none(v)) return dflt
+    let raw = unwrap(v)
+    var result : ConversionResult
+    var offset = 0
+    let parsed = float(raw, result, offset)
+    if (result != ConversionResult.ok || offset != length(raw)) {
+        to_log(LOG_WARNING, "env {name}: invalid float '{raw}', keeping the default\n")
+        return dflt
+    }
+    return some(parsed)
+}
+
+def public env_config_opt_string(name : string; dflt : Option<string>) : Option<string> {
+    let v = env_config_text(name)
+    return is_none(v) ? dflt : v
+}
+
+// Command-line presence only (either alias, either spelling) — mutex checks and
+// argv-error precedence use this, NOT the env-aware flag_present overload below.
+def argv_present(args : array<string>; arg_info : CommandArgumentInfo) : bool {
+    if (flag_present(args, arg_info.flag_name)) return true
+    return !empty(arg_info.short_flag_name) && flag_present(args, arg_info.short_flag_name)
+}
+
 // Short-flag-aware overloads: single pass over args treating long and short
 // as aliases.  Last-occurrence wins (same policy as the single-flag overloads
 // above), so e.g. `-n Alice --name Bob` resolves to "Bob".
@@ -170,6 +311,9 @@ def public find_flag_raw_value(args : array<string>; arg_info : CommandArgumentI
             result = some(slice(arg, length(short_prefix)))
         }
     }
+    if (is_none(result) && !argv_present(args, arg_info)) {
+        result = env_raw_value(arg_info)
+    }
     return result
 }
 
@@ -186,6 +330,13 @@ def public find_bool_flag_raw_value(args : array<string>; arg_info : CommandArgu
             result = some(slice(arg, length(long_prefix)))
         } elif (has_short && starts_with(arg, short_prefix)) {
             result = some(slice(arg, length(short_prefix)))
+        }
+    }
+    if (is_none(result)) {
+        let env_v = env_raw_value(arg_info)
+        if (is_some(env_v)) {
+            // env booleans take the shared spelling rule, normalized to what the strict argv parser expects
+            result = some(env_text_is_true(unwrap(env_v)) ? "true" : "false")
         }
     }
     return result
@@ -223,17 +374,12 @@ def public find_array_flag_raw_values(args : array<string>; arg_info : CommandAr
 }
 
 def public flag_present(args : array<string>; arg_info : CommandArgumentInfo) : bool {
-    if (flag_present(args, arg_info.flag_name)) return true
-    return !empty(arg_info.short_flag_name) && flag_present(args, arg_info.short_flag_name)
+    // env-aware: a value supplied via the env twin counts as present (satisfies @clarg_required)
+    if (argv_present(args, arg_info)) return true
+    return is_some(env_raw_value(arg_info))
 }
 
-// For value-bearing flags (everything except bool), a bare "--flag" with no
-// following value token and no "=value" form is malformed input.  Each
-// parse_argument overload below returns Result<Option<T>, string> distinguishing
-// three states:
-//   - ok(some(v))   — found and parsed a value
-//   - ok(none)      — flag absent; caller leaves the field at its default
-//   - err("...")    — parse error (e.g. "missing value", "invalid int value '...')
+// For value-bearing flags (everything except bool), a bare "--flag" with no following value token and no "=value" form is malformed input.  Each parse_argument overload below returns Result<Option<T>, string> distinguishing three states:
 
 [unused_argument(t)]
 def public parse_argument(args : array<string>; arg_info : CommandArgumentInfo; t : type<string>) : Result<Option<string>; string> {
@@ -300,14 +446,6 @@ def public parse_argument(args : array<string>; arg_info : CommandArgumentInfo; 
 }
 
 // Positional-argument collection.
-//
-// Walks `args` and returns the tokens that should be treated as positionals —
-// i.e. tokens that don't match any declared flag (long or short, with or
-// without `=value`).  When a known value-bearing flag appears in its
-// space-separated form (e.g. "--root /tmp"), the next token is consumed as
-// the value (NOT a positional).  Tokens that look flag-shaped but don't match
-// any declared flag (`--unknown`, `-x`) are skipped one-by-one so they don't
-// land in the positional list either.
 
 def public collect_positional_args(args : array<string>; info : CommandInfo) : array<string> {
     var result : array<string>
@@ -389,7 +527,8 @@ def public count_flag_value_violation(args : array<string>; arg_info : CommandAr
 def public find_mutex_violation(args : array<string>; info : CommandInfo) : string {
     var groups : table<string; array<string>>
     for (a in info.args) {
-        if (empty(a.mutex_group) || !flag_present(args, a)) continue
+        // argv-only on purpose: an env-supplied default must not conflict with an explicit argv choice
+        if (empty(a.mutex_group) || !argv_present(args, a)) continue
         if (!key_exists(groups, a.mutex_group)) {
             groups[a.mutex_group] <- [a.flag_name]
         } else {
@@ -436,21 +575,6 @@ def public format_help_with_auto_help(info : CommandInfo; prog_name : string) : 
 }
 
 // Help rendering.
-//
-// `format_help` builds the help text as a string (testable, redirectable).
-// `print_help` is a thin wrapper that prints it to stdout.
-//
-// Layout (standalone exe — `is_standalone_exe() == true`):
-//   Usage: <prog_name> [flags]
-//
-// Layout (interpreted script):
-//   Usage: daslang <prog_name> -- [flags]
-//
-//   Flags:
-//     -X, --long=PLACEHOLDER    doc_string (required) (repeated)
-//         --long=PLACEHOLDER    doc_string
-//
-// Bool flags omit the =PLACEHOLDER. Enum flag docs include `(V1|V2|...)`.
 
 def value_placeholder(arg : CommandArgumentInfo) : string {
     if (arg.is_positional || arg.is_count
@@ -495,6 +619,13 @@ def render_doc_column(arg : CommandArgumentInfo) : string {
                 write(w, v)
             }
             write(w, ")")
+        }
+        if (!empty(arg.env_name)) {
+            if (!first) {
+                write(w, " ")
+            }
+            first = false
+            write(w, "(env: {arg.env_name})")
         }
         if (arg.is_required) {
             if (!first) {
@@ -631,10 +762,49 @@ def option_inner_type(t : TypeDeclPtr) : TypeDeclPtr {
 }
 
 
+def find_bool_annotation(args : AnnotationArgumentList; argn : string, default_value : bool) : bool {
+    let v = find_arg(args, argn)
+    if (v is tBool) return v as tBool
+    return default_value
+}
+
+def find_string_annotation(args : AnnotationArgumentList; argn : string, default_value : string) : string {
+    let v = find_arg(args, argn)
+    if (v is tString) return v as tString
+    return default_value
+}
+
+// env twin for one field: explicit @clarg_env wins ("" opts out of prefix derivation);
+// otherwise a struct-level env_prefix derives PREFIX_LONG_NAME (hyphens to underscores,
+// upper case). Positional, count, and repeatable (array) fields have no environment form.
+def resolve_env_name(fannotations : AnnotationArgumentList; fname, raw_name, env_prefix : string;
+                     is_positional, is_count, is_array : bool; var errors : das_string&) : string {
+    let explicit_v = find_arg(fannotations, "clarg_env")
+    if (explicit_v is tString) {
+        let name = explicit_v as tString
+        if (empty(name)) return ""
+        if (is_positional) {
+            errors := "field '{fname}': @clarg_env cannot be combined with @clarg_positional"
+            return ""
+        }
+        if (is_count) {
+            errors := "field '{fname}': @clarg_env cannot be combined with @clarg_count"
+            return ""
+        }
+        if (is_array) {
+            errors := "field '{fname}': repeatable (array) fields have no environment form"
+            return ""
+        }
+        return name
+    }
+    if (empty(env_prefix) || is_positional || is_count || is_array) return ""
+    return "{env_prefix}_{to_upper(replace_multiple(raw_name, [(text="-", replacement="_")]))}"
+}
+
 [structure_macro(name=CommandLineArgs)]
 class ArgsMacro : AstStructureAnnotation {
     def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
-        let command_info = collect_command_info(st, errors)
+        let command_info = collect_command_info(st, args, errors)
         if (!empty(errors)) return false
 
         var command_info_fn = make_command_info_fn(st, command_info)
@@ -646,8 +816,7 @@ class ArgsMacro : AstStructureAnnotation {
         var parse_args_default_fn = make_parse_default_fn(st)
         compiling_module() |> add_function(parse_args_default_fn)
 
-        // Auto --help/-h is only injected when the user did not declare their
-        // own help flag.  If they did, they're responsible for handling it.
+        // Auto --help/-h is only injected when the user did not declare their own help flag.  If they did, they're responsible for handling it.
         if (!command_info.has_user_help) {
             var parse_args_with_help_fn = make_parse_args_with_help_fn(st)
             compiling_module() |> add_function(parse_args_with_help_fn)
@@ -656,28 +825,64 @@ class ArgsMacro : AstStructureAnnotation {
         return true
     }
 
-    def find_bool_annotation(args : AnnotationArgumentList; argn : string, default_value : bool) : bool {
-        let v = find_arg(args, argn)
-        if (v is tBool) return v as tBool
-        return default_value
+
+    // Reject characters that produce ambiguous or unparseable short flags: '-' yields '--'
+    // (collides with the script-args separator), '=' yields '-=' (collides with --flag=value
+    // form), whitespace can't be typed on the command line.
+    def resolve_short_flag(fannotations : AnnotationArgumentList; field_name : string; is_positional : bool;
+                           var seen_short : table<string; string>; var errors : das_string&) : string {
+        let short_char = find_string_annotation(fannotations, "clarg_short", "")
+        if (empty(short_char)) return ""
+        if (is_positional) {
+            errors := "field '{field_name}': @clarg_short cannot be combined with @clarg_positional"
+            return ""
+        }
+        if (length(short_char) != 1) {
+            errors := "field '{field_name}': @clarg_short must be a single character (got '{short_char}')"
+            return ""
+        }
+        if (short_char == "-" || short_char == "=" || short_char == " " || short_char == "\t" || short_char == "\n" || short_char == "\r") {
+            errors := "field '{field_name}': @clarg_short cannot be '-', '=', or whitespace (got '{short_char}')"
+            return ""
+        }
+        if (key_exists(seen_short, short_char)) {
+            errors := "field '{field_name}': @clarg_short '-{short_char}' already used by field '{seen_short[short_char]}'"
+            return ""
+        }
+        seen_short[short_char] = field_name
+        return "-{short_char}"
     }
 
-    def find_string_annotation(args : AnnotationArgumentList; argn : string, default_value : string) : string {
-        let v = find_arg(args, argn)
-        if (v is tString) return v as tString
-        return default_value
+    // Positional ordering/type rules; allowed types are string, Option<string>, array<string>.
+    def validate_positional(var arg : CommandArgumentInfo; fannotations : AnnotationArgumentList;
+                            var has_array_tail, saw_optional_positional : bool&; var errors : das_string&) {
+        if (arg.value_type != Type.tString) {
+            errors := "field '{arg.field_name}': @clarg_positional only supports string, Option<string>, and array<string>"
+            return
+        }
+        if (has_array_tail) {
+            errors := "field '{arg.field_name}': another @clarg_positional cannot follow an array<string> positional"
+            return
+        }
+        let is_required_positional = !arg.is_array && !arg.is_optional_wrap
+        if (is_required_positional && saw_optional_positional) {
+            errors := "field '{arg.field_name}': required @clarg_positional cannot follow an optional one"
+            return
+        }
+        if (arg.is_array) {
+            has_array_tail = true
+        } elif (arg.is_optional_wrap) {
+            saw_optional_positional = true
+        }
+        arg.is_required = is_required_positional
+        if (find_bool_annotation(fannotations, "clarg_required", false) && arg.is_optional_wrap) {
+            errors := "field '{arg.field_name}': @clarg_required cannot be combined with Option<...> @clarg_positional (declare the field as plain string instead)"
+        }
     }
 
     // collect_command_info turns the structure info into command info.
-    // It serves two functions: it makes the code generation easier
-    // by pre-processing the raw type data, plus it makes it
-    // possible to have an easy-to-use runtime value with all command info.
-    // This info can be used to print command's help, for example.
-    //
-    // On invalid input (bad @clarg_short value, short-flag collision) populates
-    // `errors` and returns the partial result; the caller checks `errors` and
-    // aborts macro application.
-    def collect_command_info(st : StructurePtr; var errors : das_string&) : CommandInfo {
+    def collect_command_info(st : StructurePtr; ann_args : AnnotationArgumentList; var errors : das_string&) : CommandInfo {
+        let env_prefix = find_string_annotation(ann_args, "env_prefix", "")
         var result : CommandInfo
         result.args |> reserve(length(st.fields))
         var seen_short : table<string; string>
@@ -696,31 +901,8 @@ class ArgsMacro : AstStructureAnnotation {
                 mutex_group = find_string_annotation(field.annotation, "clarg_mutex_group", "")
             )
 
-            let short_char = find_string_annotation(field.annotation, "clarg_short", "")
-            if (!empty(short_char)) {
-                if (is_positional) {
-                    errors := "field '{arg.field_name}': @clarg_short cannot be combined with @clarg_positional"
-                    return <- result
-                }
-                if (length(short_char) != 1) {
-                    errors := "field '{arg.field_name}': @clarg_short must be a single character (got '{short_char}')"
-                    return <- result
-                }
-                // Reject characters that produce ambiguous or unparseable
-                // short flags: '-' yields '--' (collides with the script-args
-                // separator), '=' yields '-=' (collides with --flag=value
-                // form), whitespace can't be typed on the command line.
-                if (short_char == "-" || short_char == "=" || short_char == " " || short_char == "\t" || short_char == "\n" || short_char == "\r") {
-                    errors := "field '{arg.field_name}': @clarg_short cannot be '-', '=', or whitespace (got '{short_char}')"
-                    return <- result
-                }
-                if (key_exists(seen_short, short_char)) {
-                    errors := "field '{arg.field_name}': @clarg_short '-{short_char}' already used by field '{seen_short[short_char]}'"
-                    return <- result
-                }
-                seen_short[short_char] = arg.field_name
-                arg.short_flag_name = "-{short_char}"
-            }
+            arg.short_flag_name = resolve_short_flag(field.annotation, arg.field_name, is_positional, seen_short, errors)
+            if (!empty(errors)) return <- result
             arg.is_required = find_bool_annotation(field.annotation, "clarg_required", false)
             arg.value_type = field._type.baseType
             if (field._type.baseType == Type.tArray) {
@@ -746,30 +928,8 @@ class ArgsMacro : AstStructureAnnotation {
             }
 
             if (is_positional) {
-                // Allowed types: string, Option<string>, array<string>.
-                if (arg.value_type != Type.tString) {
-                    errors := "field '{arg.field_name}': @clarg_positional only supports string, Option<string>, and array<string>"
-                    return <- result
-                }
-                if (has_array_tail) {
-                    errors := "field '{arg.field_name}': another @clarg_positional cannot follow an array<string> positional"
-                    return <- result
-                }
-                let is_required_positional = !arg.is_array && !arg.is_optional_wrap
-                if (is_required_positional && saw_optional_positional) {
-                    errors := "field '{arg.field_name}': required @clarg_positional cannot follow an optional one"
-                    return <- result
-                }
-                if (arg.is_array) {
-                    has_array_tail = true
-                } elif (arg.is_optional_wrap) {
-                    saw_optional_positional = true
-                }
-                arg.is_required = is_required_positional
-                if (find_bool_annotation(field.annotation, "clarg_required", false) && arg.is_optional_wrap) {
-                    errors := "field '{arg.field_name}': @clarg_required cannot be combined with Option<...> @clarg_positional (declare the field as plain string instead)"
-                    return <- result
-                }
+                validate_positional(arg, field.annotation, has_array_tail, saw_optional_positional, errors)
+                if (!empty(errors)) return <- result
             }
 
             if (is_count) {
@@ -788,6 +948,9 @@ class ArgsMacro : AstStructureAnnotation {
             }
 
             arg.doc_string = find_string_annotation(field.annotation, "clarg_doc", "")
+            arg.env_name = resolve_env_name(field.annotation, "{field.name}", raw_name, env_prefix,
+                is_positional, is_count, arg.is_array, errors)
+            if (!empty(errors)) return <- result
             // Detect a user-declared --help/-h flag — suppresses auto-injection by parse_args_with_help.
             if (!is_positional && (arg.flag_name == "--help" || arg.short_flag_name == "-h")) {
                 result.has_user_help = true
@@ -817,8 +980,7 @@ class ArgsMacro : AstStructureAnnotation {
     }
 
     def make_parse_args_with_help_fn(var st : StructurePtr) : FunctionPtr {
-        // Auto-handles --help/-h by printing format_help_with_auto_help and
-        // returning 0.  Returns -1 on clean parse, 1 on parse error.
+        // Auto-handles --help/-h by printing format_help_with_auto_help and returning 0.  Returns -1 on clean parse, 1 on parse error.
         var fn = qmacro_function("parse_args_with_help") $(var dst : $t(st); prog_name : string) : int {
             let auto_args <- get_user_args()
             if (find_index(auto_args, "--help") != -1 || find_index(auto_args, "-h") != -1) {
@@ -846,7 +1008,7 @@ class ArgsMacro : AstStructureAnnotation {
                 if (r |> is_err) {
                     return err("{$v(arg.flag_name)}: {r |> unwrap_err}", type<$t(st)>)
                 }
-                var opt <- r |> move_unwrap   // nolint:LINT003 — non-copyable static_if branch below consumes `opt` via `move_unwrap`, so it must stay `var`
+                var opt <- r |> move_unwrap   // nolint:LINT003,LINT019 — non-copyable static_if branch below consumes `opt` via `move_unwrap` in downstream instantiations, so it must stay `var`
                 if (opt |> is_some) {
                     static_if (typeinfo can_copy(type<$t(st.fields[field_index]._type)>)) {
                         dst.$f(arg.field_name) = opt |> unwrap
@@ -937,7 +1099,7 @@ class ArgsMacro : AstStructureAnnotation {
         }
     }
 
-    def make_parse_fn(var st : StructurePtr; info : CommandInfo) : FunctionPtr {
+    def make_parse_fn(var st : StructurePtr; info : CommandInfo) : FunctionPtr {   // nolint:STYLE038 — four parallel qmacro variants (positional × mutex); the enumeration IS the function
         var name_to_index <- { for (i in range(length(st.fields))); string(st.fields[i].name) => i }
         var field_index_by_name <- { for (arg in info.args); arg.field_name => name_to_index[arg.field_name]; where key_exists(name_to_index, arg.field_name) }
 
@@ -1056,5 +1218,142 @@ class ArgsMacro : AstStructureAnnotation {
         fn.flags.generated = true
         fn.body |> force_at(st.at)
         return <- fn
+    }
+}
+
+[structure_macro(name=EnvConfig)]
+class EnvConfigMacro : AstStructureAnnotation {
+    //! Ambient sibling of [CommandLineArgs] for LIBRARY knobs (no argv, no parse moment):
+    //! generates ``env_config(type<T>) : T`` — bool/int/int64/float/string fields, plain or
+    //! Option-wrapped (tri-state) — plus ``get_env_config_info(type<T>)`` for doc/coverage rails.
+    def make_env_load_expr(fname, env_name : string; bt : Type; is_opt : bool) : ExpressionPtr {
+        if (is_opt) {
+            if (bt == Type.tBool) {
+                return qmacro_block() {
+                    dst.$f(fname) = env_config_opt_flag($v(env_name), dst.$f(fname))
+                }
+            }
+            if (bt == Type.tInt) {
+                return qmacro_block() {
+                    dst.$f(fname) = env_config_opt_int($v(env_name), dst.$f(fname))
+                }
+            }
+            if (bt == Type.tInt64) {
+                return qmacro_block() {
+                    dst.$f(fname) = env_config_opt_int64($v(env_name), dst.$f(fname))
+                }
+            }
+            if (bt == Type.tFloat) {
+                return qmacro_block() {
+                    dst.$f(fname) = env_config_opt_float($v(env_name), dst.$f(fname))
+                }
+            }
+            return qmacro_block() {
+                dst.$f(fname) = env_config_opt_string($v(env_name), dst.$f(fname))
+            }
+        }
+        if (bt == Type.tBool) {
+            return qmacro_block() {
+                dst.$f(fname) = env_config_flag($v(env_name), dst.$f(fname))
+            }
+        }
+        if (bt == Type.tInt) {
+            return qmacro_block() {
+                dst.$f(fname) = env_config_int($v(env_name), dst.$f(fname))
+            }
+        }
+        if (bt == Type.tInt64) {
+            return qmacro_block() {
+                dst.$f(fname) = env_config_int64($v(env_name), dst.$f(fname))
+            }
+        }
+        if (bt == Type.tFloat) {
+            return qmacro_block() {
+                dst.$f(fname) = env_config_float($v(env_name), dst.$f(fname))
+            }
+        }
+        return qmacro_block() {
+            dst.$f(fname) = env_config_string($v(env_name), dst.$f(fname))
+        }
+    }
+
+    // @clarg_default_doc wins; else a constant initializer renders as its literal text
+    def field_default_doc(fannotations : AnnotationArgumentList; init : ExpressionPtr) : string {
+        let explicit_v = find_string_annotation(fannotations, "clarg_default_doc", "")
+        if (!empty(explicit_v)) return explicit_v
+        if (init == null) return ""
+        if (init is ExprConstBool) return (init as ExprConstBool).value ? "true" : "false"
+        if (init is ExprConstInt) return "{(init as ExprConstInt).value}"
+        if (init is ExprConstInt64) return "{(init as ExprConstInt64).value}"
+        if (init is ExprConstFloat) return "{(init as ExprConstFloat).value}"
+        if (init is ExprConstString) return "{(init as ExprConstString).value}"
+        return ""
+    }
+
+    def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+        let env_prefix = find_string_annotation(args, "env_prefix", "")
+        var info : CommandInfo
+        info.args |> reserve(length(st.fields))
+        var load_exprs : array<ExpressionPtr>
+        var seen_env : table<string; string>   // resolved env name -> first field: one variable, one field
+        for (field in st.fields) {
+            if (find_bool_annotation(field.annotation, "clarg_skip", false)) continue
+            if (find_bool_annotation(field.annotation, "clarg_positional", false)
+                    || find_bool_annotation(field.annotation, "clarg_count", false)
+                    || find_bool_annotation(field.annotation, "clarg_required", false)
+                    || !empty(find_string_annotation(field.annotation, "clarg_short", ""))
+                    || !empty(find_string_annotation(field.annotation, "clarg_mutex_group", ""))) {
+                errors := "field '{field.name}': positional/count/required/short/mutex are command-line concepts - [EnvConfig] fields are plain knobs with defaults"
+                return false
+            }
+            let inner = option_inner_type(field._type)
+            let is_opt = inner != null
+            let bt = is_opt ? inner.baseType : field._type.baseType
+            if (bt != Type.tBool && bt != Type.tInt && bt != Type.tInt64 && bt != Type.tFloat && bt != Type.tString) {
+                errors := "field '{field.name}': [EnvConfig] supports bool, int, int64, float, and string fields, plain or Option-wrapped"
+                return false
+            }
+            let is_path = find_bool_annotation(field.annotation, "clarg_path", false)
+            if (is_path && bt != Type.tString) {
+                errors := "field '{field.name}': @clarg_path only applies to string fields"
+                return false
+            }
+            let env_name = resolve_env_name(field.annotation, "{field.name}", "{field.name}", env_prefix, false, false, false, errors)
+            if (!empty(errors)) return false
+            if (empty(env_name)) {
+                errors := "field '{field.name}': no environment name - set @clarg_env or the struct-level env_prefix"
+                return false
+            }
+            if (key_exists(seen_env, env_name)) {
+                errors := "field '{field.name}': environment name {env_name} already drives field '{seen_env[env_name]}' - one variable must not feed two fields"
+                return false
+            }
+            seen_env[env_name] = "{field.name}"
+            info.args |> emplace(CommandArgumentInfo(
+                field_name = "{field.name}",
+                env_name = env_name,
+                doc_string = find_string_annotation(field.annotation, "clarg_doc", ""),
+                default_doc = field_default_doc(field.annotation, field.init),
+                value_type = bt,
+                is_path = is_path,
+                is_optional_wrap = is_opt))
+            load_exprs |> push(make_env_load_expr("{field.name}", env_name, bt, is_opt))
+        }
+        var info_fn = qmacro_function("get_env_config_info") $(typ : $t(st)) : CommandInfo {
+            var x := $v(info)
+            return <- x
+        }
+        info_fn.flags.generated = true
+        info_fn.body |> force_at(st.at)
+        compiling_module() |> add_function(info_fn)
+        var load_fn = qmacro_function("env_config") $(typ : $t(st)) : $t(st) {
+            var dst = default<$t(st)>
+            $b(load_exprs)
+            return dst
+        }
+        load_fn.flags.generated = true
+        load_fn.body |> force_at(st.at)
+        compiling_module() |> add_function(load_fn)
+        return true
     }
 }

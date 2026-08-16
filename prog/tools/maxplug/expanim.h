@@ -4,7 +4,7 @@
 class ExpTMAnimCB
 {
 public:
-  virtual ~ExpTMAnimCB() {}
+  virtual ~ExpTMAnimCB() = default;
   virtual void interp_tm(TimeValue, Matrix3 &) = 0;
   virtual void non_orthog_tm(TimeValue) = 0;
   virtual const TCHAR *get_name() = 0;

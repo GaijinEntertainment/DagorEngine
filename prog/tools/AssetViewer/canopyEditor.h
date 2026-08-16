@@ -13,6 +13,20 @@ class DagorAsset;
 class IModelessWindowController;
 class TextEditor;
 
+enum class CanopyDmgBlockFormat
+{
+  Legacy,
+  Named,
+};
+
+struct CanopyBlkDocument
+{
+  String fileText;
+  String lineEnding;
+  String path;
+  DataBlock blk;
+};
+
 class CanopyEditorWindow final : public PropPanel::ControlEventHandler,
                                  public PropPanel::ICustomControl,
                                  public PropPanel::PanelWindowPropertyControl
@@ -85,19 +99,20 @@ private:
   PropPanel::ContainerPropertyControl *parametersGroup = nullptr;
   PropPanel::ContainerPropertyControl *textEditorGroup = nullptr;
   String selectedBlkPath;
-  String loadedFileText;
-  String lineEnding;
   String currentAssetName;
   String savedParametersText;
   String editorParametersText;
   String textEditorWidgetText;
   String viewportFxAssetName;
-  DataBlock loadedBlk;
+  String lastIncludeLoadErrorPath;
+  CanopyBlkDocument loadedBlkDocument;
   DataBlock editableDmgBlock;
   eastl::vector<ControlPath> actionPaths;
   eastl::vector<ControlPath> valuePaths;
   eastl::vector<int> currentDmgBlockPath;
+  eastl::vector<int> newDmgBlockParentPath;
   bool dirty = false;
+  CanopyDmgBlockFormat currentDmgBlockFormat = CanopyDmgBlockFormat::Legacy;
   bool showFx = false;
   bool viewportFxAvailable = false;
   bool updatingControls = false;

@@ -34,7 +34,7 @@ public:
 
   virtual ContainerPropertyControl *createContainer(int id, bool new_line = true, hdpi::Px interval = hdpi::Px::ZERO);
   virtual ContainerPropertyControl *createExtensible(int id, bool new_line = true, const char *menu_button_icon = nullptr,
-    const char *menu_button_tooltip = nullptr);
+    const char *menu_button_tooltip = nullptr, const char *menu_button_label = "...");
   virtual ContainerPropertyControl *createExtGroup(int id, const char caption[], const char *menu_button_icon = nullptr,
     const char *menu_button_tooltip = nullptr);
   virtual ContainerPropertyControl *createGroup(int id, const char caption[]);
@@ -119,6 +119,7 @@ public:
   virtual void createTwoColorIndicator(int id, const char caption[], hdpi::Px height = hdpi::Px::ZERO, bool enabled = true,
     bool new_line = true);
   virtual void createPaletteCell(int id, const char caption[], bool enabled = true, bool new_line = true);
+  virtual void createStaticWithIcon(int id, const char caption[], bool new_line = true, bool word_wrap = false);
   virtual PropertyControlBase *createPlaceholder(int id, hdpi::Px height, bool new_line = true);
   virtual void createCustomControlHolder(int id, ICustomControl *control, bool new_line = true);
   virtual TLeafHandle createTreeLeaf(TLeafHandle parent, const char caption[], const char image[]);

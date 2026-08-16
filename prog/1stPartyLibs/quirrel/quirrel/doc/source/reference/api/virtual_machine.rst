@@ -297,7 +297,7 @@ Sets the release hook of a certain VM instance. The release hook is invoked when
 
     :param HSQUIRRELVM v: the target VM
     :returns: an SQRESULT(that has to be returned by a C function)
-    :remarks: sq_result can only be called as return expression of a C function. The function will fail is the suspension is done through more C calls or in a metamethod.
+    :remarks: sq_suspendvm can only be called as the return expression of a C function. The function fails for the root VM, through more C calls, or in a metamethod.
 
 Suspends the execution of the specified vm.
 

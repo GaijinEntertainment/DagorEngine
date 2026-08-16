@@ -1,7 +1,10 @@
 options gen2
 require daslib/fio
 
-let MAX_ARGUMENTS = 16
+// Keep in sync with MAX_ARGUMENTS in modules/dasClangBind/cbind/cbind_boost.das —
+// the binder skips functions this wrapper table cannot call.
+// 24 covers the LLVM-C DIBuilder tail (CreateCompileUnit=19 args, ClassType, StructType).
+let MAX_ARGUMENTS = 24
 
 def genWrapperFunc(fout : FILE const?; nargs, res, perm : int) {
     let call_result = res != 0 ? "vec4f" : "int64_t"
@@ -42,7 +45,7 @@ def genWrapperFunc(fout : FILE const?; nargs, res, perm : int) {
 }
 
 def genWrapper(name : string; iregs : int) {
-    var max_perm = (1 << iregs)
+    let max_perm = (1 << iregs)
     fopen(name, "wb") $(fout) {
         for (nargs in range(MAX_ARGUMENTS)) {
             for (res in range(2)) {

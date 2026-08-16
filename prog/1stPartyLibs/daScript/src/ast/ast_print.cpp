@@ -291,6 +291,7 @@ namespace das {
             if ( printVarAccess && var->access_ref ) ss << "/*ref*/";
             if ( printVarAccess && var->access_pass ) ss << "/*pass*/";
             if ( printVarAccess && var->access_get ) ss << "/*get*/";
+            if ( printVarAccess && var->access_info_pass_mutable ) ss << "/*pass_mut*/";
             ss << var->name << " : " << var->type->describe();
         }
         virtual VariablePtr visitGlobalLet ( const VariablePtr & var ) override {
@@ -337,6 +338,7 @@ namespace das {
                 if ( fn->nodiscard ) { ss << "[nodiscard]"; }
                 ss << "\n";
             }
+            if ( fn->tempStringResult ) { ss << "// [temp_string_result]\n"; }
             if ( fn->fastCall ) { ss << "[fastcall]\n"; }
             // if ( fn->addr ) { ss << "[addr]\n"; }
             if ( fn->exports ) { ss << "[export]\n"; }
@@ -420,6 +422,7 @@ namespace das {
             if ( printVarAccess && arg->access_ref ) ss << "/*ref*/";
             if ( printVarAccess && arg->access_pass ) ss << "/*pass*/";
             if ( printVarAccess && arg->access_get ) ss << "/*get*/";
+            if ( printVarAccess && arg->access_info_pass_mutable ) ss << "/*pass_mut*/";
             ss << arg->name;
             if ( !arg->aka.empty() ) ss << " aka " << arg->aka;
             ss << ":" << arg->type->describe();
@@ -620,6 +623,7 @@ namespace das {
             if ( printVarAccess && var->access_ref ) ss << "/*ref*/";
             if ( printVarAccess && var->access_pass ) ss << "/*pass*/";
             if ( printVarAccess && var->access_get ) ss << "/*get*/";
+            if ( printVarAccess && var->access_info_pass_mutable ) ss << "/*pass_mut*/";
             ss << var->name;
             if ( !var->aka.empty() ) ss << " aka " << var->aka;
             if ( printAliases && var->aliasCMRES ) ss << "/*cmres*/";
@@ -703,12 +707,15 @@ namespace das {
         virtual void preVisit ( ExprWith * wh ) override {
             Visitor::preVisit(wh);
             ss << "with ";
-            if ( gen2 ) ss << "( ";
+            // module flavor is gen2-only surface, but generated nodes can land in a
+            // gen1 program (the inliner's scope wraps) - always parenthesize it
+            if ( gen2 || wh->isModuleWith() ) ss << "( ";
+            if ( wh->isModuleWith() ) ss << "module " << wh->moduleName;
         }
         virtual void preVisitWithBody ( ExprWith * wh, Expression * body ) override {
             Visitor::preVisitWithBody(wh,body);
-            if ( gen2 ) ss << " )";
-            if ( !gen2 ) ss << "\n";
+            if ( gen2 || wh->isModuleWith() ) ss << " )";
+            if ( !gen2 && !wh->isModuleWith() ) ss << "\n";
         }
     // with alias
         virtual bool canVisitWithAliasSubexpression ( ExprAssume * ) override {
@@ -914,6 +921,10 @@ namespace das {
         }
         virtual ExpressionPtr visit ( ExprConstFloat * c ) override {
             ss << c->getValue() << "f";
+            return Visitor::visit(c);
+        }
+        virtual ExpressionPtr visit ( ExprConstFloat16 * c ) override {
+            ss << c->getValue().toFloat() << "h";
             return Visitor::visit(c);
         }
         virtual ExpressionPtr visit ( ExprConstString * c ) override {

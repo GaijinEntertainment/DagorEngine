@@ -745,9 +745,13 @@ struct FrontendState
   {
     if (!dirtyState.test(DirtyState::VIEWPORT_FROM_RENDER_TARGETS))
       return;
-    dirtyState.reset(DirtyState::VIEWPORT_FROM_RENDER_TARGETS);
 
     auto extent = getFramebufferExtentInternal(ctx);
+    if (0 == extent.width || 0 == extent.height)
+      return;
+
+    dirtyState.reset(DirtyState::VIEWPORT_FROM_RENDER_TARGETS);
+
     if (auto &vp = viewports[0];
         vp.x != 0 || vp.y != 0 || vp.width != extent.width || vp.height != extent.height || viewportCount != 1)
     {
@@ -809,6 +813,7 @@ struct FrontendState
     dirtyState = ~DirtyState::Type(0);
     resourceDirtyState = ~ResourceDirtyState::Type{0};
     toggleBits.set(ToggleState::FORCE_SET_BACKBUFFER);
+    updateRenderTargetBindingStates(renderTargets, false);
     activeRenderTargets = default_render_target_state();
     renderTargets = default_render_target_state();
     for (auto &&res : stageResources)
@@ -848,12 +853,11 @@ struct FrontendState
     markDirty(ds, registerMemoryUpdate(stage, offset, blob));
   }
 
-  void handleRenderTargetUpdate(DeviceContext &ctx)
+  // Returns false when the backbuffer is bound but the swapchain has no current
+  // image; the caller must keep the framebuffer dirty state so the update is
+  // retried on the next flush.
+  [[nodiscard]] bool handleRenderTargetUpdate(DeviceContext &ctx)
   {
-    auto swapchainColor = ctx.getCurrentSwapchainColorTexture();
-    if (!swapchainColor)
-      return;
-
     ImageViewState newViews[Driver3dRenderTarget::MAX_SIMRT + 1] = {};
     Image *newImages[Driver3dRenderTarget::MAX_SIMRT + 1] = {};
 #if DAGOR_DBGLEVEL > 0
@@ -883,9 +887,14 @@ struct FrontendState
       }
       else
       {
+        auto swapchainColor = ctx.getCurrentSwapchainColorTexture();
+        if (!swapchainColor)
+        {
+          return false;
+        }
+
         bool useSrgb = toggleBits.test(ToggleState::USE_BACKBUFFER_SRGB);
         auto baseFormat = ctx.getSwapchainColorFormat();
-        targetImage = nullptr;
         targetView.setFormat(useSrgb ? baseFormat.getSRGBVariant() : baseFormat.getLinearVariant());
         targetView.isArray = 0;
         targetView.isCubemap = 0;
@@ -959,21 +968,28 @@ struct FrontendState
     }
     ctx.setFramebuffer(newImages, newViews, renderTargets.isDepthReadOnly());
     activeRenderTargets = renderTargets;
+    return true;
   }
 
-  void flushRenderTargets(DeviceContext &ctx)
+  // Returns false when the framebuffer could not be updated, leaving the dirty state and the
+  // CLEAR_* toggles intact for the next flush. Callers must not record work that targets the
+  // framebuffer in that case: nothing was bound, so it would hit the previously bound one.
+  [[nodiscard]] bool flushRenderTargets(DeviceContext &ctx)
   {
     calculateViewport(ctx);
 
     if (!resourceDirtyState.test(ResourceDirtyState::FRAMEBUFFER))
     {
-      return;
+      return true;
     }
 
     const bool changedTargets = (renderTargets != activeRenderTargets) || toggleBits.test(ToggleState::FORCE_SET_BACKBUFFER);
     if (changedTargets)
     {
-      handleRenderTargetUpdate(ctx);
+      if (!handleRenderTargetUpdate(ctx))
+      {
+        return false;
+      }
       toggleBits.reset(ToggleState::FORCE_SET_BACKBUFFER);
       Stat3D::updateRenderTarget();
     }
@@ -983,36 +999,7 @@ struct FrontendState
     toggleBits.reset(ToggleState::CLEAR_STENCIL);
 
     resourceDirtyState.reset(ResourceDirtyState::FRAMEBUFFER);
-  }
-
-  void validate_draw_call_produces_anything()
-  {
-#if DX12_VALIDATE_DRAW_CALL_USEFULNESS
-    // here we see if a draw call does actually outputs something
-    // we check if the pixel shader writes something and match
-    // it to the provided render target
-    // we also check uav uses
-    auto outputMask = graphicsProgramioMask.usedOutputs;
-    auto targetMask = activeRenderTargets.used & Driver3dRenderTarget::COLOR_MASK;
-    auto writtenMask = outputMask & targetMask;
-    if (!writtenMask)
-    {
-      // no writing to color, check if depth is available
-      if (0 == (Driver3dRenderTarget::DEPTH & activeRenderTargets.used))
-      {
-        // no color and depth, see if uavs are touched by the ps or vs
-        if (!stageResources[STAGE_PS].useMask.uRegisterMask.any() && !stageResources[STAGE_VS].useMask.uRegisterMask.any())
-        {
-          // no one is writing to it, complain!
-          // This can be very spamy!
-          D3D_ERROR("Draw call is not producing any output, ps output mask 0x%02X, render target "
-                    "color slot mask 0x%02X, no depth target is set and no UAVs are accessed by any "
-                    "shader",
-            outputMask, targetMask);
-        }
-      }
-    }
-#endif
+    return true;
   }
 
   enum class GraphicsMode
@@ -1046,7 +1033,8 @@ struct FrontendState
     }
 
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
-    flushRenderTargets(ctx);
+    if (!flushRenderTargets(ctx))
+      return false;
 
     if (dirtyState.test(DirtyState::VIEWPORT))
       ctx.updateViewports(make_span_const(viewports, viewportCount));
@@ -1244,8 +1232,6 @@ struct FrontendState
 
     dirtyState &= unchangedMask;
     resourceDirtyState &= unchangedResourceMask;
-
-    validate_draw_call_produces_anything();
     return true;
   }
   void flushCompute(DeviceContext &ctx)
@@ -1343,9 +1329,8 @@ struct FrontendState
     const uint32_t clearMask = (toggleBits.test(ToggleState::CLEAR_COLOR) ? CLEAR_TARGET : 0) |
                                (toggleBits.test(ToggleState::CLEAR_DEPTH) ? CLEAR_ZBUFFER : 0) |
                                (toggleBits.test(ToggleState::CLEAR_STENCIL) ? CLEAR_STENCIL : 0);
-    if (clearMask)
+    if (clearMask && flushRenderTargets(ctx))
     {
-      flushRenderTargets(ctx);
       ctx.clearRenderTargets(viewports[0], clearMask, clearColors, clearDepth, clearStencil);
     }
     toggleBits.reset(ToggleState::CLEAR_COLOR);
@@ -1387,8 +1372,10 @@ struct FrontendState
       {
         eastl::fill(eastl::begin(clearColors), eastl::end(clearColors), color);
       }
-      flushRenderTargets(ctx);
-      ctx.clearRenderTargets(viewports[0], mask, clearColors, depth, stencil);
+      if (flushRenderTargets(ctx))
+      {
+        ctx.clearRenderTargets(viewports[0], mask, clearColors, depth, stencil);
+      }
     }
   }
 
@@ -1590,18 +1577,6 @@ struct FrontendState
     }
   }
 
-  void dirtySRV(BaseTex *texture, uint32_t stage, const Bitset<dxil::MAX_T_REGISTERS> &slots)
-  {
-    OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
-    dirtySRVNoLock(texture, stage, slots);
-  }
-
-  void dirtySampler(BaseTex *texture, uint32_t stage, const Bitset<dxil::MAX_T_REGISTERS> &slots)
-  {
-    OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
-    dirtySamplerNoLock(texture, stage, slots);
-  }
-
   void dirtySamplerNoLock([[maybe_unused]] BaseTex *texture, uint32_t stage, const Bitset<dxil::MAX_T_REGISTERS> &slots)
   {
     auto &st = stageResources[stage];
@@ -1658,8 +1633,7 @@ struct FrontendState
     dirtyRenderTargetNoLock(texture, rtvs, dsv);
   }
 
-  void notifyDelete(BaseTex *texture, const Bitset<dxil::MAX_T_REGISTERS> *srvs, const Bitset<dxil::MAX_U_REGISTERS> *uavs,
-    const Bitset<Driver3dRenderTarget::MAX_SIMRT> &rtvs, bool dsv)
+  void notifyDelete(BaseTex *texture, const Bitset<dxil::MAX_T_REGISTERS> *srvs, const Bitset<dxil::MAX_U_REGISTERS> *uavs)
   {
     OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
 
@@ -1683,6 +1657,17 @@ struct FrontendState
       if (renderTargets.color[i].tex == texture)
       {
         renderTargets.removeColor(i);
+        toggleBits.set(ToggleState::FORCE_SET_BACKBUFFER);
+        resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
+      }
+    }
+
+    if (renderTargets.isDepthUsed())
+    {
+      if (renderTargets.depth.tex == texture)
+      {
+        renderTargets.removeDepth();
+        toggleBits.set(ToggleState::FORCE_SET_BACKBUFFER);
         resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
       }
     }
@@ -1696,18 +1681,13 @@ struct FrontendState
       }
     }
 
-    for (auto i : rtvs)
+    if (activeRenderTargets.isDepthUsed())
     {
-      renderTargets.removeColor(i);
-      toggleBits.set(ToggleState::FORCE_SET_BACKBUFFER);
-      resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
-    }
-
-    if (dsv)
-    {
-      renderTargets.removeDepth();
-      toggleBits.set(ToggleState::FORCE_SET_BACKBUFFER);
-      resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
+      if (activeRenderTargets.depth.tex == texture)
+      {
+        activeRenderTargets.removeDepth();
+        resourceDirtyState.set(ResourceDirtyState::FRAMEBUFFER, true);
+      }
     }
   }
 };

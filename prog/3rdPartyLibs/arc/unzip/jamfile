@@ -24,4 +24,8 @@ if ! $(Platform) in windows macOS linux android {
   Copt += -Dftello=ftell -Dfseeko=fseek ;
 }
 
+if $(Platform) in xboxOne scarlett {
+  AddLibs += bcrypt.lib ;
+}
+
 include $(Root)/prog/_jBuild/build.jam ;

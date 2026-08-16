@@ -59,6 +59,8 @@ public:
   uint32_t actionIdx;
   // tracks last timestamp action index, to skip empty timestamp requests (they are slowing GPU down)
   uint32_t lastTimestampActionIdx;
+  // tracks last valid reordered timestamp index
+  uint32_t lastReorderedTimestampIndex;
   // consume offset for NRP reordered buffer copies
   uint32_t reorderedBufferCopyOffset;
   // non command stream saved loop key, to trigger device execution tracker once per ncmd loop
@@ -165,6 +167,9 @@ public:
   void applyQueuedDiscards();
   bool referencedInQueuedDiscards(Buffer *obj);
 
+  void consumeReorderedTimestamps(uint32_t count);
+  void insertReorderedTimestamp();
+
   BEContext(const BEContext &) = delete;
   BEContext &operator=(const BEContext &) = delete;
   BEContext(BEContext &&) = delete;
@@ -212,6 +217,7 @@ public:
   void processMipGenBatch();
   void baseMipBlit(Image *from, Image *to);
   void makeImageReadyForPresent(Image *img);
+  void syncSwapchainImageAcquireReads(Image *img);
   bool acquireSwapchainImage(const CmdPresent &params, uint32_t &out_index, VulkanSemaphoreHandle &out_sem);
   void doFrameEndCallbacks();
   void copyImageToBufferOrdered(Buffer *dst, Image *src, const VkBufferImageCopy *regions, int count);

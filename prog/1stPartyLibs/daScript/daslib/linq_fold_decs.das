@@ -1,6 +1,7 @@
 options gen2
 options indenting = 4
 options _comment_hygiene = true
+options _function_length = 145
 
 module linq_fold_decs shared public
 
@@ -96,29 +97,19 @@ class DecsAdapter : SourceAdapter {
             if (bridgeB == null) {
                 return null
             }
-            var keyaLam = joinCall.arguments[2]
-            var keybLam = joinCall.arguments[3]
-            var resultLam = joinCall.arguments[4]
-            if (keyaLam == null || keybLam == null || resultLam == null
-                    || keyaLam._type == null || resultLam._type == null
-                    || resultLam._type.firstType == null) {
+            var core = extract_upstream_join_core(joinCall)
+            if (core == null) {
                 return null
             }
-            var keyType = strip_const_ref(clone_type(keyaLam._type.firstType))
-            if (!is_primitive_join_key_type(keyType)) {
-                return null
-            }
-            var resultType = strip_const_ref(clone_type(resultLam._type.firstType))
-            var tupBType = strip_const_ref(clone_type(bridgeB.elementType))
             return new DecsJoinAdapter(shape = DecsJoinShape(
                 bridgeA = bridge,
                 bridgeB = bridgeB,
-                keyaLam = keyaLam,
-                keybLam = keybLam,
-                resultLam = resultLam,
-                keyType = keyType,
-                tupBType = tupBType,
-                resultType = resultType,
+                keyaLam = core.keyaLam,
+                keybLam = core.keybLam,
+                resultLam = core.resultLam,
+                keyType = core.keyType,
+                tupBType = strip_const_ref(clone_type(bridgeB.elementType)),
+                resultType = core.resultType,
                 resBindName = qn("djoin_jres", at)))
         }
         return new DecsAdapter(bridge = bridge, tupName = qn("decs_tup", at))
@@ -158,7 +149,7 @@ class DecsAdapter : SourceAdapter {
             inner = wrap_inner_for_with_decs_ranges(inner, rangeInfo, names)
             inner = wrap_decs_chain(inner, chainInfo, calls, intermediateEnd, at)
             if (inner == null) return null
-            prelude <- decs_range_prelude(rangeInfo, names)
+            prelude <- decs_range_prelude(rangeInfo, names)  // nolint:PERF030 - fresh local, nothing to release
         }
         var forExprNode = build_decs_inner_for_pruned(br, tupName, inner, at)
         var loopExpr : Expression?
@@ -275,7 +266,7 @@ def private make_decs_term_adapter(var bridge : DecsBridgeShape?; var chainInfo 
 }
 
 [macro_function]
-def emit_loop_or_count_lane_decs(var bridge : DecsBridgeShape?; tupName : string; var c : Captures; var ctx : EmitCtx; at : LineInfo) : Expression? {
+def emit_loop_or_count_lane_decs(var bridge : DecsBridgeShape?; tupName : string; var c : Captures; var ctx : EmitCtx; at : LineInfo) : Expression? {  // nolint:STYLE037 - one arm per loop-lane shape
     let hasTerm = c.single |> key_exists("term")
     var termCall : ExprCall?
     var termName : string
@@ -294,8 +285,8 @@ def emit_loop_or_count_lane_decs(var bridge : DecsBridgeShape?; tupName : string
     for (call in c.many["head"]) {
         let nm = call_norm_name(call)
         if (!(linqCalls |> key_exists(nm))) return null
-        var lc & = unsafe(linqCalls?[nm] ?? default<LinqCall>)
-        calls |> push((call, unsafe(addr(lc))))
+        let lc = unsafe(linqCalls?[nm])
+        calls |> push((call, lc))
     }
     let rangeSlots = ["skip", "skip_while", "take_while", "take"]
     for (sn in rangeSlots) {
@@ -303,14 +294,14 @@ def emit_loop_or_count_lane_decs(var bridge : DecsBridgeShape?; tupName : string
             let scall = c.single[sn]
             let snm = call_norm_name(scall)
             if (!(linqCalls |> key_exists(snm))) return null
-            var lc & = unsafe(linqCalls?[snm] ?? default<LinqCall>)
-            calls |> push((scall, unsafe(addr(lc))))
+            let lc = unsafe(linqCalls?[snm])
+            calls |> push((scall, lc))
         }
     }
     if (hasTerm) {
         if (!(linqCalls |> key_exists(termName))) return null
-        var lc & = unsafe(linqCalls?[termName] ?? default<LinqCall>)
-        calls |> push((termCall, unsafe(addr(lc))))
+        let lc = unsafe(linqCalls?[termName])
+        calls |> push((termCall, lc))
     }
     let intermediateEnd = hasTerm ? length(calls) - 1 : length(calls)
     var rangeInfo = extract_decs_ranges(calls, intermediateEnd, tupName, at)
@@ -324,6 +315,8 @@ def emit_loop_or_count_lane_decs(var bridge : DecsBridgeShape?; tupName : string
         if (rangeInfo.postTakeWhereCond == null) return null
     }
     // Terminator classification mirrors plan_decs_unroll imperative (linq_fold.das:5781-5791); differs from classify_terminator's 4-lane split because decs has dedicated min_max_by / walk / element_at emit fns with hoisted state.
+    // to_table is not implemented for decs — decline before the implicit-to_array arm mis-emits an array for a table-typed expr.
+    if (termName == "to_table") return null
     let isAccum = (termName == "count" || termName == "long_count" || termName == "sum"
         || termName == "min" || termName == "max" || termName == "average")
     let isEarlyExit = (termName == "first" || termName == "first_or_default"
@@ -482,7 +475,7 @@ def emit_decs_reverse_skip_into_tail(var takeExpr : Expression?; bridge : DecsBr
             if ($i(actualName) == 0_l) {
                 return <- $i(bufName)
             }
-            $i(bufName) |> reserve(int($i(actualName)))
+            $i(bufName) |> reserve($i(actualName))
             var $i(seenName) = 0_l
             for_each_archetype_find($e(bridge.reqHashExpr), $e(bridge.erqExpr), $($i(archName) : Archetype) : bool {
                 if ($i(seenName) + $i(archName).size <= $i(skipName)) {
@@ -511,7 +504,7 @@ def emit_decs_reverse_skip_into_tail(var takeExpr : Expression?; bridge : DecsBr
             if ($i(actualName) == 0_l) {
                 return <- $i(projBufName)
             }
-            $i(bufName) |> reserve(int($i(actualName)))
+            $i(bufName) |> reserve($i(actualName))
             var $i(seenName) = 0_l
             for_each_archetype_find($e(bridge.reqHashExpr), $e(bridge.erqExpr), $($i(archName) : Archetype) : bool {
                 if ($i(seenName) + $i(archName).size <= $i(skipName)) {
@@ -934,7 +927,7 @@ def compute_decs_chain_info(var calls : array<tuple<ExprCall?; LinqCall?>>;
             curType = clone_type(peeled._type)
         } elif (opName != "where_") return null
     }
-    info.finalBind := curBind
+    info.finalBind = curBind
     info.finalType = curType
     if (info.finalType != null) {
         info.finalType.flags.constant = false
@@ -1011,7 +1004,7 @@ def make_decs_range_names(at : LineInfo) : DecsRangeStateNames {
 }
 
 [macro_function, unused_argument(at)]
-def extract_decs_ranges(var calls : array<tuple<ExprCall?; LinqCall?>>;
+def extract_decs_ranges(var calls : array<tuple<ExprCall?; LinqCall?>>;  // nolint:STYLE037 - one arm per range-combinator kind
                         intermediateEnd : int;
                         tupName : string;
                         at : LineInfo) : DecsRangeInfo? {
@@ -1241,7 +1234,7 @@ def emit_decs_min_max_by(var bridge : DecsBridgeShape?;
 // ── decs group_by splice (Slice 5e — state-table over for_each_archetype) ───────
 
 [macro_function]
-def emit_decs_join_impl(bridgeA : DecsBridgeShape?; var c : Captures; var ctx : EmitCtx; at : LineInfo) : Expression? {
+def emit_decs_join_impl(bridgeA : DecsBridgeShape?; var c : Captures; ctx : EmitCtx; at : LineInfo) : Expression? {
     // PR D2-A: keep collect+probe inline (not via adapter_wrap_source_loop) to preserve the count-no-where bucket-length fast path.
     // Bail to tier-2 unless both sides are from_decs_template eager bridges and it's a plain join — group join
     // over a decs source isn't spliced yet (the array adapter handles group joins).
@@ -1285,13 +1278,11 @@ def emit_decs_join_impl(bridgeA : DecsBridgeShape?; var c : Captures; var ctx : 
     var pieces = build_join_standalone_pieces(joinCall, whereLam, selectLam, leadWhereLam, countOnly, keyaBody, tupAName, hashName, tupBType, false, "decs", at)
     if (pieces == null) return null
     var collectBody <- qmacro_block_to_array() {
-        // nolint:PERF006 per-key bucket size unknown ahead of time
         $i(hashName)[$e(keybBody)] |> push_clone($i(tupBName))
     }
     var collectInner = build_decs_inner_for(bridgeB, tupBindB, stmts_to_expr(collectBody), at)
     var probeInner = build_decs_inner_for(bridgeA, tupBindA, pieces.probeOuter, at)
-    var allStmts : array<Expression?>
-    allStmts |> push_from(pieces.preludeStmts)
+    var allStmts := pieces.preludeStmts
     allStmts |> push <| qmacro_expr() {
         var $i(hashName) : table<$t(keyType); array<$t(tupBType)>>
     }

@@ -267,7 +267,7 @@ bool ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightMaskTy
     for (int i = 0, ie = cVisibleSpotLightsId.size(); i < ie; ++i)
     {
       const auto shadowId = spotLights.getShadowId(cVisibleSpotLightsId[i]);
-      if (shadowId != BaseLightsManager::INVALID_SHADOW_VOLUME_ID && lightShadows->hasVolumeEverBeenRendered(shadowId))
+      if (shadowId != INVALID_SHADOW_VOLUME_ID && lightShadows->hasVolumeEverBeenRendered(shadowId))
       {
         memcpy(&commonShadowData[baseIndex + i * 5], &lightShadows->getVolumeTexMatrix(shadowId), 4 * sizeof(Point4));
         commonShadowData[baseIndex + i * 5 + 4] = lightShadows->getShadowUvMinMax(shadowId);
@@ -301,7 +301,7 @@ bool ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightMaskTy
       v_bbox3_add_pt(omniBox, v_sub(posAndRad, v_splat_w(posAndRad)));
       outRenderOmniLights[i] = l;
       uint16_t shadowId = omniLights.getShadowId(cVisibleOmniLightsId[i]);
-      if (shadowId != BaseLightsManager::INVALID_SHADOW_VOLUME_ID)
+      if (shadowId != INVALID_SHADOW_VOLUME_ID)
         commonShadowData[baseIndex + i] = lightShadows->getOctahedralVolumeTexData(shadowId);
       else
         memset(&commonShadowData[baseIndex + i], 0, sizeof(Point4));
@@ -406,10 +406,10 @@ void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, 
 
   OSSpinlockScopedLock scopedLock{lightLock};
 
-  lightsPartition.executeFrustumOmniLightsCPUPartition(frustum, occlusion, clusteredLastPlane, MARK_SMALL_LIGHT_AS_FAR_LIMIT,
+  lightsPartition.prepareClusteredAndFarOmniLightBuffersCPU(frustum, occlusion, clusteredLastPlane, MARK_SMALL_LIGHT_AS_FAR_LIMIT,
     cur_view_pos, omni_light_require_any_mask, light_cutoff_dist_sq);
 
-  lightsPartition.executeFrustumSpotLightsCPUPartition(frustum, occlusion, clusteredLastPlane, MARK_SMALL_LIGHT_AS_FAR_LIMIT,
+  lightsPartition.prepareClusteredAndFarSpotLightBuffersCPU(frustum, occlusion, clusteredLastPlane, MARK_SMALL_LIGHT_AS_FAR_LIMIT,
     cur_view_pos, spot_light_require_any_mask, light_cutoff_dist_sq);
 
   const Tab<vec4f> &visibleOmniLightsBounds = lightsPartition.getVisibleClusteredOmniLightsBounds();
@@ -607,7 +607,7 @@ void ClusteredLights::init(int frame_initial_lights_count, uint32_t shadow_quali
   spotLights.setShadowSystem(lightShadows.get());
 
   initClustered(frame_initial_lights_count);
-  lightsPartition.init();
+  lightsPartition.init(false); // now gpu partition is not integrated: so cpu-path is selected always
   lightsRenderer.init();
 
   if (lightShadows)
@@ -695,7 +695,7 @@ void ClusteredLights::destroyLight(uint32_t id)
 uint32_t ClusteredLights::addOmniLight(const OmniLight &light, OmniLightMaskType mask)
 {
   OSSpinlockScopedLock scopedLock{lightLock};
-  int id = omniLights.addLight(0, light);
+  int id = omniLights.addLight(light);
   if (id < 0)
     return LightsEncoder::INVALID_LIGHT;
   omniLights.setLightMask(id, mask);
@@ -829,7 +829,7 @@ bool ClusteredLights::addShadowToLight(uint32_t id, ShadowCastersFlag casters, b
     {
       const auto shadowId =
         spotLights.allocateShadowVolume(typeId.id, casters, hint_dynamic, quality, priority, max_size_srl, render_gpu_objects);
-      if (shadowId == BaseLightsManager::INVALID_SHADOW_VOLUME_ID)
+      if (shadowId == INVALID_SHADOW_VOLUME_ID)
         return false;
       spotLights.setLightShadows(typeId.id, true);
       dynamicLightsShadowsVolumeSet.reset(shadowId);
@@ -839,7 +839,7 @@ bool ClusteredLights::addShadowToLight(uint32_t id, ShadowCastersFlag casters, b
     {
       const auto shadowId =
         omniLights.allocateShadowVolume(typeId.id, casters, hint_dynamic, quality, priority, max_size_srl, render_gpu_objects);
-      if (shadowId == BaseLightsManager::INVALID_SHADOW_VOLUME_ID)
+      if (shadowId == INVALID_SHADOW_VOLUME_ID)
         return false;
       dynamicLightsShadowsVolumeSet.reset(shadowId);
     }
@@ -862,7 +862,7 @@ bool ClusteredLights::getShadowProperties(uint32_t id, ShadowCastersFlag &caster
 
   OSSpinlockScopedLock scopedLock{lightLock};
   const auto lightShadow = typeId.type == LightType::Spot ? spotLights.getShadowId(typeId.id) : omniLights.getShadowId(typeId.id);
-  if (lightShadow == BaseLightsManager::INVALID_SHADOW_VOLUME_ID)
+  if (lightShadow == INVALID_SHADOW_VOLUME_ID)
     return false;
 
   return lightShadows->getShadowProperties(lightShadow, casters, hint_dynamic, quality, priority, shadow_size_srl, render_gpu_objects);
@@ -942,7 +942,7 @@ void ClusteredLights::framePrepareShadows(dynamic_shadow_render::VolumesVector &
   for (auto spotId : visibleSpotLightsId)
   {
     uint32_t shadowId = spotLights.getShadowId(spotId);
-    if (shadowId != BaseLightsManager::INVALID_SHADOW_VOLUME_ID)
+    if (shadowId != INVALID_SHADOW_VOLUME_ID)
     {
       setSpotLightShadowVolume(spotId);
       if (spotLights.isShadowClose(spotId, viewPos, maxShadowDist))
@@ -953,7 +953,7 @@ void ClusteredLights::framePrepareShadows(dynamic_shadow_render::VolumesVector &
   for (auto omniId : visibleOmniLightsId)
   {
     const auto shadowId = omniLights.getShadowId(omniId);
-    if (shadowId != BaseLightsManager::INVALID_SHADOW_VOLUME_ID)
+    if (shadowId != INVALID_SHADOW_VOLUME_ID)
     {
       setOmniLightShadowVolume(omniId);
       if (omniLights.isShadowClose(omniId, viewPos, maxShadowDist))
@@ -1094,8 +1094,8 @@ void ClusteredLights::updateShadowBuffers()
   int baseIndex = 1;
   for (int i = 0; i < visibleSpotLightsId.size(); ++i)
   {
-    uint16_t shadowId = lightShadows ? spotLights.getShadowId(visibleSpotLightsId[i]) : BaseLightsManager::INVALID_SHADOW_VOLUME_ID;
-    if (shadowId != BaseLightsManager::INVALID_SHADOW_VOLUME_ID && lightShadows->hasVolumeEverBeenRendered(shadowId))
+    uint16_t shadowId = lightShadows ? spotLights.getShadowId(visibleSpotLightsId[i]) : INVALID_SHADOW_VOLUME_ID;
+    if (shadowId != INVALID_SHADOW_VOLUME_ID && lightShadows->hasVolumeEverBeenRendered(shadowId))
     {
       memcpy(&commonLightShadowData[baseIndex + i * 5], &lightShadows->getVolumeTexMatrix(shadowId), 4 * sizeof(Point4));
       commonLightShadowData[baseIndex + i * 5 + 4] = lightShadows->getShadowUvMinMax(shadowId);
@@ -1109,8 +1109,8 @@ void ClusteredLights::updateShadowBuffers()
   baseIndex += visibleSpotLightsId.size() * 5;
   for (int i = 0; i < visibleOmniLightsId.size(); ++i)
   {
-    uint16_t shadowId = lightShadows ? omniLights.getShadowId(visibleOmniLightsId[i]) : BaseLightsManager::INVALID_SHADOW_VOLUME_ID;
-    if (shadowId != BaseLightsManager::INVALID_SHADOW_VOLUME_ID)
+    uint16_t shadowId = lightShadows ? omniLights.getShadowId(visibleOmniLightsId[i]) : INVALID_SHADOW_VOLUME_ID;
+    if (shadowId != INVALID_SHADOW_VOLUME_ID)
     {
       commonLightShadowData[baseIndex + i] = lightShadows->getOctahedralVolumeTexData(shadowId);
     }
@@ -1135,7 +1135,7 @@ void ClusteredLights::updateShadowBuffers()
     for (int i = 0; i < visibleSpotLightsId.size(); ++i)
     {
       uint16_t shadowId = spotLights.getShadowId(visibleSpotLightsId[i]);
-      if (shadowId != BaseLightsManager::INVALID_SHADOW_VOLUME_ID)
+      if (shadowId != INVALID_SHADOW_VOLUME_ID)
       {
         SpotlightShadowDescriptor &shadowDesc = spotLightSsssShadowDesc[i];
 
@@ -1172,7 +1172,7 @@ void ClusteredLights::updateShadowBuffers()
 void ClusteredLights::setSpotLightShadowVolume(int spot_light_id)
 {
   uint32_t shadowId = spotLights.getShadowId(spot_light_id);
-  if (shadowId == BaseLightsManager::INVALID_SHADOW_VOLUME_ID)
+  if (shadowId == INVALID_SHADOW_VOLUME_ID)
     return;
   if (dynamicLightsShadowsVolumeSet.test(shadowId))
     return;
@@ -1184,7 +1184,7 @@ void ClusteredLights::setSpotLightShadowVolume(int spot_light_id)
 void ClusteredLights::setOmniLightShadowVolume(int omni_light_id)
 {
   uint32_t shadowId = omniLights.getShadowId(omni_light_id);
-  if (shadowId == BaseLightsManager::INVALID_SHADOW_VOLUME_ID)
+  if (shadowId == INVALID_SHADOW_VOLUME_ID)
     return;
   if (dynamicLightsShadowsVolumeSet.test(shadowId))
     return;

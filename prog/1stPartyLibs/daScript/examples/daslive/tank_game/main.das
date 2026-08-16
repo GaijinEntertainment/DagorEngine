@@ -1,4 +1,6 @@
 options gen2
+options persistent_heap
+options gc
 
 require glfw/glfw_boost
 require live/glfw_live
@@ -8,8 +10,8 @@ require opengl/opengl_cache
 require daslib/defer
 require daslib/safe_addr
 require daslib/decs_boost
-require live/decs_live
-require live/opengl_live
+require live/decs_live    // nolint:STYLE030 — load-bearing for decs entity serialization across live reloads
+require live/opengl_live  // nolint:STYLE030 — load-bearing for OpenGL resource live-reload
 require live/live_commands
 require live/live_api
 require daslib/json
@@ -96,7 +98,6 @@ def vs_preview {
 
 [fragment_program(version=430)]
 def ps_preview {
-    let camera_dir = normalize(f_position)
     let normal = normalize(f_normal)
     let k = saturate(-dot(LIGHT_DIRECTION, normal))
     let k2 = saturate(dot(LIGHT_DIRECTION, normal))
@@ -213,7 +214,7 @@ struct PickUpItem {
 // --- Entity factories ---
 
 def make_tank(pos : float3) {
-    var tank_id = create_entity <| @(eid, cmp) {
+    let tank_id = create_entity <| @(eid, cmp) {
         cmp |> set("vel", float3(0.0))
         cmp |> set("pulse", -0.25)
         cmp |> set("tank", true)
@@ -243,7 +244,7 @@ def make_tank(pos : float3) {
 }
 
 def make_tower(pos : float3) {
-    var tower_id = create_entity <| @(eid, cmp) {
+    let tower_id = create_entity <| @(eid, cmp) {
         cmp |> set("tower", true)
         cmp |> set("alive", true)
         apply_decs_template(cmp, Object(
@@ -300,8 +301,8 @@ def make_bonus(pos : float3) {
 }
 
 def make_building_congregation(n : int; center : float3; radius : float; minDim, maxDim : float3) {
-    for (t in range(n)) {
-        var pos = random_in_unit_disk(seed).xzy * radius + center
+    for (_t in range(n)) {
+        let pos = random_in_unit_disk(seed).xzy * radius + center
         let dim = minDim + (maxDim - minDim) * random_float4(seed).xyz
         let color = BUILDING_COLOR * (random_float(seed) * 0.4 + 0.4)
         create_entity <| @(eid, cmp) {
@@ -403,7 +404,7 @@ def update_pickup_items(var p : PickUpItem) {
         p.fade = FADE_MAX_SCALE
         p.fade_vel = -p.fade_vel
     }
-    var trect = AABR(
+    let trect = AABR(
         min = float2(p.pos.x - 0.25, p.pos.z - 0.25),
         max = float2(p.pos.x + 0.25, p.pos.z + 0.25)
     )
@@ -419,7 +420,7 @@ def update_pickup_items(var p : PickUpItem) {
         }
     }
     if (any) {
-        for (i in range(5)) {
+        for (_i in range(5)) {
             make_sparks(p.pos, p.color)
         }
         delete_entity(p.eid)
@@ -521,7 +522,7 @@ def update_ai(eid : EntityId; var turret : Turret; pos : float3) {
         turret.base |> set_pulse(false)
     }
     let dxy = normalize((turret.last_target - pos).xz)
-    var angle = atan2(-dxy.y, dxy.x)
+    let angle = atan2(-dxy.y, dxy.x)
     var A = angle - turret.dir
     if (A > PI) {
         A -= 2.0 * PI
@@ -634,8 +635,8 @@ def update_tank_controls(eid : EntityId; var pos, vel : float3&; var ctrl : KeyC
 
 [decs(stage=update)]
 def update_tank(eid : EntityId; var pos, dim, vel : float3&) {
-    var new_pos = pos + vel * tick_dt
-    var trect = AABR(
+    let new_pos = pos + vel * tick_dt
+    let trect = AABR(
         min = new_pos.xz - dim.xz * 0.45,
         max = new_pos.xz + dim.xz * 0.45
     )
@@ -673,7 +674,7 @@ def update_pulses(var scale, pulse : float&) {
 [decs(stage=update)]
 def update_projectile(eid : EntityId; var proj : Projectile) {
     proj.pos += proj.vel * tick_dt
-    var trect = AABR(
+    let trect = AABR(
         min = float2(proj.pos.x - proj.size, proj.pos.z - proj.size),
         max = float2(proj.pos.x + proj.size, proj.pos.z + proj.size)
     )
@@ -703,7 +704,7 @@ def update_projectile(eid : EntityId; var proj : Projectile) {
                 light_f = 6.0
             ))
         }
-        for (t in range(5)) {
+        for (_t in range(5)) {
             make_smoke(proj.pos)
         }
     }
@@ -719,7 +720,7 @@ def update_kaboom(eid : EntityId; var kaboom : Kaboom) {
     kaboom.time -= tick_dt
     if (kaboom.time < 0.0) {
         if (kaboom.damage) {
-            var trect = AABR(
+            let trect = AABR(
                 min = float2(kaboom.pos.x - kaboom.radius, kaboom.pos.z - kaboom.radius),
                 max = float2(kaboom.pos.x + kaboom.radius, kaboom.pos.z + kaboom.radius)
             )
@@ -849,7 +850,7 @@ def update_mouse_controls(var ctr : MouseControls) {
 
 // --- Live commands ---
 
-[live_command]
+[live_command, unused_argument(input)]
 def game_status(input : JsonValue?) : JsonValue? {
     var result = "\{"
     var first = true
@@ -1041,6 +1042,7 @@ def main() {
     init()
     while (!exit_requested()) {
         update()
+        maybe_collect_gc()
     }
     shutdown()
 }

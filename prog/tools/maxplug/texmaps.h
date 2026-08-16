@@ -6,13 +6,8 @@
 class Texmaps : public TexmapContainer
 {
 public:
-  Texmap *texmap[NUMTEXMAPS];
+  Texmap *texmap[NUMTEXMAPS] = {};
 
-  Texmaps()
-  {
-    for (int i = 0; i < NUMTEXMAPS; ++i)
-      texmap[i] = NULL;
-  }
   Texmap *gettex(int i) { return (Texmap *)GetReference(i); }
   void settex(int i, Texmap *t) { ReplaceReference(i, t); }
 

@@ -57,6 +57,11 @@ Per-frame arrays, each of length `frameCount`:
 | `cpuUs` | total CPU frame time (from the FramesPack CPU boundaries) |
 | `gpuUs` | GPU busy time per frame (duration of the depth-0 GPU event), if `hasGpu` |
 | `frameNo` | engine global frame number per frame, if present in the dump |
+| `gpuClockMhz` | GPU core clock of the frame whose GPU work falls in this slot, `0` if none |
+
+gpuClockMhz is absent if the clock is not avilable for the entire capture.
+A running GPU never reports 0 MHz, so read `0` as "no sample here", not as an idle
+clock, and skip those slots instead of averaging them in. 
 
 ### `gpu`
 

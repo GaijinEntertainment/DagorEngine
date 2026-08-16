@@ -11,8 +11,6 @@ Config ?= dev ;
 TargetType  = exe ;
 
 Target      = tools/dargbox ;
-if $(Platform)-$(PlatformArch) = windows-x86_64 { Target = $(Target)-64 ; }
-if $(Platform)-$(PlatformArch) = windows-arm64 { Target = $(Target)-arm64 ; }
 if ! $(Platform) in windows linux { ReproducibleExeBuild = no ; }
 
 if $(Config) = rel { # this is only needed to build with warnings-as-errors
@@ -21,7 +19,10 @@ if $(Config) = rel { # this is only needed to build with warnings-as-errors
 
 
 OutDir = $(Root)/tools/dargbox ;
-if $(Platform) in android iOS { OutDir = $(OutDir)/$(LegacyPlatformSuffix) ; }
+# per-arch subdir (windows-x86_64, windows-arm64, linux-x86_64) so exe and
+# bundled dlls of different arches do not overwrite each other
+if $(Platform) in windows linux { OutDir = $(OutDir)/$(Platform)-$(PlatformArch) ; }
+else if $(Platform) in android iOS { OutDir = $(OutDir)/$(Platform) ; }
 
 if $(Platform) in windows linux { UseD3DMulti ?= yes ; }
 
@@ -186,7 +187,7 @@ else if $(Platform) = iOS {
   BundleCopy = ;
 }
 else if $(Platform) = macOS {
-  OutDir = $(Root)/tools/dargbox/dargbox.app/Contents/MacOS ;
+  OutDir = $(Root)/tools/dargbox/dargbox-$(PlatformArch).app/Contents/MacOS ;
 
   Sources +=
     platform/macosx_main.mm

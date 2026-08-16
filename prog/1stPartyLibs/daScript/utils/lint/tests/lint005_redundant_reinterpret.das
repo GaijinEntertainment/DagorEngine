@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // LINT005: Redundant reinterpret cast
 //
 // Problem: reinterpret<T>(x) where T is the same type as x is a no-op.

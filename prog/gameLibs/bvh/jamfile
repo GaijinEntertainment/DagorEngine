@@ -22,6 +22,7 @@ BVHFFTWater ?= yes ;
 BVHDagdp ?= yes ;
 BVHGPUGrass ?= yes ;
 BVHSplineGen ?= yes ;
+BVHLruCollision ?= yes ;
 
 BVHProfiling ?= no ;
 
@@ -41,7 +42,7 @@ if $(BVHSupport) = yes {
     Target = $(Target:S=~p.lib) ;
   }
 
-  Sources = bvh.cpp bvh_context.cpp bvh_debug.cpp bvh_omm.cpp bvh_processors.cpp bvh_particles.cpp ;
+  Sources = bvh.cpp bvh_context.cpp bvh_debug.cpp bvh_tlas_debug.cpp bvh_omm.cpp bvh_processors.cpp bvh_particles.cpp ;
 
   if $(BVHTerrain) = yes {
     Sources += bvh_terrain.cpp ;
@@ -125,6 +126,14 @@ if $(BVHSupport) = yes {
   } else {
     Sources += stub/bvh_stub_fx.cpp ;
     Target = $(Target:S=~nfx.lib) ;
+  }
+
+  if $(BVHLruCollision) = yes {
+    Sources += bvh_lru_collision.cpp ;
+    UseProgLibs += gameLibs/render/lruCollision ;
+  } else {
+    Sources += stub/bvh_stub_lru_collision.cpp ;
+    Target = $(Target:S=~nlc.lib) ;
   }
 
   if $(BVHSmokeTracers) = yes {

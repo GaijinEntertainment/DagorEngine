@@ -31,6 +31,7 @@ public:
 
   void draw();
   void updateVisualization(const IdIndexedFlags<NodeNameId, framemem_allocator> &nodes_changed);
+  void receiveBlobData(NodeNameId node_id, ResNameId res_id, const BlobView &blob_view);
 
 
   // draw functions
@@ -230,6 +231,34 @@ private:
 
   GpuCapture gpuCapture;
   void setCaptureBoundary(CaptureBoundary &boundary, NodeNameId id);
+
+  struct BlobInstance
+  {
+    DependencyId depId = DependencyId::Invalid;
+    dafg::ResourceSubtypeTag tag = dafg::ResourceSubtypeTag::Invalid;
+    bool operator==(const BlobInstance &other) const = default;
+  };
+  struct InspectedBlob
+  {
+    BlobInstance inst = {};
+    BlobInstance storedInst = {};
+    dag::Vector<uint8_t> buffer;
+    bool dataStored = false;
+
+    ~InspectedBlob();
+
+    inline void *set(const DependencyId dep_id, const dafg::ResourceSubtypeTag new_tag)
+    {
+      inst = BlobInstance{dep_id, new_tag};
+
+      if (storedInst == inst && dataStored)
+        return buffer.data();
+      else
+        return nullptr;
+    }
+    inline void reset() { set(DependencyId::Invalid, dafg::ResourceSubtypeTag::Invalid); }
+  } inspectedBlob;
+
 
   // misc functions
 private:

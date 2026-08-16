@@ -4,6 +4,7 @@ import "dagor.debug" as dagorDebug
 import "string.nut" as string
 from "string" import split_by_chars
 from "underscore.nut" import flatten
+from "types" import String, Function
 
 let tostring_r = string.tostring_r
 let join = string.join //like join, but skip emptylines
@@ -73,8 +74,8 @@ function Log(tostringfunc=null): table {
 
   function mkwlog(logger=log): function {
     return function(...) {
-      let transform = vargv.findvalue(@(v) type(v)=="function") ?? @(v) v
-      let prefix = vargv.findvalue(@(v) type(v)=="string")
+      let transform = vargv.findvalue(@(v) v instanceof Function) ?? @(v) v
+      let prefix = vargv.findvalue(@(v) v instanceof String)
       let watched = flatten(vargv).filter(@(v) type(v) == "instance" && "subscribe" in v) ?? []
       if (watched.len()==0)
         dagorDebug.logerr("no observables in wlog!")

@@ -84,7 +84,11 @@ shader gpu_benchmark
   compile("target_vs", "gpu_benchmark_vs");
 
   (ps) {
-    gpu_benchmark_tex@smp2d = gpu_benchmark_tex;
+    gpu_benchmark_tex@tex2d = gpu_benchmark_tex;
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+  hlsl(ps) {
+    #define gpu_benchmark_tex_samplerstate global_linear_wrap_sampler
   }
 
   hlsl(ps) {

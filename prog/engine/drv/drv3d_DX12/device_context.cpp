@@ -1279,9 +1279,14 @@ void DeviceContext::resizeSwapchain(Extent2D size, uint32_t swapchain_index)
   front.swapchain.bufferResize(size, swapchain_index);
   if (oldVirtualTarget)
   {
+    // bufferResize destroyed the old image in any case, so when it could not create a replacement
+    // the frontend texture has to point at the swapchain image itself instead of a dead one.
     auto virtualTarget = back.swapchain.getVirtualColorImage(swapchain_index);
-    G_ASSERT(virtualTarget);
-    G_VERIFY(front.swapchain.getColorTexture(swapchain_index)->swapTextureNoLock(oldVirtualTarget, virtualTarget));
+    auto newTarget = virtualTarget ? virtualTarget : back.swapchain.getColorImage(swapchain_index);
+    // swapTextureNoLock reads the texture binding mask and dirties frontend state from it, both
+    // of which are only consistent under this guard, as its other callers already hold.
+    OSSpinlockScopedLock resourceBindingLock{get_resource_binding_guard()};
+    G_VERIFY(front.swapchain.getColorTexture(swapchain_index)->swapTextureNoLock(oldVirtualTarget, newTarget));
   }
   back.swapchain.onFrameBegin(device.device.get(), swapchain_index);
   makeReadyForFrame(front.frameIndex);
@@ -2086,7 +2091,7 @@ void DeviceContext::discardBuffer(BufferState &to_discared_ref, DeviceMemoryClas
     device.config.features.test(DeviceFeaturesConfig::DISABLE_BUFFER_SUBALLOCATION));
 }
 
-void DeviceContext::checkFramebufferIntegityNoLock(Image *img)
+void DeviceContext::checkFramebufferIntegrityNoLock(Image *img)
 {
   auto cmd = make_command<CmdCheckFramebufferIntegrity>(img);
   commandStream.pushBack(cmd);
@@ -2108,7 +2113,7 @@ void DeviceContext::destroyImageNoLock(Image *img, bool is_rt)
   }
 #endif
   if (is_rt)
-    checkFramebufferIntegityNoLock(img);
+    checkFramebufferIntegrityNoLock(img);
   device.resources.destroyTextureOnFrameCompletion(img);
 }
 
@@ -3242,9 +3247,7 @@ void DeviceContext::initDLSS()
 
 void DeviceContext::shutdownDLSS()
 {
-#if USE_DLSS_WITHOUT_STREAMLINE
-  dlssInterface.DeleteFeature();
-#elif !_TARGET_XBOX
+#if !_TARGET_XBOX
   if (streamlineAdapter)
   {
     bool wantStereoRender = stereo_config_callback ? stereo_config_callback->desiredStereoRender() : false;
@@ -3580,7 +3583,7 @@ void DeviceContext::enhancedTextureBarrier(const d3d::TextureBarrier &barrier, B
       D3D_ERROR("DX12: enhanced_texture_barrier for <%s>, image was null", baseTex->getName());
     return;
   }
-  auto cmd = make_command<CmdEnhancedTextureBarrier>(barrier, image);
+  auto cmd = make_command<CmdEnhancedTextureBarrier>(barrier, image, baseTex->cflg);
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -7275,19 +7278,6 @@ void DeviceContext::ExecutionContext::createDlssFeature(int mode, int output_wid
   G_UNUSED(output_height);
   G_UNUSED(use_rr);
   G_UNUSED(use_legacy_model);
-#if USE_DLSS_WITHOUT_STREAMLINE
-  if (!readyCommandList())
-  {
-    return;
-  }
-
-  // note sure if we have to, but better do it and don't worry
-  disablePredication();
-
-  contextState.cmdBuffer.recordExternalCommands([this, mode, output_width, output_height, use_rr, use_legacy_model](auto cmd) {
-    self.dlssInterface.setOptionsBackend(cmd, (nv::DLSS::Mode)mode, {output_width, output_height}, use_rr, use_legacy_model);
-  });
-#endif
 }
 
 void DeviceContext::ExecutionContext::releaseDlssFeature(bool stereo_render)
@@ -7370,13 +7360,7 @@ void DeviceContext::ExecutionContext::executeDlss(const nv::DlssParams<Image> &d
   convertedParams.inSsssGuideState = getState(dlss_params.inSsssGuide);
   convertedParams.inColorBeforeTransparencyState = getState(dlss_params.inColorBeforeTransparency);
 
-
-#if USE_DLSS_WITHOUT_STREAMLINE
-  auto dlss = &self.dlssInterface;
-#else
   auto dlss = static_cast<nv::DLSS *>(self.streamlineAdapter->getDlssFeature(view_index));
-#endif
-
   contextState.cmdBuffer.recordExternalCommands([convertedParams, dlss](auto cmd) { dlss->evaluate(convertedParams, cmd); });
 
   // DLSS alters command list state so we need to reset everything afterwards to keep consistency
@@ -7429,11 +7413,7 @@ void DeviceContext::ExecutionContext::setDlssOptions(const nv::DlssOptions &opti
 {
   G_UNUSED(options);
   G_UNUSED(view_index);
-#if USE_DLSS_WITHOUT_STREAMLINE
-  // Native NGX: (re)create the feature on the backend, which is where slDLSS-equivalent NGX work runs.
-  createDlssFeature(int(options.mode), options.outputResolution.x, options.outputResolution.y, options.useRayReconstruction,
-    options.useLegacyModel);
-#elif !_TARGET_XBOX
+#if !_TARGET_XBOX
   if (auto *dlss = static_cast<DLSSWithSizeQuery *>(self.streamlineAdapter->getDlssFeature(view_index)))
     dlss->setOptions(options.mode, options.outputResolution, options.useRayReconstruction, options.useLegacyModel);
 #endif
@@ -7923,7 +7903,25 @@ void DeviceContext::ExecutionContext::asBarrier(RaytraceAccelerationStructure *a
 namespace
 {
 #if !_TARGET_XBOXONE
-inline D3D12_BARRIER_SYNC translate_pipeline_stage_to_d3d12(d3d::PipelineStageFlags stages, d3d::AccessFlags access)
+struct ClearBarrierState
+{
+  D3D12_BARRIER_SYNC sync;
+  D3D12_BARRIER_ACCESS access;
+  D3D12_BARRIER_LAYOUT layout;
+};
+
+inline ClearBarrierState clear_d3d12_barrier_state(Image *image, uint32_t tex_flags)
+{
+  if (image->getFormat().isDepth())
+    return {D3D12_BARRIER_SYNC_DEPTH_STENCIL, D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE, D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE};
+  if (tex_flags & TEXCF_UNORDERED)
+    return {
+      D3D12_BARRIER_SYNC_CLEAR_UNORDERED_ACCESS_VIEW, D3D12_BARRIER_ACCESS_UNORDERED_ACCESS, D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS};
+  return {D3D12_BARRIER_SYNC_RENDER_TARGET, D3D12_BARRIER_ACCESS_RENDER_TARGET, D3D12_BARRIER_LAYOUT_RENDER_TARGET};
+}
+
+inline D3D12_BARRIER_SYNC translate_pipeline_stage_to_d3d12(d3d::PipelineStageFlags stages, d3d::AccessFlags access,
+  D3D12_BARRIER_SYNC clear_sync)
 {
   if (stages & d3d::PipelineStageFlag::All)
     return D3D12_BARRIER_SYNC_ALL;
@@ -7952,13 +7950,13 @@ inline D3D12_BARRIER_SYNC translate_pipeline_stage_to_d3d12(d3d::PipelineStageFl
       sync |= D3D12_BARRIER_SYNC_PIXEL_SHADING;
   }
   if (stages & d3d::PipelineStageFlag::Clear)
-    sync |= D3D12_BARRIER_SYNC_CLEAR_UNORDERED_ACCESS_VIEW;
+    sync |= clear_sync;
   if (stages & d3d::PipelineStageFlag::Resolve)
     sync |= D3D12_BARRIER_SYNC_RESOLVE;
   return sync;
 }
 
-inline D3D12_BARRIER_ACCESS translate_access_flags_to_d3d12(d3d::AccessFlags access)
+inline D3D12_BARRIER_ACCESS translate_access_flags_to_d3d12(d3d::AccessFlags access, D3D12_BARRIER_ACCESS clear_access)
 {
   if (access == d3d::AccessFlag::NoAccess)
     return D3D12_BARRIER_ACCESS_NO_ACCESS;
@@ -7975,6 +7973,8 @@ inline D3D12_BARRIER_ACCESS translate_access_flags_to_d3d12(d3d::AccessFlags acc
     out |= D3D12_BARRIER_ACCESS_RENDER_TARGET;
   if (access & d3d::AccessFlag::UnorderedAccess)
     out |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+  if (access & d3d::AccessFlag::ClearWrite)
+    out |= clear_access;
   if (access & d3d::AccessFlag::DepthStencilWrite)
     out |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE;
   if (access & d3d::AccessFlag::DepthStencilRead)
@@ -7999,13 +7999,21 @@ inline D3D12_BARRIER_ACCESS translate_access_flags_to_d3d12(d3d::AccessFlags acc
   return out;
 }
 
-inline D3D12_BARRIER_LAYOUT translate_texture_layout_to_d3d12(d3d::TextureLayout layout)
+inline D3D12_BARRIER_LAYOUT translate_texture_layout_to_d3d12(d3d::TextureLayout layout, d3d::AccessFlags access,
+  D3D12_BARRIER_LAYOUT clear_layout)
 {
+  // Queue-agnostic GENERIC_READ is limited to shader resource and copy source access.
+  constexpr d3d::AccessFlags directQueueOnlyReadAccessMask =
+    d3d::AccessFlag::DepthStencilRead | d3d::AccessFlag::ResolveRead | d3d::AccessFlag::ShadingRate;
+
   switch (layout)
   {
     case d3d::TextureLayout::Undefined: return D3D12_BARRIER_LAYOUT_UNDEFINED;
-    case d3d::TextureLayout::GenericRead: return D3D12_BARRIER_LAYOUT_GENERIC_READ;
+    case d3d::TextureLayout::GenericRead:
+      return access & directQueueOnlyReadAccessMask ? D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_GENERIC_READ
+                                                    : D3D12_BARRIER_LAYOUT_GENERIC_READ;
     case d3d::TextureLayout::RenderTarget: return D3D12_BARRIER_LAYOUT_RENDER_TARGET; //-V1037
+    case d3d::TextureLayout::ClearDest: return clear_layout;
     case d3d::TextureLayout::UnorderedAccess: return D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
     case d3d::TextureLayout::DepthRwStencilRw:
     case d3d::TextureLayout::DepthRwStencilRo:
@@ -8029,19 +8037,21 @@ inline D3D12_BARRIER_LAYOUT translate_texture_layout_to_d3d12(d3d::TextureLayout
 #endif // !_TARGET_XBOXONE
 } // namespace
 
-void DeviceContext::ExecutionContext::enhancedTextureBarrier(const d3d::TextureBarrier &barrier, Image *image)
+void DeviceContext::ExecutionContext::enhancedTextureBarrier(const d3d::TextureBarrier &barrier, Image *image, uint32_t tex_flags)
 {
 #if !_TARGET_XBOXONE
   if (!readyCommandList())
     return;
 
+  const ClearBarrierState clear = clear_d3d12_barrier_state(image, tex_flags);
+
   D3D12_TEXTURE_BARRIER textureBarrier{};
-  textureBarrier.SyncBefore = translate_pipeline_stage_to_d3d12(barrier.pipelineSync.src, barrier.memorySync.src);
-  textureBarrier.SyncAfter = translate_pipeline_stage_to_d3d12(barrier.pipelineSync.dst, barrier.memorySync.dst);
-  textureBarrier.AccessBefore = translate_access_flags_to_d3d12(barrier.memorySync.src);
-  textureBarrier.AccessAfter = translate_access_flags_to_d3d12(barrier.memorySync.dst);
-  textureBarrier.LayoutBefore = translate_texture_layout_to_d3d12(barrier.layoutTransition.src);
-  textureBarrier.LayoutAfter = translate_texture_layout_to_d3d12(barrier.layoutTransition.dst);
+  textureBarrier.SyncBefore = translate_pipeline_stage_to_d3d12(barrier.pipelineSync.src, barrier.memorySync.src, clear.sync);
+  textureBarrier.SyncAfter = translate_pipeline_stage_to_d3d12(barrier.pipelineSync.dst, barrier.memorySync.dst, clear.sync);
+  textureBarrier.AccessBefore = translate_access_flags_to_d3d12(barrier.memorySync.src, clear.access);
+  textureBarrier.AccessAfter = translate_access_flags_to_d3d12(barrier.memorySync.dst, clear.access);
+  textureBarrier.LayoutBefore = translate_texture_layout_to_d3d12(barrier.layoutTransition.src, barrier.memorySync.src, clear.layout);
+  textureBarrier.LayoutAfter = translate_texture_layout_to_d3d12(barrier.layoutTransition.dst, barrier.memorySync.dst, clear.layout);
   textureBarrier.pResource = image->getHandle();
   textureBarrier.Subresources.IndexOrFirstMipLevel = barrier.subresources.mips.first;
   textureBarrier.Subresources.NumMipLevels = barrier.subresources.mips.count;
@@ -8057,6 +8067,7 @@ void DeviceContext::ExecutionContext::enhancedTextureBarrier(const d3d::TextureB
 #else
   G_UNUSED(barrier);
   G_UNUSED(image);
+  G_UNUSED(tex_flags);
 #endif
 }
 
@@ -8066,11 +8077,15 @@ void DeviceContext::ExecutionContext::enhancedBufferBarrier(const d3d::BufferBar
   if (!readyCommandList())
     return;
 
+  // a buffer clear always writes through an UAV
+  constexpr D3D12_BARRIER_SYNC clearSync = D3D12_BARRIER_SYNC_CLEAR_UNORDERED_ACCESS_VIEW;
+  constexpr D3D12_BARRIER_ACCESS clearAccess = D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+
   D3D12_BUFFER_BARRIER bufferBarrier{};
-  bufferBarrier.SyncBefore = translate_pipeline_stage_to_d3d12(barrier.pipelineSync.src, barrier.memorySync.src);
-  bufferBarrier.SyncAfter = translate_pipeline_stage_to_d3d12(barrier.pipelineSync.dst, barrier.memorySync.dst);
-  bufferBarrier.AccessBefore = translate_access_flags_to_d3d12(barrier.memorySync.src);
-  bufferBarrier.AccessAfter = translate_access_flags_to_d3d12(barrier.memorySync.dst);
+  bufferBarrier.SyncBefore = translate_pipeline_stage_to_d3d12(barrier.pipelineSync.src, barrier.memorySync.src, clearSync);
+  bufferBarrier.SyncAfter = translate_pipeline_stage_to_d3d12(barrier.pipelineSync.dst, barrier.memorySync.dst, clearSync);
+  bufferBarrier.AccessBefore = translate_access_flags_to_d3d12(barrier.memorySync.src, clearAccess);
+  bufferBarrier.AccessAfter = translate_access_flags_to_d3d12(barrier.memorySync.dst, clearAccess);
   bufferBarrier.pResource = buffer.buffer;
   bufferBarrier.Offset = 0;
   bufferBarrier.Size = UINT64_MAX;

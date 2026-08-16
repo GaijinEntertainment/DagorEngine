@@ -22,6 +22,19 @@
 #include <daScript/src/builtin/module_builtin_rtti.h>
 #include <daScript/daScript.h>
 
+// an annotated query block reaches the helper either as a bare lambda or as a das_make_block,
+// whose blockFunction is the callable one
+template <typename R, typename... A>
+__forceinline auto &dagor_es_callable(const das::das_make_block<R, A...> &b)
+{
+  return b.blockFunction;
+}
+template <typename B>
+__forceinline const B &dagor_es_callable(const B &b)
+{
+  return b;
+}
+
 inline constexpr uint64_t DAS_INITIAL_HEAP_SIZE = 8 * 1024;
 inline constexpr uint64_t DAS_INITIAL_STRING_HEAP_SIZE = 8 * 1024;
 

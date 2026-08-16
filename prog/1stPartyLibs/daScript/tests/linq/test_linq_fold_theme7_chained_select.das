@@ -1,7 +1,6 @@
 options gen2
 
 require math
-require strings
 require daslib/linq
 require daslib/linq_boost
 require daslib/linq_fold
@@ -9,7 +8,7 @@ require daslib/decs
 require daslib/decs_boost
 require dastest/testing_boost public
 
-// Theme 7 (audit `benchmarks/sql/linq_fold_chain_audit.md` "Theme 7" section):
+// Theme 7 (audit `history/linq_fold/linq_fold_chain_audit.md` "Theme 7" section):
 // chained `_select(f) |> _select(g)` collapse. Symmetric to how chained `_where`
 // already compose via `&&`. `collapse_chained_selects` mutates the call chain
 // in place — N consecutive `_select` calls become a single composed `_select(g(f(_)))`.
@@ -124,7 +123,7 @@ struct T7Item {
 
 def populate_t7_decs() {
     restart()
-    create_entities(20) $(eid : EntityId; i : int; var cmp : ComponentMap) {
+    create_entities(20) $ [unused_argument(eid)] (eid : EntityId; i : int; var cmp : ComponentMap) {
         apply_decs_template(cmp, T7Item(id = i, grp = i / 4))
     }
 }

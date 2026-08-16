@@ -4,9 +4,6 @@ include "use_gi.dshl"
 include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
 include "portal_rendering_inc.dshl"
 
-int depth_bounds_support = 0;
-interval depth_bounds_support: no<1, yes;
-
 int allow_satellite_rendering;
 interval allow_satellite_rendering: no<1, yes;
 float satellite_rendering_shadow_multiplier = 1;

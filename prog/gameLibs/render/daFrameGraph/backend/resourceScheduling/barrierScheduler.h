@@ -8,6 +8,7 @@
 #include <EASTL/optional.h>
 #include <backend/intermediateRepresentation.h>
 #include <backend/passColoring.h>
+#include <backend/resourceScheduling/resourceLifetimes.h>
 
 
 namespace dafg
@@ -18,11 +19,18 @@ class BarrierScheduler
 public:
   struct Event
   {
+    enum class BarrierKind : uint8_t
+    {
+      None,
+      Release,
+      Transition,
+      FirstUse
+    };
+
     struct Activation
     {
       ResourceActivationAction action;
       eastl::variant<ResourceClearValue, intermediate::DynamicParameter> clearValue;
-      intermediate::EnhancedBarrier enhancedBarrier;
     };
 
     struct CpuActivation
@@ -43,55 +51,65 @@ public:
     struct EnhancedBufferBarrier
     {
       d3d::BufferBarrier barrier;
+      BarrierKind kind;
     };
 
     struct EnhancedTextureBarrier
     {
       d3d::TextureBarrier barrier;
+      BarrierKind kind;
     };
 
     struct Deactivation
-    {
-      intermediate::EnhancedBarrier release;
-    };
+    {};
 
     intermediate::ResourceIndex resource;
     uint32_t frameResourceProducedOn;
 
-    // NOTE: at each timepoint events are executed in order of their
-    // type, from last one to first one. Meaning deactivations happen
-    // before barriers, barriers before activations.
     using Payload =
       eastl::variant<CpuActivation, Activation, Barrier, EnhancedBufferBarrier, EnhancedTextureBarrier, Deactivation, CpuDeactivation>;
     Payload data;
   };
 
-  static constexpr int SCHEDULE_FRAME_WINDOW = 2; // even and odd frames
+  static uint32_t execution_rank(const Event &event);
+
+  static Event::BarrierKind barrier_kind(const Event &event);
 
   using NodeEvents = dag::Vector<Event>;
   using FrameEvents = IdIndexedMapping<intermediate::NodeIndex, NodeEvents>;
   using EventsCollection = eastl::array<FrameEvents, SCHEDULE_FRAME_WINDOW>;
 
-  using ResourceLifetimesChanged = IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator>;
+  struct UsageSyncStages
+  {
+    d3d::PipelineStageFlags firstUse;
+    d3d::PipelineStageFlags lastUse;
+  };
+  using UsageSyncStagesMapping = IdIndexedMapping<intermediate::ResourceIndex, UsageSyncStages>;
 
-  ResourceLifetimesChanged scheduleEvents(EventsCollection &node_events, const intermediate::Graph &graph,
+  void scheduleEvents(EventsCollection &node_events, const intermediate::Graph &graph, const ResourceLifetimes &lifetimes,
     const PassColoring &pass_coloring, const IdIndexedFlags<intermediate::NodeIndex, framemem_allocator> &nodes_changed,
-    const IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> &resources_changed);
+    const IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> &resources_changed,
+    const IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> &lifetimes_changed);
+
+  const UsageSyncStagesMapping &usageSyncStages() const { return usageSyncStagesPerResource; }
+
+  void setAliasSyncStages(EventsCollection &node_events, intermediate::ResourceIndex res_idx, d3d::PipelineStageFlags sync_before,
+    d3d::PipelineStageFlags sync_after);
 
   void resetIncrementalState() { *this = BarrierScheduler(); }
 
 private:
-  using GracePoints = dag::VectorSet<uint32_t, eastl::less<uint32_t>, framemem_allocator>;
   using DirtyResources = IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator>;
 
-  GracePoints computeGracePoints(const intermediate::Graph &graph, const PassColoring &pass_coloring) const;
+  void computeUsageSyncStages(const intermediate::Graph &graph);
 
   DirtyResources computeDirtyResources(const intermediate::Graph &graph,
     const IdIndexedFlags<intermediate::NodeIndex, framemem_allocator> &nodes_changed,
-    const IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> &resources_changed, const GracePoints &grace_points);
+    const IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> &resources_changed,
+    const IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> &lifetimes_changed, const GracePoints &grace_points);
 
-  void updateDirtyResourceEvents(const intermediate::Graph &graph, const DirtyResources &dirty_resources,
-    const GracePoints &grace_points);
+  void updateDirtyResourceEvents(const intermediate::Graph &graph, const ResourceLifetimes &lifetimes,
+    const DirtyResources &dirty_resources, const GracePoints &grace_points);
 
   struct PlacedEvent
   {
@@ -105,6 +123,9 @@ private:
 
   // Previous grace points for change detection
   dag::Vector<uint32_t> prevGracePoints;
+
+  // First and last use stages of every untracked resource.
+  UsageSyncStagesMapping usageSyncStagesPerResource;
 };
 
 } // namespace dafg

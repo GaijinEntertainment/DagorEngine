@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "types" import Table
 let comboStyle = require("combobox.style.nut")
 let {setTooltip} = require("cursors.nut")
 
@@ -70,8 +71,8 @@ function setValueByOptions(opts, wdata, wupdate){
 function popupWrapper(popupContent, dropDirDown) {
   let align = dropDirDown ? ALIGN_TOP : ALIGN_BOTTOM
   let children = [
-    {size = [flex(), ph(100)]}
-    {size = [flex(), hdpx(2)]}
+    {size = const [flex(), ph(100)]}
+    {size = const [flex(), hdpx(2)]}
     popupContent
   ]
 
@@ -92,8 +93,8 @@ function popupWrapper(popupContent, dropDirDown) {
 
 function dropdownBgOverlay(onClick) {
   return {
-    pos = [-9000, -9000]
-    size = [19999, 19999]
+    pos = const [-9000, -9000]
+    size = const [19999, 19999]
     behavior = Behaviors.ComboPopup
     eventPassThrough = true
     onClick
@@ -116,7 +117,7 @@ function combobox(watches, options, tooltip=null, combo_style=comboStyle) {
   local changeVarOnListUpdate = true
   let xmbNode = combo_style?.xmbNode ?? XmbNode()
 
-  if (type(watches) == "table") {
+  if (watches instanceof Table) {
     wdata = watches.value
     wdisable = watches?.disable ?? Watched(false)
     wupdate = watches?.update ?? @(v) wdata.set(v)

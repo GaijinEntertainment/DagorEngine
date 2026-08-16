@@ -1,5 +1,6 @@
 from "%darg/ui_imports.nut" import *
 import "dainput2" as dainput
+from "types" import String
 
 let {dtext} = require("%scripts/ui/widgets/simpleComponents.nut")
 let format_ctrl_name = dainput.format_ctrl_name
@@ -179,7 +180,7 @@ function buildElemsFromListOfAction(textlist, params = {imgFunc=null, textFunc=m
       if (eventTypeValues.indexof(text)!=null)
         return eventTextFunc?(inParents(loc(text)))
 
-      else if(type(text)=="string")
+      else if(text instanceof String)
         return textFunc(loc(text))
       else
         return null

@@ -115,6 +115,10 @@ Values can be tested against classes using ``instanceof``, just like script clas
         println("x is an integer")
     }
 
+.. note:: This does not work for instances of script classes: for them ``instanceof``
+    only walks the script class hierarchy (built-in classes cannot be inherited from),
+    so ``x instanceof Instance`` is always false. Use ``type(x) == "instance"`` instead.
+
 ^^^^^^^
 Integer
 ^^^^^^^
@@ -928,7 +932,7 @@ returns a weak reference to the object.
 returns the string "(weakref : pointer)".
 
 ^^^^^^^^^^^^^^
-Userdata
+UserData
 ^^^^^^^^^^^^^^
 
 .. sq:function:: userdata.getfuncinfos()

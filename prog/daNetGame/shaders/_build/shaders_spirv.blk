@@ -33,7 +33,6 @@ Compile
   group_size_in_kb:i=128
   assume_vars {
     include common_assumes.blk
-    supports_sh_6_1:i = 0
     //gi_voxelize_use_multidraw:i=1
     particles_buffer_id:i=8
     static_shadows_custom_fxaa:i=0

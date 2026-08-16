@@ -32,8 +32,8 @@ public:
   struct SchedulingContext
   {
     const intermediate::Graph &graph;
-    const BarrierScheduler::EventsCollection &events;
-    const BarrierScheduler::ResourceLifetimesChanged &lifetimeChangedResources;
+    const ResourceLifetimes &lifetimes;
+    const ResourceLifetimeCalculator::LifetimesChanged &lifetimeChangedResources;
     const IrHistoryPairing &historyPairing;
     const BadResolutionTracker::Corrections &corrections;
     IResourcePropertyProvider &propertyProvider;

@@ -620,8 +620,21 @@
     if ((FLAG_ENABLED( flags, MODFX_RFLAG_EXTERNAL_LIGHTS_ENABLED ) && !isModfxOmniLightEnabled) || dafx_force_clustered_light_check)
     {
       // Find omni lights outside of current modfx
-      const float2 tc = (vs_out.pos.xy / vs_out.pos.w) * float2(0.5, -0.5) + 0.5;
-      lighting += get_lighting_from_clustered_lights(wpos.xyz, view_dir_norm, tc, proj_dist);
+    #if MODFX_CLUSTERED_LIGHTING_CENTERED
+      // Sample light from the particle's center rather than this corner,
+      // so it stays uniform across the quad and doesn't flicker when the particle gets rotated or oriented towards camera.
+      float4 lightSampleClipPos = mul(float4(rdata.pos, 1.f), gdata.globtm);
+      float3 lightSampleWorldPos = rdata.pos;
+    #else
+      float4 lightSampleClipPos = vs_out.pos;
+      float3 lightSampleWorldPos = wpos;
+    #endif
+      BRANCH
+      if (lightSampleClipPos.w > 0)
+      {
+        const float2 tc = (lightSampleClipPos.xy / lightSampleClipPos.w) * float2(0.5, -0.5) + 0.5;
+        lighting += get_lighting_from_clustered_lights(lightSampleWorldPos, view_dir_norm, tc, proj_dist);
+      }
     }
 #endif
 
@@ -804,7 +817,11 @@
         #endif
       #else
         vs_out.color.rgb *= fog_mul;
-        vs_out.emission.rgb *= fog_mul;
+        #if EMISSION_PS_FOG_MULT
+          vs_out.fog_mul = float3(fog_mul);
+        #else
+          vs_out.emission.rgb *= fog_mul;
+        #endif
       #endif
     #endif
 #endif
@@ -1127,6 +1144,10 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
       emissive_part = c * input.emission.rgb;
       lighting_part = c;
     }
+
+#if EMISSION_PS_FOG_MULT && !MODFX_SHADER_VOLFOG_INJECTION
+    emissive_part *= input.fog_mul;
+#endif
 
 #if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLFOG_INJECTION)
     if (color_discard_test(float4(lighting_part.xyz + emissive_part.xyz, alpha), flags))

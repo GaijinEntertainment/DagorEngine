@@ -30,6 +30,7 @@ let HUGE_N = 2200_l * 1024_l * 1024_l
 def test_push_past_int_max(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     let before = long_length(arr)
     arr |> push(uint8(0xAB))
@@ -42,6 +43,7 @@ def test_push_past_int_max(t : T?) {
 def test_emplace_past_int_max(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     let before = long_length(arr)
     var v : uint8 = uint8(0xCD)
@@ -55,6 +57,7 @@ def test_emplace_past_int_max(t : T?) {
 def test_push_clone_past_int_max(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     let before = long_length(arr)
     let v : uint8 = uint8(0xEF)
@@ -74,6 +77,7 @@ def test_push_clone_past_int_max(t : T?) {
 def test_push_at_int64_past_int_max(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     let before = long_length(arr)
     let at_pos = before - 1_l
@@ -89,6 +93,7 @@ def test_push_at_int64_past_int_max(t : T?) {
 def test_emplace_at_int64_past_int_max(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     let before = long_length(arr)
     let at_pos = before - 1_l
@@ -105,6 +110,7 @@ def test_emplace_at_int64_past_int_max(t : T?) {
 def test_push_clone_at_int64_past_int_max(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     let before = long_length(arr)
     let at_pos = before - 1_l

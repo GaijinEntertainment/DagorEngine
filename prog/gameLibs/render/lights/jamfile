@@ -14,7 +14,7 @@ AddIncludes =
 Sources =
   clusteredLights.cpp
   clusteredLightsGrid.cpp
-  clusteredLightsSorter.cpp
+  lightsSorter.cpp
   lightsPartition.cpp
   lightsManager.cpp
   omniLightsManager.cpp

@@ -66,12 +66,6 @@ public:
   void zoomAndCenterObject(RenderableEditableObject &object) override;
 
 private:
-  struct ObjectTypeState
-  {
-    bool visible = true;
-    bool locked = false;
-  };
-
   int getLayerPropsIndex(int type, int per_type_layer_index) const;
   int getPerTypeLayerIndex(int type, int layer_props_index) const;
   EditLayerProps *getEditLayerProps(int type, int per_type_layer_index) const;
@@ -84,5 +78,4 @@ private:
   static bool isValidLayerName(const char *name, String &error_message);
 
   HmapLandObjectEditor &objectEditor;
-  ObjectTypeState objectTypeStates[EditLayerProps::TYPENUM];
 };

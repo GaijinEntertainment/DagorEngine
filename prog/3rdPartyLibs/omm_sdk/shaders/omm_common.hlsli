@@ -133,6 +133,28 @@ uint FetchInputIndex(ByteAddressBuffer indexBuffer, uint index)
 	return indexBuffer.Load(indexOffsetInBytes);
 }
 
+float2 OmmDecodeTexCoordDefault(ByteAddressBuffer texCoordBuffer, uint byteOffset)
+{
+    if ((TexCoordFormat)g_GlobalConstants.TexCoordFormat == TexCoordFormat::UV16_UNORM)
+    {
+        return UnpackUNORM16Pair(texCoordBuffer.Load(byteOffset));
+    }
+    else if ((TexCoordFormat)g_GlobalConstants.TexCoordFormat == TexCoordFormat::UV16_FLOAT)
+    {
+        return UnpackFP16Pair(texCoordBuffer.Load(byteOffset));
+    }
+    else // if (g_GlobalConstants.TexCoordFormat == TexCoordFormat::UV32_FLOAT)
+    {
+        return asfloat(texCoordBuffer.Load2(byteOffset));
+    }
+}
+
+// Integration customization point: define OMM_DECODE_TEXCOORD to a decoder with the signature of
+// OmmDecodeTexCoordDefault. This is the only place the bake reads texcoords.
+#ifndef OMM_DECODE_TEXCOORD
+#define OMM_DECODE_TEXCOORD(texCoordBuffer, byteOffset) OmmDecodeTexCoordDefault(texCoordBuffer, byteOffset)
+#endif
+
 TexCoords FetchTexCoords(ByteAddressBuffer indexBuffer, ByteAddressBuffer texCoordBuffer, uint primitiveIndex)
 {
 	uint3 indices;
@@ -141,25 +163,9 @@ TexCoords FetchTexCoords(ByteAddressBuffer indexBuffer, ByteAddressBuffer texCoo
 	indices.z		= FetchInputIndex(indexBuffer, primitiveIndex * 3 + 2);
 
 	float2 vertexUVs[3];
-	
-    if ((TexCoordFormat)g_GlobalConstants.TexCoordFormat == TexCoordFormat::UV16_UNORM)
-    {
-        vertexUVs[0] = UnpackUNORM16Pair(texCoordBuffer.Load(g_GlobalConstants.TexCoordOffset + indices.x * g_GlobalConstants.TexCoordStride));
-        vertexUVs[1] = UnpackUNORM16Pair(texCoordBuffer.Load(g_GlobalConstants.TexCoordOffset + indices.y * g_GlobalConstants.TexCoordStride));
-        vertexUVs[2] = UnpackUNORM16Pair(texCoordBuffer.Load(g_GlobalConstants.TexCoordOffset + indices.z * g_GlobalConstants.TexCoordStride));
-    }
-    else if ((TexCoordFormat)g_GlobalConstants.TexCoordFormat == TexCoordFormat::UV16_FLOAT)
-    {
-        vertexUVs[0] = UnpackFP16Pair(texCoordBuffer.Load(g_GlobalConstants.TexCoordOffset + indices.x * g_GlobalConstants.TexCoordStride));
-        vertexUVs[1] = UnpackFP16Pair(texCoordBuffer.Load(g_GlobalConstants.TexCoordOffset + indices.y * g_GlobalConstants.TexCoordStride));
-        vertexUVs[2] = UnpackFP16Pair(texCoordBuffer.Load(g_GlobalConstants.TexCoordOffset + indices.z * g_GlobalConstants.TexCoordStride));
-    }
-    else // if (g_GlobalConstants.TexCoordFormat == TexCoordFormat::UV32_FLOAT)
-    {
-        vertexUVs[0] = asfloat(texCoordBuffer.Load2(g_GlobalConstants.TexCoordOffset + indices.x * g_GlobalConstants.TexCoordStride));
-        vertexUVs[1] = asfloat(texCoordBuffer.Load2(g_GlobalConstants.TexCoordOffset + indices.y * g_GlobalConstants.TexCoordStride));
-        vertexUVs[2] = asfloat(texCoordBuffer.Load2(g_GlobalConstants.TexCoordOffset + indices.z * g_GlobalConstants.TexCoordStride));
-    }
+	vertexUVs[0] = OMM_DECODE_TEXCOORD(texCoordBuffer, g_GlobalConstants.TexCoordOffset + indices.x * g_GlobalConstants.TexCoordStride);
+	vertexUVs[1] = OMM_DECODE_TEXCOORD(texCoordBuffer, g_GlobalConstants.TexCoordOffset + indices.y * g_GlobalConstants.TexCoordStride);
+	vertexUVs[2] = OMM_DECODE_TEXCOORD(texCoordBuffer, g_GlobalConstants.TexCoordOffset + indices.z * g_GlobalConstants.TexCoordStride);
 
 	TexCoords tex;
 	tex.Init(vertexUVs[0], vertexUVs[1], vertexUVs[2]);
@@ -203,6 +209,12 @@ uint GetDynamicSubdivisionLevel(TexCoords tex, float scale)
 	// targetPixelArea / (4^N) = pixelUvArea 
 
 	const float targetPixelArea = scale * scale;
+
+	// Clamp a too large ratio to the maximum level: GetNextPow2 below wraps it to zero, which would give
+	// the largest triangles the lowest level. The test is inverted so a NaN area takes this branch too.
+	if (!(pixelUvArea / targetPixelArea < 2147483648.f))
+		return g_GlobalConstants.MaxSubdivisionLevel;
+
 	const uint ratio			= pixelUvArea / targetPixelArea;
 	const uint ratioNextPow2	= GetNextPow2(ratio);
 	const uint log2_ratio		= GetLog2(ratioNextPow2);

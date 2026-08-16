@@ -13,12 +13,14 @@
 #include <crtdbg.h>
 #endif
 
+// dagor: no external (daspkg-generated) modules, so no external_declare.inc
+
 using namespace das;
 
 void use_utf8();
 
-void require_project_specific_modules(); //link time resolved dependencies
-das::FileAccessPtr get_file_access( char * pak ); //link time resolved dependencies
+void require_project_specific_modules();//link time resolved dependencies
+das::FileAccessPtr get_file_access( char * pak );//link time resolved dependencies
 
 TextPrinter tout;
 
@@ -31,6 +33,7 @@ static string aotResult = "";
 static bool paranoid_validation = false;
 static bool profilerRequired = false;
 static bool debuggerRequired = false;
+static bool astVerifyRequired = false;
 static bool scopedStackAllocator = true;
 static bool pauseAfterErrors = false;
 static bool quiet = false;
@@ -42,6 +45,7 @@ enum class JitMode {
 };
 static JitMode jitEnabled = JitMode::None; // Disabled by default.
 static bool jitNoCache = false; // -jit-no-cache: bypass DLL-cache path, run in-memory.
+static bool jitStack = false; // -jit-stack: retain every generated call in the logical das stack.
 static string jitOutPath = ""; // Empty, JIT module will choose default.
 
 static bool noDynamicModules = false;
@@ -57,11 +61,13 @@ static bool gen2MakeSyntax = false;
 static bool trackAllocations = false;
 static bool heapReportAtExit = false;
 static bool logModuleCompileTime = false;
+static bool buildingDocumentation = false;
 
 static CodeOfPolicies getPolicies() {
     CodeOfPolicies policies;
     policies.aot = false;
     policies.aot_module = true;
+    policies.tune_frozen = true;    // -aot output is a cross-box artifact — no per-box [tune] stamps
     if (aotMacros) {
         policies.aot_macros = true;
         policies.export_all = true; // need it for aot to export macros
@@ -74,6 +80,7 @@ static CodeOfPolicies getPolicies() {
     policies.track_allocations = trackAllocations;
     policies.no_lint = noLint;
     policies.log_module_compile_time = logModuleCompileTime;
+    policies.building_documentation = buildingDocumentation;
     return policies;
 }
 
@@ -84,6 +91,7 @@ bool aot_compile ( vector<pair<string, string>> &aot_files, bool dryRun, bool cr
     CodeOfPolicies stubPolicies;
     stubPolicies.version_2_syntax = true;
     stubPolicies.aot_module = true;
+    stubPolicies.tune_frozen = true;
     string aotCppPath = getDasRoot() + "/daslib/aot_cpp.das";
     auto program = compileDaScript(aotCppPath, access, tout, dummyGroup, stubPolicies);
     if ( !program || program->failed() ) {
@@ -150,7 +158,6 @@ int das_aot_main ( int argc, char * argv[] ) {
     bool dryRun = false;
     bool cross_platform = false; // strcmp("-aotlib", argv[1]) == 0;
     bool scriptArgs = false;
-    bool das_mode = false;
     vector<pair<string, string>> aot_files;
     string project_root;
     vector<string> load_modules;
@@ -169,21 +176,19 @@ int das_aot_main ( int argc, char * argv[] ) {
                 paranoid_validation = true;
             } else if ( strcmp(argv[ai],"-dry-run")==0 ) {
                 dryRun = true;
-            } else if ( strcmp(argv[ai],"-das-mode")==0 ) {
-                das_mode = true;
             } else if ( strcmp(argv[ai],"-cross-platform")==0 ) {
                 cross_platform = true;
             } else if ( strcmp(argv[ai],"-aot-macros")==0 ) {
                 aotMacros = true;
             } else if ( strcmp(argv[ai],"-project")==0 ) {
-                if ( ai+1 > argc ) {
+                if ( ai+1 >= argc ) {
                     tout << "das-project requires argument";
                     return -1;
                 }
                 projectFile = argv[ai+1];
                 ai += 1;
             } else if ( strcmp(argv[ai],"-dasroot")==0 ) {
-                if ( ai+1 > argc ) {
+                if ( ai+1 >= argc ) {
                     tout << "dasroot requires argument";
                     return -1;
                 }
@@ -223,10 +228,7 @@ int das_aot_main ( int argc, char * argv[] ) {
     // register all builtin modules
     register_builtin_modules();
     require_project_specific_modules();
-    #if !defined(DAS_ENABLE_DLL) || !defined(DAS_ENABLE_DYN_INCLUDES)
-    // Otherwises search for static modules.
-    #include "modules/external_need.inc"
-    #endif
+    // dagor: no external (daspkg-generated) static modules to pull
     #ifdef DAS_ENABLE_DYN_INCLUDES
     if ( !noDynamicModules ) {
         daScriptEnvironment::ensure();
@@ -242,6 +244,121 @@ int das_aot_main ( int argc, char * argv[] ) {
     return compiled ? 0 : -1;
 }
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+
+// Browser 3-call lifecycle: a wasm page cannot block in main()'s while(true) — it
+// must yield to the browser each frame. So a program that exposes `update` is run
+// as a browser main-loop instead of single-shot main(): init() once, then update()
+// per frame via emscripten_set_main_loop, shutdown() when the loop ends. Desktop
+// runs main() (init();while(!exit){update()};shutdown()) — one homogeneous .das.
+namespace {
+    // emscripten_set_main_loop(...,false) does NOT unwind the C++ stack, so
+    // compile_and_run returns and its stack ContextPtr (a shared_ptr) would drop
+    // to zero refs and destroy the Context — the per-frame update() would then
+    // deref a dead context. We copy the shared_ptr into this heap struct so it
+    // outlives that return; stop_browser_loop() frees it when the loop ends
+    // (update() stops, or the next run supersedes it).
+    struct WebLoop {
+        ContextPtr      ctx;
+        SimFunction *   updateFn = nullptr;
+        SimFunction *   shutdownFn = nullptr;
+    };
+
+    // The single void/bool/int callable overload of `name`, or nullptr (none/ambiguous).
+    SimFunction * pick_lifecycle_fn ( Context * ctx, const char * name, ModuleGroup & mg ) {
+        SimFunction * found = nullptr;
+        for ( auto fnAS : ctx->findFunctions(name) ) {
+            if ( verifyCall<void>(fnAS->debugInfo, mg)
+              || verifyCall<bool>(fnAS->debugInfo, mg)
+              || verifyCall<int32_t>(fnAS->debugInfo, mg) ) {
+                if ( found ) return nullptr;    // ambiguous overload set
+                found = fnAS;
+            }
+        }
+        return found;
+    }
+
+    // The single active browser loop. Emscripten supports ONE main loop and ONE
+    // GLFW window at a time, so a new run must tear the previous one down first.
+    WebLoop * g_activeWebLoop = nullptr;
+
+    // Mirror of main()'s dumpLeaks (-no-dump-leaks), so the post-shutdown leak check
+    // in stop_browser_loop respects the same flag as the end-of-callMain dump.
+    bool g_webloop_dump_leaks = true;
+
+    // Stop the active loop: cancel its main loop, run its shutdown() (which
+    // destroys the GLFW window + glfwTerminate — without this the next program's
+    // glfwCreateWindow aborts "only supports one window at a time"), free the
+    // Context. Idempotent; null-guarded; best-effort (teardown ignores exceptions).
+    void stop_browser_loop () {
+        if ( !g_activeWebLoop ) return;
+        auto loop = g_activeWebLoop;
+        g_activeWebLoop = nullptr;
+        emscripten_cancel_main_loop();
+        if ( loop->shutdownFn ) {
+            loop->ctx->evalWithCatch(loop->shutdownFn, nullptr);
+            loop->ctx->getException();   // swallow — teardown is best-effort
+        }
+        delete loop;   // drops the Context shared_ptr -> Context + its objects freed
+        // Real leak check for browser-loop programs: now that the program has ended
+        // and shutdown() ran, report any JobStatus/Channel/LockBox the program failed
+        // to free. (The end-of-callMain dump in main() is skipped while a loop is live
+        // — at that point the program is still running and its objects are in use.)
+        // Honors -no-dump-leaks via g_webloop_dump_leaks.
+        if ( g_webloop_dump_leaks ) {
+            if ( uint64_t n = JobStatus::CountJobQueLeaks() ) {
+                tout << "JobQue leak after browser-loop shutdown: " << n << "\n";
+                JobStatus::DumpJobQueLeaks();
+            }
+        }
+    }
+
+    void web_loop_tick ( void * arg ) {
+        auto loop = (WebLoop *) arg;
+        vec4f res = loop->ctx->evalWithCatch(loop->updateFn, nullptr);
+        bool keepGoing = true;
+        if ( auto ex = loop->ctx->getException() ) {
+            tout << "EXCEPTION: " << ex << " at " << loop->ctx->exceptionAt.describe() << "\n";
+            keepGoing = false;
+        } else if ( loop->updateFn->debugInfo && loop->updateFn->debugInfo->result ) {
+            auto rt = loop->updateFn->debugInfo->result->type;
+            if ( rt == Type::tBool ) {
+                keepGoing = cast<bool>::to(res);            // bool update(): false stops the loop
+            } else if ( rt == Type::tInt ) {
+                keepGoing = cast<int32_t>::to(res) != 0;    // int update(): 0 stops the loop
+            }
+        }
+        // void update(): runs until the page closes or the next run stops it.
+        if ( !keepGoing ) stop_browser_loop();
+    }
+
+    // True ⇒ the program was launched as a browser loop (Context persisted, main
+    // loop installed, or init() threw and was reported). False ⇒ run single-shot main().
+    bool start_browser_loop ( ContextPtr & pctx, ModuleGroup & mg ) {
+        auto updateFn = pick_lifecycle_fn(pctx.get(), "update", mg);
+        if ( !updateFn ) return false;
+        auto initFn = pick_lifecycle_fn(pctx.get(), "init", mg);
+        auto shutdownFn = pick_lifecycle_fn(pctx.get(), "shutdown", mg);
+        pctx->restart();
+        if ( initFn ) {
+            pctx->evalWithCatch(initFn, nullptr);
+            if ( auto ex = pctx->getException() ) {
+                tout << "EXCEPTION in init(): " << ex << " at " << pctx->exceptionAt.describe() << "\n";
+                return true;    // reported; do not fall back to main(), do not start the loop
+            }
+        }
+        auto loop = new WebLoop();      // lives until the next run stops it (stop_browser_loop)
+        loop->ctx = pctx;               // shared_ptr copy keeps the Context alive past return
+        loop->updateFn = updateFn;
+        loop->shutdownFn = shutdownFn;
+        g_activeWebLoop = loop;
+        emscripten_set_main_loop_arg(web_loop_tick, loop, 0, false);    // 0 = rAF; false = no unwind
+        return true;
+    }
+}
+#endif
+
 // returns process exit code:
 //   0 on success
 //   non-zero from int main, or 1 on compile/simulate/verify/exception failure
@@ -250,6 +367,12 @@ int compile_and_run ( const string & fn, const string & mainFnName, bool outputP
     // captures below this frame skip re-walking ancestors. No-op when
     // DAS_TRACK_ALLOC is off or on non-Win64.
     das::AllocTrackingLandmark _alloc_tracker_landmark;
+#ifdef __EMSCRIPTEN__
+    // A previous graphics program may have installed a browser loop that is still
+    // running (and still owns the single GLFW window). Tear it down before running
+    // a new program, else its glfwCreateWindow aborts. No-op when none is active.
+    stop_browser_loop();
+#endif
     auto access = get_file_access((char*)(projectFile.empty() ? nullptr : projectFile.c_str()));
     if ( introFile ) {
         auto fileInfo = make_unique<TextFileInfo>(introFile, uint32_t(strlen(introFile)), false);
@@ -273,9 +396,15 @@ int compile_and_run ( const string & fn, const string & mainFnName, bool outputP
             default: break;
         }
         if ( jitNoCache ) policies.jit_dll_mode = false;
+        policies.jit_emit_prologue = jitStack;
         access->addExtraModule("just_in_time", getDasRoot() + "/daslib/just_in_time.das");
         policies.jit_output_path = jitOutPath;
         policies.dll_search_paths.emplace_back(getDasRoot() + "/lib");
+    }
+    if ( astVerifyRequired ) {
+        // force-include the AST verifier the same way -jit/-debugger pull in their
+        // daslib support; its [pre_infer_macro] then runs over the program's modules.
+        access->addExtraModule("ast_verify", getDasRoot() + "/daslib/ast_verify.das");
     }
     if ( useAot ) {
         // don't set policies.aot here - the host program (e.g. dastest) doesn't need AOT linking
@@ -285,12 +414,17 @@ int compile_and_run ( const string & fn, const string & mainFnName, bool outputP
         policies.fail_on_no_aot = false;
     }
     policies.fail_on_lack_of_aot_export = false;
+    policies.aot_macros = aotMacros;    // -aot-macros: force quote lowering (daslib/quote) in a normal run
+    if ( aotMacros ) {
+        policies.stack = 1 * 1024 * 1024;   // a lowered quote evaluates one large construction frame
+    }
     policies.version_2_syntax = version2syntax;
     policies.gen2_make_syntax = gen2MakeSyntax;
     policies.scoped_stack_allocator = scopedStackAllocator;
     policies.track_allocations = trackAllocations;
     policies.no_lint = noLint;
     policies.log_module_compile_time = logModuleCompileTime;
+    policies.building_documentation = buildingDocumentation;
     policies.persistent_heap = true;
     if ( auto program = compileDaScript(fn,access,tout,dummyGroup,policies) ) {
         if ( program->failed() ) {
@@ -323,6 +457,13 @@ int compile_and_run ( const string & fn, const string & mainFnName, bool outputP
             } else if ( program->thisModule->isModule ) {
                 tout<< "WARNING: program is setup as both module, and endpoint.\n";
             } else {
+#ifdef __EMSCRIPTEN__
+                // If the program exposes update(), run it as a browser main-loop
+                // (the Context is persisted off the stack) instead of single-shot main().
+                if ( start_browser_loop(pctx, dummyGroup) ) {
+                    return 0;
+                }
+#endif
                 auto fnVec = pctx->findFunctions(mainFnName.c_str());
                 das::vector<SimFunction *> fnMVec;
                 for ( auto fnAS : fnVec ) {
@@ -431,6 +572,7 @@ void print_help() {
         << "    -jit        enable Just-In-Time compilation\n"
         << "    -jit-no-cache  with -jit: skip the per-script DLL cache, codegen direct in-memory.\n"
         << "                Useful when the cached .jitted_scripts/ DLL is stale or unwanted.\n"
+        << "    -jit-stack  with -jit: retain every generated call in the logical daslang stack.\n"
         << "    -exe        JIT compile to standalone executable (implies -dry-run)\n"
         << "    -output <path> set JIT output path\n"
         << "    --list-shared-modules <path> with -exe: write JSON describing the program's shared modules and daspkg-package .das module sources to <path>\n"
@@ -439,11 +581,13 @@ void print_help() {
         << "    -project <path.das_project> path to project file\n"
         << "    -project_root <path> root directory of the project (used for dyn modules)\n"
         << "    -load_module <path> directly load a single dynamic-module folder (the one containing .das_module); repeatable. Bypasses the project_root/modules/<name> scan and shadows same-basename entries from dasroot/project_root.\n"
+        << "    --disable-module <name> never load/register the named dynamic module (case-insensitive folder match); repeatable. Keeps a native-only module (e.g. dashv) out of a wasm cross-compile so a guarded `require ?name` resolves as absent.\n"
         << "    -run-fmt    <-i/-d> <-v2/-v1> {--semicolon} run formatter\n"
         << "    -log        output program code\n"
         << "    -pause      pause after errors and pause again before exiting program\n"
         << "    -dry-run    compile and simulate script without execution\n"
         << "    -compile-only compile script without simulation and execution\n"
+        << "    -documentation compile in documentation/reflection mode (disables per-box transforms)\n"
         << "    -dasroot <path> set path to daslang root folder (with daslib)\n"
         << "    --track-smart-ptr <id> track smart pointer with id\n"
         << "    --track-job-status <id> track JobStatus/Channel/LockBox with id\n"
@@ -460,6 +604,7 @@ void print_help() {
         << "    --das-profiler-leaks track live heap allocations and dump leaks on context destroy\n"
         << "    -no-dynamic-modules  skip loading dynamic modules from dasroot and project root\n"
         << "    -no-lint    skip the lint pass (Program::lint)\n"
+        << "    --ast-verify  force-include daslib/ast_verify; checks AST structural invariants before each inference pass\n"
         << "    -log-compile-time  log detailed per-module compile-time breakdown (parse / infer with pass count / optimize / macro (in infer) / macro mods / simulate) + function count\n"
         << "    --          separator for script arguments\n"
         << "daslang -aot <in_script.das> <out_script.das.cpp> {-q} {-p}\n"
@@ -530,6 +675,7 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
     bool dumpLeaks = true;
     string project_root;
     vector<string> load_modules;
+    vector<string> disabled_modules;
     optional<format::FormatOptions> formatter;
     for ( int i=1; i < argc; ++i ) {
         if ( argv[i][0]=='-' ) {
@@ -538,7 +684,7 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
                 scriptArgs = true;
             }
             if ( cmd=="main" ) {
-                if ( i+1 > argc ) {
+                if ( i+1 >= argc ) {
                     printf("main requires argument\n");
                     print_help();
                     return -1;
@@ -546,7 +692,7 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
                 mainName = argv[i+1];
                 i += 1;
             } else if ( cmd=="dasroot" ) {
-                if ( i+1 > argc ) {
+                if ( i+1 >= argc ) {
                     printf("dasroot requires argument\n");
                     print_help();
                     return -1;
@@ -568,10 +714,14 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
                 jitEnabled = JitMode::Direct;
             } else if ( cmd=="jit-no-cache") {
                 jitNoCache = true;
+            } else if ( cmd=="jit-stack") {
+                jitStack = true;
             } else if ( cmd=="use-aot") {
                 useAot = true;
+            } else if ( cmd=="aot-macros") {
+                aotMacros = true;   // force quote lowering (daslib/quote) in a normal run
             } else if ( cmd=="output") {
-                if ( i+1 > argc ) {
+                if ( i+1 >= argc ) {
                     printf("output requires argument\n");
                     print_help();
                     return -1;
@@ -604,6 +754,8 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
                 dryRun = true;
             } else if ( cmd=="compile-only" ) {
                 compileOnly = true;
+            } else if ( cmd=="documentation" ) {
+                buildingDocumentation = true;
             } else if ( cmd=="no-lint" ) {
                 noLint = true;
             } else if ( cmd=="log-compile-time" ) {
@@ -618,6 +770,14 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
                     return -1;
                 }
                 load_modules.push_back(argv[i + 1]);
+                i++;
+            } else if ( cmd=="-disable-module" ) {
+                if ( i+1 >= argc ) {
+                    printf("--disable-module requires module-name argument\n");
+                    print_help();
+                    return -1;
+                }
+                disabled_modules.push_back(argv[i + 1]);
                 i++;
             } else if ( cmd=="run-fmt" ) {
                 formatter.emplace();
@@ -657,7 +817,7 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
                 pauseAfterErrors = true;
                 pauseAfterDone = true;
             } else if ( cmd=="project") {
-                if ( i+1 > argc ) {
+                if ( i+1 >= argc ) {
                     printf("das-project requires argument\n");
                     print_help();
                     return -1;
@@ -666,7 +826,7 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
                 i += 1;
             } else if ( cmd=="-track-smart-ptr" ) {
                 // script will pick up next argument by itself
-                if ( i+1 > argc ) {
+                if ( i+1 >= argc ) {
                     printf("expecting smart pointer id\n");
                     print_help();
                     return -1;
@@ -680,7 +840,7 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
                 i += 1;
                 printf("tracking %" PRIx64 " aka %" PRIu64 "\n", id, id);
             } else if ( cmd=="-track-job-status" ) {
-                if ( i+1 > argc ) {
+                if ( i+1 >= argc ) {
                     printf("expecting job status id\n");
                     print_help();
                     return -1;
@@ -695,13 +855,15 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
                 printf("tracking JobStatus #%" PRIu64 "\n", id);
             } else if ( cmd=="-das-wait-debugger") {
                 debuggerRequired = true;
+            } else if ( cmd=="-ast-verify") {
+                astVerifyRequired = true;
             } else if ( cmd=="-linear-stack-allocator") {
                 scopedStackAllocator = false;
             } else if ( cmd=="-das-profiler") {
                 profilerRequired = true;
             } else if ( cmd=="-das-profiler-log-file") {
                 // script will pick up next argument by itself
-                if ( i+1 > argc ) {
+                if ( i+1 >= argc ) {
                     printf("expecting profiler log file name\n");
                     print_help();
                     return -1;
@@ -751,17 +913,14 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
     // register modules
     register_builtin_modules();
     require_project_specific_modules();
-    #if !defined(DAS_ENABLE_DLL) || !defined(DAS_ENABLE_DYN_INCLUDES)
-    // Otherwises search for static modules.
-    #include "modules/external_need.inc"
-    #endif
+    // dagor: no external (daspkg-generated) static modules to pull
     #ifdef DAS_ENABLE_DYN_INCLUDES
     if ( !noDynamicModules ) {
         // Search for external modules and init them. Only if flag is enabled.
         daScriptEnvironment::ensure();
         project_root = deduce_project_root(project_root, files.front());
         auto access = get_file_access((char*)(projectFile.empty() ? nullptr : projectFile.c_str()));
-        require_dynamic_modules(access, getDasRoot(), project_root, load_modules, tout);
+        require_dynamic_modules(access, getDasRoot(), project_root, load_modules, disabled_modules, tout);
     }
     #endif
     Module::Initialize();
@@ -776,6 +935,9 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
         return -1;
     }
 
+#ifdef __EMSCRIPTEN__
+    g_webloop_dump_leaks = dumpLeaks;   // stop_browser_loop's leak check honors -no-dump-leaks
+#endif
     for ( auto & fn : files ) {
         replace(fn, "_dasroot_", getDasRoot());
         int rc = compile_and_run(fn, mainName, outputProgramCode, dryRun, compileOnly);
@@ -785,10 +947,25 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
     }
     // and done
     if ( pauseAfterDone ) getchar();
+#ifdef __EMSCRIPTEN__
+    // A browser main-loop (update/init/shutdown program) keeps running after
+    // callMain returns — its Context, JobStatus and smart_ptrs are legitimately
+    // still alive (freed when the loop ends, via stop_browser_loop, which runs its
+    // own leak check). Module::Shutdown still runs (its per-run cleanup is needed
+    // for the next program to start cleanly), but with leak reporting off; then we
+    // return before the end-of-run JobStatus/smart_ptr dump + exit(1), which assume
+    // the program is finished and would flag every in-use object as "leaked".
+    const bool browserLoopActive = ( g_activeWebLoop != nullptr );
+#else
+    const bool browserLoopActive = false;
+#endif
     // Handle-leak dump runs inside Module::Shutdown, between module
     // destruction (drains job threads) and DLL unload (invalidates the
     // dumpHandleLeaks<T> function pointers registered from shared modules).
-    Module::Shutdown(dumpLeaks);
+    Module::Shutdown(dumpLeaks && !browserLoopActive);
+    if ( browserLoopActive ) {
+        return exitCode;
+    }
     if ( dumpLeaks ) {
         JobStatus::DumpJobQueLeaks();
     }

@@ -3,21 +3,23 @@
 
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "ci.h"
 
 class NameMap
 {
 public:
-  NameMap() {}
-  ~NameMap() {}
+  NameMap() = default;
+  NameMap(const NameMap &) = delete;
+  NameMap &operator=(const NameMap &) = delete;
 
   /// Clear name list.
   void clear();
 
   /// Number of names in list.
   /// You can get them all by iterating from 0 to nameCount()-1.
-  int nameCount() const { return int(s2i.size()); }
+  int nameCount() const { return int(names.size()); }
 
   /// Returns NULL when name_id is invalid.
   const char *getName(int i) const;
@@ -29,8 +31,9 @@ public:
   int addNameId(const char *name);
 
 private:
+  // s2i owns the names; its nodes are stable, so entries of `names` may point at its keys
   std::unordered_map<std::string, int, CaseInsensitiveHash, CaseInsensitiveEqual> s2i;
-  std::unordered_map<int, std::string> i2s;
+  std::vector<const char *> names;
 };
 
 

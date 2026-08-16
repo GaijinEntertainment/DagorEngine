@@ -151,6 +151,7 @@ public:
   bool getSelectionBox(BBox3 &box) override;
   bool getGlobalBox(BBox3 &box) override;
   void zoomAndCenter() override;
+  bool useAutoZoomAndCenter() const { return autoZoomAndCenter; }
 
   String getScreenshotNameMask(bool cube) const override;
 
@@ -158,11 +159,11 @@ public:
   void setGizmo(IGizmoClient *gc, ModeType type) override;
   void startGizmo(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   void endGizmo(bool apply) override;
-  ModeType getGizmoModeType() override; //{ return MODE_Move; }
-  BasisType getGizmoBasisType() override { return BASIS_World; }
-  BasisType getGizmoBasisTypeForMode(ModeType) override { return BASIS_World; }
-  CenterType getGizmoCenterType() override { return CENTER_Pivot; }
-  CenterType getGizmoCenterTypeForMode(ModeType) override { return CENTER_Pivot; }
+  ModeType getGizmoModeType() override;
+  BasisType getGizmoBasisType() override;
+  BasisType getGizmoBasisTypeForMode(ModeType) override;
+  CenterType getGizmoCenterType() override;
+  CenterType getGizmoCenterTypeForMode(ModeType) override;
   bool isGizmoOperationStarted() const override;
 
   // brush methods
@@ -230,7 +231,7 @@ public:
   void drawAssetInformation(IGenViewportWnd *wnd);
   void afterUpToDateCheck(bool changed);
   const DagorAssetMgr &getAssetMgr() const { return assetMgr; }
-  bool trackChangesContinuous(int assets_to_check);
+  bool trackChangesContinuous(int assets_to_check, bool notify_dabuild = false);
   void invalidateAssetIfChanged(DagorAsset &a);
 
   const DagorAsset *getCurAsset() const { return curAsset; }

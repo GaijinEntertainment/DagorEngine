@@ -18,8 +18,6 @@ class framemem_allocator;
 namespace dafg
 {
 
-static constexpr int SCHEDULE_FRAME_WINDOW = BarrierScheduler::SCHEDULE_FRAME_WINDOW;
-
 static constexpr uint32_t UNSCHEDULED = eastl::numeric_limits<uint32_t>::max();
 
 // Fake heap group used for CPU resources

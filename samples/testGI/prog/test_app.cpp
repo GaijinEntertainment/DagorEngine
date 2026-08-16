@@ -1656,7 +1656,7 @@ public:
             {
               SCOPE_RENDER_TARGET;
               set_voxelization_target_and_override(maxRes * world_sdf_rasterize_supersample, maxRes * world_sdf_rasterize_supersample);
-              bool prims = rasterize_sdf_prims.get() && d3d::get_driver_desc().shaderModel < 6.1_sm;
+              bool prims = rasterize_sdf_prims.get() && !d3d::get_driver_desc().caps.hasBarycentrics;
               lruColl.voxelize.rasterizeSDF(*lruColl.lruColl, dag::Span<uint64_t>(handles.data(), handles.size()), prims);
               reset_voxelization_override();
             }

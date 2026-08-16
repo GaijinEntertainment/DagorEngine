@@ -14,6 +14,7 @@ source
   file:t = "../renderGradedColorLUT.dshl"
   file:t = "../resolve_thin_g_buffer.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_hwinstance_copy.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_lru_collision_normals.dshl"
 
   include "../../../gameLibs/daGI2/shaders/shadersList.blk"
   include "../../../gameLibs/daSDF/shaders/daSDFList.blk"
@@ -34,7 +35,6 @@ Compile
   group_size_in_kb:i=128
   assume_vars {
     include common_assumes.blk
-    supports_sh_6_1:i = 0
     //gi_voxelize_use_multidraw:i=1
     particles_buffer_id:i=8
     static_shadows_custom_fxaa:i=0

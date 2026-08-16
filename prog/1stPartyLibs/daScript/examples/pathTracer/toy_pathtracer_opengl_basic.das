@@ -1,17 +1,33 @@
 options gen2
+options persistent_heap
+options gc
 require glfw/glfw_boost
 require opengl/opengl_boost
 require glsl/glsl_opengl
-require daslib/defer
 require math
 
 require daslib/safe_addr
 require daslib/random
 
 require path_tracer
+require daslib/clargs
+require live/live_gc
 
 let TRACE_WIDTH = 1024
 let TRACE_HEIGHT = 1024
+
+[CommandLineArgs]
+struct PathTracerArgs {
+    @clarg_short = "f"
+    @clarg_name = "max-frames"
+    @clarg_doc = "Render this many frames, then exit 0 (0 = run until the window closes). Lets the demo double as a headless smoke test."
+    frames : int
+
+    @clarg_short = "?"
+    @clarg_name = "show-help"
+    @clarg_doc = "Show this help and exit"
+    help : bool
+}
 
 var @in @location = 0 v_position : float2
 var @in @location = 1 v_texcoord : float2
@@ -45,6 +61,7 @@ var vao : uint
 var vbo : uint
 var ebo : uint
 var texture : uint
+var window : GLFWwindow?
 
 [vertex_buffer]
 struct EffectVertex {
@@ -75,38 +92,69 @@ def create_gl_objects {
 }
 
 [export]
-def main {
+def init {
     if (glfwInit() == 0) {
         panic("can't init glfw")
     }
-    defer() {
-        glfwTerminate()
-    }
     glfwInitOpenGL(3, 3)
-    var window = glfwCreateWindow(TRACE_WIDTH, TRACE_HEIGHT, "OpenGL Path tracer", null, null)
+    window = glfwCreateWindow(TRACE_WIDTH, TRACE_HEIGHT, "OpenGL Path tracer", null, null)
     if (window == null) {
         panic("can't create window")
-    }
-    defer() {
-        glfwDestroyWindow(window)
     }
     glfwSetWindowSize(window, TRACE_WIDTH, TRACE_HEIGHT)
     glfwMakeContextCurrent(window)
     create_gl_objects()
-    while (glfwWindowShouldClose(window) == 0) {
-        glfwPollEvents()
-        var display_w, display_h : int
-        glfwGetFramebufferSize(window, display_w, display_h)
-        glViewport(0, 0, display_w, display_h)
-        glUseProgram(display_program)
-        c_frame++
-        vs_effect_bind_uniform(display_program)
-        fs_effect_bind_uniform(display_program)
-        glBindVertexArray(vao)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null)
-        // swap buffers
-        glfwMakeContextCurrent(window)
-        glfwSwapBuffers(window)
+}
+
+[export]
+def update {
+    glfwPollEvents()
+    var display_w, display_h : int
+    glfwGetFramebufferSize(window, display_w, display_h)
+    glViewport(0, 0, display_w, display_h)
+    glUseProgram(display_program)
+    c_frame++
+    vs_effect_bind_uniform(display_program)
+    fs_effect_bind_uniform(display_program)
+    glBindVertexArray(vao)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null)
+    // swap buffers
+    glfwMakeContextCurrent(window)
+    glfwSwapBuffers(window)
+}
+
+[export]
+def shutdown {
+    if (window != null) {
+        glfwDestroyWindow(window)
+        window = null
     }
+    glfwTerminate()
+}
+
+[export]
+def main {
+    var r <- parse_args(type<PathTracerArgs>)
+    if (r |> is_err) {
+        print("error: {r |> unwrap_err}\n\n")
+        print_help(get_command_info(type<PathTracerArgs>), "toy_pathtracer_opengl_basic")
+        return
+    }
+    let cfg <- r |> move_unwrap
+    if (cfg.help) {
+        print_help(get_command_info(type<PathTracerArgs>), "toy_pathtracer_opengl_basic")
+        return
+    }
+    init()
+    var frame_count = 0
+    while (glfwWindowShouldClose(window) == 0) {
+        update()
+        maybe_collect_gc()
+        frame_count++
+        if (cfg.frames > 0 && frame_count >= cfg.frames) {
+            break   // headless smoke / test mode: stop after the requested frame count
+        }
+    }
+    shutdown()
 }

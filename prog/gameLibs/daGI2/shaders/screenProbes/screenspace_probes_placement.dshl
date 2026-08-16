@@ -42,10 +42,10 @@ macro SP_TEMPORAL_SELECT(code)
   hlsl(code) {
     #include "screenspace_probes_temporal_list_add.hlsl"
 
-    uint sp_temporal_select_probe(uint encoded_normalized_w, uint screen_probe_index, uint2 screen_tile_coord, float3 scene_normal)
+    uint sp_temporal_select_probe(uint encoded_normalized_w, uint screen_probe_index, float2 probe_screen_uv, float3 scene_normal)
     {
       float normalizedW = sp_decodeProbeInfo(encoded_normalized_w).normalizedW;
-      float3 camPos = sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord)) * normalizedW;
+      float3 camPos = sp_getViewVecOptimizedNormalized(probe_screen_uv) * normalizedW;
 
       uint revAge = sp_is_valid_history() ? sample_history_rev_age(normalizedW * sp_zn_zfar.y, camPos, scene_normal) : SP_NEWBORN_REV_AGE;
 
@@ -68,6 +68,7 @@ shader initial_probes_placement_cs
   HISTORY_ONLY_PROBE(cs)
   (cs) {
     sp_globtm_from_campos@f44 = sp_globtm_from_campos;
+    sp_from_center_scale@f1 = (-0.64/(screenspace_probe_res.z*screenspace_probe_res.z));
     screenspace_probe_pos@uav : register(0) hlsl {
       RWByteAddressBuffer screenspace_probe_pos@uav;
     }
@@ -91,7 +92,9 @@ shader initial_probes_placement_cs
 
     float wFromCenter(int2 fromCenter)
     {
-      return exp2(-0.01*dot(fromCenter,fromCenter));
+      // tile-relative falloff (-0.01*(8/tileSize)^2 precomputed): keeping an off-center
+      // anchor must not get harder as tiles grow, or big tiles force re-centers
+      return exp2(sp_from_center_scale*dot(fromCenter,fromCenter));
     }
 
     int2 clampGbufferTc(int2 tc)
@@ -230,7 +233,7 @@ shader initial_probes_placement_cs
         sceneNormal = decodeProbeNormal(encodedNormal);
         store = sp_encodeNormalizedW(baseProbe.normalizedW);
 
-        uint tagAge = sp_temporal_select_probe(store, screen_probe_index, screen_tile_coord, sceneNormal);
+        uint tagAge = sp_temporal_select_probe(store, screen_probe_index, screenUv, sceneNormal);
 
         store |= sp_encodeTag(tagAge|sp_encodeTagMoving(isDynamic));
         if (exp2(depth_exp_precision(SP_DEFAULT_BILINEAR_DEPTH_EXP, linearDepthCenter, sp_zn_zfar.y)*max(pow2(1-farthestDepthW/linearDepthCenter), pow2(1-veryCloseW/linearDepthCenter))) < 0.01)//not effective, but rather cheap check if we need to place additional probes in this tile at all
@@ -258,10 +261,8 @@ shader additional_probes_placement_cs
   PROJECT_DO_NOT_UPDATE_FROM_POINT(cs)
   SCREENSPACE_PROBES_POSITIONS_COMMON(cs)
   SAMPLE_PREV_AGE_SP(cs)
-  SP_GET_DEPTH_MIN_MAX(cs)
   (cs) {
     sp_placement_iteration@i2 = sp_placement_iteration;
-    downsampled_normals@tex2d = downsampled_normals;
     screenspace_probe_pos@uav : register(0) hlsl {
       RWByteAddressBuffer screenspace_probe_pos@uav;
     }
@@ -280,7 +281,17 @@ shader additional_probes_placement_cs
 
   hlsl(cs) {
 
-    float calc_upsample_weights_threshold(RWByteAddressBuffer linkedList, UAVBufferInfo srvInfo, ViewInfo vInfo, UpsamplePointInfo pointInfo, float depth_exp, uint skip_iteration, float threshold)
+    // 3x3 probe neighborhood of the tile: the bilinear corners of any candidate
+    // pixel inside the tile fall here, so the probe and normal/ofs dwords are
+    // loaded once per group instead of per thread per iteration. The snapshot
+    // freezes tag state at group start: tag bits set by other groups in the
+    // same dispatch surface one iteration later (direct loads could also miss
+    // them - no globallycoherent); same-iteration list entries are skipped by
+    // design.
+    groupshared uint tileSharedCornerProbe[9];
+    groupshared uint tileSharedCornerNormalOfs[9];
+
+    float calc_upsample_weights_threshold(RWByteAddressBuffer linkedList, UAVBufferInfo srvInfo, ViewInfo vInfo, UpsamplePointInfo pointInfo, uint2 screen_tile_coord, float depth_exp, uint skip_iteration, float threshold)
     {
       float2 probeCoord2DF = pointInfo.screenCoord.xy*screenspace_probe_screen_coord_to_probe_coord.x + screenspace_probe_screen_coord_to_probe_coord.y;
       uint2 probeCoord2D = uint2(clamp(probeCoord2DF, 0, screenspace_probe_res.xy - 2));
@@ -304,23 +315,25 @@ shader additional_probes_placement_cs
       depth_exp *= depth_exp_precision_scale(pointInfo.sceneLinearDepth, sp_zn_zfar.y);
       corners.relDepth = 1e6;
 
-      uint4 encodedScreenProbes = load_encoded_screen_probes(srvInfo, probeCoord2D, vInfo.screenspace_probe_res.x);
       {
         UNROLL
         for (uint i = 0; i < 4; ++i)
         {
           uint2 coordOffset = uint2(i&1, (i&2)>>1);
           uint2 sampleProbeCoord = coordOffset + probeCoord2D;
-          uint2 atlasSampleProbeCoord = sampleProbeCoord;
-          uint screenProbeIndex = sampleProbeCoord.x + screenspace_probe_res.x*sampleProbeCoord.y;
-          uint encodedProbe = encodedScreenProbes[i];
+          // corners stay within the 3x3 by construction; clamp so a tile-size
+          // rework of the kernel cannot turn this into an out of bounds read
+          uint2 cornerRel = uint2(clamp(int2(sampleProbeCoord) - int2(screen_tile_coord) + 1, 0, 2));
+          uint cacheAt = cornerRel.x + cornerRel.y*3u;
+          uint encodedProbe = tileSharedCornerProbe[cacheAt];
           FLATTEN
           if (!encodedProbe)
             corners.sampleBilWeights[i] = 0;
           else
           {
             DecodedProbe baseProbe = sp_decodeProbeInfo(encodedProbe);
-            float3 probeCamPos = baseProbe.normalizedW*getViewVecFromTc(getScreenProbeCenterScreenUV(sampleProbeCoord), vInfo.lt, vInfo.hor, vInfo.ver);
+            uint2 cornerCoordOfs = decodeCoordOfs(tileSharedCornerNormalOfs[cacheAt]);
+            float3 probeCamPos = baseProbe.normalizedW*getViewVecFromTc(getScreenProbeAnchorScreenUV(sampleProbeCoord, cornerCoordOfs), vInfo.lt, vInfo.hor, vInfo.ver);
             corners.relDepth[i] = pow2(dot(float4(probeCamPos, -1), scenePlane));
             corners.relDepth[i] += sp_get_additional_rel_depth_placement(baseProbe.normalizedW*vInfo.zn_zfar.y,  pointInfo.sceneLinearDepth, depth_exp);
             corners.depthWeights[i] = exp2(depth_exp*corners.relDepth[i]);
@@ -340,7 +353,9 @@ shader additional_probes_placement_cs
         uint2 coordOffset = uint2(i&1, (i&2)>>1);
         uint2 sampleProbeCoord = coordOffset + probeCoord2D;
         uint screenProbeIndex = sampleProbeCoord.x + screenspace_probe_res.x*sampleProbeCoord.y;
-        uint encodedProbe = encodedScreenProbes[i];
+        uint2 cornerRel = uint2(clamp(int2(sampleProbeCoord) - int2(screen_tile_coord) + 1, 0, 2));
+        uint cacheAt = cornerRel.x + cornerRel.y*3u;
+        uint encodedProbe = tileSharedCornerProbe[cacheAt];
         if (encodedProbe&(SP_TAG_HAS_ADDITIONAL<<SP_TAG_BITS_SHIFT))
         {
           for (uint iteration = 0, addProbeIndexAndIteration = loadBuffer(linkedList, screenProbeIndex*4 + 4); iteration < skip_iteration; ++iteration)
@@ -353,15 +368,15 @@ shader additional_probes_placement_cs
             #if DEBUG_ENABLE_BOUNDS_CHECKS && !_HARDWARE_METAL
             uint bufferSize;
             linkedList.GetDimensions(bufferSize);
-            ##assert(index + 8 < bufferSize, "Linked list buffer overrun. NumScreenProbes: %.f, addProbeIndex: %.f, bufferSize: %.f, addProbeIndexAndIteration: %.f, screenProbeIndex: %.f, sampleProbeCoord.x: %.f, sampleProbeCoord.y: %.f, screenspace_probe_res: %.f", sp_getNumScreenProbes(), addProbeIndex, bufferSize, addProbeIndexAndIteration, screenProbeIndex, sampleProbeCoord.x, sampleProbeCoord.y, screenspace_probe_res.x);
+            ##assert(index + 11 < bufferSize, "Linked list buffer overrun. NumScreenProbes: %.f, addProbeIndex: %.f, bufferSize: %.f, addProbeIndexAndIteration: %.f, screenProbeIndex: %.f, sampleProbeCoord.x: %.f, sampleProbeCoord.y: %.f, screenspace_probe_res: %.f", sp_getNumScreenProbes(), addProbeIndex, bufferSize, addProbeIndexAndIteration, screenProbeIndex, sampleProbeCoord.x, sampleProbeCoord.y, screenspace_probe_res.x);
             #endif
-            uint2 nextAndProbe = loadBuffer2(linkedList, index);
+            uint3 nextAndProbe = loadBuffer3(linkedList, index);
             DecodedProbe additionalProbe = sp_decodeProbeInfo(nextAndProbe.y);
 
             uint probeIterationIndex = addProbeIndexAndIteration>>SP_ADDITIONAL_ITERATION_INDEX_SHIFT;
             if (probeIterationIndex != skip_iteration)
             {
-              ProcessedAdditionalProbe addProbeProcessed = processAdditionalProbe(additionalProbe, vInfo, sampleProbeCoord, pointInfo.sceneLinearDepth, scenePlane, depth_exp);
+              ProcessedAdditionalProbe addProbeProcessed = processAdditionalProbe(additionalProbe, decodeCoordOfs(nextAndProbe.z), vInfo, sampleProbeCoord, pointInfo.sceneLinearDepth, scenePlane, depth_exp);
               if (addProbeProcessed.depthWeight > corners.depthWeights[i])
               {
                 corners.relDepth[i] = addProbeProcessed.relativeDepthDifference;
@@ -378,32 +393,7 @@ shader additional_probes_placement_cs
       return dot(corners.cornerDepthBilWeights, 1);
     }
 
-    // to check for OOB on odd mip sizes (returns special COORD_OUT_OF_BOUNDS if it happened)
-    #define COORD_OUT_OF_BOUNDS_VAL (uint2(uint(-1), uint(-1)))
-    #define COORD_IS_VALID(coord) ((coord).x != uint(-1))
-    uint2 map_screen_coord_to_downsampled_texture_mip(uint2 screen_coord, uint mip)
-    {
-      uint2 sampleCoord = screen_coord >> (mip + 1);
-      uint scaleCoeff = (1U << (mip + 1));
-      if (all(or(gbuffer_depth_size_load % scaleCoeff == 0, (sampleCoord + 1) * scaleCoeff < gbuffer_depth_size_load)))
-        return sampleCoord;
-      else
-        return COORD_OUT_OF_BOUNDS_VAL;
-    }
-
     #define TILE_SIZE 8
-    float getCloseDepth(uint2 screenCoord)
-    {
-      BRANCH
-      if (sp_placement_iteration.x == 0 && uint(screenspace_probe_res.z) > TILE_SIZE)//one constant, fixme
-      {
-        uint downsampled_mip = 0;//log2(screenspace_probe_res.z * 1. / TILE_SIZE);//one constant, fixme
-        uint2 sampleCoord = map_screen_coord_to_downsampled_texture_mip(screenCoord, downsampled_mip);
-        if (COORD_IS_VALID(sampleCoord))
-          return texelFetch(downsampled_close_depth_tex, sampleCoord, downsampled_mip).x;
-      }
-      return loadGbufferDepth(screenCoord);
-    }
 
     groupshared uint tileSharedDynamic;
     groupshared uint tileSharedAddProbesCount;
@@ -428,19 +418,39 @@ shader additional_probes_placement_cs
 
       UAVBufferInfo upsampleBuffers;
       upsampleBuffers.posBuffer = screenspace_probe_pos;
-      float warpToTileRatio = screenspace_probe_res.z/float(TILE_SIZE);//fixme: const
-      float iterationOffset = (sp_placement_iteration.x>>1);
-      float2 idealScreenCoord = screen_tile_coord*uint(screenspace_probe_res.z) + min((gtId + 0.5)*warpToTileRatio + iterationOffset*saturate(warpToTileRatio-1), screenspace_probe_res.z-0.5);
-      uint2 screenCoord = idealScreenCoord;
+      // each thread scans its own quadSize^2 pixel quad: the whole tile is covered at
+      // any tileSize, and candidate depth, normal and coord_ofs are the same real pixel
+      uint tileSize = uint(screenspace_probe_res.z);
+      uint quadSize = (tileSize + TILE_SIZE-1)/TILE_SIZE;
+      uint2 tileLT = screen_tile_coord*tileSize;
+      uint2 quadLT = tileLT + gtId*quadSize;
+      uint2 pixEnd = min(min(quadLT + quadSize, tileLT + tileSize), uint2(gbuffer_depth_size_load.xy));
+
+      // closest and farthest pixel of the quad (reversed z: bigger raw = closer)
+      uint2 closeCoord = quadLT, farCoord = quadLT;
+      float rawClose = 0, rawFar = 0;
+      LOOP
+      for (uint py = quadLT.y; py < pixEnd.y; ++py)
+      {
+        LOOP
+        for (uint px = quadLT.x; px < pixEnd.x; ++px)
+        {
+          uint2 pixCoord = uint2(px, py);
+          float raw = loadGbufferDepth(pixCoord);
+          if (raw == 0)
+            continue;
+          if (raw > rawClose) { rawClose = raw; closeCoord = pixCoord; }
+          if (raw < rawFar || rawFar == 0) { rawFar = raw; farCoord = pixCoord; }
+        }
+      }
+      // close layer on even iterations, far on odd
+      bool useFar = (sp_placement_iteration.x&1) != 0;
+      uint2 screenCoord = useFar ? farCoord : closeCoord;
+      float rawDepth = useFar ? rawFar : rawClose;
       float2 screenUv = screenICoordToScreenUV(screenCoord);
 
-      //fixme: this is correct only for tile_size == TILE_SIZE
-      float rawDepthCenter = 0;
-      if (all(screenCoord < uint2(gbuffer_depth_size_load.xy)))
-        rawDepthCenter = getCloseDepth(screenCoord);
       bool isDynamic = false;
-
-      if (rawDepthCenter != 0)
+      if (rawDepth != 0)
         isDynamic = get_project_is_dynamic_pixel(screenCoord);
 
       if (tid == 0)
@@ -451,6 +461,19 @@ shader additional_probes_placement_cs
         tileSharedDynamic = 0;
         //tileSharedMinW = f32tof16(60000.f)<<16;
       }
+      if (tid < 9)
+      {
+        int2 cornerTile = int2(screen_tile_coord) + int2(tid%3u, tid/3u) - 1;
+        uint encodedProbe = 0, encodedNormal = 0;
+        if (all(uint2(cornerTile) < uint2(screenspace_probe_res.xy)))
+        {
+          uint cornerIndex = uint(cornerTile.x) + uint(cornerTile.y)*uint(screenspace_probe_res.x);
+          encodedProbe = loadBuffer(screenspace_probe_pos, cornerIndex*4);
+          encodedNormal = loadBuffer(screenspace_probe_pos, (cornerIndex*2 + sp_getNumTotalProbes())*4);
+        }
+        tileSharedCornerProbe[tid] = encodedProbe;
+        tileSharedCornerNormalOfs[tid] = encodedNormal;
+      }
       GroupMemoryBarrierWithGroupSync();
 
       if (isDynamic)
@@ -458,44 +481,14 @@ shader additional_probes_placement_cs
 
       GroupMemoryBarrierWithGroupSync();
 
-      float rawDepth = rawDepthCenter;
-
-      bool sampleCloseFar = sp_placement_iteration.x != 0;
-      if (uint(screenspace_probe_res.z) > TILE_SIZE && sampleCloseFar)
-      {
-        //uint4 encodedScreenProbes = load_encoded_screen_probes(upsampleBuffers, screen_tile_coord);
-        //todo:
-        //on first iteration check the 'worst' out of three, rawDepthFar (if != 0), rawDepthVeryClose and rawDepthCenter
-        //if rawDepthFar == 0, than we can't use normal
-        float rawDepthFar = 0, rawDepthVeryClose = 0;
-        if (getNativeDepthCloseFar(idealScreenCoord, warpToTileRatio, rawDepthVeryClose, rawDepthFar))
-        {
-          if (rawDepthFar == 0)
-            rawDepthFar = rawDepthCenter;
-          if (rawDepthFar == 0)
-            rawDepthFar = rawDepthVeryClose;
-          //rawDepthCenter = rawDepthFar;
-          if (rawDepthCenter == 0 || sp_placement_iteration.x != 0)
-            rawDepth = (sp_placement_iteration.x&1) ? rawDepthVeryClose : rawDepthFar;
-        }
-      }
       UpsamplePointInfo pointInfo;
       pointInfo.sceneLinearDepth = linearize_z(rawDepth, sp_zn_zfar.zw);
       float3 viewVect = sp_getViewVecOptimized(screenUv);
       pointInfo.camPos = pointInfo.sceneLinearDepth*viewVect;
       pointInfo.screenCoord = screenCoord + 0.5;
-      if (rawDepthCenter != 0 && exp2(-1000*pow2(1-linearize_z(rawDepthCenter, sp_zn_zfar.zw)/pointInfo.sceneLinearDepth)) > 0.1)//if we dont clear normal, even sky will have reasonable (smudged) normal, so we can always do that
-      {
-        uint2 sampleCoord = map_screen_coord_to_downsampled_texture_mip(screenCoord, 0);
-        BRANCH
-        if (sp_placement_iteration.x == 0 && uint(screenspace_probe_res.z) > TILE_SIZE && COORD_IS_VALID(sampleCoord))//one constant, fixme
-          pointInfo.worldNormal = normalize(texelFetch(downsampled_normals, sampleCoord, 0).xyz * 2 - 1);
-        else
-          loadPackedGbufferNormal(screenCoord, pointInfo.worldNormal);
-        //FLATTEN
-        //if (dot(pointInfo.worldNormal, normalize(viewVect)) > 0.5)
-        //  pointInfo.worldNormal = -pointInfo.worldNormal;
-      } else
+      if (rawDepth != 0)
+        loadPackedGbufferNormal(screenCoord, pointInfo.worldNormal);
+      else
         pointInfo.worldNormal = -normalize(viewVect);
 
       float weightThreshold = 0.01;
@@ -503,19 +496,16 @@ shader additional_probes_placement_cs
       BRANCH
       if (rawDepth != 0) //not sky
       {
-        curW = calc_upsample_weights_threshold(linked_list_additional_screenspace_probes, upsampleBuffers, sp_getScreenViewInfo(), pointInfo, SP_DEFAULT_BILINEAR_DEPTH_EXP, sp_placement_iteration.x, weightThreshold);
+        curW = calc_upsample_weights_threshold(linked_list_additional_screenspace_probes, upsampleBuffers, sp_getScreenViewInfo(), pointInfo, screen_tile_coord, SP_DEFAULT_BILINEAR_DEPTH_EXP, sp_placement_iteration.x, weightThreshold);
         if (curW < weightThreshold)
           InterlockedMin(tileSharedMinW, asuint(curW));
       }
 
       GroupMemoryBarrierWithGroupSync();
       float minWeight = asfloat(tileSharedMinW);
-      //uint minTheWeight = tileSharedMinW;
-      //float minWeight = f16tof32(minTheWeight>>16)*weightThreshold;
 
-      //fixme: todo: all that is pre shader!
-      //unless we process same size as tile, we can't be sure we haven't missed anything on first iteration, as we just use close depth on it!
-      bool reclassify = sp_placement_iteration.y && (uint(screenspace_probe_res.z) <= TILE_SIZE || ((sp_placement_iteration.x&1) == 0 && sp_placement_iteration.x != 0));
+      // both depth layers of a quad have been proposed only after the odd (far) iteration
+      bool reclassify = sp_placement_iteration.y && (quadSize == 1 || (sp_placement_iteration.x&1) != 0);
 
       if (minWeight >= weightThreshold)
       {
@@ -549,7 +539,7 @@ shader additional_probes_placement_cs
         {
           //for (uint ai = 0; ai < additionalCount; ++ai)
           uint addedProbeIndex = sp_getNumScreenProbes() + additionalAt;
-          uint tagAge = sp_temporal_select_probe(bestProbeAndNormal.x, addedProbeIndex, screen_tile_coord, pointInfo.worldNormal);
+          uint tagAge = sp_temporal_select_probe(bestProbeAndNormal.x, addedProbeIndex, screenUv, pointInfo.worldNormal);
 
           bestProbeAndNormal.x |= sp_encodeTag(tagAge|sp_encodeTagMoving(tileSharedDynamic));
 
@@ -600,7 +590,7 @@ shader additional_probes_placement_cs
         bestProbeAndNormal = shared_bestProbeAndNormal;
         bestProbe = sp_decodeProbeInfo(bestProbeAndNormal.x);
         float bestProbeNormW = sp_decodeProbeInfo(bestProbeAndNormal.x).normalizedW;
-        float3 bestProbeCamPos = bestProbeNormW*sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord));
+        float3 bestProbeCamPos = bestProbeNormW*sp_getViewVecOptimizedNormalized(getScreenProbeAnchorScreenUV(screen_tile_coord, decodeCoordOfs(bestProbeAndNormal.y)));
         tileSharedAddProbesCount = asuint(1.f);
         GroupMemoryBarrierWithGroupSync();
         if (curW < weightThreshold && !isSelectedProbe)
@@ -777,7 +767,8 @@ shader screenspace_probes_invalidate_cs
 
       DecodedProbe probe = sp_decodeProbeInfo(encodedProbe);
 
-      float3 probeCamPos = probe.normalizedW * sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord));
+      uint2 coordOfs = decodeCoordOfs(sp_loadEncodedProbeNormalCoord(screenspace_probe_pos, screen_probe_index, sp_getNumTotalProbes()));
+      float3 probeCamPos = probe.normalizedW * sp_getViewVecOptimizedNormalized(getScreenProbeAnchorScreenUV(screen_tile_coord, coordOfs));
       float3 worldPos = sp_world_view_pos + probeCamPos;
 
       float frustumDistanceNorm = getInvalidFrustumOuterDistanceNorm(worldPos, frustumPlanes);

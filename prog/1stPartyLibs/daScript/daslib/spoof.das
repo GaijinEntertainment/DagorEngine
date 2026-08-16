@@ -293,7 +293,7 @@ class SpoofInstanceReader : AstReaderMacro {
         // now, lets spoof the instance
         outLine = int(vptr.init.at.line) + 1
         outFile = vptr.init.at.fileInfo
-        let result <- instance_spoof(string(vstr), iargs.args)
+        let result <- instance_spoof(vstr, iargs.args)
         if (!result.ok) {
             prog |> macro_error(info, "spoof instance error {result.result}")
             return ""

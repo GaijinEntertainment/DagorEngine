@@ -153,13 +153,17 @@ bool PhysObjActor::deserializePhysSnapshot(
   PhysObjSnapshot &snap = *new (&basesnap, _NEW_INPLACE) PhysObjActor::SnapshotType;
 
   uint8_t turretsCount = 0;
-  bool isOk = bs.ReadBits(&turretsCount, CHAR_BIT - PST_BITS);
+  if (!bs.ReadBits(&turretsCount, CHAR_BIT - PST_BITS))
+    return false;
 
-  isOk &= deserializeBasePhysSnapshot(bs, pst, snap, conn);
+  // bail before reading the tail fields below so they are not decoded from a corrupted offset
+  if (!deserializeBasePhysSnapshot(bs, pst, snap, conn))
+    return false;
 
   if (pst > PhysSnapSerializeType::MIN)
-    return isOk;
+    return true;
 
+  bool isOk = true;
   if (turretsCount)
   {
     snap.turrets.resize(turretsCount);

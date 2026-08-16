@@ -30,6 +30,8 @@ public:
   virtual void updateResourceVisualization() {}
   virtual void updateTextureVisualization() {}
 
+  virtual void sendBlobData(NodeNameId, ResNameId, const BlobView &) {}
+
   virtual void clearResourcePlacements() {}
   virtual void clearResourceBarriers() {}
   virtual void recResourcePlacement(ResNameId, int, int, int, int, bool) {}

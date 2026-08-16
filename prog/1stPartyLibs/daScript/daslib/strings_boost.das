@@ -24,6 +24,7 @@ def wide(text : string implicit; width : int) {
 }
 
 
+[temp_string_result]
 def join(it; separator : string implicit) {
     //! joins iterable `it` elements into a single string with `separator` between elements
     static_if (!typeinfo is_iterable(it)) {
@@ -49,6 +50,7 @@ def join(it; separator : string implicit) {
     }
 }
 
+[temp_string_result]
 def join(var it : iterator<auto(TT)>; separator : string implicit) {
     //! joins iterable `it` elements into a single string with `separator` between elements
     let st = build_string() $(var writer) {
@@ -69,8 +71,27 @@ def join(var it : iterator<auto(TT)>; separator : string implicit) {
     return st
 }
 
+[temp_string_result]
 def private join_implement(iterable; separator : string; blk) : string {
     //! joins iterable `it` elements into a single string with `separator` between elements
+    let st = build_string() $(var writer) {
+        var skip_first = true
+        for (elem in iterable) {
+            if (skip_first) {
+                skip_first = false
+            } else {
+                write(writer, separator)
+            }
+            blk |> invoke(writer, elem)
+        }
+    }
+    return st
+}
+
+// iterators must be iterated mutably (30939 on a const iterator), while the array/fixed-array
+// forms must keep binding let-declared sources - hence a var twin instead of one shared helper
+[temp_string_result]
+def private join_implement_iterator(var iterable : iterator<auto(TT)>; separator : string; blk) : string {
     let st = build_string() $(var writer) {
         var skip_first = true
         for (elem in iterable) {
@@ -92,7 +113,7 @@ def join(iterable : array<auto(TT)>; separator : string; blk : block<(var writer
 
 def join(var iterable : iterator<auto(TT)>; separator : string; blk : block<(var writer : StringBuilderWriter; elem : TT) : void>) : string {
     //! joins iterable `it` elements into a single string with `separator` between elements
-    return join_implement(iterable, separator, blk)
+    return join_implement_iterator(iterable, separator, blk)
 }
 
 def join(iterable : auto(TT)[]; separator : string; blk : block<(var writer : StringBuilderWriter; elem : TT) : void>) : string {
@@ -341,7 +362,7 @@ def public capitalize(str : string) : string {
     //! The rest of the string is unchanged.
     if (str |> empty()) return str
     let first = first_character(str)
-    if (first >= 'a' && first <= 'z') return build_string() $(writer) {  // nolint:PERF014 (ASCII case-shift)
+    if (first >= 'a' && first <= 'z') return build_string() $(writer) {  // nolint:PERF014,LINT019 (ASCII case-shift; PERF014 fires only in downstream compiles)
             writer |> write_char(first - 'a' + 'A')
             if (str |> length() > 1) {
                 writer |> write(str |> slice(1))
@@ -367,14 +388,11 @@ def public is_null_or_whitespace(str : string) : bool {
 
 def public glob_match(pattern, text : string) : bool {
     //! Matches ``text`` against a shell-style glob ``pattern``.
-    //! Supports ``*`` (matches any sequence of characters, including empty)
-    //! and ``?`` (matches exactly one character). All other characters are
-    //! compared literally.  Returns true if the entire ``text`` matches.
     if (empty(pattern)) return empty(text)
     if (empty(text)) {
         // text is empty — only matches if pattern is all *'s
         unsafe {
-            var pp = reinterpret<uint8?> pattern
+            var pp = reinterpret<uint8?>(pattern)
             while (*pp == uint8('*')) {
                 pp++
             }
@@ -382,8 +400,8 @@ def public glob_match(pattern, text : string) : bool {
         }
     }
     unsafe {
-        var pp = reinterpret<uint8?> pattern
-        var tp = reinterpret<uint8?> text
+        var pp = reinterpret<uint8?>(pattern)
+        var tp = reinterpret<uint8?>(text)
         var star_pp : uint8?
         var star_tp : uint8?
         while (*tp != 0u8) {

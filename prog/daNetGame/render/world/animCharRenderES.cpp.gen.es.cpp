@@ -440,7 +440,7 @@ static constexpr ecs::ComponentDesc preprocess_visible_animchars_in_frustum_ecs_
 //start of 3 ro components at [3]
   {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>()},
   {ECS_HASH("animchar_bsph"), ecs::ComponentTypeInfo<vec4f>()},
-  {ECS_HASH("animchar_render__enabled"), ecs::ComponentTypeInfo<bool>()}
+  {ECS_HASH("animchar_render__enabled"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
 };
 static ecs::CompileTimeQueryDesc preprocess_visible_animchars_in_frustum_ecs_query_desc
 (
@@ -463,7 +463,7 @@ inline void preprocess_visible_animchars_in_frustum_ecs_query(ecs::EntityManager
             , ECS_RO_COMP(preprocess_visible_animchars_in_frustum_ecs_query_comps, "animchar_node_wtm", AnimcharNodesMat44)
             , ECS_RO_COMP(preprocess_visible_animchars_in_frustum_ecs_query_comps, "animchar_bsph", vec4f)
             , ECS_RW_COMP(preprocess_visible_animchars_in_frustum_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
-            , ECS_RO_COMP(preprocess_visible_animchars_in_frustum_ecs_query_comps, "animchar_render__enabled", bool)
+            , ECS_RO_COMP_OR(preprocess_visible_animchars_in_frustum_ecs_query_comps, "animchar_render__enabled", bool(true))
             , ECS_RW_COMP_PTR(preprocess_visible_animchars_in_frustum_ecs_query_comps, "animchar__switched_lod", bool)
             );
 

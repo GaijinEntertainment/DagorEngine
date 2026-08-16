@@ -102,6 +102,16 @@ ecs::EntityId grid_find_entity(const GridHolder &grid_holder, const TMatrix &tra
   return obj ? to_comp(obj)->eid : ecs::INVALID_ENTITY_ID;
 }
 
+template <typename F>
+ecs::EntityId grid_find_entity(const GridHolder &grid_holder, const TMatrix &tm, const BBox3 &bbox, dag::ConstSpan<plane3f> convex,
+  GridEntCheck check_type, const F &pred)
+{
+  auto findFunc = check_type == GridEntCheck::POS ? grid_find_in_convex_by_pos : grid_find_in_convex_by_bounding;
+  const GridObject *obj = findFunc(grid_holder, tm, bbox, convex,
+    [&pred](const GridObject *obj) { return pred(to_comp(obj)->eid, to_comp(obj)->getPos()); });
+  return obj ? to_comp(obj)->eid : ecs::INVALID_ENTITY_ID;
+}
+
 /* Call cb(ecs::EntityId) for each entity in bounding.
    Params:
      * grid_id      = 32-bit ecs_hash or entity_id of grid holder
@@ -153,6 +163,28 @@ void for_each_entity_in_grid(GridId grid_id, const TMatrix &transform, const BBo
 {
   if (const GridHolder *gridh = find_grid_holder(grid_id))
     grid_find_entity(*gridh, transform, bbox, check_type, [&cb](ecs::EntityId eid, vec3f pos) {
+      cb(eid, pos);
+      return false;
+    });
+}
+
+/* Call cb(ecs::EntityId) for each entity in a convex volume, e.g. a melee frustum.
+   Params:
+     * grid_id      = 32-bit ecs_hash or entity_id of grid holder
+     * tm           = Orientation TMatrix of the volume
+     * bbox         = Local AABB of the volume; must contain the convex, it is what cells are walked with
+     * convex       = Local outward planes: inside is dot(n, p) + d <= 0, as CollisionResource expects.
+                      EXACTLY 6 planes are tested; any other count ignores them and narrows by the
+                      oriented bbox alone, so cb then also sees entities outside the convex
+     * check_type   = See GridEntCheck
+     * cb           = Callback for each matching entity
+*/
+template <typename GridId, typename F>
+void for_each_entity_in_grid(GridId grid_id, const TMatrix &tm, const BBox3 &bbox, dag::ConstSpan<plane3f> convex,
+  GridEntCheck check_type, const F &cb)
+{
+  if (const GridHolder *gridh = find_grid_holder(grid_id))
+    grid_find_entity(*gridh, tm, bbox, convex, check_type, [&cb](ecs::EntityId eid, vec3f pos) {
       cb(eid, pos);
       return false;
     });

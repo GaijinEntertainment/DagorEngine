@@ -324,13 +324,23 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
     if (p.role == PinRole::In)
     {
       auto it = incomingByName.find(name);
-      if (it != incomingByName.end())
+      if (it == incomingByName.end())
+      {
+        incomingByName[name] = i;
+        continue;
+      }
+      if (!gd.edges[it->second].muted && !e.muted)
       {
         debug("graphEditor: subgraph instance id=%d input pin '%s' has multiple sources -- rejected", instance_id, name.c_str());
         wiringError = true;
         break;
       }
-      incomingByName[name] = i;
+      // A muted duplicate carries no data, so it is not a genuine ambiguity. Keep whichever
+      // edge is live so the boundary transplants the real source.
+      if (!e.muted)
+      {
+        it->second = i;
+      }
     }
     else
     {
@@ -380,11 +390,13 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
       {
         ie.elemA = parentSrcElem;
         ie.pinA = parentSrcPin;
+        ie.muted = ie.muted || parentEdge.muted;
       }
       if (ie.elemB == b.nodeId && ie.pinB == b.pinIdx)
       {
         ie.elemB = parentSrcElem;
         ie.pinB = parentSrcPin;
+        ie.muted = ie.muted || parentEdge.muted;
       }
     }
   }
@@ -401,19 +413,21 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
 
     int producerElem = -1;
     int producerPin = -1;
+    bool producerMuted = false;
     for (const GraphData::Edge &ie : working.edges)
     {
-      if (ie.elemA == b.nodeId && ie.pinA == b.pinIdx)
+      const bool matchA = (ie.elemA == b.nodeId && ie.pinA == b.pinIdx);
+      const bool matchB = (ie.elemB == b.nodeId && ie.pinB == b.pinIdx);
+      if (!matchA && !matchB)
       {
-        producerElem = ie.elemB;
-        producerPin = ie.pinB;
-        break;
+        continue;
       }
-      if (ie.elemB == b.nodeId && ie.pinB == b.pinIdx)
+      producerElem = matchA ? ie.elemB : ie.elemA;
+      producerPin = matchA ? ie.pinB : ie.pinA;
+      producerMuted = ie.muted;
+      if (!producerMuted)
       {
-        producerElem = ie.elemA;
-        producerPin = ie.pinA;
-        break;
+        break; // a live producer wins outright; a muted one is only a fallback
       }
     }
 
@@ -442,6 +456,7 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
         pe.elemB = producerElem;
         pe.pinB = producerPin;
       }
+      pe.muted = pe.muted || producerMuted;
     }
   }
 

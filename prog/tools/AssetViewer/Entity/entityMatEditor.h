@@ -106,6 +106,7 @@ private:
   bool active = false;
   bool isReloading = false;
   bool showTriangleCount = false;
+  bool reportedShaderMaterialMatchError = false;
 
   dag::Vector<EntityLodMatData> matDataPerLod;
   String assetSrcFolderPath;

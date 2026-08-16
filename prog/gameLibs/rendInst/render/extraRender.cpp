@@ -401,7 +401,7 @@ struct SetSceneUserData
     if (cmd == RendinstTiledScene::POOL_ADDED || cmd == RendinstTiledScene::BOX_OCCLUDER || cmd == RendinstTiledScene::QUAD_OCCLUDER)
     {
       if (tiledPools.size() <= ni)
-        tiledPools.resize(ni + 1, TiledScenePoolInfo{{-1}, 0});
+        tiledPools.resize(ni + 1, TiledScenePoolInfo{{-1}, 0, TiledScenePoolInfo::INVALID_POOL});
       if (cmd == RendinstTiledScene::POOL_ADDED)
       {
         // if (&s == &riExTiledScenes[0])//this is our assumption. however, it is safe to do same things numerous times anyway

@@ -1,4 +1,4 @@
-// Squirrel module under test: frp (registered by frp.cpp)
+// Quirrel module under test: frp (registered by frp.cpp)
 
 from "frp" import Watched, Computed, update_deferred, gather_graph_stats
 

@@ -17,8 +17,11 @@ class ExtensiblePropertyControl : public ContainerPropertyControl
 {
 public:
   ExtensiblePropertyControl(ControlEventHandler *event_handler, ContainerPropertyControl *parent, int id, int x, int y, hdpi::Px w,
-    hdpi::Px h, const char *menu_button_icon = nullptr, const char *menu_button_tooltip = nullptr) :
-    ContainerPropertyControl(id, event_handler, parent, x, y, w, h), menuButtonTooltip(menu_button_tooltip)
+    hdpi::Px h, const char *menu_button_icon = nullptr, const char *menu_button_tooltip = nullptr,
+    const char *menu_button_label = "...") :
+    ContainerPropertyControl(id, event_handler, parent, x, y, w, h),
+    menuButtonTooltip(menu_button_tooltip),
+    menuButtonLabel(menu_button_label)
   {
     menuButtonIcon.setFileName(menu_button_icon);
   }
@@ -125,7 +128,7 @@ protected:
     {
       const ImVec2 framePadding = ImGui::GetStyle().FramePadding;
       const ImVec2 finalSize(menu_button_size.x + (framePadding.x * 2.0f), menu_button_size.y + (framePadding.y * 2.0f));
-      buttonClicked = ImGui::Button("...", finalSize);
+      buttonClicked = ImGui::Button(menuButtonLabel.c_str(), finalSize);
     }
     else
     {
@@ -193,6 +196,7 @@ protected:
   mutable int buttonStatus = EXT_BUTTON_NONE;
   int buttonFlags = 0;
   IconWithName menuButtonIcon;
+  SimpleString menuButtonLabel;
   SimpleString menuButtonTooltip;
 };
 

@@ -22,11 +22,5 @@ void get_invalidation_bbox(ecs::Point3List &bboxes, const TMatrix &transform, bo
 
 void convar_helper(bool &should_render_ground_holes);
 
-void zones_before_render(UniqueBufWithShaderVar &hmapHolesZonesBuf, bool &should_update_ground_holes_zones, Tab<Point3_vec4> &bboxes);
-
-void zones_after_device_reset(UniqueBufWithShaderVar &hmapHolesZonesBuf, bool &should_update_ground_holes_zones);
-
-void zones_manager_on_disappear(UniqueBufWithShaderVar &hmapHolesZonesBuf);
-
 bool get_debug_hide();
 }; // namespace ground_holes

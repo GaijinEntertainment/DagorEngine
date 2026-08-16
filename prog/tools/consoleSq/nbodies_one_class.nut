@@ -1,9 +1,12 @@
 /* The Computer Language Benchmarks Game
    https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
-   Squirrel implementation
+   Quirrel implementation
    just copy-paste (and replace var to local and length to len) from https://benchmarksgame-team.pages.debian.net/benchmarksgame/program/nbody-node-5.html
    made by Kirill Yudintsev
 */
+
+//-file:ident-hides-ident
+//-file:param-pos
 
 let math = require("math")
 let datetime = require("datetime")
@@ -11,7 +14,7 @@ local PI = 3.141592653589793
 local SOLAR_MASS = 4 * PI * PI
 local DAYS_PER_YEAR = 365.24
 
-local StellarObject = class {
+class StellarObject {
   x = 0
   y = 0
   z = 0
@@ -19,8 +22,7 @@ local StellarObject = class {
   vy = 0
   vz = 0
   mass = 0
-  constructor(x, y, z, vx, vy, vz, mass)
-  {
+  constructor(x, y, z, vx, vy, vz, mass) {
     this.x = x
     this.y = y
     this.z = z
@@ -74,7 +76,7 @@ local bodies = [
   )
 ]
 
-local function advance(bodies, nbody){
+function advance(bodies, nbody) {
   for (local i=0;i<nbody;i++) {
     local bi  = bodies[i]
     for (local j=i+1;j<nbody;j++) {
@@ -99,7 +101,7 @@ local function advance(bodies, nbody){
   }
 }
 
-local function energy(bodies, nbody){
+function energy(bodies, nbody){
   local e = 0;
   for (local i=0;i<nbody;i++) {
     local bi = bodies[i]
@@ -120,7 +122,7 @@ local function energy(bodies, nbody){
   return e
 }
 
-local function offsetMomentum(b, nbody){
+function offsetMomentum(b, nbody) {
   local px=0, py=0, pz = 0;
   for (local i=0;i<nbody;i++){
     local bi = b[i]
@@ -134,7 +136,7 @@ local function offsetMomentum(b, nbody){
   b[0].vz = pz / SOLAR_MASS
 }
 
-local function scale_bodies(bodies, nbody, scale) {
+function scale_bodies(bodies, nbody, scale) {
   for (local i=0;i<nbody;i++){
     local b = bodies[i]
     b.mass = b.mass*scale*scale
@@ -147,11 +149,9 @@ local function scale_bodies(bodies, nbody, scale) {
 local n = 50000//50000000 in https://benchmarksgame-team.pages.debian.net/benchmarksgame
 local nbody = bodies.len()
 
-local function profile_it(cnt, f)//for modified version
-{
+function profile_it(cnt, f) { //for modified version
   local res = 0
-  for (local i = 0; i < cnt; ++i)
-  {
+  for (local i = 0; i < cnt; ++i) {
     local start = datetime.clock()
     f()
     local measured = datetime.clock() - start
@@ -162,6 +162,12 @@ local function profile_it(cnt, f)//for modified version
 }
 
 offsetMomentum(bodies, nbody)
-print(energy(bodies, nbody) + "\n")
-print("nbodies: " + profile_it(5, function () {scale_bodies(bodies, nbody, 0.01);for (local i=0; i<n; i++){ advance(bodies, nbody);} scale_bodies(bodies, nbody, 1/0.01); }) + "\n")
-print(energy(bodies, nbody) + "\n")
+println(energy(bodies, nbody))
+println("nbodies:", profile_it(5, function() {
+  scale_bodies(bodies, nbody, 0.01)
+  for (local i=0; i<n; i++) {
+    advance(bodies, nbody)
+  }
+  scale_bodies(bodies, nbody, 1/0.01)
+}))
+println(energy(bodies, nbody))

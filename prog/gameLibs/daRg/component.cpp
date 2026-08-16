@@ -11,6 +11,7 @@
 #include "guiScene.h"
 #include "profiler.h"
 #include "behaviors/bhvBoundProps.h"
+#include "statefulComp.h"
 
 
 namespace darg
@@ -21,6 +22,8 @@ static bool is_valid_single_child_type(const Sqrat::Object &desc)
 {
   SQObjectType tp = desc.GetType();
   if (tp == OT_TABLE || tp == OT_CLASS || tp == OT_CLOSURE)
+    return true;
+  if (tp == OT_INSTANCE && try_get_stateful_desc(desc))
     return true;
   return false;
 }
@@ -253,6 +256,7 @@ bool Component::resolve_description(const Sqrat::Object &desc, Sqrat::Table &des
       Sqrat::optional<Sqrat::Object> tbl;
       GuiScene *guiScene = GuiScene::get_from_sqvm(vm);
       G_ASSERT(guiScene);
+      guiScene->getPerfStats().builderEvals++;
 
       {
         BuilderEvalGuard builderGuard(vm);
@@ -283,8 +287,15 @@ bool Component::resolve_description(const Sqrat::Object &desc, Sqrat::Table &des
         {
           String closureName;
           get_closure_full_name(desc, closureName);
-          String errMsg(32, "Invalid component description type %s (%X) returned from function %s", sq_objtypestr(resType), resType,
-            closureName.c_str());
+          String errMsg;
+          if (try_get_stateful_desc(tbl.value()))
+            errMsg.printf(32,
+              "Builder %s returned a stateful descriptor; it is only legal in a children slot, wrap it: "
+              "{children = <descriptor>}",
+              closureName.c_str());
+          else
+            errMsg.printf(32, "Invalid component description type %s (%X) returned from function %s", sq_objtypestr(resType), resType,
+              closureName.c_str());
 
           darg_immediate_error(vm, errMsg);
           return false;
@@ -299,7 +310,11 @@ bool Component::resolve_description(const Sqrat::Object &desc, Sqrat::Table &des
     case OT_NULL: desc_tbl = Sqrat::Table(vm); return false;
     default:
       desc_tbl = Sqrat::Table(vm);
-      String errMsg(0, "Invalid component description type = %s (%X)", sq_objtypestr(descType), descType);
+      String errMsg;
+      if (try_get_stateful_desc(desc))
+        errMsg.printf(0, "A stateful descriptor is only legal in a children slot, wrap it: {children = <descriptor>}");
+      else
+        errMsg.printf(0, "Invalid component description type = %s (%X)", sq_objtypestr(descType), descType);
       darg_immediate_error(vm, errMsg);
       return false;
   }

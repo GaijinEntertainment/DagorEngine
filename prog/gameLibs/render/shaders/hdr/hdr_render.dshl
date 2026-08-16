@@ -18,19 +18,31 @@ shader encode_hdr_to_int10, encode_hdr_to_float, encode_hdr_from_linear
   (ps) {
     hdr_fp_tex@tex2d = hdr_fp_tex;
     hdr_source_offset@f2 = hdr_source_offset;
+    hdr_fp_tex_size@f2 = get_dimensions(hdr_fp_tex, 0).xy;
   }
 
   POSTFX_VS(1)
 
+  USE_PRE_ROTATION(ps)
+
   HDR_LOGIC(ps)
 
   hlsl(ps) {
+    float2 pre_rotate_fetch_pos(float2 screenpos)
+    {
+      float2 srcExtent = hdr_fp_tex_size;
+      float2 dstExtent = pre_rotation_swaps_extents() ? srcExtent.yx : srcExtent;
+      float2 logicalUV = apply_inverse_pre_rotation_uv(screenpos / dstExtent);
+      return logicalUV * srcExtent - hdr_source_offset;
+    }
+
     float4 encode_hdr(float4 screenpos : VPOS) : SV_Target0
     {
+      float2 fetchPos = pre_rotate_fetch_pos(screenpos.xy);
       ##if shader == encode_hdr_from_linear
-        float3 linearColor = texelFetch(hdr_fp_tex, screenpos.xy - hdr_source_offset, 0).xyz;
+        float3 linearColor = texelFetch(hdr_fp_tex, fetchPos, 0).xyz;
       ##else
-        float3 srgbColor = texelFetch(hdr_fp_tex, screenpos.xy - hdr_source_offset, 0).xyz;
+        float3 srgbColor = texelFetch(hdr_fp_tex, fetchPos, 0).xyz;
         float3 linearColor = to_linear(srgbColor);
       ##endif
 

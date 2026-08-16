@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE024: redundant `unsafe` wrap; nothing inside requires unsafe
 //
 // Problem: writing `unsafe(expr)` or `unsafe { ... }` around code that
@@ -81,7 +82,7 @@ struct Foo {
 
 def good_reinterpret_needs_unsafe() : void {
     var f = Foo(x = 5)
-    let p = unsafe(reinterpret<int?>(unsafe(addr(f))))  // wrap justified — reinterpret cast
+    let p = unsafe(reinterpret<int?>(unsafe(addr(f))))  // nolint:STYLE034 — wrap justified (reinterpret cast); raw shape kept to exercise the recognizer
     print("{*p}\n")
 }
 
@@ -89,8 +90,8 @@ def good_block_with_two_unsafe_ops() : void {
     var f = Foo(x = 5)
     var g = Foo(x = 7)
     unsafe {
-        let pa = reinterpret<int?>(addr(f))           // reinterpret + addr need unsafe
-        let pb = reinterpret<int?>(addr(g))           // second one — STYLE025 silent (≥2)
+        let pa = reinterpret<int?>(addr(f))           // nolint:STYLE034 — reinterpret + addr need unsafe
+        let pb = reinterpret<int?>(addr(g))           // nolint:STYLE034 — second one — STYLE025 silent (≥2)
         print("{*pa} {*pb}\n")
     }
 }
@@ -126,4 +127,14 @@ def good_safe_as_on_value_variant() : void {
     let v = MyVar(a = 5)
     let pa = unsafe(v ?as a)
     print("{pa != null}\n")
+}
+
+// --- Regression: `?[]` on a raw pointer requires unsafe ---
+// `p?[i]` with p : T? is unsafe_pointer_safe_index (ast_infer_type.cpp:3442)
+// for ANY non-vector, non-fixed-array pointee — including plain scalars.
+// STYLE024 must NOT fire (found via #3391's AOT regression test, whose
+// scalar-pointee safe-index wraps were falsely flagged).
+
+def good_safe_index_of_scalar_pointer(p : float?; i : int64) : float {
+    return unsafe(p?[i]) ?? -1.0
 }

@@ -76,7 +76,7 @@ constexpr uint32_t EXPECTED_POINTER_SIZE = static_cast<uint32_t>(sizeof(void *))
 // 14 - changed uav descriptor table layout of root signatures
 // 15 - changed srv descriptor table layout of root signatures
 // 16 - added flags field to header
-// 17 - use of shader header inOutSemanticMask chaged, masking rules for color outputs of grpahics pipelines
+// 17 - use of shader header inOutSemanticMask changed, masking rules for color outputs of graphics pipelines
 //      have been updated and result in different masks and active render targets
 // 18 - added support for view instancing
 // 19 - mesh shader support, cache for mesh pipeline signatures

@@ -7,7 +7,7 @@ let calcFrameColor = @(sf) (sf & S_KB_FOCUS)
     ? BtnBgFocused
     : (sf & S_HOVER) ? BtnBdSelected : CheckBoxContentDefault
 
-let opaque = Color(0,0,0,255)
+const opaque = Color(0,0,0,255)
 let calcKnobColor =  @(sf) (sf & S_KB_FOCUS) ? (TextActive | opaque)
                            : (sf & S_HOVER)    ? (TextHover | opaque)
                                                : (TextNormal | opaque)
@@ -51,7 +51,7 @@ function slider(orient, var, options={}) {
   function knob() {
     return {
       rendObj = ROBJ_SOLID
-      size  = [fsh(1), fsh(2)]
+      size  = const [fsh(1), fsh(2)]
       group = group
       color = calcKnobColor(knobStateFlags.get())
       watch = knobStateFlags

@@ -2,6 +2,8 @@
 
 #include <render/omm.h>
 
+#include "shaders/omm_texcoord_formats.hlsli"
+
 #include <drv/3d/dag_barrier.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_commands.h>
@@ -38,12 +40,31 @@
 namespace render::omm
 {
 
+// The wire values must agree with the SDK's own enum, since the SDK's three packings are passed through
+// as themselves and only the dagor-only ones ride above its range.
+static_assert(OMM_TC_UV16_UNORM == ommTexCoordFormat_UV16_UNORM);
+static_assert(OMM_TC_UV16_FLOAT == ommTexCoordFormat_UV16_FLOAT);
+static_assert(OMM_TC_UV32_FLOAT == ommTexCoordFormat_UV32_FLOAT);
+static_assert(OMM_TC_DAGOR_FIRST >= ommTexCoordFormat_MAX_NUM);
+
+uint32_t texcoord_format_to_shader_value(TexCoordFormat format)
+{
+  switch (format)
+  {
+    case TexCoordFormat::Float2: return OMM_TC_UV32_FLOAT;
+    case TexCoordFormat::Half2: return OMM_TC_UV16_FLOAT;
+    case TexCoordFormat::UShort2Norm: return OMM_TC_UV16_UNORM;
+    case TexCoordFormat::Short2Fixed4096: return OMM_TC_SHORT2_FIXED4096;
+  }
+  G_ASSERTF(false, "omm: unhandled TexCoordFormat %u", static_cast<uint32_t>(format));
+  return OMM_TC_UV32_FLOAT;
+}
+
 namespace
 {
 
 static_assert(MAX_TRANSIENT_POOL_BUFFERS == OMM_MAX_TRANSIENT_POOL_BUFFERS);
 static_assert(static_cast<uint32_t>(AlphaMode::Test) == static_cast<uint32_t>(ommAlphaMode_Test));
-static_assert(static_cast<uint32_t>(TexCoordFormat::UV16_UNORM) == static_cast<uint32_t>(ommTexCoordFormat_UV16_UNORM));
 static_assert(static_cast<uint32_t>(IndexFormat::UINT16) == static_cast<uint32_t>(ommIndexFormat_UINT_16));
 static_assert(static_cast<uint32_t>(IndexFormat::UINT32) == static_cast<uint32_t>(ommIndexFormat_UINT_32));
 static_assert(static_cast<uint32_t>(IndexFormat::UINT8) == static_cast<uint32_t>(ommIndexFormat_UINT_8));
@@ -191,6 +212,8 @@ static constexpr ResourceTagType OMM_RESOURCE_TAG = "omm";
 static ShaderVariableInfo omm_global_constants_var("omm_global_constants", true);
 static ShaderVariableInfo omm_local_constants_var("omm_local_constants", true);
 static ShaderVariableInfo omm_sampler_var("omm_sampler0", true);
+static ShaderVariableInfo omm_uv_cutout_lines_var("omm_uv_cutout_lines", true);
+static ShaderVariableInfo omm_uv_cutout_enabled_var("omm_uv_cutout_enabled", true);
 static uint32_t nextConstantBufferNameId = 0;
 
 static bool sdk_ok(Context &ctx, ommResult result, const char *what)
@@ -327,9 +350,20 @@ static bool to_sdk(const BakeInput &config, ommGpuDispatchConfigDesc &out)
   out.alphaMode = static_cast<ommAlphaMode>(config.alphaMode);
   if (!fill_alpha_texture_info(config, out))
     return false;
-  out.texCoordFormat = static_cast<ommTexCoordFormat>(config.texCoordFormat);
+  const uint32_t texCoordFormatValue = texcoord_format_to_shader_value(config.texCoordFormat);
+  static_assert(sizeof(ommTexCoordFormat) >= 4);
+  // Technically UB because C enums have unspecified storage type, but we can't do anything about it...
+  out.texCoordFormat = static_cast<ommTexCoordFormat>(texCoordFormatValue); // -V1016
   out.texCoordOffsetInBytes = config.texCoordOffsetInBytes;
   out.texCoordStrideInBytes = config.texCoordStrideInBytes;
+  // The SDK derives a stride from its own formats, but cannot for a value outside its enum: GetTexCoord-
+  // FormatSize returns 0 and the bake would read all three vertices of every triangle from one offset.
+  if (config.texCoordStrideInBytes == 0 && texCoordFormatValue >= OMM_TC_DAGOR_FIRST)
+  {
+    logerr("omm: texCoordStrideInBytes must be set explicitly for texcoord format %u; the SDK cannot derive it",
+      static_cast<uint32_t>(config.texCoordFormat));
+    return false;
+  }
   out.indexFormat = static_cast<ommIndexFormat>(config.indexFormat);
   out.indexCount = config.indexCount;
   if (!config.indexBuffer || !(config.indexBuffer->getFlags() & SBCF_MISC_ALLOW_RAW))
@@ -1069,6 +1103,10 @@ static BakeStats make_bake_stats(const PostDispatchInfo &info)
 
 } // namespace
 
+// For the debug viewer: its alpha overlay must sample with the same sampler as the bake. Outside the
+// unnamed namespace above, thus the viewer's extern declaration links to it.
+d3d::SamplerHandle request_runtime_sampler(const SamplerDesc &desc) { return request_sampler(to_sdk(desc)); }
+
 static bool validate_shader_vars()
 {
   bool allPresent = true;
@@ -1252,6 +1290,9 @@ static bool dispatch_internal(Context &ctx, PendingBake &bake, const BakeInput &
 
   if (!ctx.pipeline || !ctx.pipelineInfo)
     return false;
+
+  omm_uv_cutout_lines_var.set_float4(input.uvCutout.lines.x, input.uvCutout.lines.y, input.uvCutout.lines.z, input.uvCutout.lines.w);
+  omm_uv_cutout_enabled_var.set_int(input.uvCutout.enabled ? 1 : 0);
 
   ommGpuDispatchConfigDesc sdkConfig;
   if (!to_sdk(input, sdkConfig))

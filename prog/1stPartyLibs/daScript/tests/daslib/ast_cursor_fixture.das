@@ -1,5 +1,5 @@
 options gen2
-options no_aot
+options no_aot, auto_inline_functions = false   // cursor tests assert node positions; splices would move them
 
 struct Point {
     x : float

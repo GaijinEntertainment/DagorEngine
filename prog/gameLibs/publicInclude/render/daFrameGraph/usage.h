@@ -20,6 +20,8 @@ enum class Usage : uint16_t
   /**
    * For legacy code only, will suppress a barrier before this usage
    * and force a barrier after this usage.
+   * Not allowed for resources created with a `*_NO_STATE_TRACKING` flag,
+   * as their barriers have to spell out a layout and an access.
    */
   UNKNOWN = 0,
 

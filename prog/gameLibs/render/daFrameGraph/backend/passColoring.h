@@ -6,6 +6,7 @@
 #include <backend/intermediateRepresentation.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <dag/dag_vectorMap.h>
+#include <dag/dag_vectorSet.h>
 #include <memory/dag_framemem.h>
 
 
@@ -17,6 +18,10 @@ enum class PassColor : uint32_t
 };
 
 using PassColoring = IdIndexedMapping<intermediate::NodeIndex, PassColor>;
+
+using GracePoints = dag::VectorSet<uint32_t, eastl::less<uint32_t>, framemem_allocator>;
+
+GracePoints compute_grace_points(const intermediate::Graph &graph, const PassColoring &pass_coloring);
 
 // Performs a best-effort coloring of nodes such that nodes that should
 // be within a single render pass will be colored the same

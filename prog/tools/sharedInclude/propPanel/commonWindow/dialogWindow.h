@@ -141,6 +141,9 @@ protected:
   // The height taken by the button panel.
   float getButtonPanelHeight() const { return buttonPanelHeight; }
 
+  // Called with button style vars (ItemSpacing, FramePadding) already pushed.
+  virtual float calculateButtonPanelHeight() const;
+
   ControlEventHandler *buttonEventHandler = nullptr;
   ControlEventHandler *closeEventHandler = nullptr;
   ContainerPropertyControl *propertiesPanel = nullptr;

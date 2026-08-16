@@ -424,6 +424,7 @@ void PhysWorld::init_engine(bool single_threaded)
 
   JPH_IF_ENABLE_ASSERTS(JPH::AssertFailed = joltAssertFailed;)
   JPH::Trace = &jolt_trace;
+  JPH::RegisterDefaultAllocator();
   tempAllocator = new JPH::TempAllocatorImpl(tempAllocSz); // To consider: implement using framemem. Is cross-thread freeing required?
   JPH::Factory::sInstance = new JPH::Factory;
   JPH::RegisterTypes();
@@ -1058,7 +1059,7 @@ void PhysBody::setSphereShapeRad(float rad)
     sphere->SetEmbedded();                // Don't complain in dtor about dangling ref
     sphere->Release();
     sphere->~SphereShape();
-    (new (sphere, _NEW_INPLACE) SphereShape(rad))->AddRef();
+    (new (sphere) SphereShape(rad))->AddRef();
     if (isInWorld())
       api().NotifyShapeChanged(bodyId, Vec3::sZero(), false, EActivation::Activate);
   }

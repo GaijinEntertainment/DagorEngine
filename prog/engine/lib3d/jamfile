@@ -28,6 +28,7 @@ Sources =
   regTexCreateTiff.cpp
   drv3dReset.cpp
   setGamma.cpp
+  preRotation.cpp
   debug3dBuffered.cpp
   debug3dCached.cpp
   debug3dStates.cpp

@@ -12,7 +12,11 @@ UseWayland  ?= yes ;
 
 if $(Platform) in linux {
   AddLibs += -lxkbcommon ;
-  Sources += mux.cpp ;
+  Sources +=
+    mux.cpp
+    linuxSetTitle.cpp
+    linuxClipboard.cpp
+  ;
   if $(UseWayland) = yes {
     CPPopt += -DUSE_WAYLAND ;
     UseProgLibs += 3rdPartyLibs/wayland ;

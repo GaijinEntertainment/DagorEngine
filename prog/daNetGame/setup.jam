@@ -78,7 +78,7 @@ if $(Platform) in windows linux macOS {
   UseD3DMulti ?= yes ;
   # we want same output for client/dedicated/aot on Windows to speed compilation
   # (except for cases where we explicitly don't want it)
-  if $(UseD3DMultiForced) != no-force { UseD3DMultiForced = windows ; }
+  if $(UseD3DMultiForced) != no-force && $(Platform) = windows { UseD3DMultiForced += windows ; }
   if $(IsHeadless) != yes {
     local list ;
     if $(Platform) = windows && $(Config) != rel { list += stub ; }

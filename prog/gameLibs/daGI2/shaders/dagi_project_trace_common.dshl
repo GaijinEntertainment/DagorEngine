@@ -1,5 +1,10 @@
 include "project_trace.dshl"
 
+// contract: a miss shades as the caller's fallback (radiance grid tail or sky).
+// probes inside geometry must stay occluded: a single sheet world (collision
+// proxies, testGI) hits back faces, a render mesh world models interior surfaces
+// and may cull them. terrain is one sided, rays pass through the heightfield
+// from below. hitNormal faces the ray origin
 define_macro_if_not_defined PROJECT_TRACE(code, supports_raygen)
   bool dagi_project_use_rt = false;
   bool dagi_project_use_raygen = false;

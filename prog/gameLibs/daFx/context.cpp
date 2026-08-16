@@ -108,8 +108,9 @@ ContextId create_context(const Config &cfg)
   ctx->renderCallsCountVarId = ::get_shader_variable_id("dafx_render_calls_count", true);
   ctx->computeDispatchVarId = ::get_shader_variable_id("dafx_dispatch_descs", true);
   ctx->reducedRenderVarId = ::get_shader_variable_id("dafx_reduced_render", true);
+  ctx->sbufferSupportedVarId = ::get_shader_variable_id("dafx_sbuffer_supported", true);
 
-  v &= init_global_values(ctx->globalData);
+  v &= init_global_values(ctx->globalData, cfg.gpu_res_suffix.c_str());
   v &= init_buffer_pool(ctx->gpuBufferPool, cfg.gpu_data_buffer_size);
   v &= init_buffer_pool(ctx->cpuBufferPool, cfg.cpu_data_buffer_size);
   v &= init_culling(*ctx);
@@ -126,8 +127,6 @@ ContextId create_context(const Config &cfg)
 
   ctx->asyncCpuComputeJobs.reserve(ctx->cfg.max_async_threads);
   ctx->asyncCpuCullJobs.reserve(ctx->cfg.max_async_threads);
-
-  ShaderGlobal::set_int(::get_shader_variable_id("dafx_sbuffer_supported", true), cfg.use_render_sbuffer ? 1 : 0);
 
   // we are using instancing helper even for non-multidraw, to keep shaders the same
   VSDTYPE desc[] = {VSD_STREAM_PER_INSTANCE_DATA(0), VSD_REG(VSDR_TEXC0, VSDT_UINT1), VSD_END};
@@ -477,6 +476,8 @@ void prepare_workers(Context &ctx, float dt, bool main_pass, int begin_sid, int 
 
     stat_inc(out_stats.activeInstances);
 
+    if (flags & SYS_RENDERABLE)
+      stat_add(out_stats.totalParticles, activeState.aliveCount);
     if (flags & SYS_CPU_SIMULATION_REQ)
       stat_add(out_stats.cpuElemTotalSimLods[simLod], simulationState.count);
     else if (flags & SYS_GPU_SIMULATION_REQ)
@@ -552,6 +553,7 @@ void commit_prepared_workers(Context &ctx, dag::ConstSpan<Workers> workers, dag:
     stat_min(ctx.stats.genVisibilityLod, st.genVisibilityLod);
     stat_add(ctx.stats.renderInstances, st.renderInstances);
     stat_add(ctx.stats.activeInstances, st.activeInstances);
+    stat_add(ctx.stats.totalParticles, st.totalParticles);
     stat_add(ctx.stats.cpuSimulationWorkers, st.cpuSimulationWorkers);
     stat_add(ctx.stats.cpuEmissionWorkers, st.cpuEmissionWorkers);
     stat_add(ctx.stats.allRenderWorkers, st.allRenderWorkers);
@@ -1133,6 +1135,18 @@ static void start_next_cpu_compute_threads(ContextId cid, int depth = 0, bool is
   threadpool::wake_up_all();
 }
 
+static void recompute_particle_count(ContextId cid)
+{
+  GET_CTX();
+  InstanceGroups &stream = ctx.instances.groups;
+  for (int i = 0, ie = stream.size(); i < ie; ++i)
+  {
+    const uint32_t flags = stream.get<INST_FLAGS>(i);
+    if ((flags & SYS_ENABLED) && (flags & SYS_RENDERABLE))
+      stat_add(ctx.stats.totalParticles, stream.get<INST_ACTIVE_STATE>(i).aliveCount);
+  }
+}
+
 void AsyncPrepareJob::doJob()
 {
   GET_CTX();
@@ -1278,6 +1292,7 @@ void start_update(ContextId cid, float dt, bool update_gpu, bool tp_wake_up)
   {
     ctx.simulationIsPaused = true;
     clear_culling_visibility_flags(ctx); // SYS_VISIBLE flag needs to be cleared manually in this case
+    recompute_particle_count(cid);
     return;
   }
 
@@ -1868,7 +1883,9 @@ void get_stats_as_string(ContextId cid, eastl::string &out_s)
   ADDV(cpuCullElems);
   ADDV(gpuCullElems);
   ADDV(visibleTriangles);
-  ADDV(renderedTriangles);
+  for (int i = 0; i < s.renderedTriangles.size(); ++i)
+    if (s.renderedTriangles[i] > 0)
+      out_s.append_sprintf("renderedTriangles[%d]: %4d\n", i, s.renderedTriangles[i]);
 
   ADDV(gpuTransferCount);
   ADDV(gpuTransferSize);
@@ -1878,6 +1895,7 @@ void get_stats_as_string(ContextId cid, eastl::string &out_s)
   ADDV(totalInstances);
   ADDV(activeInstances);
   ADDV(renderInstances);
+  ADDV(totalParticles);
 
   out_s.append_sprintf("CPU sim elems total by lods:\n");
   static eastl::array<int, Config::max_simulation_lods> cpuElemTotalSimLodsPadding = {};

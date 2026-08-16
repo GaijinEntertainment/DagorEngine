@@ -204,7 +204,9 @@ void ScreenSpaceProbes::initMaxResolution(int tile_size, int max_sw, int max_sh,
 {
   // probably we can make minimum 4, but requires permutation in additional_probes_placement_cs
   // we can also make tile size 64 and more, but requires more bits in coord (is in todo)
-  const float additional = sp_additional_probes_reserve * (tile_size / 16.);
+  // absolute demand for additional probes is ~constant while probe count falls as
+  // 1/tileSize^2: above 16 the reserve fraction must grow quadratically
+  const float additional = sp_additional_probes_reserve * (tile_size / 16.f) * max(1.f, tile_size / 16.f);
   radiance_res = clamp<int>(radiance_res, 4, 16);
   ScreenRes a = calc(tile_size, max_sw, max_sh, additional);
   temporality = clamp(temporality, 0.01f, 1.f);
@@ -368,9 +370,11 @@ void ScreenSpaceProbes::additional_probes_placement()
   d3d::resource_barrier({screenspaceProbePos[frame & 1].getBuf(), RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE | RB_FLUSH_UAV});
   d3d::resource_barrier({tileClassificator.getBuf(), RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE | RB_FLUSH_UAV});
   DA_PROFILE_GPU;
+  // one added probe (one depth layer) per tile per iteration; layer demand grows
+  // with tile area, so tiles above 8 get the full ceil(log2) iterations
+  const int defIterations = max<int>(1, get_bigger_log2(current.tileSize) - (current.tileSize <= 8 ? 1 : 0));
   const int iterations =
-    min<int>(sp_placement_probes_iterations < 0 ? max<int>(1, get_bigger_log2(current.tileSize) - 1) : sp_placement_probes_iterations,
-      SP_MAX_ADDITIONAL_PROBES_COUNT);
+    min<int>(sp_placement_probes_iterations < 0 ? defIterations : sp_placement_probes_iterations, SP_MAX_ADDITIONAL_PROBES_COUNT);
   for (int i = 0; i < iterations; ++i)
   {
     ShaderGlobal::set_int4(sp_placement_iterationVarId, i, i != iterations - 1 ? 1 : 0, iterations, 0);

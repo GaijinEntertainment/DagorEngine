@@ -240,7 +240,6 @@ public:
     daEditor3InterfaceVer = DAEDITOR3_VERSION;
     assetDlg = 0;
   }
-  ~DaEditor3Engine() { resetInterface(); }
 
   Tab<String> objFilterList;
 
@@ -871,6 +870,11 @@ public:
       if (auto *srv = EDITORCORE->queryEditorInterface<IDynRenderService>())
         srv->term();
     }
+
+    // This must be after IDynRenderService::term(), because with the daNetGame-based renderer, acesfx::shutdown() accesses game
+    // resources. This must be before texconvcache::term_build_on_demand_tex_factory(), because game resources keep references to
+    // textures.
+    reset_game_resources();
 
     texconvcache::term_build_on_demand_tex_factory();
     dabuildcache::term();

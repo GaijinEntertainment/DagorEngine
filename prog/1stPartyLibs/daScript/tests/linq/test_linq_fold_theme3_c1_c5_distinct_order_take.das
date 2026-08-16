@@ -1,7 +1,6 @@
 options gen2
 
 require math
-require strings
 require daslib/linq
 require daslib/linq_boost
 require daslib/linq_fold
@@ -9,7 +8,7 @@ require daslib/decs
 require daslib/decs_boost
 require dastest/testing_boost public
 
-// Theme 3 Phase 3 (audit `benchmarks/sql/linq_fold_chain_audit.md` probes C1 + C5):
+// Theme 3 Phase 3 (audit `history/linq_fold/linq_fold_chain_audit.md` probes C1 + C5):
 // the "top-K distinct" composition family. Two arm pairs in mirror order:
 //   C1: `_distinct_by(K1) |> _order_by(K2) |> take(N) |> to_array()`
 //   C5: `_order_by(K1) |> distinct() |> take(N) |> to_array()`
@@ -211,7 +210,7 @@ struct C1User {
 
 def populate_c1_decs() {
     restart()
-    create_entities(50) $(eid : EntityId; i : int; var cmp : ComponentMap) {
+    create_entities(50) $ [unused_argument(eid)] (eid : EntityId; i : int; var cmp : ComponentMap) {
         apply_decs_template(cmp, C1User(user = "U{i % 10}", ts = (i * 13) % 100))
     }
 }
@@ -261,7 +260,7 @@ def populate_c5_decs() {
         (name = "d", score = 30),
         (name = "c", score = 20)
     ]
-    create_entities(6) $(eid : EntityId; i : int; var cmp : ComponentMap) {
+    create_entities(6) $ [unused_argument(eid)] (eid : EntityId; i : int; var cmp : ComponentMap) {
         apply_decs_template(cmp, C5Score(name = data[i].name, score = data[i].score))
     }
 }

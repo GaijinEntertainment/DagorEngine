@@ -1,4 +1,6 @@
 options gen2
+options persistent_heap
+options gc
 
 require live/glfw_live
 require opengl/opengl_boost
@@ -77,6 +79,7 @@ def main() {
     init()
     while (!exit_requested()) {
         update()
+        maybe_collect_gc()
     }
     shutdown()
 }

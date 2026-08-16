@@ -220,8 +220,8 @@ inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
   treeInfo.data.isTrunk = isTrunk;
 
   // It will be filled later from mesh!
-  treeInfo.data.ppPositionBindless = 0xFFFFFFFFU;
-  treeInfo.data.ppDirectionBindless = 0xFFFFFFFFU;
+  treeInfo.data.ppPositionBindless = MeshMeta::INVALID_TEXTURE;
+  treeInfo.data.ppDirectionBindless = MeshMeta::INVALID_TEXTURE;
 
   treeInfo.data.isPivoted = !!isPivoted;
   treeInfo.data.isPosInstance = is_pos_inst;

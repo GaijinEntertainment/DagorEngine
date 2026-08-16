@@ -624,6 +624,8 @@ bool dafx_modfx_system_load(const ModFxSystemDesc &modfx_sdesc, dafx::ContextId 
   bool seperateHighresAtest = cfg.use_seperate_highres_atest_rtag;
   seperateHighresAtest &= rtag == dafx_ex::RTAG_HIGHRES;
 
+  ddesc.statGroup = eastl::to_underlying(dafx_ex::StatGroup::ModFx);
+
   if (parRenderShader.shader == RSHADER_DEFAULT)
   {
     if (parRenderShape.type == RSHAPE_TYPE_RIBBON)

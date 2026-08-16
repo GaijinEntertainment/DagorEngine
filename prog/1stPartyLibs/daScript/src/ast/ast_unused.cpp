@@ -85,6 +85,39 @@ namespace das {
         ->
      */
 
+    // temp-string-result propagation: a das function is a fresh-string producer iff every
+    // function-level return yields a fresh producer - a [temp_string_result] call, a string
+    // builder, or a ternary of qualifying branches. No locals in v1: `return s` never
+    // qualifies, which buys the no-retention property without escape analysis
+    static bool isFreshStringExpr ( Expression * expr ) {
+        if ( !expr ) return false;
+        if ( expr->rtti_isStringBuilder() ) return true;
+        if ( expr->rtti_isCall() ) {
+            auto c = static_cast<ExprCall *>(expr);
+            return c->func && c->func->tempStringResult;
+        }
+        if ( expr->rtti_isOp3() ) {
+            auto op3 = static_cast<ExprOp3 *>(expr);
+            return isFreshStringExpr(op3->left) && isFreshStringExpr(op3->right);
+        }
+        return false;
+    }
+
+    class CheckFreshStringReturns : public Visitor {
+    public:
+        bool allFresh = true;
+        // runs on one pre-gated (non-template, non-stub) function; inits cannot hold
+        // function-level returns and quotes are inert - skip both outright
+        virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
+        virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
+        virtual void preVisit ( ExprReturn * expr ) override {
+            Visitor::preVisit(expr);
+            if ( expr->returnInBlock ) return;      // a block return yields the block, not the function
+            if ( !isFreshStringExpr(expr->subexpr) ) allFresh = false;
+        }
+    };
+
     // here we propagate r2cr flag
     //  a.@b    ->  $a.@b
     //  a@[b]   ->  $a@[b]
@@ -96,7 +129,26 @@ namespace das {
         das_hash_set<const Function *>   asked;
         FunctionPtr             func = nullptr;
     public:
+    // access_info is informational only (lint/refactor consumers) — reset here, not in
+    // TrackVariableFlags, so the phase-2 access_flags rebuild can't interleave with it
+        virtual void preVisitLet ( ExprLet * let, const VariablePtr & var, bool last ) override {
+            Visitor::preVisitLet(let, var, last);
+            var->access_info = 0;
+        }
+        virtual void preVisitArgument ( Function * fn, const VariablePtr & var, bool lastArg ) override {
+            Visitor::preVisitArgument(fn, var, lastArg);
+            var->access_info = 0;
+        }
+        virtual void preVisitBlockArgument ( ExprBlock * block, const VariablePtr & var, bool lastArg ) override {
+            Visitor::preVisitBlockArgument(block, var, lastArg);
+            var->access_info = 0;
+        }
         void MarkSideEffects ( Module & mod ) {
+            // function bodies stamp access_info on globals too (preVisitLet only covers locals
+            // and arguments) — clear here or the bits go sticky across buildAccessFlags rounds
+            for ( auto & var : mod.globals.each() ) {
+                var->access_info = 0;
+            }
             for ( auto & fn : mod.functions.each() ) {
                 if (!fn->isTemplate && !fn->builtIn) {
                     fn->knownSideEffects = false;
@@ -189,7 +241,23 @@ namespace das {
             } else if ( expr->rtti_isR2V() ) {
                 auto rr = (ExprRef2Value *)expr;
                 propagateRead(rr->subexpr);
+            } else if ( expr->rtti_isUnsafe() ) {
+                propagateRead(((ExprUnsafe *) expr)->body);
             }
+        }
+        // a write through a local pointer variable is a write through whatever storage its
+        // initializer aliases — chase the init so the write reaches the true root (argument,
+        // addr(...), another alias). without this a `let q = p; write-through-q` function is
+        // judged pure and its calls are DCE'd, silently dropping the write (#3311 family);
+        // auto-inline's generated `let _inl*_arg_*` bindings are exactly this shape.
+        // conservative on purpose: a rebinding write (`q = null`) chases too — that only
+        // over-marks, never drops. globals are excluded (covered by accessGlobal tracking).
+        void propagateWriteThroughPointerAlias ( ExprVar * var ) {
+            const auto & vv = var->variable;
+            if ( !vv || vv->global ) return;
+            const auto & vt = vv->type;
+            if ( !vt || !vt->isPointer() || vt->ref ) return;
+            if ( vv->init ) propagateWrite(vv->init);
         }
         void propagateWrite ( Expression * expr ) {
             if ( expr->rtti_isVar() ) {
@@ -198,6 +266,7 @@ namespace das {
                 if ( var->variable->loop_source ) {
                     propagateWrite(var->variable->loop_source);
                 }
+                propagateWriteThroughPointerAlias(var);
             } else if ( expr->rtti_isField() || expr->rtti_isSafeField()
                        || expr->rtti_isAsVariant() || expr->rtti_isSafeAsVariant() ) {
                 auto field = (ExprField *) expr;
@@ -239,9 +308,16 @@ namespace das {
                 propagateWrite(rr->subexpr);
             } else if ( expr->rtti_isCallFunc() ) {
                 auto call = (ExprCallFunc *) expr;
-                if ( call->func && (call->func->propertyFunction || call->func->isCustomProperty) ) {
+                // firstArgReturnType (pointer arithmetic: i_das_ptr_add/sub/etc) returns a
+                // pointer aliasing arguments[0]'s pointee, so a write through the result is a
+                // write through arguments[0]. Without this the write is lost across an
+                // offset-pointer helper call and the caller is wrongly judged pure (issue #3321)
+                if ( call->func && (call->func->propertyFunction || call->func->isCustomProperty
+                                    || call->func->firstArgReturnType) ) {
                     propagateWrite(call->arguments[0]);
                 }
+            } else if ( expr->rtti_isUnsafe() ) {
+                propagateWrite(((ExprUnsafe *) expr)->body);
             }
         }
         void propagateWriteViaCopyOrMove ( Expression * expr ) {
@@ -251,6 +327,7 @@ namespace das {
                 if ( var->variable->loop_source ) {
                     propagateWrite(var->variable->loop_source);    /// this went to variable, we done via copy or move
                 }
+                propagateWriteThroughPointerAlias(var);
             } else if ( expr->rtti_isField() || expr->rtti_isSafeField()
                        || expr->rtti_isAsVariant() || expr->rtti_isSafeAsVariant() ) {
                 auto field = (ExprField *) expr;
@@ -293,10 +370,113 @@ namespace das {
             } else if ( expr->rtti_isCallFunc() ) {
                 auto call = (ExprCallFunc *) expr;
                 call->write = true;
-                if ( call->func && (call->func->propertyFunction || call->func->isCustomProperty) ) {
+                if ( call->func && (call->func->propertyFunction || call->func->isCustomProperty
+                                    || call->func->firstArgReturnType) ) {
                     propagateWriteViaCopyOrMove(call->arguments[0]);
                 }
+            } else if ( expr->rtti_isUnsafe() ) {
+                propagateWriteViaCopyOrMove(((ExprUnsafe *) expr)->body);
             }
+        }
+        // informational: argument appeared in a mutable-ref slot. peels the same shapes as
+        // propagateWrite, but stamps the root variable directly (no expression-level flag)
+        void propagatePassMutable ( Expression * expr ) {
+            if ( expr->rtti_isVar() ) {
+                auto var = (ExprVar *) expr;
+                var->variable->access_info_pass_mutable = true;
+                if ( var->variable->loop_source ) {
+                    propagatePassMutable(var->variable->loop_source);
+                }
+            } else if ( expr->rtti_isField() || expr->rtti_isSafeField()
+                       || expr->rtti_isAsVariant() || expr->rtti_isSafeAsVariant() ) {
+                propagatePassMutable(((ExprField *) expr)->value);
+            } else if ( expr->rtti_isSwizzle() ) {
+                propagatePassMutable(((ExprSwizzle *) expr)->value);
+            } else if ( expr->rtti_isAt() || expr->rtti_isSafeAt() ) {
+                propagatePassMutable(((ExprAt *) expr)->subexpr);
+            } else if ( expr->rtti_isOp3() ) {
+                auto op3 = (ExprOp3 *) expr;
+                propagatePassMutable(op3->left);
+                propagatePassMutable(op3->right);
+            } else if ( expr->rtti_isNullCoalescing() ) {
+                auto nc = (ExprNullCoalescing *) expr;
+                propagatePassMutable(nc->subexpr);
+                propagatePassMutable(nc->defaultValue);
+            } else if ( expr->rtti_isCast() ) {
+                propagatePassMutable(((ExprCast *) expr)->subexpr);
+            } else if ( expr->rtti_isRef2Ptr() ) {
+                propagatePassMutable(((ExprRef2Ptr *) expr)->subexpr);
+            } else if ( expr->rtti_isPtr2Ref() ) {
+                propagatePassMutable(((ExprPtr2Ref *) expr)->subexpr);
+            } else if ( expr->rtti_isR2V() ) {
+                propagatePassMutable(((ExprRef2Value *) expr)->subexpr);
+            } else if ( expr->rtti_isCallFunc() ) {
+                auto call = (ExprCallFunc *) expr;
+                if ( call->func && (call->func->propertyFunction || call->func->isCustomProperty
+                                    || call->func->firstArgReturnType) ) {
+                    propagatePassMutable(call->arguments[0]);
+                }
+            } else if ( expr->rtti_isUnsafe() ) {
+                propagatePassMutable(((ExprUnsafe *) expr)->body);
+            }
+        }
+        void markPassMutableArguments ( const Function * fn, const vector<ExpressionPtr> & arguments ) {
+            // unlike the modifyArgument loops below this runs on every resolved call — guard
+            // against shapes where the argument list and the signature disagree in length
+            for ( size_t ai=0, ais=das::min(arguments.size(), fn->arguments.size()); ai!=ais; ++ai ) {
+                const auto & argT = fn->arguments[ai]->type;
+                if ( argT->isRef() && !argT->constant ) {
+                    propagatePassMutable(arguments[ai]);
+                }
+            }
+        }
+        void markPassMutableOperand ( const Function * fn, size_t index, Expression * operand ) {
+            if ( index >= fn->arguments.size() ) return;
+            const auto & argT = fn->arguments[index]->type;
+            if ( argT->isRef() && !argT->constant ) {
+                propagatePassMutable(operand);
+            }
+        }
+        // a modifyArgument callee writes through SOME argument — mark which of the call-site
+        // arguments inherit that write (so the caller's own modifyArgument / DCE is correct)
+        void propagateModifiedArguments ( const Function * fn, const vector<ExpressionPtr> & arguments, bool inCycle ) {
+            // bound by the signature too (matching markPassMutableArguments) — argVar indexes
+            // fn->arguments[ai], so a call shape with more args than params can't go OOB
+            for ( size_t ai=0, ais=das::min(arguments.size(), fn->arguments.size()); ai!=ais; ++ai ) {
+                const auto & argVar = fn->arguments[ai];
+                const auto & argT = argVar->type;
+                if ( inCycle ) {
+                    // recursive callee still mid-analysis: conservative signature rule
+                    if ( argT->canWrite() ) propagateWrite(arguments[ai]);
+                } else if ( !fn->builtIn ) {
+                    // canWrite() is false for a `const`-pointee/`const`-ref argument, but a callee
+                    // can still write through it by const-stripping (reinterpret to mutable). Its
+                    // per-argument access_ref records that real write, so honor it — otherwise the
+                    // forwarded write is invisible and the call is wrongly DCE'd (issue #3311).
+                    const bool argWritten = argT->canWrite()
+                        || ( argVar->access_ref && argT->isRefOrPointer() );
+                    if ( fn->knownSideEffects && argWritten ) propagateWrite(arguments[ai]);
+                } else {
+                    if ( argT->canWrite() && fn->modifyArgument ) propagateWrite(arguments[ai]);
+                }
+            }
+        }
+        // a pointer value copied out of a const variable is itself const (`Foo? const`) and no
+        // longer matches a mutable-pointee destination (error 30915/30343) — flowing a pointer
+        // into such a slot demands the source variable stay mutable. const-pointer (`Foo? const`),
+        // void?, and const-pointee (`Foo const?`) slots all accept a const source, so they don't
+        void markPassMutablePointerSink ( const TypeDeclPtr & slotType, Expression * source ) {
+            if ( !slotType || slotType->baseType!=Type::tPointer || slotType->constant ) return;
+            if ( !slotType->firstType || slotType->firstType->baseType==Type::tVoid ) return;
+            if ( slotType->firstType->constant ) return;
+            propagatePassMutable(source);
+        }
+        // make-struct/variant/tuple/array destinations are not worth a per-field type lookup —
+        // conservatively treat any pointer value flowing into one as a mutable-pointee sink
+        void markPassMutablePointerFlow ( Expression * source ) {
+            const auto & st = source->type;
+            if ( !st || st->baseType!=Type::tPointer ) return;
+            propagatePassMutable(source);
         }
         uint32_t getSideEffects ( const FunctionPtr & fnc ) {
             if ( fnc->stub || fnc->isTemplate || fnc->builtIn || fnc->knownSideEffects ) {
@@ -371,6 +551,33 @@ namespace das {
             if ( flags & uint32_t(SideEffects::captureString) ) {
                 fnc->captureString = true;
                 flags &= ~uint32_t(SideEffects::captureString);
+            }
+            // temp-string-result: computed bottom-up (callees resolved by the dep loop above,
+            // pessimistic on cycles via `asked`); the [temp_string_result] annotation is a
+            // manual override and is never cleared here
+            if ( !fnc->tempStringResult && fnc->result && fnc->result->isString() && !fnc->result->ref ) {
+                CheckFreshStringReturns cfr;
+                fnc->visit(cfr);
+                if ( cfr.allFresh ) fnc->tempStringResult = true;
+            }
+            // may-queue-temp-string: executing this body may hit a queue site - a builder that
+            // marking may make temp, a call that wrapping may make a site, or (via invoke) code
+            // we cannot see. A caller holding a PARKED temp across such a call gets it flushed
+            // while live - the interprocedural half of the one-site rule. Bottom-up like
+            // captureString; same cycle exposure (the `asked` early-return under-reports)
+            if ( !fnc->mayQueueTempString ) {
+                bool mayQueue = fnc->hasStringBuilder || (flags & uint32_t(SideEffects::invoke)) != 0;
+                if ( !mayQueue ) {
+                    for ( auto & depF : fnc->useFunctions ) {
+                        if ( depF == fnc ) continue;
+                        if ( depF->mayQueueTempString || depF->tempStringResult
+                            || (depF->builtIn && depF->invoke) ) {
+                            mayQueue = true;
+                            break;
+                        }
+                    }
+                }
+                if ( mayQueue ) fnc->mayQueueTempString = true;
             }
             fnc->sideEffectFlags |= flags;
             return flags;
@@ -457,17 +664,20 @@ namespace das {
             Visitor::preVisit(expr);
             propagateWriteViaCopyOrMove(expr->left);
             propagateRead(expr->right);
+            markPassMutablePointerSink(expr->left->type, expr->right);
         }
     // ExprClone
         virtual void preVisit ( ExprClone * expr ) override {
             Visitor::preVisit(expr);
             propagateWrite(expr->left);
             propagateRead(expr->right);
+            markPassMutablePointerSink(expr->left->type, expr->right);
         }
     // Op1
         virtual void preVisit ( ExprOp1 * expr ) override {
             Visitor::preVisit(expr);
             auto sef = getSideEffects(expr->func);
+            markPassMutableOperand(expr->func, 0, expr->subexpr);
             if ( sef & uint32_t(SideEffects::modifyArgument) ) {
                 propagateWrite(expr->subexpr);
             }
@@ -476,6 +686,8 @@ namespace das {
         virtual void preVisit ( ExprOp2 * expr ) override {
             Visitor::preVisit(expr);
             auto sef = getSideEffects(expr->func);
+            markPassMutableOperand(expr->func, 0, expr->left);
+            markPassMutableOperand(expr->func, 1, expr->right);
             if ( sef & uint32_t(SideEffects::modifyArgument) ) {
                 auto leftT = expr->left->type;
                 if ( leftT->isRefOrPointer() && !leftT->constant ) {
@@ -491,6 +703,11 @@ namespace das {
         virtual void preVisit ( ExprOp3 * expr ) override {
             Visitor::preVisit(expr);
             auto sef = expr->func ? getSideEffects(expr->func) : 0;
+            if ( expr->func ) {
+                markPassMutableOperand(expr->func, 0, expr->subexpr);
+                markPassMutableOperand(expr->func, 1, expr->left);
+                markPassMutableOperand(expr->func, 2, expr->right);
+            }
             if ( sef & uint32_t(SideEffects::modifyArgument) ) {
                 auto condT = expr->subexpr->type;
                 if ( condT->isRefOrPointer() && !condT->constant ) {
@@ -511,8 +728,12 @@ namespace das {
             Visitor::preVisit(expr);
             // TODO:
             //  at some point we should do better data trackng for this type of aliasing
-            if ( expr->returnReference || expr->moveSemantics ) propagateWrite(expr->subexpr);
-            else if ( expr->subexpr ) propagateRead(expr->subexpr);
+            if ( expr->returnReference || expr->moveSemantics ) {
+                propagateWrite(expr->subexpr);
+            } else if ( expr->subexpr ) {
+                propagateRead(expr->subexpr);
+                if ( func ) markPassMutablePointerSink(func->result, expr->subexpr);
+            }
         }
     // New
         virtual void preVisit ( ExprNew * expr ) override {
@@ -526,28 +747,14 @@ namespace das {
                 func->sideEffectFlags |= uint32_t(SideEffects::modifyExternal);
             }
             if ( expr->initializer ) {
+                markPassMutableArguments(expr->func, expr->arguments);
                 // if modified, modify CALL
                 auto sef = getSideEffects(expr->func);
                 // see ExprCall: a recursive initializer call is still mid-analysis here
                 const bool inCycle = !expr->func->knownSideEffects
                     && asked.find(expr->func) != asked.end();
                 if ( inCycle || (sef & uint32_t(SideEffects::modifyArgument)) ) {
-                    for ( size_t ai=0, ais=expr->arguments.size(); ai!=ais; ++ai ) {
-                        const auto & argT = expr->func->arguments[ai]->type;
-                        if ( argT->canWrite() ) {
-                            if ( inCycle ) {
-                                propagateWrite(expr->arguments[ai]);
-                            } else if ( !expr->func->builtIn ) {
-                                if ( expr->func->knownSideEffects ) {
-                                    propagateWrite(expr->arguments[ai]);
-                                }
-                            } else {
-                                if ( expr->func->modifyArgument ) {
-                                    propagateWrite(expr->arguments[ai]);
-                                }
-                            }
-                        }
-                    }
+                    propagateModifiedArguments(expr->func, expr->arguments, inCycle);
                 }
             }
         }
@@ -579,6 +786,7 @@ namespace das {
             if ( !expr->func ) {
                 return;
             }
+            markPassMutableArguments(expr->func, expr->arguments);
             // if modified, modify NEW
             auto sef = getSideEffects(expr->func);
             // a recursive (or mutually-recursive) callee is still mid-analysis here, so
@@ -588,22 +796,7 @@ namespace das {
             const bool inCycle = !expr->func->knownSideEffects
                 && asked.find(expr->func) != asked.end();
             if ( inCycle || (sef & uint32_t(SideEffects::modifyArgument)) ) {
-                for ( size_t ai=0, ais=expr->arguments.size(); ai!=ais; ++ai ) {
-                    const auto & argT = expr->func->arguments[ai]->type;
-                    if ( argT->canWrite() ) {
-                        if ( inCycle ) {
-                            propagateWrite(expr->arguments[ai]);
-                        } else if ( !expr->func->builtIn ) {
-                            if ( expr->func->knownSideEffects ) {
-                                propagateWrite(expr->arguments[ai]);
-                            }
-                        } else {
-                            if ( expr->func->modifyArgument ) {
-                                propagateWrite(expr->arguments[ai]);
-                            }
-                        }
-                    }
-                }
+                propagateModifiedArguments(expr->func, expr->arguments, inCycle);
             }
         }
     // LooksLikeCall
@@ -652,6 +845,7 @@ namespace das {
                     } else {
                         propagateWrite(value);
                     }
+                    markPassMutablePointerFlow(value);
                 }
             }
         }
@@ -664,6 +858,7 @@ namespace das {
                 } else {
                     propagateWrite(value);
                 }
+                markPassMutablePointerFlow(value);
             }
         }
     // MakeStruct
@@ -676,6 +871,7 @@ namespace das {
                     } else {
                         propagateRead(mfd->value);
                     }
+                    markPassMutablePointerFlow(mfd->value);
                 }
             }
         }
@@ -688,6 +884,7 @@ namespace das {
                 } else {
                     propagateRead(mfd->value);
                 }
+                markPassMutablePointerFlow(mfd->value);
             }
         }
     // addr
@@ -706,6 +903,7 @@ namespace das {
     class RemoveUnusedLocalVariables : public PassVisitor {
     public:
         using PassVisitor::PassVisitor;
+        using PassVisitor::visit;
     protected:
         virtual bool canVisitFunction ( Function * fun ) override {
             return funcIsDirty(fun) && !fun->stub && !fun->isTemplate;    // we don't do a thing with templates
@@ -750,6 +948,23 @@ namespace das {
                                 if ( !cle->type ) {
                                     cle->type = new TypeDecl(*expr->variable->init->type);
                                 }
+                                // the let coerced the init to the variable's type - a null
+                                // literal (void?) into a typed pointer being the canonical
+                                // case - and no infer runs after this substitution: the
+                                // propagated read must carry the VARIABLE's type, or a
+                                // downstream consumer sees void? where float? stood
+                                // (SimulateVisitor::visit(ExprSafeAt*) crashed on the null
+                                // firstType). isSameType can't gate this - void pointers
+                                // match any pointer there - so test the shape directly
+                                if ( cle->type->isVoidPointer()
+                                    && expr->variable->type->isPointer()
+                                    && expr->variable->type->firstType
+                                    && !expr->variable->type->firstType->isVoid() ) {
+                                    bool wasConst = cle->type->constant;
+                                    cle->type = new TypeDecl(*expr->variable->type);
+                                    cle->type->ref = false;
+                                    cle->type->constant = wasConst;
+                                }
                                 return cle;
                             }
                         }
@@ -772,11 +987,13 @@ namespace das {
                                 exprV->type->constant = true;
                                 return exprV;
                             } else {
-                                reportFolding();
                                 auto exprV = Program::makeConst(expr->at, expr->type, v_zero());
-                                exprV->type = new TypeDecl(*expr->type);
-                                exprV->type->constant = true;
-                                return exprV;
+                                if ( exprV ) {   // null for lattice vectors (not foldable; unreachable belt-and-suspenders)
+                                    reportFolding();
+                                    exprV->type = new TypeDecl(*expr->type);
+                                    exprV->type->constant = true;
+                                    return exprV;
+                                }
                             }
                         }
                     }

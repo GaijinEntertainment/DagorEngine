@@ -1135,7 +1135,7 @@ def getGenConstType(name, default_name : string) {
     return const_type_table?[name] ?? default_name
 }
 
-def searchAndGenConst(var regex_def : Regex; defTName, suffix : string; var ofs : table<int; bool>; data : string; var dup : table<string; bool>; hf : FILE const?) {
+def searchAndGenConst(var regex_def : Regex; defTName, suffix : string; ofs : table<int; bool>; data : string; var dup : table<string; bool>; hf : FILE const?) {
     //! Searches for #define constants matching a regex and generates binding code.
     regex_foreach(regex_def, data) $(r) {
         if (!ofs |> key_exists(r.x)) {
@@ -1178,7 +1178,7 @@ def genDefineConstants(fnames : array<string>; prefix : string) {
                 if (f == null) {
                     panic("can't open {fname}")
                 }
-                var ofs : table<int; bool>
+                let ofs : table<int; bool>
                 let data = fread(f)
                 var dup : table<string; bool>
                 searchAndGenConst(reg_def_hex, "uint32_t", "u", ofs, data, dup, hf)

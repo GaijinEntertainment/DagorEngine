@@ -120,6 +120,7 @@ bool isRIGenExtraDestroyedPhysResExist(uint32_t) { G_ASSERT_RETURN(false, false)
 int getRIGenExtraDestroyedRiIdx(uint32_t) { G_ASSERT_RETURN(false, -1); }
 void moveToOriginalScene(riex_handle_t) { G_ASSERT(0); }
 void removeFromTiledScene(riex_handle_t) { G_ASSERT(0); }
+void setRIGenExtraRenderVisible(riex_handle_t, bool) { G_ASSERT(0); }
 bool removeRIGenExtraFromGrid(riex_handle_t) { G_ASSERT_RETURN(false, false); }
 bool restoreRIGenExtraInGrid(riex_handle_t) { G_ASSERT_RETURN(false, false); }
 

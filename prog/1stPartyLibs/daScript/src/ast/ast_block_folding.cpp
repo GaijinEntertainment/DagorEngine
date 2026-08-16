@@ -7,6 +7,7 @@ namespace das {
 
     class UnsafeFolding : public PassVisitor {
     public:
+        using PassVisitor::visit;
         UnsafeFolding() : PassVisitor(0) {}
     protected:
         virtual ExpressionPtr visit ( ExprUnsafe * expr ) {
@@ -29,6 +30,7 @@ namespace das {
     class RefFolding : public PassVisitor {
     public:
         using PassVisitor::PassVisitor;
+        using PassVisitor::visit;
 
         virtual bool canVisitStructure ( Structure * /*st*/ ) override { return false; }
         virtual bool canVisitEnumeration ( Enumeration * /*en*/ ) override { return false; }
@@ -152,6 +154,7 @@ namespace das {
     class BlockFolding : public PassVisitor {
     public:
         using PassVisitor::PassVisitor;
+        using PassVisitor::preVisit;
 
         virtual bool canVisitStructure ( Structure * /*st*/ ) override { return false; }
         virtual bool canVisitGlobalVariable ( Variable * /*fun*/ ) override { return false; }
@@ -222,10 +225,20 @@ namespace das {
                 }
                 if ( expr->rtti_isBlock() ) {
                     auto pBlock = static_cast<ExprBlock*>(expr);
-                    if ( !pBlock->isClosure && !pBlock->finalList.size() ) {
+                    bool keepScope = false;
+                    if ( pBlock->generated ) {
+                        for ( auto & st : pBlock->list ) if ( st && st->rtti_isLet() ) { keepScope = true; break; }
+                    }
+                    if ( !pBlock->isClosure && !pBlock->finalList.size() && !keepScope ) {
                         collect(list, pBlock->list);
                     } else {
                         list.push_back(expr);
+                        // a kept scope which always exits ends the enclosing flow too; without this
+                        // the statements behind it survive as dead code the JIT can't emit
+                        if ( keepScope && !pBlock->isClosure && doesExprTerminates(expr) ) {
+                            if ( stopAtExit ) break;
+                            skipTilLabel = true;
+                        }
                     }
                 } else if ( expr->rtti_isWith() ) {
                     auto pWith = static_cast<ExprWith*>(expr);
@@ -293,6 +306,7 @@ namespace das {
     class CondFolding : public PassVisitor {
     public:
         using PassVisitor::PassVisitor;
+        using PassVisitor::visit;
 
         virtual bool canVisitStructure ( Structure * /*st*/ ) override { return false; }
         virtual bool canVisitGlobalVariable ( Variable * /*fun*/ ) override { return false; }
@@ -301,48 +315,50 @@ namespace das {
         virtual bool canVisitArgumentInit ( Function * /*fun*/, const VariablePtr & /*var*/, Expression * /*init*/ ) override { return false; }
 
     protected:
+        // extract `return ...` from an if arm: either a naked return (folding a nested
+        // if/else in an elif chain leaves one), or a block holding exactly one return.
+        // a block with a finally section never qualifies - the fold would drop it.
+        static ExprReturn * armReturn ( Expression * arm ) {
+            ExprReturn * ret = nullptr;
+            if (arm->rtti_isReturn()) {
+                ret = static_cast<ExprReturn*>(arm);
+            } else if (arm->rtti_isBlock()) {
+                auto blk = static_cast<ExprBlock*>(arm);
+                if (blk->list.size() == 1 && blk->finalList.empty() && blk->list.back()->rtti_isReturn()) {
+                    ret = static_cast<ExprReturn*>(blk->list.back());
+                }
+            }
+            if ( ret && ret->subexpr && ret->subexpr->rtti_isMakeLocal() ) {
+                ret = nullptr;   // we don't touch CMRES stuff
+            }
+            return ret;
+        }
         virtual ExpressionPtr visit ( ExprIfThenElse * expr ) override {
             // if ( func && func->generator ) return Visitor::visit(expr);
             // if (cond) return x; else return y; => (cond ? x : y)
             if (expr->if_false) {
-                ExprReturn * lr = nullptr; ExprReturn * rr = nullptr;
-                if (expr->if_true->rtti_isBlock()) {
-                    auto tb = static_cast<ExprBlock*>(expr->if_true);
-                    if (tb->list.size() == 1 && tb->list.back()->rtti_isReturn()) {
-                        lr = static_cast<ExprReturn*>(tb->list.back());
-                        if ( lr->subexpr && lr->subexpr->rtti_isMakeLocal() ) {
-                            lr = nullptr;   // we don't touch CMRES stuff
-                        }
-                    }
-                }
-                if (expr->if_false->rtti_isBlock()) {
-                    auto fb = static_cast<ExprBlock*>(expr->if_false);
-                    if (fb->list.size() == 1 && fb->list.back()->rtti_isReturn()) {
-                        rr = static_cast<ExprReturn*>(fb->list.back());
-                        if ( rr->subexpr && rr->subexpr->rtti_isMakeLocal() ) {
-                            rr = nullptr;   // we don't touch CMRES stuff
-                        }
-                    }
-                }
+                ExprReturn * lr = armReturn(expr->if_true);
+                ExprReturn * rr = armReturn(expr->if_false);
                 if (lr && rr) {
                     if ( lr->moveSemantics != rr->moveSemantics ) {
                         lr = nullptr; // move semantics must match
                         rr = nullptr;
                     } else if ( lr->subexpr && rr->subexpr && (lr->subexpr->type->isRef() || rr->subexpr->type->isRef()) ) {
-                        lr = nullptr; // ref types must match
+                        lr = nullptr; // don't fold when either side is a ref
                         rr = nullptr;
                     }
                 }
                 if (lr && rr) {
-                    if ( lr->subexpr ) {
+                    if ( lr->subexpr && rr->subexpr ) {
                         auto newCond = new ExprOp3(expr->at, "?", expr->cond, lr->subexpr, rr->subexpr);
                         newCond->type = new TypeDecl(*lr->subexpr->type);
                         auto newRet = new ExprReturn(expr->at, newCond);
                         newRet->moveSemantics = lr->moveSemantics;
                         reportFolding();
                         return newRet;
-                    } else {
+                    } else if ( !lr->subexpr && !rr->subexpr && expr->cond->noSideEffects ) {
                         // this is actually if ( a ) return; else return;
+                        // evaluating `a` does nothing, so the whole thing is a bare return
                         reportFolding();
                         return lr;
                     }

@@ -621,6 +621,7 @@ void ProfilerData::addFrame() // can only be called from one frame, and only fro
   // newFrame.gpuEnd = ~0ULL;
   newFrame.frameNo = framesInfo.frameCount;
   newFrame.addFrameCount = 0;
+  newFrame.gpuClockMhz = (newMode & GPU) ? gpu_current_clock_mhz() : 0;
   framesInfo.frameCount++;
 
   // we should call flip once per frame, and now it is both from MP and our profiler

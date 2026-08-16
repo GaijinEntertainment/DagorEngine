@@ -36,12 +36,12 @@ CollisionResource *CollisionResource::loadResource(IGenLoad &crd, int res_id)
 
 int CollisionResource::addSphereNode(const char *name, int16_t phys_mat_id, const BSphere3 &bsphere)
 {
+  // Builder geometry starts with an identity placement.
   CollisionNode &n = createNode();
   n.nameOfs = addName(name);
   n.physMatId = phys_mat_id;
   n.type = COLLISION_NODE_TYPE_SPHERE;
   n.flags = CollisionNode::IDENT;
-  n.tm = TMatrix::IDENT;
   n.boundingSphere.c = bsphere.c;
   n.boundingSphere.r = bsphere.r;
   n.modelBBox = BBox3(bsphere);
@@ -56,7 +56,6 @@ int CollisionResource::addBoxNode(const char *name, int16_t phys_mat_id, const B
   n.physMatId = phys_mat_id;
   n.type = COLLISION_NODE_TYPE_BOX;
   n.flags = CollisionNode::IDENT;
-  n.tm = TMatrix::IDENT;
   n.modelBBox = bbox;
   n.boundingSphere.c = bbox.center();
   n.boundingSphere.r = bbox.width().length() / 2.f;
@@ -71,7 +70,6 @@ int CollisionResource::addCapsuleNode(const char *name, int16_t phys_mat_id, con
   n.physMatId = phys_mat_id;
   n.type = COLLISION_NODE_TYPE_CAPSULE;
   n.flags = CollisionNode::IDENT;
-  n.tm = TMatrix::IDENT;
   n.modelBBox = (BBox3(BSphere3(p0, radius)) += BSphere3(p1, radius));
   n.boundingSphere.c = (p0 + p1) / 2.f;
   n.boundingSphere.r = (p0 - p1).length() / 2.f + radius;
@@ -131,15 +129,17 @@ int CollisionResource::addMeshNode(const char *name, int16_t phys_mat_id, const 
   n.type = COLLISION_NODE_TYPE_MESH;
   n.flags = flags;
   n.behaviorFlags = behavior_flags;
-  n.tm = tm;
-  const float len0sq = tm.getcol(0).lengthSq();
-  const float len1sq = tm.getcol(1).lengthSq();
-  const float len2sq = tm.getcol(2).lengthSq();
-  n.cachedMaxTmScale = sqrtf(max(len0sq, max(len1sq, len2sq)));
   {
     mat44f vTm;
     v_mat44_make_from_43cu_unsafe(vTm, tm.array);
-    setAuthoredNodeTm(idx, vTm, flags, n.cachedMaxTmScale);
+    const float len0sq = tm.getcol(0).lengthSq();
+    const float len1sq = tm.getcol(1).lengthSq();
+    const float len2sq = tm.getcol(2).lengthSq();
+    const float maxLenSq = max(len0sq, max(len1sq, len2sq));
+    // Squared column lengths overflow for large finite scales and FTZ-underflow to zero below
+    // ~1e-19; the spectral norm normalizes internally, so a valid basis always stamps a finite
+    // nonzero conservative scale.
+    setAuthoredNodeTm(idx, vTm, flags, (maxLenSq >= FLT_MIN && maxLenSq <= FLT_MAX) ? sqrtf(maxLenSq) : mat33SpectralNorm(vTm));
   }
   n.modelBBox = bbox;
   n.boundingSphere.c = bsphere.c;
@@ -236,32 +236,166 @@ void CollisionResource::setAuthoredNodeTm(int node_index, mat44f_cref tm, uint8_
   bindTraceSphereStamped = false;
   v_mat_43cu_from_mat44(defaultInstance.nodeTm[node_index].array, tm);
   v_mat_43cu_from_mat44(authoredNodeTm[node_index].array, tm);
+  if ((uint32_t)node_index < authoredNodeItm.size())
+  {
+    mat44f inv;
+    v_mat44_inverse43(inv, tm);
+    v_mat_43cu_from_mat44(authoredNodeItm[node_index].array, inv);
+  }
   CollisionResourceInstance::PoseMeta &pm = defaultInstance.poseMeta[node_index];
   pm = CollisionResourceInstance::PoseMeta(); // node slots are reused (legacy drop path): no stale status bits
+  // Serialized stamps are data: a NaN/Inf/denormal scale passes every MATRIX gate below yet
+  // collapses or explodes the sphere culls that square it. Recompute out-of-band stamps.
+  if (!(max_scale >= FLT_MIN && max_scale <= 1.f / FLT_MIN))
+    max_scale = mat33SpectralNorm(tm);
   pm.maxTmScale = max_scale;
+  pm.setPoseIdentity(collres_is_exact_identity_43(tm));
   pm.flags =
     class_flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE | CollisionNode::ORTHONORMALIZED | CollisionNode::ORTHOUNIFORM);
   // Capsule geometry is never exporter-baked, so epsilon-identity motion must still apply.
   if ((pm.flags & CollisionNode::IDENT) && allNodesList[node_index].type == COLLISION_NODE_TYPE_CAPSULE &&
-      !(v_check_xyz_all_true(v_cmp_eq(tm.col0, V_C_UNIT_1000)) && v_check_xyz_all_true(v_cmp_eq(tm.col1, V_C_UNIT_0100)) &&
-        v_check_xyz_all_true(v_cmp_eq(tm.col2, V_C_UNIT_0010)) && v_check_xyz_all_true(v_cmp_eq(tm.col3, v_zero()))))
+      !collres_is_exact_identity_43(tm))
     pm.flags = (pm.flags & ~CollisionNode::IDENT) | CollisionNode::TRANSLATE;
   // Authored mirrored placements remain valid; only singular placements are hidden.
-  const float det = v_extract_x(v_dot3_x(tm.col0, v_cross3(tm.col1, tm.col2)));
-  // Any non-finite affine component (translation included) is unrealizable. The exponent-bit
-  // test survives -ffinite-math-only, which folds float-domain tricks like x - x away.
-  const bool tmFinite = v_test_xyzw_finite(v_add(v_add(tm.col0, tm.col1), v_add(tm.col2, tm.col3)));
-  // Reject scales below the un-bake divisor floor.
-  pm.setTraceable(tmFinite && fabsf(det) > 1e-6f * max_scale * max_scale * max_scale && max_scale > 1e-9f);
+  // Any non-finite affine component (translation included) is unrealizable. Max-abs, not a
+  // column sum: finite components can overflow the intermediate sum near the scale bound. The
+  // exponent-bit test survives -ffinite-math-only, which folds float-domain tricks away.
+  const bool tmFinite = v_test_xyzw_finite(v_max(v_max(v_abs(tm.col0), v_abs(tm.col1)), v_max(v_abs(tm.col2), v_abs(tm.col3))));
+  // Scale-free gate on the matrix itself, not the serialized scale (a retained bake
+  // serializes its EFFECTIVE scale); evaluated unconditionally so the log never reads an
+  // unwritten ndet.
+  float ndet;
+  const bool detOk = relativeDetAboveFloor(tm, ndet);
+  bool traceOk = tmFinite && detOk;
+  if (traceOk)
+  {
+    // Inverse-based dispatch needs the whole inverse finite: near-bound translations and
+    // huge-scale cofactors overflow it while the forward placement stays representable.
+    mat44f inv;
+    v_mat44_inverse43(inv, tm);
+    traceOk = v_test_xyzw_finite(v_max(v_max(v_abs(inv.col0), v_abs(inv.col1)), v_max(v_abs(inv.col2), v_abs(inv.col3))));
+  }
+  pm.setTraceable(traceOk);
+  pm.setComposable(traceOk); // authored mirrors are load-traceable, so composable follows
+  // Per occurrence (not once): affected content must be enumerable from the log.
   if (DAGOR_UNLIKELY(!pm.isTraceable()))
-    LOGWARN_ONCE("collision: singular authored tm (det=%g) on node %d of res %p; hidden from the pose mirror "
-                 "(legacy dispatch unchanged until the migration reads it)",
-      det, node_index, this);
+    logwarn("collision: singular authored tm (ndet=%g) on node %d <%s> of res %p; hidden from the pose mirror "
+            "(legacy dispatch unchanged until the migration reads it)",
+      ndet, node_index, getNodeName(node_index), this);
   // Non-uniform primitive placement is supported conservatively but remains a content error.
   else if (DAGOR_UNLIKELY(pm.flags == 0 && (allNodesList[node_index].type == COLLISION_NODE_TYPE_SPHERE ||
                                              allNodesList[node_index].type == COLLISION_NODE_TYPE_CAPSULE)))
     LOGWARN_ONCE("collision: non-uniform authored tm on %s node %d of res %p traces as an ellipsoid",
       allNodesList[node_index].type == COLLISION_NODE_TYPE_SPHERE ? "sphere" : "capsule", node_index, this);
+}
+
+// Convert exporter-baked primitive geometry to node-local storage.
+void CollisionResource::unbakePrimNode(CollisionNode &n, const TMatrix &tm, CollisionResourceInstance::PoseMeta &pm)
+{
+  if (pm.flags & CollisionNode::IDENT)
+    return; // nothing baked beyond an eps-identity; dispatch treats IDENT T as a no-op
+  if (!pm.isTraceable())
+  {
+    // A singular authored primitive must remain in its baked frame.
+    pm.setGeometryBaked(true);
+    return;
+  }
+  // Zero-vert marker: bounds are empty; corner-mapping the inverted box would explode it into
+  // a huge phantom that accessors and a later re-export preserve.
+  if (n.boundingSphere.r < 0.f)
+    return;
+  float sphereRadDivisor = 1.f;
+  if (n.type == COLLISION_NODE_TYPE_SPHERE)
+  {
+    // A NON-CONFORMAL placement cannot un-bake the exporter's vert-fit sphere (any scalar
+    // division under-recovers): it keeps the baked frame as a RETAINED, poseable bake with an
+    // identity effective bind frame. Conformality is checked scale-relatively on a
+    // max-element-normalized basis (squared lengths overflow/underflow at extreme scales, and
+    // an absolute divisor floor would corrupt tiny valid placements).
+    const Point3 c0 = tm.getcol(0), c1 = tm.getcol(1), c2 = tm.getcol(2);
+    float m = 0.f;
+    for (int a = 0; a < 3; a++)
+    {
+      const Point3 c = tm.getcol(a);
+      m = max(m, max(fabsf(c.x), max(fabsf(c.y), fabsf(c.z))));
+    }
+    if (!(m >= FLT_MIN && m <= 1.f / FLT_MIN))
+    {
+      // Outside the invertible normal-float band there is no recoverable local frame.
+      pm.setGeometryBaked(true);
+      pm.setRetainedBake(true);
+      pm.flags = CollisionNode::IDENT | CollisionNode::ORTHONORMALIZED; // effective bind frame is identity
+      pm.maxTmScale = 1.f;
+      return;
+    }
+    const Point3 n0 = c0 / m, n1 = c1 / m, n2 = c2 / m;
+    const float l0 = lengthSq(n0), l1 = lengthSq(n1), l2 = lengthSq(n2);
+    const float d01 = fabsf(n0 * n1), d02 = fabsf(n0 * n2), d12 = fabsf(n1 * n2);
+    bool conformal = pm.flags != 0;
+    if (conformal && !(pm.flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)))
+    {
+      const float s2 = max(l0, max(l1, l2));
+      const float relTol = 2e-3f * s2;
+      conformal = fabsf(l0 - s2) <= relTol && fabsf(l1 - s2) <= relTol && fabsf(l2 - s2) <= relTol && d01 <= relTol && d02 <= relTol &&
+                  d12 <= relTol;
+    }
+    if (!conformal)
+    {
+      pm.setGeometryBaked(true);
+      pm.setRetainedBake(true);
+      pm.flags = CollisionNode::IDENT | CollisionNode::ORTHONORMALIZED; // effective bind frame is identity
+      pm.maxTmScale = 1.f;
+      return;
+    }
+    // The baked fit can sit along the SMALLEST stretch: divide by the Gershgorin sigma_min
+    // lower bound; the conformality band caps the overshoot.
+    const float nSigmaMin = sqrtf(max(min(l0 - d01 - d02, min(l1 - d01 - d12, l2 - d02 - d12)), 0.f));
+    sphereRadDivisor = max(m * nSigmaMin, FLT_MIN);
+  }
+  // Always the full inverse: ORTHONORMALIZED is an epsilon class, and the transpose shortcut
+  // compounds its scale error into the stored geometry on every load-export cycle.
+  TMatrix itm = inverse(tm);
+  BBox3 localBox;
+  for (int k = 0; k < 8; k++)
+    localBox += itm * n.modelBBox.point(k);
+  // EXACT identity basis, not the eps TRANSLATE class: a 5e-4 basis slack still expands the
+  // corner-mapped box, and skipping the refit would leave the narrow phase outside its culls.
+  const bool exactIdentityBasis =
+    tm.getcol(0) == Point3(1, 0, 0) && tm.getcol(1) == Point3(0, 1, 0) && tm.getcol(2) == Point3(0, 0, 1);
+  if (!exactIdentityBasis)
+  {
+    // Rotated or skewed AABBs can only be un-baked conservatively.
+    BBox3 recomposed;
+    for (int k = 0; k < 8; k++)
+      recomposed += tm * localBox.point(k);
+    const float eps = 1e-3f * n.modelBBox.width().length() + 1e-5f;
+    if (n.type == COLLISION_NODE_TYPE_BOX &&
+        ((recomposed[0] - n.modelBBox[0]).length() > eps || (recomposed[1] - n.modelBBox[1]).length() > eps))
+      LOGWARN_ONCE("collision: rotated/skewed authored placement on a baked box node; local bounds are conservative");
+    if (n.type == COLLISION_NODE_TYPE_BOX && n.boundingSphere.r >= 0.f)
+    {
+      // The conservative box can outgrow the exporter's vert-fit sphere, and every sphere cull
+      // must cover what the box narrow phase tests -- refit the sphere over the un-baked box.
+      n.boundingSphere.c = localBox.center();
+      n.boundingSphere.r = localBox.width().length() * 0.5f;
+    }
+  }
+  n.modelBBox = localBox;
+  if (n.type == COLLISION_NODE_TYPE_SPHERE)
+  {
+    // Only sphere bounding spheres are exporter-baked (verts * wtm); box bounding
+    // spheres accumulate raw node-local verts at export, so they need no un-bake.
+    n.boundingSphere.c = itm * n.boundingSphere.c;
+    if (n.boundingSphere.r >= 0.f)
+    {
+      // Conformal classes only reach here (general sphere placements stay baked at entry).
+      n.boundingSphere.r /= sphereRadDivisor;
+      // Rebuild exact sphere bounds after the conservative corner transform.
+      const Point3 r3(n.boundingSphere.r, n.boundingSphere.r, n.boundingSphere.r);
+      n.modelBBox[0] = n.boundingSphere.c - r3;
+      n.modelBBox[1] = n.boundingSphere.c + r3;
+    }
+  }
 }
 
 // Legacy on-disk bits in CollisionNode::flags signaling that the per-node mesh data was written
@@ -286,6 +420,7 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
   // return every bind-state latch to its constructed value.
   defaultInstance.nodeTm.clear();
   authoredNodeTm.clear();
+  authoredNodeItm.clear();
   defaultInstance.poseMeta.clear();
   defaultInstance.gridResidentPoseAtBind = true;
   defaultInstance.posedSinceBind = false;
@@ -363,8 +498,11 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
     n.behaviorFlags = zcrd->readIntP<2>();
     n.flags = zcrd->readIntP<1>();
     n.type = (CollisionResourceNodeType)zcrd->readIntP<1>();
-    zcrd->readReal(n.cachedMaxTmScale);
-    zcrd->read(&n.tm, sizeof(n.tm));
+    // Preserve serialized pose metadata verbatim.
+    TMatrix authoredTm;
+    float authoredMaxScale;
+    zcrd->readReal(authoredMaxScale);
+    zcrd->read(&authoredTm, sizeof(authoredTm));
     n.insideOfNode = zcrd->readIntP<2>();
 
     {
@@ -440,19 +578,24 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
     {
       const int nodeIdx = (int)(&n - allNodesList.data());
       mat44f vAuthoredTm;
-      v_mat44_make_from_43cu_unsafe(vAuthoredTm, n.tm.array);
-      setAuthoredNodeTm(nodeIdx, vAuthoredTm, n.flags, n.cachedMaxTmScale);
-      // Exporter-baked prim geometry keeps its bake (this loader also bakes capsule
-      // endpoints below); the storage migration un-bakes all of it to node-local.
-      if ((n.type == COLLISION_NODE_TYPE_BOX || n.type == COLLISION_NODE_TYPE_SPHERE || n.type == COLLISION_NODE_TYPE_CAPSULE) &&
-          !(defaultInstance.poseMeta[nodeIdx].flags & CollisionNode::IDENT))
-        defaultInstance.poseMeta[nodeIdx].setGeometryBaked(true);
+      v_mat44_make_from_43cu_unsafe(vAuthoredTm, authoredTm.array);
+      setAuthoredNodeTm(nodeIdx, vAuthoredTm, n.flags, authoredMaxScale);
+      if (n.type == COLLISION_NODE_TYPE_BOX || n.type == COLLISION_NODE_TYPE_SPHERE)
+        unbakePrimNode(n, authoredTm, defaultInstance.poseMeta[nodeIdx]);
     }
     if (n.type == COLLISION_NODE_TYPE_CAPSULE)
     {
+      // Capsule geometry remains node-local; T carries its placement.
       Capsule c;
-      c.set(n.modelBBox);
-      c.transform(n.tm);
+      if (DAGOR_UNLIKELY(n.boundingSphere.r < 0.f))
+      {
+        // Zero-vert marker: Capsule::set on the inverted empty box would fabricate a huge
+        // phantom segment; store a degenerate capsule and keep the node out of tracing.
+        c.set(Point3(0, 0, 0), Point3(0, 0, 0), 0.f);
+        defaultInstance.poseMeta[(int)(&n - allNodesList.data())].setTraceable(false);
+      }
+      else
+        c.set(n.modelBBox);
       n.capsuleIndex = (uint16_t)capsules.size();
       capsules.push_back(c);
     }
@@ -633,19 +776,15 @@ void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*res
       node.behaviorFlags = (typeAndBehFlags & 0xFF00) | (node.behaviorFlags & 0x00FF);
     }
 
-    cb.read(&node.tm, sizeof(TMatrix));
+    TMatrix authoredTm;
+    cb.read(&authoredTm, sizeof(TMatrix));
     if (collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)
       cb.read(&relGeomNodeTms[nodeNo], sizeof(TMatrix));
     mat44f vNodeTm;
-    v_mat44_make_from_43cu_unsafe(vNodeTm, node.tm.array);
-    node.flags = classifyNodeTmFlags(vNodeTm, node.cachedMaxTmScale);
-    setAuthoredNodeTm((int)nodeNo, vNodeTm, node.flags, node.cachedMaxTmScale);
-    // Exporter-baked prim geometry keeps its bake (this loader also bakes capsule
-    // endpoints below); the storage migration un-bakes all of it to node-local.
-    if (
-      (node.type == COLLISION_NODE_TYPE_BOX || node.type == COLLISION_NODE_TYPE_SPHERE || node.type == COLLISION_NODE_TYPE_CAPSULE) &&
-      !(defaultInstance.poseMeta[nodeNo].flags & CollisionNode::IDENT))
-      defaultInstance.poseMeta[nodeNo].setGeometryBaked(true);
+    v_mat44_make_from_43cu_unsafe(vNodeTm, authoredTm.array);
+    float authoredMaxScale;
+    node.flags = classifyNodeTmFlags(vNodeTm, authoredMaxScale);
+    setAuthoredNodeTm((int)nodeNo, vNodeTm, node.flags, authoredMaxScale);
 
     {
       BSphere3 tmpSph;
@@ -770,11 +909,20 @@ void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*res
       node.indicesCount = kept;
     }
 
+    if (node.type == COLLISION_NODE_TYPE_BOX || node.type == COLLISION_NODE_TYPE_SPHERE)
+      unbakePrimNode(node, authoredTm, defaultInstance.poseMeta[nodeNo]);
     if (node.type == COLLISION_NODE_TYPE_CAPSULE)
     {
+      // node-local, no bake: T carries the placement (see the modern load path)
       Capsule c;
-      c.set(node.modelBBox);
-      c.transform(node.tm);
+      if (DAGOR_UNLIKELY(node.boundingSphere.r < 0.f))
+      {
+        // Zero-vert marker: see the modern load path.
+        c.set(Point3(0, 0, 0), Point3(0, 0, 0), 0.f);
+        defaultInstance.poseMeta[(int)nodeNo].setTraceable(false);
+      }
+      else
+        c.set(node.modelBBox);
       node.capsuleIndex = (uint16_t)capsules.size();
       capsules.push_back(c);
     }
@@ -929,20 +1077,25 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
     }
   }
 
-  // Phase A: bake non-IDENT TM into geometry, in place against the staging verts / index staging.
+  // Phase A: bake the current default placement into staging geometry.
   for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
   {
     CollisionNode *m = &allNodesList[mi];
     if (m->type != COLLISION_NODE_TYPE_CONVEX && m->type != COLLISION_NODE_TYPE_MESH)
       continue;
-    if ((m->flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) == CollisionNode::IDENT || m->indicesCount == 0)
+    if ((defaultInstance.poseMeta[m->nodeIndex].flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) == CollisionNode::IDENT ||
+        m->indicesCount == 0)
+      continue;
+    // Singular authored placements remain hidden and unbaked.
+    if (!defaultInstance.poseMeta[m->nodeIndex].isTraceable())
       continue;
     Point3_vec4 *vbase = staging.data() + m->verticesOfs;
     uint32_t *ibase = idxStaging.data() + m->indicesOfs;
     const uint32_t mVCount = (uint32_t)m->verticesCount;
+    // The full plane inverse needs defined w lanes.
     mat44f nodeTm;
+    v_mat44_make_from_43cu(nodeTm, defaultInstance.nodeTm[m->nodeIndex].array);
     bbox3f box;
-    v_mat44_make_from_43cu(nodeTm, m->tm[0]);
     v_bbox3_init_empty(box);
     for (vec4f *__restrict verts = (vec4f *)(void *)vbase, *ve = verts + mVCount; verts != ve; ++verts)
     {
@@ -964,18 +1117,15 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
     v_stu_p3(&m->boundingSphere.c.x, vSphereC);
     m->boundingSphere.r = v_extract_x(v_sqrt_x(sphereRad2));
 
-    if (m->tm.det() < 0.f) // swap indices order
+    const float tmDet = v_extract_x(v_dot3_x(nodeTm.col0, v_cross3(nodeTm.col1, nodeTm.col2)));
+    if (tmDet < 0.f) // swap indices order
       for (uint32_t i = 0, e = m->indicesCount; i + 2 < e; i += 3)
         eastl::swap(ibase[i + 0], ibase[i + 2]);
-    m->tm.identity();
     m->flags = CollisionNode::IDENT | (m->flags & (~CollisionNode::TRANSLATE));
     m->flags = CollisionNode::ORTHONORMALIZED | (m->flags & (~CollisionNode::ORTHOUNIFORM));
-    m->cachedMaxTmScale = 1.f;
-    {
-      mat44f identTm;
-      v_mat44_ident(identTm);
-      setAuthoredNodeTm(m->nodeIndex, identTm, m->flags, 1.f);
-    }
+    mat44f identTm;
+    v_mat44_ident(identTm);
+    setAuthoredNodeTm(m->nodeIndex, identTm, m->flags, 1.f);
   }
 
   // Phase B: bucket mesh nodes by (matId, isPhysCollidable) and build per-bucket merged geometry
@@ -992,7 +1142,8 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
     const bool isPhysCollidable = m->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE);
     // indicesCount guard: a degenerate-dropped node has no staging slice (the staging pass above skips
     // it), so bucketizing it would read past its absent slice at staging.data() + verticesOfs below.
-    if (m->type == COLLISION_NODE_TYPE_MESH && isTraceable && m->hasGeometry())
+    // Unbaked singular nodes cannot join an identity bucket.
+    if (m->type == COLLISION_NODE_TYPE_MESH && isTraceable && m->hasGeometry() && defaultInstance.poseMeta[m->nodeIndex].isTraceable())
     {
       const eastl::pair<PhysMat::MatID, bool> matIndicesValue = eastl::make_pair(m->physMatId, isPhysCollidable);
       intptr_t bucket = find_value_idx(matIndices, matIndicesValue);
@@ -1069,10 +1220,8 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
     for (const Point3_vec4 &v : bm.verts)
       inplace_max(r2, lengthSq(v - targetNode->boundingSphere.c));
     targetNode->boundingSphere.r = sqrtf(r2);
-    targetNode->tm.identity();
     targetNode->flags |= targetNode->IDENT;
     targetNode->flags &= ~targetNode->TRANSLATE;
-    targetNode->cachedMaxTmScale = 1.f;
     {
       mat44f identTm;
       v_mat44_ident(identTm);
@@ -1185,6 +1334,7 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
     }
     defaultInstance.nodeTm = eastl::move(compactedTm);
     authoredNodeTm = eastl::move(compactedAuthoredTm);
+    authoredNodeItm.clear(); // pre-compaction keying; the rebuildNodesLL below rebuilds it
     defaultInstance.poseMeta = eastl::move(compactedMeta);
     if (hasRelTms)
       relGeomNodeTms = eastl::move(compactedRelGeomNodeTms);
@@ -1284,13 +1434,11 @@ void CollisionResource::Grid::buildBLAS(CollisionResource *parent, dag::ConstSpa
 
   // Per-node BLAS eligibility:
   //   - MESH only: CONVEX nodes are packed into their own per-node BLAS chunks, not the combined grid.
-  //   - IDENT only: the flatten loop appends raw verts (raw_verts + verticesOfs) without node->tm,
-  //     so node-local == resource-local. Non-IDENT nodes use the per-node fallback (applies tm at
-  //     trace time).
+  //   - IDENT default pose only; non-IDENT nodes require per-node placement dispatch.
   //   - behavior_flag match + non-empty indices.
-  auto isEligibleForBlas = [behavior_flag](const CollisionNode *n) {
-    return n->type == COLLISION_NODE_TYPE_MESH && n->checkBehaviorFlags(behavior_flag) && (n->flags & CollisionNode::IDENT) &&
-           n->indicesCount > 0;
+  auto isEligibleForBlas = [behavior_flag, parent](const CollisionNode *n) {
+    return n->type == COLLISION_NODE_TYPE_MESH && n->checkBehaviorFlags(behavior_flag) &&
+           (parent->getDefaultInstance().getPoseMeta(n->nodeIndex).flags & CollisionNode::IDENT) && n->indicesCount > 0;
   };
 
   bbox3f fullMeshBox;

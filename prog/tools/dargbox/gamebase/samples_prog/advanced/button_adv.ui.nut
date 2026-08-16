@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "types" import Table, Null, Class, Array
 let cursors = require("samples_prog/_cursors.nut")
 
 //[WIP] !very experimental component
@@ -9,7 +10,7 @@ function __update_r(target, source, deepLevel = -1) {
   function sub_update_r(tgt, src, dplLvl = -1) {
     let res = {}.__update(tgt)
     foreach (key,value in src) {
-      if (type(value) =="table" && dplLvl != 0 && key in tgt) {
+      if (value instanceof Table && dplLvl != 0 && key in tgt) {
         res[key] = sub_update_r({}.__update(tgt[key]), {}.__update(value), dplLvl - 1)
       } else {
         res[key] <- src[key]
@@ -21,9 +22,9 @@ function __update_r(target, source, deepLevel = -1) {
 }
 
 function copy_component(comp) {
-  if (type(comp) == "table")
+  if (comp instanceof Table)
     return {}.__update(comp)
-  if (type(comp) == "null")
+  if (comp instanceof Null)
     return {}
   return comp
 }
@@ -31,7 +32,7 @@ function copy_component(comp) {
 function __update_darg_r(tgt, src, deep_level = -1) {
 
   function isUpdatable(component) {
-    if (type(component) == "class" || type(component) == "table")
+    if (component instanceof Class || component instanceof Table)
       return true
     return false
   }
@@ -39,7 +40,7 @@ function __update_darg_r(tgt, src, deep_level = -1) {
   function sub_update_r(target, source, deepLevel = -1) {
     let res = {}.__update(target)
     foreach (key, value in source) {
-      if (key == "children" && key in target && type(value) == "array" && type(target[key]) == "array") {
+      if (key == "children" && key in target && value instanceof Array && target[key] instanceof Array) {
         let newValue = []
         foreach (idx, val in target[key]) {
           if (idx < value.len()) {
@@ -58,7 +59,7 @@ function __update_darg_r(tgt, src, deep_level = -1) {
         }
         res[key] = newValue
       }
-      else if (type(value) =="table" && deepLevel != 0 && key in target) {
+      else if (value instanceof Table && deepLevel != 0 && key in target) {
         res[key] = sub_update_r(copy_component(target[key]), copy_component(value), deepLevel - 1)
       }
       else {

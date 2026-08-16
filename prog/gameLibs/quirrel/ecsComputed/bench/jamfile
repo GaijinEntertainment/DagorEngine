@@ -1,0 +1,54 @@
+Root    ?= ../../../../.. ;
+Location = prog/gameLibs/quirrel/ecsComputed/bench ;
+ConsoleExe = yes ;
+StrictCompile = yes ;
+UseQuirrel = yes ;
+Config ?= rel ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = exe ;
+Target      = ecsFrpBench ;
+OutDir      = $(Root)/$(Location) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/gameLibs
+;
+
+Sources =
+  main.cpp
+;
+
+WorkCyclePerfStub = yes ;
+
+UseProgLibs =
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/startup
+  engine/baseUtil
+  engine/coreUtil
+  engine/math
+  engine/perfMon/daProfilerStub
+  engine/consoleProc # gpuProfiler ConVars, pulled in by perfMon in release
+  engine/workCycle
+  engine/lib3d
+  engine/drv/drv3d_stub
+
+  engine/daECS/core
+  engine/daECS/io/dataBlock
+  engine/daECS/utility
+  engine/daECS/gameResStub
+
+  gameLibs/quirrel/frp
+  gameLibs/quirrel/ecsComputed
+  gameLibs/ecs/scripts/sq
+  gameLibs/quirrel/quirrel_json
+
+  3rdPartyLibs/eastl
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

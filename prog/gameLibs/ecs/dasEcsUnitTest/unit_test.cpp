@@ -15,6 +15,7 @@
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_files.h>
 #include <perfMon/dag_statDrv.h>
 #include <daECS/core/internal/performQuery.h>
@@ -102,6 +103,47 @@ static int log_callback(int lev_tag, const char * /*fmt*/, const void * /*arg*/,
 #endif
 extern bool dgs_execute_quiet;
 
+static int count_entities_with_query()
+{
+  ecs::ComponentDesc eidComp{ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()};
+  ecs::NamedQueryDesc desc{
+    "free_per_thread_query_data_test",
+    dag::ConstSpan<ecs::ComponentDesc>(),
+    dag::ConstSpan<ecs::ComponentDesc>(&eidComp, 1),
+    dag::ConstSpan<ecs::ComponentDesc>(),
+    dag::ConstSpan<ecs::ComponentDesc>(),
+  };
+  ecs::QueryId qid = g_entity_mgr->createQuery(desc);
+  int count = 0;
+  ecs::perform_query(g_entity_mgr, qid, [&count](const ecs::QueryView &qv) { count += qv.end() - qv.begin(); });
+  g_entity_mgr->destroyQuery(qid);
+  return count;
+}
+
+// an exiting thread frees its query TLS node; the later main thread clear() must then free only live-TLS nodes
+static void test_free_per_thread_query_data()
+{
+  const int64_t mainThreadId = get_current_thread_id();
+  const int expected = count_entities_with_query();
+  struct QueryThread final : public DaThread
+  {
+    int count = -1;
+    QueryThread() : DaThread("freeQueryDataTest") {}
+    void execute() override
+    {
+      g_entity_mgr->setOwnerThreadId(get_current_thread_id());
+      count = count_entities_with_query();
+      g_entity_mgr->freePerThreadQueryData();
+    }
+  } thread;
+  G_VERIFY(thread.start());
+  thread.terminate(true /*wait*/);
+  g_entity_mgr->setOwnerThreadId(mainThreadId);
+  G_ASSERTF(thread.count == expected, "%d != %d", thread.count, expected);
+  count_entities_with_query(); // re-create the main thread node so the final clear() frees it with live TLS
+  printf("freePerThreadQueryData test passed (%d entities)\n", expected);
+}
+
 int myMain2(int startArgC)
 {
   if (df_get_real_name("entities.blk"))
@@ -180,6 +222,7 @@ int myMain2(int startArgC)
 
   G_ASSERT(get_test_value("EventStartTriggered") == 1);
   G_ASSERT(get_test_value("EventEndTriggered") == 1);
+  test_free_per_thread_query_data();
   int64_t reft = ref_time_ticks();
   g_entity_mgr->clear();
   debug("clear in %dus", get_time_usec(reft));

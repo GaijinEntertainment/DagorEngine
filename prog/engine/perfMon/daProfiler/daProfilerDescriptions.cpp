@@ -23,6 +23,7 @@ static const char *default_tokens[] = {
   "GPU Frame",
   "Triangles",
   "Nested Frames",
+  "GPU MHz",
 };
 
 

@@ -61,8 +61,9 @@ public:
       return true;
     }
 
-    CONSOLE_CHECK_NAME_EX("render", "switch_debug_shaders", 2, 4, "Loads/unloads debug shaderdump compiled with -debug.",
-      "[off/on] [optional:shader_model_version_major] [optional:shader_model_version_minor]")
+    CONSOLE_CHECK_NAME_EX("render", "switch_debug_shaders", 2, 2,
+      "Takes/drops this command's own hold on the debug shaderdump compiled with -debug. Debug views holding it keep it loaded.",
+      "[off/on]")
     {
       if (d3d::get_driver_code() != d3d::dx12 || dgs_get_settings()->getBlockByNameEx("video")->getBool("compatibilityMode", false))
       {
@@ -72,33 +73,28 @@ public:
 
       bool load = console::to_bool(argv[1]);
 
-      if (argc > 3)
+      // the command owns the references it took, so releasing cannot take one from a debug view
+      static int consoleRefs = 0;
+      if (!load && consoleRefs <= 0)
       {
-        if (!(load ? load_shaders_debug_bindump(d3d::shadermodel::Version(console::to_int(argv[2]), console::to_int(argv[3])))
-                   : unload_shaders_debug_bindump(d3d::shadermodel::Version(console::to_int(argv[2]), console::to_int(argv[3])))))
-        {
-          console::print("Failed to load/unload the debug shaderdump");
-        }
+        console::print("This command holds no debug shaderdump reference, nothing to release");
+        return true;
       }
+
+      if (!(load ? require_debug_shaders() : release_debug_shaders()))
+      {
+        console::print("Failed to load/unload the debug shaderdump");
+        return true;
+      }
+
+      consoleRefs += load ? 1 : -1;
+      const int refs = debug_shaders_refcount();
+      if (load)
+        console::print("Loaded the debug shaderdump, %d reference(s) held", refs);
+      else if (refs > 0)
+        console::print("Released one reference, the debug shaderdump is still held by %d", refs);
       else
-      {
-        auto shaderModel = d3d::get_driver_desc().shaderModel;
-
-        for (auto version : d3d::smAll)
-        {
-          if (shaderModel < version)
-            continue;
-
-          bool success = load ? load_shaders_debug_bindump(version) : unload_shaders_debug_bindump(version);
-
-          if (success)
-          {
-            console::print("Succesfully loaded/unloaded debug dump");
-            break;
-          }
-          console::print_d("Failed to load/unload the debug dump of version: %s", version.psName);
-        }
-      }
+        console::print("Unloaded the debug shaderdump, the normal one is back");
     }
 
     return found;

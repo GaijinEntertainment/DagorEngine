@@ -1533,6 +1533,100 @@
       ]
     },
     {
+      "Id": "21dbe0c3-ad6b-44ce-9e3b-66835bd6a478",
+      "Command": "BVH",
+      "Items": [
+        {
+          "Id": "422e2a0e-a19f-4db0-aa0b-735eb30995a3",
+          "Command": "Features",
+          "Items": [
+            {
+              "Id": "b73fcadf-cc16-4b65-abc0-47f5d7b2cf92",
+              "Command": "RTSM",
+              "ExclusiveMode": true,
+              "Items": [
+                {
+                  "Id": "182c0917-0862-41f0-9147-de2f128f98ff",
+                  "Command": "-config:graphics/enableRTSM:t=sun_and_dynamic"
+                },
+                {
+                  "Id": "47e5fd06-848a-499a-801a-ea18cd1a44c2",
+                  "Command": "-config:graphics/enableRTSM:t=sun"
+                }
+              ]
+            },
+            {
+              "Id": "d15ae301-e34d-4d37-9ea7-4e0d519e1d47",
+              "Command": "-config:graphics/enableRTR:b=yes"
+            },
+            {
+              "Id": "14dd92e9-300d-4afa-a40f-96a2c9b19084",
+              "Command": "-config:graphics/enableRTAO:b=yes"
+            },
+            {
+              "Id": "b381f22c-ea4d-4e38-b2fe-da7325dabc4d",
+              "Command": "-config:graphics/enableRTTR:b=yes"
+            },
+            {
+              "Id": "ee48c037-0e92-40f2-8bb0-50cba9bb669b",
+              "Command": "-config:graphics/RTRWater:b=yes"
+            },
+            {
+              "Id": "95e5803e-f6e0-4a9c-b522-04d923e3d755",
+              "Command": "-config:graphics/bvhDagdp:b=yes"
+            }
+          ]
+        },
+        {
+          "Id": "1c6be0d8-e520-46bd-a637-029dacb7c787",
+          "Command": "WIP",
+          "Items": [
+            {
+              "Id": "4402b293-2bb5-443b-8c05-ba8c9dbcda8e",
+              "Command": "-config:graphics/enableAllRTFeatures:b=yes"
+            },
+            {
+              "Id": "0b9a4c47-5a88-4555-abb9-d6ff60d0058a",
+              "Command": "-config:graphics/enablePTGI:b=yes"
+            },
+            {
+              "Id": "0d557ce5-2060-4ece-9883-1f5af283dbdf",
+              "Command": "-config:graphics/enableRTGI:b=yes"
+            }
+          ]
+        },
+        {
+          "Id": "ba42fb6a-a3fb-4c60-89ec-6aee7efee266",
+          "Command": "debug",
+          "Items": [
+            {
+              "Id": "7b0c4b21-0d15-4ad4-8e2c-e9e93590e520",
+              "Command": "-config:graphics/enableBVH:b=yes"
+            },
+            {
+              "Id": "8e8ba35f-5af6-4e7b-9fd2-2b178f89a4c0",
+              "Command": "OMM",
+              "ExclusiveMode": true,
+              "Items": [
+                {
+                  "Id": "fb4d7f94-6b20-4edf-a148-5bf26b49394d",
+                  "Command": "-config:graphics/bvhEnableOmm:b=yes"
+                },
+                {
+                  "Id": "b054def8-ac40-421a-9afa-f8912c5dc8db",
+                  "Command": "-config:graphics/bvhEnableOmm:b=no"
+                }
+              ]
+            },
+            {
+              "Id": "a2f99b37-0ef2-4f0f-b3f3-b90e0b70a06a",
+              "Command": "-config:graphics/bvhDumpMemoryStats:b=yes"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "Id": "bffe7f33-eb32-4806-8dc1-becd95608882",
       "Command": "WindowMode",
       "ExclusiveMode": true,
@@ -1641,6 +1735,16 @@
             {
               "Id": "29752e8e-0f10-4aec-a0c1-071d13436e93",
               "Command": "-scene:gamedata/scenes/earth_orbit.blk -config:disableMenu:b=yes"
+            }
+          ]
+        },
+        {
+          "Id": "407eafb1-49b8-435a-868f-7b154100d39a",
+          "Command": "gaija_planet",
+          "Items": [
+            {
+              "Id": "dd7bdb54-d731-4f43-ab33-6eb76a7d07fd",
+              "Command": "-scene:gamedata/scenes/gaija_planet.blk -config:disableMenu:b=yes"
             }
           ]
         }

@@ -66,12 +66,23 @@ shader bvh_hwinstance_copy
         return;
 
     ##if bvh_hwinstance_copy_mode == copy
-      RTHWInstance instance = structuredBufferAt(source, dtId.x);
-      if (dtId.x < loadBuffer(instance_count, 0))
+      RTHWInstance instance;
+      bool isLiveInstance = dtId.x < loadBuffer(instance_count, 0);
+      if (isLiveInstance)
       {
+        instance = structuredBufferAt(source, dtId.x);
         instance.transform0.w -= world_view_pos.x;
         instance.transform1.w -= world_view_pos.y;
         instance.transform2.w -= world_view_pos.z;
+      }
+      else
+      {
+        instance.transform0 = 0;
+        instance.transform1 = 0;
+        instance.transform2 = 0;
+        instance.blas = 0;
+        instance.instanceId_mask = 0;
+        instance.instanceOffset_flags = 0;
       }
 
     ##else
@@ -91,7 +102,10 @@ shader bvh_hwinstance_copy
       outInstance.transform2 = float4(instance.transform2.z, instance.transform0.w, instance.transform1.w, instance.transform2.w);
 
     ##if bvh_hwinstance_copy_mode == copy // init clears m_bvh to zero
-      outInstance.blas_index = instance.blas.x;
+      if (isLiveInstance)
+        outInstance.blas_index = instance.blas.x;
+      else
+        outInstance.blas_index = 0;
     ##endif
 
       outInstance.options = 0;

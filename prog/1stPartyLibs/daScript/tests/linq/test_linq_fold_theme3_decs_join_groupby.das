@@ -1,8 +1,6 @@
 options gen2
 options _no_linq_perf_warn = true  // contains C3-anti-* cascade-still-works regression guards
 
-require math
-require strings
 require daslib/linq
 require daslib/linq_boost
 require daslib/linq_fold
@@ -10,7 +8,7 @@ require daslib/decs
 require daslib/decs_boost
 require dastest/testing_boost public
 
-// Theme 3 Phase 1 (audit `benchmarks/sql/linq_fold_chain_audit.md` probe C3): the
+// Theme 3 Phase 1 (audit `history/linq_fold/linq_fold_chain_audit.md` probe C3): the
 // "killer demo" composition. plan_decs_group_by recognizes a trailing `join`
 // upstream of `group_by_lazy` and switches to the isDecsJoin adapter mode so
 // plan_decs_join's hashB-collect + srcA-probe + per-pair result-lam bind feeds
@@ -34,10 +32,10 @@ struct C3Dealer {
 def populate_c3_fixture() {
     restart()
     // 6 cars across 3 dealers (id 1,2,3); dealers 1 & 2 are in REGION_NORTH, 3 in REGION_SOUTH.
-    create_entities(6) $(eid : EntityId; i : int; var cmp : ComponentMap) {
+    create_entities(6) $ [unused_argument(eid)] (eid : EntityId; i : int; var cmp : ComponentMap) {
         apply_decs_template(cmp, C3Car(id = i + 1, dealer_id = i % 3 + 1, name = "Car{i}"))
     }
-    create_entities(3) $(eid : EntityId; i : int; var cmp : ComponentMap) {
+    create_entities(3) $ [unused_argument(eid)] (eid : EntityId; i : int; var cmp : ComponentMap) {
         let region = (i == 2 ? "south" : "north")
         apply_decs_template(cmp, C3Dealer(id = i + 1, region = region, name = "Dealer{i}"))
     }

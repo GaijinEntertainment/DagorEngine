@@ -21,15 +21,11 @@ public:
 static TAClassDesc TADesc;
 ClassDesc *GetTexAnimIOCD() { return &TADesc; }
 
-BitmapIO_TA::BitmapIO_TA() {}
-
-BitmapIO_TA::~BitmapIO_TA() {}
-
 void BitmapIO_TA::ShowAbout(HWND hWnd) {}
 
 BOOL BitmapIO_TA::ShowControl(HWND hWnd, DWORD flag) { return (FALSE); }
 
-static void check_image_file(TCHAR *fn)
+static void check_image_file(TCHAR *fn, size_t count)
 {
   int e;
   for (e = (int)_tcslen(fn) - 1; e >= 0; --e)
@@ -39,6 +35,8 @@ static void check_image_file(TCHAR *fn)
     if (fn[e] == '.')
       return;
   e = (int)_tcslen(fn);
+  if (size_t(e) + 5 > count)
+    return;
   _tcscpy(fn + e, _T(".tga"));
   if (DoesFileExist(fn))
     return;
@@ -65,8 +63,8 @@ BMMRES BitmapIO_TA::GetImageInfo(BitmapInfo *fbi)
   BitmapInfo tbi;
 
 
-  _tcscpy(filenameOut, file.tex[0].c_str());
-  check_image_file(filenameOut);
+  _tcsncpy_s(filenameOut, _countof(filenameOut), file.tex[0].c_str(), _TRUNCATE);
+  check_image_file(filenameOut, _countof(filenameOut));
   tbi.SetName(filenameOut);
   BMMRES res = TheManager->GetImageInfo(&tbi, filenameOut);
   if (res != BMMRES_SUCCESS)
@@ -135,8 +133,8 @@ BMMRES BitmapIO_TA::GetImageName(BitmapInfo *fbi, TCHAR *filename)
 
   if (frame < 0)
     frame = 0;
-  _tcscpy(filename, file.tex[file.frm[frame]].c_str());
-  check_image_file(filename);
+  _tcsncpy_s(filename, MAX_PATH, file.tex[file.frm[frame]].c_str(), _TRUNCATE);
+  check_image_file(filename, MAX_PATH);
 
   return BMMRES_SUCCESS;
 }

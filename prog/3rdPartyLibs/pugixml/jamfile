@@ -10,11 +10,8 @@ Sources =
   pugixml.cpp
 ;
 
-# Compile into the `pugi_eden` namespace so this copy never collides with assimp's own
-# header-only pugixml (both would otherwise export `pugi::...` symbols). See pugixml_eden.h.
-# The token-level rename only affects the bare `pugi` namespace token, not `pugixml`.
-CPPopt += -Dpugi=pugi_eden ;
-
+# The single pugixml for all of dagor: assimp uses these same headers (its own bundled copy was
+# removed), so this compiles the one `pugi::` definition everyone links against.
 AddIncludes = $(Root)/prog/3rdPartyLibs/pugixml ;
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -1849,20 +1849,6 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       api_state.device.getContext().setXessVelocityScale(*(float *)par1, *(float *)par2);
       return 1;
     }
-#if USE_DLSS_WITHOUT_STREAMLINE
-    case Drv3dCommand::GET_DLSS:
-    {
-      *static_cast<void **>(par1) = &api_state.device.getContext().getDlss();
-      return 1;
-    }
-    break;
-    case Drv3dCommand::EXECUTE_DLSS_NO_STREAMLINE:
-    {
-      api_state.device.getContext().executeDlss(*(nv::DlssParams<> *)par1, par2 ? *(int *)par2 : 0);
-      return 1;
-    }
-    break;
-#endif
 #if _TARGET_PC_WIN
     case Drv3dCommand::CREATE_GPU_LATENCY:
     {
@@ -3060,90 +3046,6 @@ bool d3d::set_depth(BaseTexture *tex, int layer, DepthAccess access)
   return true;
 }
 
-bool d3d::set_render_target(int ri, Texture *tex, uint8_t level)
-{
-  D3D_CONTRACT_ASSERTF_RETURN(ri < Driver3dRenderTarget::MAX_SIMRT, false,
-    "DX12: in set_render_target, 'ri' is %d, while MAX_SIMRT is %d", ri, Driver3dRenderTarget::MAX_SIMRT);
-
-  CHECK_MAIN_THREAD();
-  ScopedCommitLock ctxLock{api_state.device.getContext()};
-  if (tex)
-  {
-    auto texture = cast_to_texture_base(tex);
-    TextureInfo info;
-    texture->getinfo(info);
-    const bool isRT = texture->isRenderTarget();
-    const bool isC = texture->getFormat().isColor();
-    D3D_CONTRACT_ASSERTF_RETURN(level < info.mipLevels, false,
-      "DX12: in set_render_target, 'level' is %d, while texture <%s> has only %d mip levels", level, texture->getName(),
-      info.mipLevels);
-    if (!isRT || !isC)
-    {
-      D3D_CONTRACT_ERROR("DX12: Texture %p <%s> used as color target, but lacks the necessary properties: isRT=%u | "
-                         "isC=%u",
-        texture, texture->getName(), isRT, isC);
-      return false;
-    }
-    api_state.state.setColorTarget(ri, texture, level, 0);
-  }
-  else
-  {
-    api_state.state.removeColorTarget(ri);
-  }
-
-  if (0 == ri)
-  {
-    api_state.state.removeDepthStencilTarget();
-
-    api_state.state.setUpdateViewportFromRenderTarget();
-  }
-  return true;
-}
-
-bool d3d::set_render_target(int ri, BaseTexture *tex, int layer, uint8_t level)
-{
-  D3D_CONTRACT_ASSERTF_RETURN(ri < Driver3dRenderTarget::MAX_SIMRT, false,
-    "DX12: in set_render_target, 'ri' is %d, while MAX_SIMRT is %d", ri, Driver3dRenderTarget::MAX_SIMRT);
-
-  CHECK_MAIN_THREAD();
-  ScopedCommitLock ctxLock{api_state.device.getContext()};
-  if (tex)
-  {
-    auto texture = cast_to_texture_base(tex);
-    TextureInfo info;
-    texture->getinfo(info);
-    unsigned short depth_or_slices = info.type == D3DResourceType::VOLTEX ? info.d : info.a;
-    G_UNUSED(depth_or_slices);
-    const bool isRT = texture->isRenderTarget();
-    const bool isC = texture->getFormat().isColor();
-    D3D_CONTRACT_ASSERTF_RETURN(level < info.mipLevels, false,
-      "DX12: in set_render_target, 'level' is %d, while texture <%s> has only %d mip levels", level, texture->getName(),
-      info.mipLevels);
-    D3D_CONTRACT_ASSERTF_RETURN(layer < depth_or_slices, false,
-      "DX12: in set_render_target, 'layer' is %d, while texture <%s> has only %d layers", layer, texture->getName(), depth_or_slices);
-    if (!isRT || !isC)
-    {
-      D3D_CONTRACT_ERROR("DX12: Texture %p <%s> used as color target, but lacks the necessary properties: isRT=%u | "
-                         "isC=%u",
-        texture, texture->getName(), isRT, isC);
-      return false;
-    }
-    api_state.state.setColorTarget(ri, texture, level, layer);
-  }
-  else
-  {
-    api_state.state.removeColorTarget(ri);
-  }
-
-  if (0 == ri)
-  {
-    api_state.state.removeDepthStencilTarget();
-
-    api_state.state.setUpdateViewportFromRenderTarget();
-  }
-  return true;
-}
-
 bool d3d::set_render_target(const Driver3dRenderTarget &rt)
 {
   CHECK_MAIN_THREAD();
@@ -3787,7 +3689,7 @@ TexPixel32 *d3d::capture_screen(int &w, int &h, int &stride_bytes)
   api_state.screenCaptureBuffer.resize(w * h * sizeof(TexPixel32));
   if (CAPFMT_X8R8G8B8 == fmt)
   {
-    // if device was reseted, then ptr is null, just return a black image then, to be safe
+    // if device was reset, then ptr is null, just return a black image then, to be safe
     if (ptr)
       memcpy(api_state.screenCaptureBuffer.data(), ptr, api_state.screenCaptureBuffer.size());
     else
@@ -4134,7 +4036,7 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
     }
 
     D3D_CONTRACT_ASSERTF_RETURN(build.basbi.scratchSpaceBuffer, ,
-      "DX12: This API requires providing a scatch buffer for the AS builds");
+      "DX12: This API requires providing a scratch buffer for the AS builds");
 
     auto scratchSpaceBuffer = (GenericBufferInterface *)build.basbi.scratchSpaceBuffer;
     D3D_CONTRACT_ASSERTF_RETURN(SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE & scratchSpaceBuffer->getFlags(), ,
@@ -4200,7 +4102,7 @@ void d3d::build_top_acceleration_structures(::raytrace::BatchedTopAccelerationSt
   for (uint32_t ix = 0; ix < as_count; ++ix)
   {
     D3D_CONTRACT_ASSERTF_RETURN(as_array[ix].tasbi.scratchSpaceBuffer, ,
-      "DX12: This API requires providing a scatch buffer for the AS builds");
+      "DX12: This API requires providing a scratch buffer for the AS builds");
   }
 
   STORE_RETURN_ADDRESS();
@@ -4853,16 +4755,6 @@ void drv3d_dx12::dirty_srv_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil
   api_state.state.dirtySRVNoLock(texture, stage, slots);
 }
 
-void drv3d_dx12::dirty_srv(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots)
-{
-  api_state.state.dirtySRV(texture, stage, slots);
-}
-
-void drv3d_dx12::dirty_sampler(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots)
-{
-  api_state.state.dirtySampler(texture, stage, slots);
-}
-
 void drv3d_dx12::dirty_sampler_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots)
 {
   api_state.state.dirtySamplerNoLock(texture, stage, slots);
@@ -4883,10 +4775,9 @@ void drv3d_dx12::dirty_rendertarget_no_lock(BaseTex *texture, Bitset<Driver3dRen
   api_state.state.dirtyRenderTargetNoLock(texture, slots, dsv);
 }
 
-void drv3d_dx12::notify_delete(BaseTex *texture, const Bitset<dxil::MAX_T_REGISTERS> *srvs, const Bitset<dxil::MAX_U_REGISTERS> *uavs,
-  Bitset<Driver3dRenderTarget::MAX_SIMRT> rtvs, bool dsv)
+void drv3d_dx12::notify_delete(BaseTex *texture, const Bitset<dxil::MAX_T_REGISTERS> *srvs, const Bitset<dxil::MAX_U_REGISTERS> *uavs)
 {
-  api_state.state.notifyDelete(texture, srvs, uavs, rtvs, dsv);
+  api_state.state.notifyDelete(texture, srvs, uavs);
 }
 
 void drv3d_dx12::mark_texture_stages_dirty_no_lock(BaseTex *texture, const Bitset<dxil::MAX_T_REGISTERS> *srvs,
@@ -5721,6 +5612,15 @@ bool sync_stage_is_none_for_non_empty_access(d3d::PipelineStageFlags stages, d3d
   return access != d3d::AccessFlags{} && stages == d3d::PipelineStageFlags{};
 }
 
+// D3D12 accepts depth/stencil access only within the SYNC_ALL or SYNC_DEPTH_STENCIL scopes
+bool depth_stencil_access_without_depth_stage(d3d::PipelineStageFlags stages, d3d::AccessFlags access)
+{
+  constexpr d3d::AccessFlags depthAccess = d3d::AccessFlag::DepthStencilWrite | d3d::AccessFlag::DepthStencilRead;
+  constexpr d3d::PipelineStageFlags depthStages =
+    d3d::PipelineStageFlag::All | d3d::PipelineStageFlag::EarlyFragmentTests | d3d::PipelineStageFlag::LateFragmentTests;
+  return (access & depthAccess) && !(stages & depthStages);
+}
+
 void validate_enhanced_buffer_barrier(const d3d::BufferBarrier &barrier)
 {
   if (barrier.memorySync.src & texture_only_access_mask)
@@ -5755,6 +5655,14 @@ void validate_enhanced_texture_barrier(const d3d::TextureBarrier &barrier, BaseT
   if (sync_stage_is_none_for_non_empty_access(barrier.pipelineSync.dst, barrier.memorySync.dst))
     D3D_CONTRACT_ERROR(
       "DX12: enhanced_texture_barrier for <%s>: destination access flags require a non-empty destination pipeline stage", texName);
+  if (depth_stencil_access_without_depth_stage(barrier.pipelineSync.src, barrier.memorySync.src))
+    D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: source depth/stencil access requires a depth/stencil or All source "
+                       "pipeline stage",
+      texName);
+  if (depth_stencil_access_without_depth_stage(barrier.pipelineSync.dst, barrier.memorySync.dst))
+    D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: destination depth/stencil access requires a depth/stencil or All "
+                       "destination pipeline stage",
+      texName);
   bool isUav = btex->isUav();
   bool isRt = btex->isRenderTarget();
   bool isDepth = btex->getFormat().isDepth();

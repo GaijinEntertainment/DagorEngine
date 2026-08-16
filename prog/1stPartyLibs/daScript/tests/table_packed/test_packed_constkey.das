@@ -10,7 +10,7 @@ require dastest/testing_boost
 
 [test]
 def test_constkey_index(t : T?) {
-    var tab : table<string; int>
+    var tab : table<string; int>  // nolint:STYLE031 — TableIndex_WithHash insert node is under test
     tab["foo"] = 1                                   // TableIndex_WithHash (insert)
     tab["bar"] = 2
     tab["baz"] = 3
@@ -26,7 +26,7 @@ def test_constkey_index(t : T?) {
 
 [test]
 def test_constkey_safe_index(t : T?) {
-    var tab : table<string; int>
+    var tab : table<string; int>  // nolint:STYLE031 — TableIndex_WithHash insert node is under test
     tab["foo"] = 1
     tab["bar"] = 2
     t |> equal(tab?["foo"] ?? -1, 1)                  // SafeTableIndex_WithHash (hit)
@@ -38,7 +38,7 @@ def test_constkey_safe_index(t : T?) {
 
 [test]
 def test_constkey_builtin_key_exists(t : T?) {
-    var tab : table<string; int>
+    var tab : table<string; int>  // nolint:STYLE031 — TableIndex_WithHash insert node is under test
     tab["foo"] = 1
     tab["bar"] = 2
     t |> equal(__builtin_table_key_exists(tab, "foo"), true)    // KeyExists_WithHash (hit)
@@ -49,7 +49,7 @@ def test_constkey_builtin_key_exists(t : T?) {
 
 [test]
 def test_constkey_builtin_find(t : T?) {
-    var tab : table<string; int>
+    var tab : table<string; int>  // nolint:STYLE031 — TableIndex_WithHash insert node is under test
     tab["foo"] = 10
     tab["bar"] = 20
     let pf = __builtin_table_find(tab, "foo")        // TableFind_WithHash (hit)
@@ -68,7 +68,7 @@ def test_constkey_builtin_find(t : T?) {
 // third literal must miss.
 [test]
 def test_constkey_hashkey32_collision(t : T?) {
-    var tab : table<string; int>
+    var tab : table<string; int>  // nolint:STYLE031 — TableIndex_WithHash insert node is under test
     tab["k1832"] = 111                               // TableIndex_WithHash
     tab["k16303"] = 222
     t |> equal(length(tab), 2)

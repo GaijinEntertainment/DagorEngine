@@ -29,7 +29,8 @@ gets as parameter a quirrel function and bind it to the new thread objects (will
 The returned thread object is initially in 'idle' state. the thread can be started with the function
 'threadobj.call()'; the parameters passed to 'call' are passed to the thread function.
 
-A thread can be be suspended calling the function suspend(), when this happens the function
+A thread can be suspended calling the function suspend(). Calling suspend() on the root VM
+raises an error. When a thread is suspended, the function
 that wokeup(or started) the thread returns (If a parameter is passed to suspend() it will
 be the return value of the wakeup function , if no parameter is passed the return value will be null).
 A suspended thread can be resumed calling the function 'threadobj.wakeup', when this happens

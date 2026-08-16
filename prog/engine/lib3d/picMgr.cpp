@@ -273,6 +273,7 @@ struct AsyncPicLoadJob : public cpujobs::IJob
   };
   String name;
   async_load_done_cb_t done_cb;
+  async_load_confirmation_cb_t confirm_cb;
   void *done_arg;
   Point2 *outTc0, *outTc1, *outSz, tc0S, tc1S, szS;
   PICTUREID picId;
@@ -288,12 +289,13 @@ struct AsyncPicLoadJob : public cpujobs::IJob
   static volatile bool loadAllowed;
 
   AsyncPicLoadJob(JobType jt, PICTUREID pic, String &&nm, Point2 *out_tc0, Point2 *out_tc1, Point2 *out_sz, async_load_done_cb_t cb,
-    void *arg) :
+    void *arg, async_load_confirmation_cb_t load_confirm_cb) :
     jtype(jt),
     name(eastl::move(nm)),
     picId(pic),
     done_cb(cb),
     done_arg(arg),
+    confirm_cb(load_confirm_cb),
     jobDone(false),
     outTexId(BAD_TEXTUREID),
     smpId(d3d::INVALID_SAMPLER_HANDLE),
@@ -312,6 +314,8 @@ struct AsyncPicLoadJob : public cpujobs::IJob
 
   virtual void doJob()
   {
+    if (confirm_cb && !confirm_cb(done_arg))
+      return;
     if (jtype == JT_picInAtlas)
       loadPicInAtlas();
     else if (jtype == JT_texPic)
@@ -410,6 +414,7 @@ static bool doFatalOnPictureLoadFailed = false;
 static bool searchBlkBeforeTaBin = true;
 static bool dynAtlasLazyAllocDef = false;
 static bool waitForTexLoading = true;
+static int slowPicLoadThresholdMs = 0;
 static Texture *texTransp[AtlasData::FMT_none * 2] = {NULL};
 static TEXTUREID substOnePixelTexId = BAD_TEXTUREID;
 static d3d::SamplerHandle substOnePixelSmpId = d3d::INVALID_SAMPLER_HANDLE;
@@ -647,7 +652,7 @@ static bool reloadDiscardedPic(PICTUREID pid, DynamicPicAtlas::ItemData *d)
     String fn = tr.ad->makeAbsFn(pic_nm);
     PICMGR_DEBUG("PM: scheduling reload %s[%d]='%s', pic=%08X (was discarded)", tr.getName(), getPicRecIdx(pid), fn, pid);
 
-    AsyncPicLoadJob *j = new AsyncPicLoadJob(AsyncPicLoadJob::JT_picInAtlas, pid, eastl::move(fn), NULL, NULL, NULL, NULL, NULL);
+    AsyncPicLoadJob *j = new AsyncPicLoadJob(AsyncPicLoadJob::JT_picInAtlas, pid, eastl::move(fn), NULL, NULL, NULL, NULL, NULL, NULL);
     j->premulAlpha = tr.ad->premultiplyAlpha;
     if (asyncLoadJobMgr < 0)
     {
@@ -1060,6 +1065,8 @@ void PictureManager::init(const DataBlock *params)
   searchBlkBeforeTaBin = params->getBool("searchBlkBeforeTaBin", true);
   dynAtlasLazyAllocDef = params->getBool("dynAtlasLazyAllocDef", false);
   waitForTexLoading = params->getBool("waitForTexLoading", true);
+  const DataBlock *settings = dgs_get_settings();
+  slowPicLoadThresholdMs = settings ? settings->getBlockByNameEx("debug")->getInt("slowPicLoadThresholdMs", 0) : 0;
 
   if (asyncLoadJobMgr == -1 && params->getBool("createAsyncLoadJobMgr", false))
   {
@@ -1256,7 +1263,8 @@ PICTUREID PictureManager::add_picture(BaseTexture *tex, const char *as_name, boo
 }
 
 bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id, TEXTUREID &out_tex_id,
-  d3d::SamplerHandle &out_smp_id, Point2 *out_tc0, Point2 *out_tc1, Point2 *out_sz, async_load_done_cb_t done_cb, void *cb_arg)
+  d3d::SamplerHandle &out_smp_id, Point2 *out_tc0, Point2 *out_tc1, Point2 *out_sz, async_load_done_cb_t done_cb, void *cb_arg,
+  async_load_confirmation_cb_t load_confirm_cb)
 {
   out_pic_id = BAD_PICTUREID;
   out_tex_id = BAD_TEXTUREID;
@@ -1334,7 +1342,7 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
       out_smp_id = d3d::INVALID_SAMPLER_HANDLE;
 
       j = new AsyncPicLoadJob(AsyncPicLoadJob::JT_picInAtlas, out_pic_id, tr.ad->makeAbsFn(fn), out_tc0, out_tc1, out_sz, done_cb,
-        cb_arg);
+        cb_arg, load_confirm_cb);
       j->premulAlpha = tr.ad->premultiplyAlpha;
       tr.addRef();
       if (!done_cb || asyncLoadJobMgr < 0)
@@ -1400,7 +1408,8 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
       done_cb = NULL;
     }
 
-    j = new AsyncPicLoadJob(AsyncPicLoadJob::JT_texPic, out_pic_id, String(file_name), out_tc0, out_tc1, out_sz, done_cb, cb_arg);
+    j = new AsyncPicLoadJob(AsyncPicLoadJob::JT_texPic, out_pic_id, String(file_name), out_tc0, out_tc1, out_sz, done_cb, cb_arg,
+      load_confirm_cb);
     tr.addRef();
     if (!done_cb || asyncLoadJobMgr < 0 || tr.texId != BAD_TEXTUREID)
     {
@@ -1941,6 +1950,7 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
   DataBlock rendPicProps;
   TextureInfo ti;
   ti.w = ti.h = 0;
+  const int64_t decodeRef = ref_time_ticks();
   PictureRenderFactory *prf = match_render_pic(name, rendPicProps, ti.w, ti.h);
   if (!prf)
   {
@@ -1958,6 +1968,8 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
         dd_get_fname_ext(dec_name), tmd, NULL));
     }
   }
+
+  const int decodeUsec = get_time_usec(decodeRef);
 
   if (debugAsyncSleepMs > 0 && done_cb)
     sleep_msec(debugAsyncSleepMs);
@@ -2021,8 +2033,10 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
   d->hash = 0;
   if (!skipAtlasPic && tr.ad->atlas.addItem(0, 0, ti.w, ti.h, pic_hash, tr.ad->atlas.getItemIdx(d)) == d)
   {
-    debug("PM: add pic=%08X (%s) tex=%p prf=%p %dx%d -> %s[%d] at %d,%d", picId, name, pic_tex.get(), prf, ti.w, ti.h, tr.getName(),
-      tr.ad->atlas.getItemIdx(d), d->x0, d->y0);
+    debug("PM: add pic=%08X (%s) tex=%p prf=%p %dx%d -> %s[%d] at %d,%d decode=%.1fms", picId, name, pic_tex.get(), prf, ti.w, ti.h,
+      tr.getName(), tr.ad->atlas.getItemIdx(d), d->x0, d->y0, decodeUsec / 1000.0);
+    if (slowPicLoadThresholdMs > 0 && decodeUsec / 1000 > slowPicLoadThresholdMs)
+      logerr("PM: slow pic '%s' %dx%d: decode=%.1fms", name, ti.w, ti.h, decodeUsec / 1000.0);
     G_ASSERTF(tr.ad->atlas.getItemIdx(d) < 0x3FFF, "pic=%d for '%s'", tr.ad->atlas.getItemIdx(d), tr.getName());
 
     if (prf)

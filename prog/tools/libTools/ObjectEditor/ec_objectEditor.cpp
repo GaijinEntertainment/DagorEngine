@@ -1059,8 +1059,8 @@ void ObjectEditor::registerEditorCommands(IEditorCommandSystem &command_system)
 
 void ObjectEditor::registerViewportAccelerators(IWndManager &wndManager)
 {
-  wndManager.addViewportAccelerator(CM_OBJED_SELECT_BY_NAME, EditorCommandIds::OBJED_SELECT_BY_NAME);
-  wndManager.addViewportAccelerator(CM_OBJED_OBJPROP_PANEL, EditorCommandIds::OBJED_OBJPROP_PANEL);
+  wndManager.addAccelerator(CM_OBJED_SELECT_BY_NAME, EditorCommandIds::OBJED_SELECT_BY_NAME);
+  wndManager.addAccelerator(CM_OBJED_OBJPROP_PANEL, EditorCommandIds::OBJED_OBJPROP_PANEL);
   wndManager.addViewportAccelerator(CM_OBJED_MODE_SELECT, EditorCommandIds::OBJED_MODE_SELECT);
   wndManager.addViewportAccelerator(CM_OBJED_MODE_MOVE, EditorCommandIds::OBJED_MODE_MOVE);
   wndManager.addViewportAccelerator(CM_OBJED_MODE_SURF_MOVE, EditorCommandIds::OBJED_MODE_SURF_MOVE);

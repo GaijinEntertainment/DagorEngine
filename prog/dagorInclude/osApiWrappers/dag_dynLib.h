@@ -15,6 +15,7 @@ inline void *os_dll_load_deep_bind(const char *filename) { return os_dll_load(fi
 #endif
 KRNLIMP const char *os_dll_get_last_error_str();
 KRNLIMP void *os_dll_get_symbol(void *handle, const char *function);
+KRNLIMP void *os_dll_get_handle(const char *name);
 KRNLIMP bool os_dll_close(void *handle);
 
 // Gets the path to the loaded dll that contains a given address and puts it into the buffer, and returns it's start addr.

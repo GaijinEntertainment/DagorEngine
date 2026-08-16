@@ -22,8 +22,8 @@
 #include <render/dasModules/worldRenderer.h>
 #include <heightmap/heightmapHandler.h>
 #include <landMesh/lmeshManager.h>
-#include <landMesh/heightmap_holes_zones.hlsli>
 #include <util/dag_convar.h>
+#include <debug/dag_debug3d.h>
 #include "render/boundsUtils.h"
 #include "main/level.h"
 #include <groundHolesCore/helpers.h>
@@ -37,6 +37,8 @@
 #include <ecs/render/compute_shader.h>
 
 #include <groundHolesCore/render/groundHolesCoreRender.h>
+
+CONSOLE_BOOL_VAL("render", debug_underground_zones, false);
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
@@ -130,41 +132,17 @@ static void ground_holes_render_when_event_es(const ecs::Event &, bool &should_r
   should_render_ground_holes = true;
 }
 
-void get_underground_zones_data(Tab<Point3_vec4> &bboxes);
-
 template <typename Callable>
-static void get_underground_zones_buf_ecs_query(ecs::EntityManager &manager, Callable c);
+static void underground_zones_draw_debug_ecs_query(ecs::EntityManager &manager, Callable c);
 
-ECS_TAG(render)
-ECS_REQUIRE(ecs::Tag underground_zone)
-ECS_ON_EVENT(on_appear, on_disappear)
-static void ground_hole_zone_on_appear_es(const ecs::Event &, ecs::EntityManager &manager)
-{
-  get_underground_zones_buf_ecs_query(manager,
-    [&](bool &should_update_ground_holes_zones) { should_update_ground_holes_zones = true; });
-}
-
-ECS_TAG(render)
+ECS_TAG(render, dev)
 ECS_NO_ORDER
-static void ground_holes_zones_before_render_es(
-  const UpdateStageInfoBeforeRender &, UniqueBufWithShaderVar &hmapHolesZonesBuf, bool &should_update_ground_holes_zones)
+static void underground_zones_draw_debug_es(
+  const ecs::UpdateStageInfoRenderDebug &, ecs::EntityManager &manager, bool should_render_ground_holes)
 {
-  Tab<Point3_vec4> bboxes(framemem_ptr());
-  get_underground_zones_data(bboxes);
-  ground_holes::zones_before_render(hmapHolesZonesBuf, should_update_ground_holes_zones, bboxes);
-}
-
-ECS_TAG(render)
-ECS_ON_EVENT(AfterDeviceReset)
-static void ground_holes_zones_after_device_reset_es(
-  const ecs::Event &, UniqueBufWithShaderVar &hmapHolesZonesBuf, bool &should_update_ground_holes_zones)
-{
-  ground_holes::zones_after_device_reset(hmapHolesZonesBuf, should_update_ground_holes_zones);
-}
-
-ECS_TAG(render)
-ECS_ON_EVENT(on_disappear)
-static void ground_holes_zones_manager_on_disappear_es(const ecs::Event &, UniqueBufWithShaderVar &hmapHolesZonesBuf)
-{
-  ground_holes::zones_manager_on_disappear(hmapHolesZonesBuf);
+  if (!debug_underground_zones || !should_render_ground_holes)
+    return;
+  underground_zones_draw_debug_ecs_query(manager, [](ECS_REQUIRE(ecs::Tag underground_zone) const TMatrix &transform) {
+    draw_debug_box_buffered(get_containing_box(transform), E3DCOLOR_MAKE(32, 255, 32, 255), 1);
+  });
 }

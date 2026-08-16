@@ -6,7 +6,7 @@ options multiple_contexts
 options no_unused_function_arguments = false
 options no_unused_block_arguments = false
 
-require daslib/rtti
+require daslib/ast
 require daslib/debugger
 require dastest/testing_boost public
 
@@ -45,7 +45,7 @@ def compile_only(file_path : string) : bool {
     using() $(var mg : ModuleGroup) {
         using() $(var cop : CodeOfPolicies) {
             cop.threadlock_context = true
-            compile_file(file_path, access, unsafe(addr(mg)), cop) $(ok, program, issues) {
+            compile_file(file_path, access, unsafe(addr(mg)), cop) $(ok, _program, issues) {
                 result = ok
                 if (!ok) {
                     to_log(LOG_ERROR, "compile failed: {issues}\n")

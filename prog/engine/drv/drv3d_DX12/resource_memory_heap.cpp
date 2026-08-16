@@ -194,7 +194,7 @@ Image *TextureImageFactory::adoptTexture(ID3D12Resource *texture, const char *na
 }
 
 #if _TARGET_PC_WIN
-Image *TextureImageFactory::cloneRenderTarget(DXGIAdapter *adapter, Device &device, Image *original,
+TextureImageFactory::ImageResult TextureImageFactory::cloneRenderTarget(DXGIAdapter *adapter, Device &device, Image *original,
   D3D12_RESOURCE_STATES initial_state)
 {
   AllocationFlags allocationFlags{.isRtv = true};
@@ -203,7 +203,7 @@ Image *TextureImageFactory::cloneRenderTarget(DXGIAdapter *adapter, Device &devi
   if (!is_valid_allocation_info(allocInfo))
   {
     report_resource_alloc_info_error(desc);
-    return nullptr;
+    return unexpected_memory_allocation_error(E_INVALIDARG);
   }
   ResourceHeapProperties properties{};
   const auto originalMemory = original->getMemory();
@@ -225,19 +225,21 @@ Image *TextureImageFactory::cloneRenderTarget(DXGIAdapter *adapter, Device &devi
       });
       return dag::Unexpected{error};
     })
-    .and_then([&, this](auto &&memory) -> dag::Expected<Image *, MemoryAllocationError> {
-      Image *result = nullptr;
+    .and_then([&, this](auto &&memory) -> ImageResult {
+      ImageResult result{nullptr};
       {
+        // updateMemoryRangeUse takes the heap group lock, so the image pool access has to end first
         auto imagePoolAccess = imageObjectPool.access();
         result = tryCloneTextureToMemory(device.getDevice(), original, initial_state, desc, memory, imagePoolAccess);
       }
-      if (result)
-        updateMemoryRangeUse(memory, result);
-      G_ASSERT(result);
+      if (!result.has_value())
+      {
+        return result;
+      }
+      updateMemoryRangeUse(memory, result.value());
 
       return result;
-    })
-    .value_or(nullptr);
+    });
 }
 #endif
 
@@ -271,28 +273,29 @@ eastl::pair<D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO> TextureImageFac
   return {desc, allocInfo};
 }
 
-Image *TextureImageFactory::tryCloneTextureToMemory(ID3D12Device *device, Image *original, D3D12_RESOURCE_STATES initial_state,
-  const D3D12_RESOURCE_DESC &desc, const ResourceMemory &memory, ImagePoolState::AccessToken &access)
+TextureImageFactory::ImageResult TextureImageFactory::tryCloneTextureToMemory(ID3D12Device *device, Image *original,
+  D3D12_RESOURCE_STATES initial_state, const D3D12_RESOURCE_DESC &desc, const ResourceMemory &memory,
+  ImagePoolState::AccessToken &access)
 {
-  Image *result = nullptr;
   ComPtr<ID3D12Resource> texture;
 #if _TARGET_XBOX
-  DX12_CHECK_RESULT(device->CreatePlacedResourceX(memory.getAddress(), &desc, initial_state, nullptr, COM_ARGS(&texture)));
+  const auto errorCode =
+    DX12_CHECK_RESULT(device->CreatePlacedResourceX(memory.getAddress(), &desc, initial_state, nullptr, COM_ARGS(&texture)));
 #else
-  DX12_CHECK_RESULT(
+  const auto errorCode = DX12_CHECK_RESULT(
     device->CreatePlacedResource(memory.getHeap(), memory.getOffset(), &desc, initial_state, nullptr, COM_ARGS(&texture)));
 #endif
 
   if (!texture)
   {
     freeNoLock(memory, false);
-    return result;
+    return unexpected_memory_allocation_error(FAILED(errorCode) ? errorCode : E_FAIL);
   }
 
   auto subResIdBase = original->hasTrackedState()
                         ? allocateGlobalResourceIdRange(original->getSubresourcesPerPlane() * original->getPlaneCount())
                         : ImageGlobalSubresourceId::make_invalid();
-  result =
+  Image *result =
     newImageObjectNoLock(access, memory, eastl::move(texture), original->getType(), original->getLayout(), original->getFormat(),
       original->getBaseExtent(), original->getMipLevelRange(), original->getArrayLayers(), subResIdBase, original->getMsaaLevel());
 
@@ -307,14 +310,14 @@ Image *TextureImageFactory::tryCloneTextureToMemory(ID3D12Device *device, Image 
   return result;
 }
 
-Image *TextureImageFactory::tryCloneTexture(DXGIAdapter *adapter, ID3D12Device *device, Image *original,
+TextureImageFactory::ImageCloneResult TextureImageFactory::tryCloneTexture(DXGIAdapter *adapter, ID3D12Device *device, Image *original,
   D3D12_RESOURCE_STATES initial_state, AllocationFlags allocation_flags)
 {
   const auto [desc, allocInfo] = calculate_texture_desc_allocation_info(device, original);
   if (!is_valid_allocation_info(allocInfo))
   {
     report_resource_alloc_info_error(desc);
-    return nullptr;
+    return unexpected_memory_allocation_error(E_INVALIDARG);
   }
   auto properties = getHeapProperties(original->getMemory().getHeapID());
   auto allocationResult = allocate(adapter, device, properties, allocInfo, allocation_flags);
@@ -322,19 +325,25 @@ Image *TextureImageFactory::tryCloneTexture(DXGIAdapter *adapter, ID3D12Device *
   if (!allocationResult.has_value())
   {
     // alloc failed, allocator will complain about this so no need to repeat it
-    return nullptr;
+    if (is_oom_error_code(allocationResult.error().errorCode))
+    {
+      return eastl::optional<Image *>{};
+    }
+    return dag::Unexpected{allocationResult.error()};
   }
   auto &memory = allocationResult.value();
-  Image *result = nullptr;
+  ImageResult result{nullptr};
   {
+    // updateMemoryRangeUse takes the heap group lock, so the image pool access has to end first
     auto imagePoolAccess = imageObjectPool.access();
     result = tryCloneTextureToMemory(device, original, initial_state, desc, memory, imagePoolAccess);
   }
-  if (result)
+  if (!result.has_value())
   {
-    updateMemoryRangeUse(memory, result);
+    return dag::Unexpected{result.error()};
   }
-  return result;
+  updateMemoryRangeUse(memory, result.value());
+  return eastl::optional<Image *>{result.value()};
 }
 
 void TextureImageFactory::destroyTextures(eastl::span<Image *> textures, frontend::BindlessManager &bindless_manager)
@@ -3434,7 +3443,7 @@ void MetricsVisualizer::drawRaytracePlot()
         ImPlot::PlotDummy("Top Structure Memory");
         ImPlot::PlotDummy("Bottom Structure Memory");
         ImPlot::PlotDummy("OMM Memory");
-        ImPlot::PlotDummy("Acceleartion Structure Heap Count");
+        ImPlot::PlotDummy("Acceleration Structure Heap Count");
         ImPlot::PlotDummy("Top Structure Count");
         ImPlot::PlotDummy("Bottom Structure Count");
         ImPlot::PlotDummy("OMM Count");
@@ -5557,8 +5566,8 @@ struct SbufferReportVisitor
       return l < r;
     });
 
-    target("~ Sbuffer resources ~ (Ressize Order) ~~~~~~~~~~~~~~~~");
-    target("     Ressize, Allocated Size, Sys Copy Size, Dynamic, Internal ID,           Offset,  Discards,   Mapped Address, Name");
+    target("~ Sbuffer resources ~ (Resize Order) ~~~~~~~~~~~~~~~~");
+    target("      Resize, Allocated Size, Sys Copy Size, Dynamic, Internal ID,           Offset,  Discards,   Mapped Address, Name");
     ByteUnits publicSize;
     ByteUnits bufferTotalSize;
     ByteUnits bufferSysCopySize;
@@ -5698,8 +5707,8 @@ struct BaseTexReportVisitor
 
   void beginVisit()
   {
-    target("~ Texture resources ~ (Ressize Order) ~~~~~~~~~~~~~~~~");
-    target("     Ressize, Allocated Size, QL,       Type,            Extent, Mip, Aniso, Filter, Mip Filter,                     "
+    target("~ Texture resources ~ (Resize Order) ~~~~~~~~~~~~~~~~");
+    target("      Resize, Allocated Size, QL,       Type,            Extent, Mip, Aniso, Filter, Mip Filter,                     "
            "Format,     Image Object, Views,                           Name, TQL info");
   }
 
@@ -6511,13 +6520,22 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
     return ResourceMoveResolution::STAYING;
   }
   auto bufferResourceSize = bufferHeaps[buffer_id.index()].getResourcePtr()->GetDesc().Width;
-  auto movedBuffer = tryCloneBuffer(adapter, device, buffer_id, bufferHeapStateAccess, allocation_flags, bufferResourceSize);
-  if (!movedBuffer)
+  auto cloneResult = tryCloneBuffer(adapter, device, buffer_id, bufferHeapStateAccess, allocation_flags, bufferResourceSize);
+  if (!cloneResult.has_value())
   {
-    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move buffer %u, no space", buffer_id.index());
-    // If we can't clone the buffer, then there is no space
+    // E_ABORT means the defragmentation generation moved on while the heap group lock was released,
+    // which is as routine here as no space, so it stays as quiet as that case.
+    const bool isRefusedAttempt = E_ABORT == cloneResult.error().errorCode;
+    DEFRAG_VERBOSE(is_emergency_defragmentation || !isRefusedAttempt, "DX12: Unable to move buffer %u, cloning it failed with %s",
+      buffer_id.index(), dxgi_error_code_to_string(cloneResult.error().errorCode));
     return ResourceMoveResolution::NO_SPACE;
   }
+  if (!cloneResult.value())
+  {
+    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move buffer %u, no space", buffer_id.index());
+    return ResourceMoveResolution::NO_SPACE;
+  }
+  const auto movedBuffer = *cloneResult.value();
 
   bool areDeviceObjectsMoved = false;
   {
@@ -6653,23 +6671,29 @@ void HeapFragmentationManager::moveBufferDeviceObject(GenericBufferInterface *bu
   auto newBuffer = moveBuffer(currentBuffer, moved_buffer, buffer_heap_state_access);
 
   // Recreate needed views
+  BufferViewCreateResult viewResult;
   if (currentBuffer.srvs)
   {
     if (buffer_object->usesRawView())
-      this->createBufferRawSRV(device, newBuffer);
+      viewResult = this->createBufferRawSRV(device, newBuffer);
     else if (buffer_object->usesStructuredView())
-      this->createBufferStructureSRV(device, newBuffer, buffer_object->getElementSize());
+      viewResult = this->createBufferStructureSRV(device, newBuffer, buffer_object->getElementSize());
     else
-      this->createBufferTextureSRV(device, newBuffer, buffer_object->getTextureViewFormat());
+      viewResult = this->createBufferTextureSRV(device, newBuffer, buffer_object->getTextureViewFormat());
   }
-  if (currentBuffer.uavs)
+  if (viewResult.has_value() && currentBuffer.uavs)
   {
     if (buffer_object->usesRawView())
-      this->createBufferRawUAV(device, newBuffer);
+      viewResult = this->createBufferRawUAV(device, newBuffer);
     else if (buffer_object->usesStructuredView())
-      this->createBufferStructureUAV(device, newBuffer, buffer_object->getElementSize());
+      viewResult = this->createBufferStructureUAV(device, newBuffer, buffer_object->getElementSize());
     else
-      this->createBufferTextureUAV(device, newBuffer, buffer_object->getTextureViewFormat());
+      viewResult = this->createBufferTextureUAV(device, newBuffer, buffer_object->getTextureViewFormat());
+  }
+  if (!viewResult.has_value())
+  {
+    D3D_ERROR("DX12: Defragmentation moved a buffer but could not recreate its views, %s",
+      dxgi_error_code_to_string(viewResult.error().errorCode));
   }
 
   mark_buffer_stages_dirty_no_lock(buffer_object, buffer_object->usableAsVertexBuffer(), buffer_object->usableAsConstantBuffer(),
@@ -6847,7 +6871,18 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
     return ResourceMoveResolution::STAYING;
   }
 
-#if _TARGET_XBOX
+#if _TARGET_SCARLETT
+  if (baseTex->isRenderTarget())
+  {
+    // Render targets are not movable.
+    // A lot of issues with compressed data inconsistency emerged during this move
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, texture is a render target", name.c_str());
+    });
+    return ResourceMoveResolution::STAYING;
+  }
+#elif _TARGET_XBOXONE
   if (baseTex->isRenderTarget() && texture->getFormat().isDepth())
   {
     // Depth render targets are not movable.
@@ -6904,16 +6939,27 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
     DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move texture <%s>", name.c_str());
   });
   const D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COPY_DEST;
-  auto newTexture = tryCloneTexture(adapter, device, texture, initialState, allocation_flags);
-  if (!newTexture)
+  auto cloneResult = tryCloneTexture(adapter, device, texture, initialState, allocation_flags);
+  if (!cloneResult.has_value())
+  {
+    // E_ABORT means the defragmentation generation moved on while the heap group lock was released,
+    // which is as routine here as no space, so it stays as quiet as that case.
+    const bool isRefusedAttempt = E_ABORT == cloneResult.error().errorCode;
+    texture->getDebugName([&](const auto &name) {
+      DEFRAG_VERBOSE(is_emergency_defragmentation || !isRefusedAttempt, "DX12: Unable to move texture <%s>, cloning it failed with %s",
+        name.c_str(), dxgi_error_code_to_string(cloneResult.error().errorCode));
+    });
+    return ResourceMoveResolution::NO_SPACE;
+  }
+  if (!cloneResult.value())
   {
     texture->getDebugName([=](const auto &name) {
       G_UNUSED(name);
       DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, no space", name.c_str());
     });
-    // Clone failed, only realistic chance is no space is available
     return ResourceMoveResolution::NO_SPACE;
   }
+  auto newTexture = *cloneResult.value();
   ctx.setImageResourceStateNoLock(initialState, newTexture->getGlobalSubresourceIdRange());
   if (!baseTex->swapTextureNoLock(texture, newTexture))
   {
@@ -6942,7 +6988,7 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
   ctx.moveTextureNoLock(texture, newTexture);
 
   if (baseTex->isRenderTarget())
-    ctx.checkFramebufferIntegityNoLock(texture);
+    ctx.checkFramebufferIntegrityNoLock(texture);
 
   texture->getDebugName([=](const auto &name) {
     G_UNUSED(name);
@@ -7707,7 +7753,18 @@ HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager:
     return ResourceLocationUpdateResult::IMMOVABLE;
   }
 
-#if _TARGET_XBOX
+#if _TARGET_SCARLETT
+  if (baseTex->isRenderTarget())
+  {
+    // Render targets are not movable.
+    // A lot of issues with compressed data inconsistency emerged during this move
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(true, "DX12: Unable to move texture <%s>, texture is a render target", name.c_str());
+    });
+    return ResourceLocationUpdateResult::IMMOVABLE;
+  }
+#elif _TARGET_XBOXONE
   if (baseTex->isRenderTarget() && texture->getFormat().isDepth())
   {
     // Depth render targets are not movable.
@@ -7806,8 +7863,8 @@ HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager:
   }
   const auto &memory = memoryResult.value();
   const D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COPY_DEST;
-  auto newTexture = tryCloneTextureToMemory(system_resources.device, texture, initialState, desc, memory, access.imagePool);
-  if (!newTexture)
+  auto cloneResult = tryCloneTextureToMemory(system_resources.device, texture, initialState, desc, memory, access.imagePool);
+  if (!cloneResult.has_value())
   {
     texture->getDebugName([=](const auto &name) {
       G_UNUSED(name);
@@ -7817,6 +7874,7 @@ HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager:
     baseTex->reset();
     return ResourceLocationUpdateResult::FAILED;
   }
+  auto newTexture = cloneResult.value();
   updateMemoryRangeUseNoLock(memory, newTexture);
 
   system_resources.ctx->setImageResourceStateNoLock(initialState, newTexture->getGlobalSubresourceIdRange());
@@ -7871,7 +7929,7 @@ HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager:
   }
 
   if (baseTex->isRenderTarget())
-    system_resources.ctx->checkFramebufferIntegityNoLock(texture);
+    system_resources.ctx->checkFramebufferIntegrityNoLock(texture);
 
   return ResourceLocationUpdateResult::UPDATED;
 }

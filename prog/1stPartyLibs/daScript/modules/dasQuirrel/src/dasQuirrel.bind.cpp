@@ -18,19 +18,16 @@ struct SqFuncDesc {
     int paramsNum;
 };
 
-struct BindedFunc {
-    Context *ctx = nullptr;
-    daScriptEnvironment *env = nullptr;
-};
-
 static mutex lock;
-static das_hash_map<uint64_t, BindedFunc> bindedFunctions;
+static das_hash_map<uint64_t, Context*> bindedFunctions;
 static das_hash_map<uint64_t, string> bindedFunctionNames;
 static das_hash_map</* module name */string, vector<SqFuncDesc>> bindedFunctionDescs;
+// environment passed to register_bound_funcs; bound calls may come from threads without one
+static daScriptEnvironment *bindedEnvironment = nullptr;
 
 void sqdas_bind_func( Context &ctx, uint64_t fnHash, const char * name, const char * moduleName, int paramsNum, const char * paramsCheck) {
     lock_guard<mutex> guard(lock);
-    bindedFunctions[fnHash] = BindedFunc{ &ctx, das::daScriptEnvironment::getBound() };
+    bindedFunctions[fnHash] = &ctx;
     bindedFunctionNames[fnHash] = name;
     bindedFunctionDescs[moduleName].emplace_back(SqFuncDesc{ fnHash, paramsCheck, paramsNum });
 }
@@ -42,7 +39,7 @@ SQInteger call_binded_func(HSQUIRRELVM vm) {
     if (fnCtx == bindedFunctions.end()) {
         return sq_throwerror(vm, string(string::CtorSprintf{}, "Internal error: unknown function with hash '%@'. Maybe function was removed", funcHash).c_str());
     }
-    Context *ctx = fnCtx->second.ctx;
+    Context *ctx = fnCtx->second;
     if (!ctx) {
         return sq_throwerror(vm, string(string::CtorSprintf{},
                     "Unable to call function '%s', context is null. Unloaded function or compilation error",
@@ -57,14 +54,16 @@ SQInteger call_binded_func(HSQUIRRELVM vm) {
     }
 
     lock_guard<mutex> guard(lock);
-    daScriptEnvironment *env = fnCtx->second.env;
-    daScriptEnvironment *prevEnv = das::daScriptEnvironment::getBound();
-    const bool setBound = prevEnv == nullptr;
-    if (setBound) {
-        das::daScriptEnvironment::setBound(env);
+    daScriptEnvironmentGuard envGuard(bindedEnvironment ? bindedEnvironment : daScriptEnvironment::getBound(),
+                                      daScriptEnvironment::getOwned());
+    daScriptEnvironment *env = daScriptEnvironment::getBound();
+    if (!env) {
+        return sq_throwerror(vm, string(string::CtorSprintf{},
+                    "Unable to call function '%s', no daScript environment on this thread",
+                    bindedFunctionNames[funcHash].c_str()).c_str());
     }
-    bool gResolve = das::daScriptEnvironment::getBound()->g_resolve_annotations;
-    das::daScriptEnvironment::getBound()->g_resolve_annotations = false;
+    bool gResolve = env->g_resolve_annotations;
+    env->g_resolve_annotations = false;
 
     vec4f args[1];
     args[0] = cast<HSQUIRRELVM>::from(vm);
@@ -83,15 +82,14 @@ SQInteger call_binded_func(HSQUIRRELVM vm) {
     if (hasException && !ctx->alwaysStackWalkOnException)
         ctx->stackWalk(&ctx->exceptionAt, true, true);
     ctx->unlock();
-    das::daScriptEnvironment::getBound()->g_resolve_annotations = gResolve;
-    if (setBound) {
-        das::daScriptEnvironment::setBound(prevEnv);
-    }
+    env->g_resolve_annotations = gResolve;
     return hasException ? sq_throwerror(vm, exp.c_str()) : cast<SQInteger>::to(res);
 }
 
-void register_bound_funcs(HSQUIRRELVM vm, function<void(const char *module_name, HSQOBJECT tab)> cb) {
+void register_bound_funcs(HSQUIRRELVM vm, function<void(const char *module_name, HSQOBJECT tab)> cb, daScriptEnvironment *environment) {
     lock_guard<mutex> guard(lock);
+    DAS_ASSERTF(environment != nullptr, "register_bound_funcs: environment is null, called before daScript environment is ready?");
+    bindedEnvironment = environment;
     for (auto &modules : bindedFunctionDescs)
     {
         HSQOBJECT obj;
@@ -119,8 +117,8 @@ void Module_dasQUIRREL::initBind() {
     das::onDestroyCppDebugAgent(name.c_str(), [](das::Context *ctx) {
         lock_guard<mutex> guard(lock);
         for (auto &it : bindedFunctions) {
-          if (it.second.ctx == ctx) {
-            it.second = BindedFunc();
+          if (it.second == ctx) {
+            it.second = nullptr;
             LOG tout(LogLevel::info);
             tout << "unlink quirrel binding: " << bindedFunctionNames[it.first] << "\n";
           }

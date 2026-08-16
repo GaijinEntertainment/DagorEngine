@@ -34,6 +34,24 @@ void main(uint3 tid : SV_DispatchThreadID)
 	const uint primitiveIndex		= tid.x;
 
 	const TexCoords texCoords		= FetchTexCoords(t_indexBuffer, t_texCoordBuffer, primitiveIndex);
+
+	// Enormous or non-finite UVs hang the gpu
+	{
+		const float2 tp0 = texCoords.p0 * g_GlobalConstants.TexSize;
+		const float2 tp1 = texCoords.p1 * g_GlobalConstants.TexSize;
+		const float2 tp2 = texCoords.p2 * g_GlobalConstants.TexSize;
+		const float2 aabbExtent = max(max(tp0, tp1), tp2) - min(min(tp0, tp1), tp2);
+		const float aabbArea = aabbExtent.x * aabbExtent.y;
+		// min/max drop a lone NaN, so test the vertices explicitly; the
+		// inverted comparison also catches inf.
+		if (any(isnan(tp0)) || any(isnan(tp1)) || any(isnan(tp2)) ||
+			!(aabbArea <= g_GlobalConstants.TexSize.x * g_GlobalConstants.TexSize.y * 256.f))
+		{
+			OMM_SUBRESOURCE_STORE(TempOmmIndexBuffer, 4 * primitiveIndex, (int)SpecialIndex::FullyUnknownOpaque);
+			return;
+		}
+	}
+
 	const uint subdivisionLevel		= GetSubdivisionLevel(texCoords);
 
 	uint hashTableEntryIndex;

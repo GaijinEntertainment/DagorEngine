@@ -51,6 +51,7 @@ CONSOLE_INT_VAL("render", world_sdf_depth_mark_pass, 16384, 0, 131072);
   VAR(world_sdf_res)                              \
   VAR(world_sdf_res_np2)                          \
   VAR(world_sdf_update_mip)                       \
+  VAR(world_sdf_update_mip_coord_lt)              \
   VAR(world_sdf_use_grid)                         \
   VAR(world_sdf_clipmap_rasterize)
 
@@ -95,8 +96,8 @@ struct WorldSDFParams
 
 struct WorldSDFImpl final : public WorldSDF
 {
-  WorldSDFParams world_sdf_params;
-  eastl::array<IPoint4, MAX_WORLD_SDF_CLIPS> world_sdf_coord_lt;
+  WorldSDFParams world_sdf_params, world_sdf_params_bound = {};
+  eastl::array<IPoint4, MAX_WORLD_SDF_CLIPS> world_sdf_coord_lt, world_sdf_coord_lt_bound = {};
   PostFxRenderer sdf_world_debug;
   UniqueTexWithShaderVar world_sdf_clipmap;
   UniqueBufWithShaderVar world_sdf_coord_lt_buf;
@@ -111,7 +112,6 @@ struct WorldSDFImpl final : public WorldSDF
   eastl::unique_ptr<ComputeShaderElement> world_sdf_from_gbuf_cs, world_sdf_from_gbuf_remove_cs;
 
   int w = 128, d = 128;
-  bool cbuffersDirty = true;
   float clip0VoxelSize = 0.5;
   float temporalSpeed = 0.5f;
   uint32_t currentInstancesBufferSz = 0;
@@ -164,7 +164,6 @@ struct WorldSDFImpl final : public WorldSDF
       world_sdf_params.world_sdf_lt_invalid = Point4(-1e9f, 1e9f, 1e9f, 0);
       world_sdf_params.world_sdf_to_tc_add_invalid = Point4::ZERO;
       std::memset(world_sdf_coord_lt.data(), 0, sizeof(world_sdf_coord_lt));
-      cbuffersDirty = true;
     }
   }
 
@@ -242,8 +241,6 @@ struct WorldSDFImpl final : public WorldSDF
     float dInv = 1. / d;
     float y = x * dInv * (1. / max(dInv, 0.00000001f) + 2.0f);
     ShaderGlobal::set_float4(world_sdf_to_atlas_decode__gradient_offsetVarId, x, y, 1.f / fullTextureDepth, 1.f / w);
-
-    updateCBuffers();
   }
 
   WorldSDFImpl()
@@ -276,7 +273,24 @@ struct WorldSDFImpl final : public WorldSDF
       world_sdf_clip_dap[i] = DA_PROFILE_ADD_LOCAL_DESCRIPTION(0, str.c_str());
     }
 #define CS_SHADER(name) name.reset(new_compute_shader(#name));
-    ShaderGlobal::set_int(get_shader_variable_id("supports_sh_6_1", true), d3d::get_driver_desc().shaderModel >= 6.1_sm ? 1 : 0);
+    {
+      const bool hwBarycentrics = d3d::get_driver_desc().caps.hasBarycentrics;
+      const int barycentricsVarId = get_shader_variable_id("supports_barycentrics", true);
+      ShaderGlobal::set_int(barycentricsVarId, hwBarycentrics ? 1 : 0);
+#if DAGOR_DBGLEVEL > 0
+      if (ShaderGlobal::is_var_assumed(barycentricsVarId) &&
+          ShaderGlobal::get_interval_assumed_value(barycentricsVarId) != (hwBarycentrics ? 1 : 0))
+      {
+        // assumed on without hw support selects a dont_render variant: nothing
+        // rasterizes, always a config error. Assumed off on capable hw can be
+        // a deliberate downgrade, so it only warns.
+        if (!hwBarycentrics)
+          logerr("shader dump assumes supports_barycentrics=1 but the driver has no barycentrics");
+        else
+          logwarn("shader dump assumes supports_barycentrics=0 on barycentrics-capable hw; collision rasterize is low quality");
+      }
+#endif
+    }
 
     CS_SHADER(world_sdf_ping_pong_final_cs);
     CS_SHADER(world_sdf_ping_pong_cs);
@@ -326,19 +340,26 @@ struct WorldSDFImpl final : public WorldSDF
   int getTexelMoveThresholdXZ() const override { return (MOVE_ALIGNMENT_THRESHOLD + 1) * WORLD_SDF_TEXELS_ALIGNMENT_XZ; }
   int getTexelMoveThresholdAlt() const override { return (MOVE_ALIGNMENT_THRESHOLD + 1) * WORLD_SDF_TEXELS_ALIGNMENT_ALT; }
 
-  void updateCBuffers()
+  void updateConstants()
   {
-    if (!world_sdf_params_buf.getBuf()->updateData(0, sizeof(world_sdf_params), &world_sdf_params, VBLOCK_DISCARD))
+    if (std::memcmp(&world_sdf_params, &world_sdf_params_bound, sizeof(world_sdf_params)) != 0)
     {
-      logerr("WorldSDF: could not update buffer %s", world_sdf_params_buf.getBuf()->getBufName());
-      return;
+      if (!world_sdf_params_buf.getBuf()->updateData(0, sizeof(world_sdf_params), &world_sdf_params, VBLOCK_DISCARD))
+      {
+        logerr("WorldSDF: could not update buffer %s", world_sdf_params_buf.getBuf()->getBufName());
+        return;
+      }
+      memcpy(&world_sdf_params_bound, &world_sdf_params, sizeof(world_sdf_params));
     }
-    if (!world_sdf_coord_lt_buf.getBuf()->updateData(0, sizeof(world_sdf_coord_lt), world_sdf_coord_lt.data(), VBLOCK_DISCARD))
+    if (std::memcmp(world_sdf_coord_lt.data(), world_sdf_coord_lt_bound.data(), sizeof(world_sdf_coord_lt)) != 0)
     {
-      logerr("WorldSDF: could not update buffer %s", world_sdf_coord_lt_buf.getBuf()->getBufName());
-      return;
+      if (!world_sdf_coord_lt_buf.getBuf()->updateData(0, sizeof(world_sdf_coord_lt), world_sdf_coord_lt.data(), VBLOCK_DISCARD))
+      {
+        logerr("WorldSDF: could not update buffer %s", world_sdf_coord_lt_buf.getBuf()->getBufName());
+        return;
+      }
+      memcpy(world_sdf_coord_lt_bound.data(), world_sdf_coord_lt.data(), sizeof(world_sdf_coord_lt));
     }
-    cbuffersDirty = false;
   }
 
   bool updateMip(int clip, Point3 world_pos, const request_instances_cb &cb, const request_prefetch_cb &rcb,
@@ -437,6 +458,9 @@ struct WorldSDFImpl final : public WorldSDF
     {
       const Point3 lt = Point3(mip.lt.x, mip.lt.z, mip.lt.y) * voxelSize;
       world_sdf_coord_lt[clip] = IPoint4(mip.lt.x, mip.lt.y, mip.lt.z, bitwise_cast<int>(voxelSize));
+      // update dispatches read this via shader var: world_sdf_coord_lt_buf is
+      // uploaded once per frame in updateConstants, after they already ran
+      ShaderGlobal::set_int4(world_sdf_update_mip_coord_ltVarId, world_sdf_coord_lt[clip]);
       world_sdf_params.world_sdf_lt[clip] = Point4(lt.x, lt.y, lt.z, voxelSize);
       world_sdf_params.world_sdf_to_tc_add[clip] =
         Point4(1. / (w * voxelSize), 1. / (w * voxelSize), 1. / (d * voxelSize), 1. / voxelSize);
@@ -730,8 +754,7 @@ struct WorldSDFImpl final : public WorldSDF
       if (updatedAny && !allMips)
         break;
     }
-    if (updatedAny || cbuffersDirty)
-      updateCBuffers();
+    updateConstants();
     d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);
     d3d::resource_barrier({world_sdf_clipmap.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
   }
@@ -823,8 +846,9 @@ struct WorldSDFImpl final : public WorldSDF
   void setTemporalSpeed(float speed) { temporalSpeed = clamp<float>(speed, 0.f, 1.f); }
   void fullReset(bool invalidate_current)
   {
+    world_sdf_params_bound = {};
+    world_sdf_coord_lt_bound = {};
     initHistory(clipmap.size(), invalidate_current);
-    updateCBuffers();
     d3d::clear_rwtexf(world_sdf_clipmap.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
   }
 };

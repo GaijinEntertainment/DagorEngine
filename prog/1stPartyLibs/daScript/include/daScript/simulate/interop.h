@@ -135,6 +135,23 @@ namespace das
         };
     };
 
+    // 16/8-bit lattice values (plus the float16_t scalar): carried in the vec4f slot like the
+    // classic vector types, but NOT workhorse — a typed eval on a lattice-returning extern is
+    // legal (value reinterpret compiles to a plain pass-through, so e.g. `reinterpret<uint>(
+    // half2(x))` reads the call node via evalUInt) and must round-trip the vec4f slot
+    template <typename TT>
+    struct is_lattice_interop_type {
+        enum {
+            value =
+                    is_same<TT,float16_t>::value
+                ||  is_same<TT,half2>::value   || is_same<TT,half3>::value   || is_same<TT,half4>::value   || is_same<TT,half8>::value
+                ||  is_same<TT,short2>::value  || is_same<TT,short3>::value  || is_same<TT,short4>::value  || is_same<TT,short8>::value
+                ||  is_same<TT,ushort2>::value || is_same<TT,ushort3>::value || is_same<TT,ushort4>::value || is_same<TT,ushort8>::value
+                ||  is_same<TT,byte2>::value   || is_same<TT,byte3>::value   || is_same<TT,byte4>::value   || is_same<TT,byte8>::value   || is_same<TT,byte16>::value
+                ||  is_same<TT,ubyte2>::value  || is_same<TT,ubyte3>::value  || is_same<TT,ubyte4>::value  || is_same<TT,ubyte8>::value  || is_same<TT,ubyte16>::value
+        };
+    };
+
     template <typename CType, bool Pointer, bool IsEnum, typename Result, typename ...Args>
     struct ImplCallStaticFunctionImpl {
         static __forceinline CType call( Result (*fn)(Args...), Context & context, SimNode ** args ) {
@@ -142,6 +159,11 @@ namespace das
             if constexpr ( !is_workhorse_type<Result>::value && is_same<WrapResult,CType>::value) {
                 // if we match a WrapType, we can call it directly (with just the cast)
                 return static_cast<CType>(CallStaticFunction<Result,Args...>(fn,context,args));
+            } else if constexpr ( is_lattice_interop_type<Result>::value && is_workhorse_type<CType>::value ) {
+                // lattice result consumed through a typed eval slot — only cross-kind value
+                // reinterpret compiles this shape; round-trip the vec4f slot exactly like a
+                // local hop would (the prune-based lattice casts are byte-preserving)
+                return cast<CType>::to(cast_res<Result>::from(CallStaticFunction<Result,Args...>(fn,context,args),&context));
             } else if constexpr ( !is_workhorse_type<Result>::value && is_same<WrapResult,Result>::value ) {
                 // if the WrapType is the same as Result, we are missing WrapType implementation, or its not included
                 #if DAS_INTEROP_DETAILS

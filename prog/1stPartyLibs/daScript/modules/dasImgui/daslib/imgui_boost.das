@@ -17,7 +17,7 @@ let IMGUI_PAYLOAD_TYPE_COLOR_4F = "_COL4F"
 def to_string(filter : ImGuiTextFilter) {
     unsafe {
         let pbuf = addr(filter.InputBuf[0])
-        return clone_string(reinterpret<string> pbuf)
+        return clone_string(reinterpret<string>(pbuf))
     }
 }
 
@@ -44,7 +44,7 @@ struct ImGuiInputTextBuffer {
 def fill_input_buffer(var buf : ImGuiInputTextBuffer; txt : string implicit) {
     let bytes = clamp(length(txt), 0, (buf.buffer |> length()) - 1)
     unsafe {
-        memcpy(addr(buf.buffer[0]), reinterpret<void?> txt, bytes)
+        memcpy(addr(buf.buffer[0]), reinterpret<void?>(txt), bytes)
     }
     buf.buffer[bytes] = uint8(0)
 }
@@ -53,7 +53,7 @@ def make_input_buffer(var buf : ImGuiInputTextBuffer; txt : string implicit; len
     buf.buffer |> resize(len)
     let bytes = clamp(length(txt), 0, len - 1)
     unsafe {
-        memcpy(addr(buf.buffer[0]), reinterpret<void?> txt, bytes)
+        memcpy(addr(buf.buffer[0]), reinterpret<void?>(txt), bytes)
     }
 }
 
@@ -73,14 +73,14 @@ def ImGuiInputTextBuffer(txt : string implicit; len : int; var cb : lambda<(var 
 def lock(buf : ImGuiInputTextBuffer; blk : block < (st : string#) : void >) {
     unsafe {
         let pbuf = addr(buf.buffer[0])
-        blk |> invoke(reinterpret<string#> pbuf)
+        blk |> invoke(reinterpret<string#>(pbuf))
     }
 }
 
 def to_string(buf : ImGuiInputTextBuffer) {
     unsafe {
         let pbuf = addr(buf.buffer[0])
-        return clone_string(reinterpret<string> pbuf)
+        return clone_string(reinterpret<string>(pbuf))
     }
 }
 
@@ -268,7 +268,7 @@ def PlotHistogram(
 def CheckboxFlags(lab : string; var p_flags : auto(FLAGT)? implicit; flags : FLAGT) {
     unsafe {
         return imgui::CheckboxFlags(lab,
-            reinterpret<int?> p_flags,
+            reinterpret<int?>(p_flags),
             int(flags))
     }
 }
@@ -276,7 +276,7 @@ def CheckboxFlags(lab : string; var p_flags : auto(FLAGT)? implicit; flags : FLA
 def RadioButton(lab : string; var p_flags : auto(FLAGT)? implicit; flags : FLAGT) {
     unsafe {
         return imgui::RadioButton(lab,
-            reinterpret<int?> p_flags,
+            reinterpret<int?>(p_flags),
             int(flags))
     }
 }
@@ -388,7 +388,7 @@ def Combo(name : string; var ent : auto(EnumT)&; max_height_in_items : int = -1)
             names |> push(ef.name)
         }
         unsafe {
-            return Combo(name, reinterpret<int?> addr(ent), names, max_height_in_items)
+            return Combo(name, reinterpret<int?>(addr(ent)), names, max_height_in_items)
         }
     }
     return false
@@ -403,7 +403,7 @@ def ListBox(name : string; var ent : auto(EnumT)&; max_height_in_items : int = -
             names |> push(ef.name)
         }
         unsafe {
-            return ListBox(name, reinterpret<int?> addr(ent), names, max_height_in_items)
+            return ListBox(name, reinterpret<int?>(addr(ent)), names, max_height_in_items)
         }
     }
     return false

@@ -4,6 +4,8 @@
 #include <generic/dag_enumerate.h>
 #include "screen.h"
 #include "backend/context.h"
+#include "globals.h"
+#include "device_memory.h"
 #include "execution_sync.h"
 #include "stacked_profile_events.h"
 #include "execution_timings.h"
@@ -14,22 +16,28 @@ using namespace drv3d_vulkan;
 TSPEC void BEContext::execCmd(const CmdSwapchainImageAcquire &cmd)
 {
   beginCustomStage("SwapchainImageAcquire");
-  // discard contents of image
-  cmd.img->layout.resetTo(VK_IMAGE_LAYOUT_UNDEFINED);
-  // as noted in spec, we must sync acquire to any stages we use image later on
-  // treat this as fake read on all stages
-  Backend::sync.addImageAccess({VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_ACCESS_MEMORY_READ_BIT}, cmd.img, VK_IMAGE_LAYOUT_UNDEFINED,
-    {0, 1, 0, 1});
-  Backend::sync.completeNeeded();
+  syncSwapchainImageAcquireReads(cmd.img);
   if (!is_null(cmd.acquireSem))
     // non checked assume that swapchain image will be first used in graphics queue, beware
-    Globals::VK::queue[DeviceQueueType::GRAPHICS].waitExternSemaphore(cmd.acquireSem, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+    Globals::VK::queue[DeviceQueueType::GRAPHICS].waitExternSemaphore(cmd.acquireSem, Globals::cfg.signalWaitStage);
 }
 
 TSPEC void BEContext::execCmd(const CmdPresent &params)
 {
   Backend::profilerStack.finish(); // ends frame core
   TIME_PROFILE(vulkan_CmdPresent)
+
+#if DA_PROFILER_ENABLED
+  // list every device memory heap usage as tags on the present marker
+  if (da_profiler::get_active_mode() & da_profiler::TAGS)
+  {
+    WinAutoLock memLock(Globals::Mem::mutex);
+    Globals::Mem::pool.iterateHeaps([](const DeviceMemoryPool::Heap &heap) {
+      DA_PROFILE_TAG(device_heap, "%u %u MB/%u MB", heap.index, (uint32_t)(heap.inUse >> 20), (uint32_t)(heap.limit >> 20));
+    });
+  }
+#endif
+
   FrameInfo &frame = Backend::gpuJob.get();
 
   beginCustomStage("present");
@@ -46,7 +54,8 @@ TSPEC void BEContext::execCmd(const CmdPresent &params)
     if (acquireSwapchainImage(params, acquiredImgIndex, acquireSem))
     {
       Image *targetSwapchainImage = params.images[acquiredImgIndex].img;
-      Globals::VK::queue[DeviceQueueType::GRAPHICS].waitSemaphore(acquireSem, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+      Globals::VK::queue[DeviceQueueType::GRAPHICS].waitSemaphore(acquireSem, Globals::cfg.signalWaitStage);
+      syncSwapchainImageAcquireReads(targetSwapchainImage);
       baseMipBlit(params.img, targetSwapchainImage);
       frameReadySemaphoresForPresent.push_back(params.images[acquiredImgIndex].frame);
       makeImageReadyForPresent(targetSwapchainImage);
@@ -72,7 +81,8 @@ TSPEC void BEContext::execCmd(const CmdPresent &params)
     if (acquireSwapchainImage(secondaryPresent, acquiredImgIndex, acquireSem))
     {
       Image *targetSwapchainImage = secondaryPresent.images[acquiredImgIndex].img;
-      Globals::VK::queue[DeviceQueueType::GRAPHICS].waitSemaphore(acquireSem, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+      Globals::VK::queue[DeviceQueueType::GRAPHICS].waitSemaphore(acquireSem, Globals::cfg.signalWaitStage);
+      syncSwapchainImageAcquireReads(targetSwapchainImage);
       baseMipBlit(secondaryPresent.img, targetSwapchainImage);
       frameReadySemaphoresForPresent.push_back(secondaryPresent.images[acquiredImgIndex].frame);
       makeImageReadyForPresent(targetSwapchainImage);

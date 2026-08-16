@@ -3,6 +3,7 @@
 #include <render/shaderCacheWarmup/shaderCacheWarmup.h>
 
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_dataBlockUtils.h>
@@ -56,6 +57,16 @@ void warmup_shaders_from_settings(const WarmupParams &params, const bool is_load
 
   if (warmup_enabled(warmupBlk))
   {
+    if (const DataBlock *disable = warmupBlk->getBlockByName("disable"))
+      if (const DataBlock *vendor = disable->getBlockByName(d3d_get_vendor_name(d3d::get_driver_desc().info.vendor)))
+      {
+        if (vendor->getBool(d3d::get_driver_name(), false))
+        {
+          debug("shaders warmup disabled on %s for %s", d3d::get_driver_name(),
+            d3d_get_vendor_name(d3d::get_driver_desc().info.vendor));
+          return;
+        }
+      }
     debug("starting shaders warmup");
 
     if (backgroundWarmup)

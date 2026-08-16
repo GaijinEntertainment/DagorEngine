@@ -259,7 +259,7 @@ public:
 
   bool updateTargetIfNecessary();
   void updateTarget();
-  void updateTarget(int width, int height, int left = 0, int top = 0);
+  void updateTarget(int width, int height, int left = 0, int top = 0, int angle = 0);
   void updateViewFromContext();
 
   void beforeReset();

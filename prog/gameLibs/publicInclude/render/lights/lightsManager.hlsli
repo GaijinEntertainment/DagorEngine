@@ -1,0 +1,21 @@
+#ifndef LIGHTS_MANAGER_INCLUDED
+#define LIGHTS_MANAGER_INCLUDED 1
+
+#define INVALID_SHADOW_VOLUME_ID 0xFFFF
+
+#ifdef __cplusplus
+  #define LIGTHS_MANAGER_UINT_32 uint32_t
+#else
+  #define LIGTHS_MANAGER_UINT_32 uint
+#endif
+struct ManagedLight
+{
+  LIGTHS_MANAGER_UINT_32 shadowId;
+  LIGTHS_MANAGER_UINT_32 lightId;
+  LIGTHS_MANAGER_UINT_32 mask;
+  LIGTHS_MANAGER_UINT_32 pad0;
+};
+
+#undef LIGTHS_MANAGER_UINT_32
+
+#endif

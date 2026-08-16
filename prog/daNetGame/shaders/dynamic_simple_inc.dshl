@@ -313,8 +313,8 @@ macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
       input.pos.xyz = unpack_pos(input.pos);
 
       // Vertex-deformation entry point. Runs on the unpacked local position before
-      // skinning and before vs_prev_function, whose wound tests read the final
-      // local pos, so deformation and wounds compose in that order.
+      // skinning and before vs_prev_function, so the wound tests in vs_post_function
+      // see the morphed rest position.
       #if HAS_VS_MORPH_FUNCTION
       vs_morph_function(input);
       #endif
@@ -342,15 +342,16 @@ macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
       #else
       float3 localDu = float3(1,0,0), localDv = float3(1,0,0);
       #endif
+      float3 skinPos = input.pos;
       #if HAS_VS_PREV_FUNCTION
-      vs_prev_function(input, localNormal);
+      vs_prev_function(input, localNormal, skinPos);
       #endif
       #if HAS_BURNING
       output.burnedEffect = getBurnedEffect();
       #endif
       instance_skinning(
         input,
-        input.pos,
+        skinPos,
         localNormal,
         localDu,
         localDv,
@@ -378,7 +379,7 @@ macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
     #endif
 
     #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
-      output.destr_params = generate_destr_params(input.pos);
+      output.destr_params = generate_destr_params(skinPos);
     #endif
 
     float4 prevPos = float4(0, 0, 0, 0);
@@ -389,7 +390,7 @@ macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
     #endif
       output.normal.xyz = worldNormal;
     #ifdef MOTION_VECTORS_ENABLED
-      prevPos = get_prevframe_output_pos(input, input.pos);
+      prevPos = get_prevframe_output_pos(input, skinPos);
       // Initialize out_pos, out_pos_prev to make compiler happy. Proper values are set after vs_post_function.
       output.out_pos = float3(0, 0, 0);
       output.out_pos_prev = float3(0, 0, 0);

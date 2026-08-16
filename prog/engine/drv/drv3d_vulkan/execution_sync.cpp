@@ -400,6 +400,10 @@ void ExecutionSyncTracker::aliasSync(Resource *lobj, VkPipelineStageFlags stage)
 
 void ExecutionSyncTracker::addBufferAccess(LogicAddress laddr, Buffer *buf, BufferArea area)
 {
+  // untracked buffers are synced explicitly by the caller via d3d::enhanced_buffer_barrier
+  if (!buf->isSyncTracked())
+    return;
+
   buf->checkFrameMemAccess();
 
   if (filterAccessTracking(gpuWorkId, bufOps, buf, laddr, area, 0))
@@ -415,6 +419,10 @@ void ExecutionSyncTracker::addBufferAccess(LogicAddress laddr, Buffer *buf, Buff
 void ExecutionSyncTracker::addImageAccessImpl(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area,
   bool nrp_attachment, bool discard)
 {
+  // untracked images are synced explicitly by the caller via d3d::enhanced_texture_barrier
+  if (!img->isSyncTracked())
+    return;
+
   // 3d image has no array range, but image view uses it to select the slices, so reset array range.
   if (VK_IMAGE_TYPE_3D == img->getType())
   {
@@ -527,6 +535,23 @@ void ExecutionSyncTracker::completeAll(size_t gpu_work_id)
   nativeRPIndex = 0;
 }
 
+#if DAGOR_DBGLEVEL > 0
+bool ExecutionSyncTracker::checkWriteCompletedForRelaxedFrameEndSync(LogicAddress laddr)
+{
+  if (Globals::cfg.signalWaitStage == VK_PIPELINE_STAGE_ALL_COMMANDS_BIT)
+    return true;
+
+  if (laddr.stage & Globals::cfg.signalWaitStage)
+    return true;
+
+  // swapchain present is special case synced by semaphores, skip it
+  if (laddr.stage == VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT)
+    return true;
+
+  return !laddr.isWrite();
+}
+#endif
+
 void ExecutionSyncTracker::workItemEndSync(size_t gpu_work_id)
 {
   if (allCompleted())
@@ -541,9 +566,8 @@ void ExecutionSyncTracker::workItemEndSync(size_t gpu_work_id)
     if (op.completed)
       continue;
 
-    // can't complain based on this logic as some writes can be leaved for frame end sync
-    // if (op.laddr.isWrite() && op.obj->isUsedInBindless())
-    //  D3D_ERROR("vulkan: sync: buffer: incompleted write while registered in bindless, must handle it! %s", op.format());
+    if (!checkWriteCompletedForRelaxedFrameEndSync(op.laddr))
+      D3D_ERROR("vulkan: sync: buffer: unhandled write for relaxed frame end, must handle it! %s", op.format());
 
     // seal obj on frame end if last op was uncompleted read
     // it will be auto-unsealed on next frame if someone wants to write to it
@@ -557,16 +581,8 @@ void ExecutionSyncTracker::workItemEndSync(size_t gpu_work_id)
     if (op.completed)
       continue;
 
-#if DAGOR_DBGLEVEL > 0
-    if (op.laddr.isWrite() &&
-        op.obj->isUsedInBindless()
-#if VULKAN_ENABLE_DEBUG_FLUSHING_SUPPORT
-        // debug flush will always trigger this error because it can't enclose followup user barriers anyhow
-        && !Globals::cfg.bits.flushAfterEachDrawAndDispatch
-#endif
-    )
-      D3D_ERROR("vulkan: sync: image: incompleted write while registered in bindless, must handle it! %s", op.format());
-#endif
+    if (!checkWriteCompletedForRelaxedFrameEndSync(op.laddr))
+      D3D_ERROR("vulkan: sync: image: unhandled write for relaxed frame end, must handle it! %s", op.format());
 
     if (!op.laddr.isWrite() && op.obj->layout.roSealTargetLayout != VK_IMAGE_LAYOUT_UNDEFINED)
     {
@@ -588,6 +604,9 @@ void ExecutionSyncTracker::workItemEndSync(size_t gpu_work_id)
     const AccelerationStructureSyncOp &op = asOps.arr[i];
     if (op.completed)
       continue;
+
+    if (!checkWriteCompletedForRelaxedFrameEndSync(op.laddr))
+      D3D_ERROR("vulkan: sync: rtas: unhandled write for relaxed frame end, must handle it! %s", op.format());
 
     // seal obj on frame end if last op was uncompleted read
     // it will be auto-unsealed on next frame if someone wants to write to it

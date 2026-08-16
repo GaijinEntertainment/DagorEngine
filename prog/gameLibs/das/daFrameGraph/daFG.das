@@ -558,6 +558,7 @@ def optional(var self : auto(TT)) : TT
 def useAs(var self : auto(TT); usageType : Usage) : TT
   let setUsage = $ <| (var request : ResourceRequest &)
     request.usage.usageType = usageType
+    request.usageDeclared = true
   self |> modifyRequest(setUsage)
   return self
 

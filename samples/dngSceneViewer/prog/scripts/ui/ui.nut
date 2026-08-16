@@ -39,7 +39,7 @@ let hintStyle = {
 }
 let fpsBar = {
   behavior = Behaviors.FpsBar
-  size = [sw(20), SIZE_TO_CONTENT]
+  size = const [sw(20), SIZE_TO_CONTENT]
   hplace = ALIGN_RIGHT
   vplace = ALIGN_BOTTOM
   rendObj = ROBJ_TEXT

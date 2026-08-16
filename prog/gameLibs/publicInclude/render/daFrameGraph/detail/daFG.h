@@ -30,4 +30,6 @@ NodeUid register_node(NameSpaceNameId nsId, const char *name, const char *node_s
 
 void unregister_node(NodeUid uid);
 
+void mark_custom_execution(NodeNameId node_id, InternalRegistry *registry);
+
 } // namespace dafg::detail

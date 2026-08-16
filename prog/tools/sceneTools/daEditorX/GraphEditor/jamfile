@@ -18,6 +18,7 @@ Sources =
   base_nodes_panel.cpp
   canvas_clipboard.cpp
   graph_compile.cpp
+  graph_dead_paths.cpp
   graph_edge_reconnect.cpp
   graph_hotkeys_bar.cpp
   graph_panel.cpp

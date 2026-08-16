@@ -8,9 +8,11 @@
 #include <gamePhys/collision/cachedCollisionObject.h>
 
 #if DAGOR_DBGLEVEL > 0
-extern void (*ri_coll_damage_log)(const char *format_str, ...);
+extern void (*ri_coll_damage_log)(const rendinst::CollisionInfo &coll_info, float impulse, float damage);
+extern void (*ri_coll_destr_result_log)(const gamephys::CollisionObjectInfo *obj_info, float applied, float absorbed, bool destroyed);
 #else
-static constexpr void (*ri_coll_damage_log)(const char *format_str, ...) = nullptr;
+static constexpr void (*ri_coll_damage_log)(const rendinst::CollisionInfo &, float, float) = nullptr;
+static constexpr void (*ri_coll_destr_result_log)(const gamephys::CollisionObjectInfo *, float, float, bool) = nullptr;
 #endif
 
 class RendinstImpulseThresholdData final : public CachedCollisionObjectInfo
@@ -26,7 +28,7 @@ public:
     const rendinst::CollisionInfo &coll_info);
 
   float onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel, const Point3 & /*collision_normal*/,
-    uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1, const char * /*actor_name*/ = nullptr) override;
+    uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1) override;
   float getDestructionImpulse() const override { return thresImpulse; }
   bool isRICollision() const override { return true; }
 };
@@ -46,7 +48,7 @@ public:
     const rendinst::CollisionInfo &coll_info);
 
   float onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel, const Point3 & /*collision_normal*/,
-    uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1, const char * /*actor_name*/ = nullptr) override;
+    uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1) override;
   float getDestructionImpulse() const override { return thresImpulse; }
   bool isTreeCollision() const override { return true; }
 };

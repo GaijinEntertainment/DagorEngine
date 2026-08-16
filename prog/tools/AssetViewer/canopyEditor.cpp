@@ -63,6 +63,10 @@ struct AddableParamTemplate
   bool isBlock = false;
 };
 
+static bool is_canopy_dmg_record(const DataBlock &block, const char *record_name);
+static bool has_name_token(const char *name, const char *token);
+static const char *find_name_size_token(const char *name);
+
 static bool has_lod_suffix(const char *suffix)
 {
   if (!suffix || suffix[0] != '.' || suffix[1] != 'l' || suffix[2] != 'o' || suffix[3] != 'd')
@@ -212,6 +216,43 @@ static String build_blk_text(const DataBlock &blk, const char *line_ending)
   blk.saveToTextStream(saveCb);
   saveCb.write("\0", 1);
   return normalize_line_endings((const char *)saveCb.data(), line_ending);
+}
+
+static bool load_canopy_blk(const char *path, CanopyBlkDocument &document)
+{
+  document.fileText.clear();
+  document.lineEnding = "\r\n";
+  document.path.clear();
+  document.blk.reset();
+
+  if (!read_file_to_string(path, document.fileText))
+    return false;
+
+  if (strstr(document.fileText, "\r\n") == nullptr)
+    document.lineEnding = "\n";
+
+  if (!load_blk_text(path, document.blk))
+  {
+    document.fileText.clear();
+    return false;
+  }
+
+  document.path = path;
+  return true;
+}
+
+static void set_canopy_blk_document(CanopyBlkDocument &dst, const CanopyBlkDocument &src)
+{
+  dst.fileText = src.fileText;
+  dst.lineEnding = src.lineEnding;
+  dst.path = src.path;
+  dst.blk.setFrom(&src.blk);
+}
+
+static void set_first_include_load_error(String &dst, const char *path)
+{
+  if (dst.empty())
+    dst = path;
 }
 
 static bool try_parse_int64(const char *text, int64_t &value)
@@ -495,7 +536,8 @@ static void collect_addable_param_templates_from_dmg(const DataBlock &block, eas
   }
 }
 
-static void collect_addable_param_templates(const DataBlock &block, eastl::vector<AddableParamTemplate> &templates)
+static void collect_addable_param_templates(const DataBlock &block, eastl::vector<AddableParamTemplate> &templates,
+  CanopyDmgBlockFormat format)
 {
   for (int i = 0; i < block.blockCount(); ++i)
   {
@@ -503,13 +545,15 @@ static void collect_addable_param_templates(const DataBlock &block, eastl::vecto
     if (!child)
       continue;
 
-    if (strcmp(child->getBlockName(), "dmg") == 0)
+    const bool isLegacyRecord = strcmp(child->getBlockName(), "dmg") == 0;
+    if ((format == CanopyDmgBlockFormat::Legacy && isLegacyRecord) ||
+        (format == CanopyDmgBlockFormat::Named && !isLegacyRecord && is_canopy_dmg_record(*child, child->getBlockName())))
     {
       eastl::vector<String> blockPath;
       collect_addable_param_templates_from_dmg(*child, blockPath, templates);
     }
 
-    collect_addable_param_templates(*child, templates);
+    collect_addable_param_templates(*child, templates, format);
   }
 }
 
@@ -590,10 +634,11 @@ static bool insert_addable_param_template(DataBlock &block, const AddableParamTe
   return true;
 }
 
-static bool has_available_addable_param_templates(const DataBlock &loaded_blk, const DataBlock &editable_block)
+static bool has_available_addable_param_templates(const DataBlock &loaded_blk, const DataBlock &editable_block,
+  CanopyDmgBlockFormat format)
 {
   eastl::vector<AddableParamTemplate> templates;
-  collect_addable_param_templates(loaded_blk, templates);
+  collect_addable_param_templates(loaded_blk, templates, format);
 
   for (const AddableParamTemplate &item : templates)
     if (can_add_param_template(editable_block, item))
@@ -663,8 +708,59 @@ static bool try_get_top_level_string(const DataBlock &block, const char *name, S
   return true;
 }
 
-static DataBlock *find_matching_dmg_block(DataBlock &block, const char *asset_name, const char *normalized_asset_name,
-  eastl::vector<int> &path)
+static bool matches_canopy_asset_name(const char *name, const char *asset_name)
+{
+  if (strcmp(name, asset_name) == 0)
+    return true;
+
+  const String normalizedAssetName = normalize_canopy_asset_name(asset_name);
+  if (normalizedAssetName.empty())
+    return false;
+
+  const String normalizedName = normalize_canopy_asset_name(name);
+  if (!normalizedName.empty() && strcmp(normalizedName.str(), normalizedAssetName.str()) == 0)
+    return true;
+
+  return false;
+}
+
+static bool is_canopy_data_param_name(const char *name)
+{
+  return is_canopy_type_param_name(name) || strcmp(name, "canopyTopPart") == 0 || strcmp(name, "canopyWidthPart") == 0 ||
+         strcmp(name, "canopyTopOffset") == 0 || strcmp(name, "canopyOpacity") == 0 || strcmp(name, "forcePyramidCanopy") == 0;
+}
+
+static bool is_fx_param_name(const char *name) { return strcmp(name, "fx") == 0 || strcmp(name, "fxTemplate") == 0; }
+
+static bool is_damage_data_param_name(const char *name)
+{
+  return strcmp(name, "destructionImpulse") == 0 || strcmp(name, "impulseThreshold") == 0 || strcmp(name, "hp") == 0 ||
+         strcmp(name, "physRes") == 0 || strcmp(name, "nextRes") == 0;
+}
+
+static bool is_likely_canopy_record_name(const char *name)
+{
+  return has_name_token(name, "tree") || has_name_token(name, "bush") || find_name_size_token(name);
+}
+
+static bool is_canopy_dmg_record(const DataBlock &block, const char *record_name)
+{
+  bool hasCanopyData = false;
+  bool hasFx = false;
+  bool hasDamageData = false;
+  for (int i = 0; i < block.paramCount(); ++i)
+  {
+    const char *paramName = block.getParamName(i);
+    hasCanopyData = hasCanopyData || is_canopy_data_param_name(paramName);
+    hasFx = hasFx || is_fx_param_name(paramName);
+    hasDamageData = hasDamageData || is_damage_data_param_name(paramName);
+  }
+
+  return hasCanopyData || ((hasFx || hasDamageData) && is_likely_canopy_record_name(record_name));
+}
+
+static DataBlock *find_matching_dmg_block(DataBlock &block, const char *asset_name, eastl::vector<int> &path,
+  CanopyDmgBlockFormat format)
 {
   for (int i = 0; i < block.blockCount(); ++i)
   {
@@ -672,24 +768,14 @@ static DataBlock *find_matching_dmg_block(DataBlock &block, const char *asset_na
     if (!child)
       continue;
 
-    if (strcmp(child->getBlockName(), "dmg") == 0)
+    if (format == CanopyDmgBlockFormat::Legacy && strcmp(child->getBlockName(), "dmg") == 0)
     {
       for (int paramIndex = child->paramCount() - 1; paramIndex >= 0; --paramIndex)
       {
         if (child->getParamType(paramIndex) != DataBlock::TYPE_STRING || strcmp(child->getParamName(paramIndex), "name") != 0)
           continue;
 
-        if (strcmp(child->getStr(paramIndex), asset_name) == 0)
-        {
-          path.push_back(i);
-          return child;
-        }
-
-        if (!normalized_asset_name || !*normalized_asset_name)
-          continue;
-
-        const String normalizedChildAssetName = normalize_canopy_asset_name(child->getStr(paramIndex));
-        if (!normalizedChildAssetName.empty() && strcmp(normalizedChildAssetName.str(), normalized_asset_name) == 0)
+        if (matches_canopy_asset_name(child->getStr(paramIndex), asset_name))
         {
           path.push_back(i);
           return child;
@@ -697,8 +783,15 @@ static DataBlock *find_matching_dmg_block(DataBlock &block, const char *asset_na
       }
     }
 
+    if (format == CanopyDmgBlockFormat::Named && strcmp(child->getBlockName(), "dmg") != 0 &&
+        is_canopy_dmg_record(*child, child->getBlockName()) && matches_canopy_asset_name(child->getBlockName(), asset_name))
+    {
+      path.push_back(i);
+      return child;
+    }
+
     path.push_back(i);
-    if (DataBlock *nestedMatch = find_matching_dmg_block(*child, asset_name, normalized_asset_name, path))
+    if (DataBlock *nestedMatch = find_matching_dmg_block(*child, asset_name, path, format))
       return nestedMatch;
     path.pop_back();
   }
@@ -747,7 +840,8 @@ static const char *get_dmg_block_asset_name(const DataBlock &dmg_block)
   return nullptr;
 }
 
-static void collect_dmg_blocks_in_order(const DataBlock &block, eastl::vector<const DataBlock *> &dmg_blocks)
+static void collect_dmg_blocks_in_order(const DataBlock &block, eastl::vector<const DataBlock *> &dmg_blocks,
+  CanopyDmgBlockFormat format)
 {
   for (int i = 0; i < block.blockCount(); ++i)
   {
@@ -755,19 +849,22 @@ static void collect_dmg_blocks_in_order(const DataBlock &block, eastl::vector<co
     if (!child)
       continue;
 
-    if (strcmp(child->getBlockName(), "dmg") == 0)
+    if ((format == CanopyDmgBlockFormat::Named && strcmp(child->getBlockName(), "dmg") != 0 &&
+          is_canopy_dmg_record(*child, child->getBlockName())) ||
+        (format == CanopyDmgBlockFormat::Legacy && strcmp(child->getBlockName(), "dmg") == 0 && get_dmg_block_asset_name(*child)))
       dmg_blocks.push_back(child);
 
-    collect_dmg_blocks_in_order(*child, dmg_blocks);
+    collect_dmg_blocks_in_order(*child, dmg_blocks, format);
   }
 }
 
 static const DataBlock *find_first_dmg_block_by_type_and_size(const eastl::vector<const DataBlock *> &dmg_blocks,
-  const char *type_token, const char *size_token)
+  const char *type_token, const char *size_token, CanopyDmgBlockFormat format)
 {
   for (const DataBlock *dmgBlock : dmg_blocks)
   {
-    const char *blockAssetName = get_dmg_block_asset_name(*dmgBlock);
+    const char *blockAssetName =
+      format == CanopyDmgBlockFormat::Named ? dmgBlock->getBlockName() : get_dmg_block_asset_name(*dmgBlock);
     if (is_empty_string(blockAssetName) || !has_name_token(blockAssetName, type_token))
       continue;
 
@@ -780,10 +877,11 @@ static const DataBlock *find_first_dmg_block_by_type_and_size(const eastl::vecto
   return nullptr;
 }
 
-static const DataBlock *find_default_dmg_template_block(const DataBlock &block, const char *normalized_asset_name)
+static const DataBlock *find_default_dmg_template_block(const DataBlock &block, const char *normalized_asset_name,
+  CanopyDmgBlockFormat format)
 {
   eastl::vector<const DataBlock *> dmgBlocks;
-  collect_dmg_blocks_in_order(block, dmgBlocks);
+  collect_dmg_blocks_in_order(block, dmgBlocks, format);
   if (dmgBlocks.empty())
     return nullptr;
 
@@ -791,16 +889,155 @@ static const DataBlock *find_default_dmg_template_block(const DataBlock &block, 
   const char *primaryTypeToken = wantsBush ? "bush" : "tree";
   const char *sizeToken = find_name_size_token(normalized_asset_name);
 
-  if (const DataBlock *matchedBlock = find_first_dmg_block_by_type_and_size(dmgBlocks, primaryTypeToken, sizeToken))
+  if (const DataBlock *matchedBlock = find_first_dmg_block_by_type_and_size(dmgBlocks, primaryTypeToken, sizeToken, format))
     return matchedBlock;
 
-  if (const DataBlock *matchedBlock = find_first_dmg_block_by_type_and_size(dmgBlocks, primaryTypeToken, nullptr))
+  if (const DataBlock *matchedBlock = find_first_dmg_block_by_type_and_size(dmgBlocks, primaryTypeToken, nullptr, format))
     return matchedBlock;
 
   if (wantsBush)
-    return find_first_dmg_block_by_type_and_size(dmgBlocks, "tree", nullptr);
+    return find_first_dmg_block_by_type_and_size(dmgBlocks, "tree", nullptr, format);
 
   return nullptr;
+}
+
+static CanopyDmgBlockFormat detect_canopy_dmg_block_format(const DataBlock &block)
+{
+  eastl::vector<const DataBlock *> dmgBlocks;
+  collect_dmg_blocks_in_order(block, dmgBlocks, CanopyDmgBlockFormat::Legacy);
+  if (!dmgBlocks.empty())
+    return CanopyDmgBlockFormat::Legacy;
+
+  collect_dmg_blocks_in_order(block, dmgBlocks, CanopyDmgBlockFormat::Named);
+  return !dmgBlocks.empty() ? CanopyDmgBlockFormat::Named : CanopyDmgBlockFormat::Legacy;
+}
+
+static void collect_blk_include_paths(const DataBlock &block, eastl::vector<String> &include_paths)
+{
+  for (int i = 0; i < block.paramCount(); ++i)
+    if (block.getParamType(i) == DataBlock::TYPE_STRING && strcmp(block.getParamName(i), "@include") == 0)
+      include_paths.push_back() = block.getStr(i);
+
+  for (int i = 0; i < block.blockCount(); ++i)
+    if (const DataBlock *child = block.getBlock(i))
+      collect_blk_include_paths(*child, include_paths);
+}
+
+static String resolve_blk_include_path(const char *owner_path, const char *include_path)
+{
+  String ownerDir;
+  String ownerName;
+  split_path(owner_path, ownerDir, ownerName);
+  return make_full_path(ownerDir, include_path);
+}
+
+enum class IncludedBlkMatch
+{
+  None,
+  Record,
+  Template,
+};
+
+static IncludedBlkMatch load_included_blk(const CanopyBlkDocument &owner_document, const char *asset_name,
+  const char *normalized_asset_name, CanopyBlkDocument &document, CanopyDmgBlockFormat &format, eastl::vector<int> &matched_path,
+  String &include_load_error_path, int depth = 0)
+{
+  if (depth > 8)
+    return IncludedBlkMatch::None;
+
+  eastl::vector<String> includePaths;
+  collect_blk_include_paths(owner_document.blk, includePaths);
+  CanopyBlkDocument templateDocument;
+  CanopyDmgBlockFormat templateFormat = CanopyDmgBlockFormat::Legacy;
+  bool hasTemplate = false;
+
+  for (const String &includePath : includePaths)
+  {
+    CanopyBlkDocument includedDocument;
+    const String resolvedIncludePath = resolve_blk_include_path(owner_document.path, includePath);
+    if (!load_canopy_blk(resolvedIncludePath, includedDocument))
+    {
+      set_first_include_load_error(include_load_error_path, resolvedIncludePath);
+      continue;
+    }
+
+    CanopyDmgBlockFormat includedFormat = detect_canopy_dmg_block_format(includedDocument.blk);
+    eastl::vector<int> includedMatchedPath;
+    if (find_matching_dmg_block(includedDocument.blk, asset_name, includedMatchedPath, includedFormat))
+    {
+      set_canopy_blk_document(document, includedDocument);
+      format = includedFormat;
+      matched_path = includedMatchedPath;
+      return IncludedBlkMatch::Record;
+    }
+
+    if (!hasTemplate && find_default_dmg_template_block(includedDocument.blk, normalized_asset_name, includedFormat))
+    {
+      set_canopy_blk_document(templateDocument, includedDocument);
+      templateFormat = includedFormat;
+      hasTemplate = true;
+    }
+
+    CanopyBlkDocument nestedDocument;
+    CanopyDmgBlockFormat nestedFormat = CanopyDmgBlockFormat::Legacy;
+    eastl::vector<int> nestedMatchedPath;
+    const IncludedBlkMatch nestedMatch = load_included_blk(includedDocument, asset_name, normalized_asset_name, nestedDocument,
+      nestedFormat, nestedMatchedPath, include_load_error_path, depth + 1);
+    if (nestedMatch != IncludedBlkMatch::None)
+    {
+      if (nestedMatch == IncludedBlkMatch::Record)
+      {
+        set_canopy_blk_document(document, nestedDocument);
+        format = nestedFormat;
+        matched_path = nestedMatchedPath;
+        return IncludedBlkMatch::Record;
+      }
+
+      if (!hasTemplate)
+      {
+        set_canopy_blk_document(templateDocument, nestedDocument);
+        templateFormat = nestedFormat;
+        hasTemplate = true;
+      }
+    }
+  }
+
+  if (hasTemplate)
+  {
+    set_canopy_blk_document(document, templateDocument);
+    format = templateFormat;
+    return IncludedBlkMatch::Template;
+  }
+
+  return IncludedBlkMatch::None;
+}
+
+static bool find_block_path(const DataBlock &block, const DataBlock *target, eastl::vector<int> &path)
+{
+  for (int i = 0; i < block.blockCount(); ++i)
+  {
+    const DataBlock *child = block.getBlock(i);
+    if (!child)
+      continue;
+
+    path.push_back(i);
+    if (child == target || find_block_path(*child, target, path))
+      return true;
+    path.pop_back();
+  }
+
+  return false;
+}
+
+static bool find_parent_block_path(const DataBlock &block, const DataBlock *target, eastl::vector<int> &path)
+{
+  path.clear();
+  if (!find_block_path(block, target, path))
+    return false;
+
+  if (!path.empty())
+    path.pop_back();
+  return true;
 }
 
 static int find_last_top_level_dmg_index(const DataBlock &block)
@@ -1058,7 +1295,7 @@ void CanopyEditorWindow::onClick(int pcb_id, PropPanel::ContainerPropertyControl
       return;
 
     eastl::vector<AddableParamTemplate> availableTemplates;
-    collect_addable_param_templates(loadedBlk, availableTemplates);
+    collect_addable_param_templates(loadedBlkDocument.blk, availableTemplates, currentDmgBlockFormat);
 
     Tab<String> availableParams(tmpmem);
     for (const AddableParamTemplate &item : availableTemplates)
@@ -1200,70 +1437,116 @@ void CanopyEditorWindow::customControlUpdate(int id)
 
 void CanopyEditorWindow::reloadSelectedBlk()
 {
-  loadedFileText.clear();
-  loadedBlk.reset();
-  lineEnding = "\r\n";
+  loadedBlkDocument.fileText.clear();
+  loadedBlkDocument.blk.reset();
+  loadedBlkDocument.path.clear();
+  loadedBlkDocument.lineEnding = "\r\n";
   currentDmgBlockPath.clear();
 
   const String resolvedBlkPath = getResolvedBlkPath();
   if (resolvedBlkPath.empty())
     return;
 
-  if (!read_file_to_string(resolvedBlkPath, loadedFileText))
+  if (!load_canopy_blk(resolvedBlkPath, loadedBlkDocument))
   {
-    wingw::message_box(wingw::MBS_EXCL | wingw::MBS_OK, "Canopy parameters", "Failed to read canopy BLK from '%s'.",
+    wingw::message_box(wingw::MBS_EXCL | wingw::MBS_OK, "Canopy parameters", "Failed to load canopy BLK from '%s'.",
       resolvedBlkPath.str());
     return;
-  }
-
-  if (strstr(loadedFileText, "\r\n") == nullptr)
-    lineEnding = "\n";
-
-  if (!load_blk_text(resolvedBlkPath, loadedBlk))
-  {
-    wingw::message_box(wingw::MBS_EXCL | wingw::MBS_OK, "Canopy parameters", "Failed to parse canopy BLK from '%s'.",
-      resolvedBlkPath.str());
-    loadedFileText.clear();
   }
 }
 
 void CanopyEditorWindow::updateCurrentAssetParameters()
 {
   currentDmgBlockPath.clear();
+  newDmgBlockParentPath.clear();
   editableDmgBlock.reset();
   savedParametersText.clear();
   editorParametersText.clear();
   viewportFxAssetName.clear();
   viewportFxAvailable = false;
   showFx = false;
+  currentDmgBlockFormat = CanopyDmgBlockFormat::Legacy;
   dirty = false;
   pendingTextParse = false;
 
   String normalizedAssetName;
-  if (!loadedFileText.empty() && !currentAssetName.empty())
+  const String selectedBlkResolvedPath = getResolvedBlkPath();
+  if (!selectedBlkResolvedPath.empty() && !loadedBlkDocument.fileText.empty() && loadedBlkDocument.path != selectedBlkResolvedPath)
+    reloadSelectedBlk();
+
+  if (!loadedBlkDocument.fileText.empty() && !currentAssetName.empty())
   {
     normalizedAssetName = normalize_canopy_asset_name(currentAssetName);
     eastl::vector<int> matchedPath;
-    if (
-      DataBlock *matchedDmgBlock = find_matching_dmg_block(loadedBlk, currentAssetName.str(), normalizedAssetName.str(), matchedPath))
+    currentDmgBlockFormat = detect_canopy_dmg_block_format(loadedBlkDocument.blk);
+    DataBlock *matchedDmgBlock =
+      find_matching_dmg_block(loadedBlkDocument.blk, currentAssetName.str(), matchedPath, currentDmgBlockFormat);
+
+    if (!selectedBlkResolvedPath.empty() && loadedBlkDocument.path == selectedBlkResolvedPath)
+    {
+      String includeLoadErrorPath;
+      if (!matchedDmgBlock)
+      {
+        CanopyBlkDocument includedDocument;
+        const IncludedBlkMatch includeMatch = load_included_blk(loadedBlkDocument, currentAssetName.str(), normalizedAssetName.str(),
+          includedDocument, currentDmgBlockFormat, matchedPath, includeLoadErrorPath);
+        if (includeMatch != IncludedBlkMatch::None)
+        {
+          set_canopy_blk_document(loadedBlkDocument, includedDocument);
+          if (includeMatch == IncludedBlkMatch::Template)
+            matchedPath.clear();
+          else
+            matchedDmgBlock = get_block_by_path(loadedBlkDocument.blk, matchedPath);
+        }
+      }
+
+      const bool includeSearchSucceeded = matchedDmgBlock || loadedBlkDocument.path != selectedBlkResolvedPath;
+      if (!includeSearchSucceeded && !includeLoadErrorPath.empty() && includeLoadErrorPath != lastIncludeLoadErrorPath)
+      {
+        lastIncludeLoadErrorPath = includeLoadErrorPath;
+        wingw::message_box(wingw::MBS_EXCL | wingw::MBS_OK, "Canopy parameters", "Failed to load included canopy BLK from '%s'.",
+          includeLoadErrorPath.str());
+      }
+      else if (includeLoadErrorPath.empty())
+        lastIncludeLoadErrorPath.clear();
+    }
+
+    if (!matchedDmgBlock)
+    {
+      currentDmgBlockFormat = detect_canopy_dmg_block_format(loadedBlkDocument.blk);
+      matchedDmgBlock = find_matching_dmg_block(loadedBlkDocument.blk, currentAssetName.str(), matchedPath, currentDmgBlockFormat);
+    }
+    if (matchedDmgBlock)
     {
       currentDmgBlockPath = matchedPath;
       editableDmgBlock.setFrom(matchedDmgBlock);
       normalize_top_level_canopy_type_params(editableDmgBlock);
-      savedParametersText = build_blk_text(editableDmgBlock, lineEnding);
+      savedParametersText = build_blk_text(editableDmgBlock, loadedBlkDocument.lineEnding);
       editorParametersText = savedParametersText;
     }
     else
     {
       const char *savedAssetName = normalizedAssetName.empty() ? currentAssetName.str() : normalizedAssetName.str();
-      if (const DataBlock *templateDmgBlock = find_default_dmg_template_block(loadedBlk, savedAssetName))
+      if (const DataBlock *templateDmgBlock =
+            find_default_dmg_template_block(loadedBlkDocument.blk, savedAssetName, currentDmgBlockFormat))
+      {
         editableDmgBlock.setFrom(templateDmgBlock);
+        if (currentDmgBlockFormat == CanopyDmgBlockFormat::Named)
+          find_parent_block_path(loadedBlkDocument.blk, templateDmgBlock, newDmgBlockParentPath);
+      }
       else
-        editableDmgBlock.changeBlockName("dmg");
+      {
+        eastl::vector<const DataBlock *> dmgBlocks;
+        collect_dmg_blocks_in_order(loadedBlkDocument.blk, dmgBlocks, currentDmgBlockFormat);
+        if (currentDmgBlockFormat == CanopyDmgBlockFormat::Named && !dmgBlocks.empty())
+          find_parent_block_path(loadedBlkDocument.blk, dmgBlocks[0], newDmgBlockParentPath);
+        editableDmgBlock.changeBlockName(currentDmgBlockFormat == CanopyDmgBlockFormat::Named ? savedAssetName : "dmg");
+      }
 
-      set_top_level_name_value(editableDmgBlock, savedAssetName);
+      if (currentDmgBlockFormat == CanopyDmgBlockFormat::Legacy)
+        set_top_level_name_value(editableDmgBlock, savedAssetName);
       normalize_top_level_canopy_type_params(editableDmgBlock);
-      editorParametersText = build_blk_text(editableDmgBlock, lineEnding);
+      editorParametersText = build_blk_text(editableDmgBlock, loadedBlkDocument.lineEnding);
     }
   }
 
@@ -1276,7 +1559,11 @@ void CanopyEditorWindow::updateCurrentAssetParameters()
 void CanopyEditorWindow::refreshPanel(bool rebuild_parameters_panel)
 {
   updatingControls = true;
-  setText(ID_CANOPY_BLK_FILE, selectedBlkPath);
+  String displayedBlkPath = selectedBlkPath;
+  const String selectedBlkResolvedPath = getResolvedBlkPath();
+  if (!loadedBlkDocument.path.empty() && !selectedBlkResolvedPath.empty() && loadedBlkDocument.path != selectedBlkResolvedPath)
+    displayedBlkPath = loadedBlkDocument.path;
+  setText(ID_CANOPY_BLK_FILE, displayedBlkPath);
   setBool(ID_CANOPY_SHOW_FX, showFx);
   updateControlStates();
   updatingControls = false;
@@ -1432,7 +1719,7 @@ void CanopyEditorWindow::applyEditorText(bool rebuild_parameters_panel)
   const bool canopyTypeNormalized = normalize_top_level_canopy_type_params(editableDmgBlock);
   if (canopyTypeNormalized)
   {
-    editorParametersText = build_blk_text(editableDmgBlock, lineEnding);
+    editorParametersText = build_blk_text(editableDmgBlock, loadedBlkDocument.lineEnding);
     syncTextEditorWidget();
   }
 
@@ -1464,7 +1751,8 @@ void CanopyEditorWindow::updateControlStates()
   const bool canEdit = canEditParameters();
   const bool canEditVisual = canEdit && !pendingTextParse;
   setEnabledById(ID_CANOPY_SHOW_FX, viewportFxAvailable && canEditVisual);
-  setEnabledById(ID_CANOPY_ADD_PARAMS, canEditVisual && has_available_addable_param_templates(loadedBlk, editableDmgBlock));
+  setEnabledById(ID_CANOPY_ADD_PARAMS,
+    canEditVisual && has_available_addable_param_templates(loadedBlkDocument.blk, editableDmgBlock, currentDmgBlockFormat));
   setEnabledById(ID_CANOPY_PARAMETERS_GROUP, canEditVisual);
   setEnabledById(ID_CANOPY_PARAMETERS_TEXT_GROUP, canEdit);
 }
@@ -1473,7 +1761,7 @@ void CanopyEditorWindow::syncTextFromRecognizedParameters()
 {
   pendingTextParse = false;
   normalize_top_level_canopy_type_params(editableDmgBlock);
-  editorParametersText = build_blk_text(editableDmgBlock, lineEnding);
+  editorParametersText = build_blk_text(editableDmgBlock, loadedBlkDocument.lineEnding);
   syncTextEditorWidget();
   updateViewportFxState();
 
@@ -1495,7 +1783,7 @@ void CanopyEditorWindow::updateViewportFxState()
   viewportFxAvailable = false;
 
   String fxName;
-  if (!try_get_top_level_string(editableDmgBlock, "fx", fxName))
+  if (!try_get_top_level_string(editableDmgBlock, "fx", fxName) && !try_get_top_level_string(editableDmgBlock, "fxTemplate", fxName))
   {
     showFx = false;
     return;
@@ -1534,36 +1822,42 @@ bool CanopyEditorWindow::saveCurrentParameters()
   if (pendingTextParse)
     applyEditorText(true);
 
-  const String resolvedBlkPath = getResolvedBlkPath();
-  if (resolvedBlkPath.empty())
+  if (loadedBlkDocument.path.empty())
     return false;
 
   DataBlock itemsToSave;
   itemsToSave.setFrom(&editableDmgBlock);
-  normalize_top_level_canopy_type_params(itemsToSave);
   const String normalizedAssetName = normalize_canopy_asset_name(currentAssetName);
   const char *savedAssetName = normalizedAssetName.empty() ? currentAssetName.str() : normalizedAssetName.str();
-  set_top_level_name_value(itemsToSave, savedAssetName);
+  if (currentDmgBlockFormat == CanopyDmgBlockFormat::Legacy)
+    set_top_level_name_value(itemsToSave, savedAssetName);
 
-  DataBlock *currentBlock = currentDmgBlockPath.empty() ? nullptr : get_block_by_path(loadedBlk, currentDmgBlockPath);
+  DataBlock *currentBlock = currentDmgBlockPath.empty() ? nullptr : get_block_by_path(loadedBlkDocument.blk, currentDmgBlockPath);
   if (currentBlock)
   {
     currentBlock->setFrom(&itemsToSave);
-    currentBlock->changeBlockName("dmg");
+    if (currentDmgBlockFormat == CanopyDmgBlockFormat::Legacy)
+      currentBlock->changeBlockName("dmg");
   }
   else
   {
-    const int lastDmgIndex = find_last_top_level_dmg_index(loadedBlk);
-    loadedBlk.addNewBlock(&itemsToSave, "dmg");
-    for (int blockIndex = loadedBlk.blockCount() - 1; lastDmgIndex >= 0 && blockIndex > lastDmgIndex + 1; --blockIndex)
-      loadedBlk.swapBlocks(blockIndex, blockIndex - 1);
+    DataBlock *parentBlock =
+      newDmgBlockParentPath.empty() ? &loadedBlkDocument.blk : get_block_by_path(loadedBlkDocument.blk, newDmgBlockParentPath);
+    if (!parentBlock)
+      return false;
+
+    const int lastDmgIndex = find_last_top_level_dmg_index(*parentBlock);
+    parentBlock->addNewBlock(&itemsToSave, currentDmgBlockFormat == CanopyDmgBlockFormat::Named ? savedAssetName : "dmg");
+    for (int blockIndex = parentBlock->blockCount() - 1;
+         currentDmgBlockFormat == CanopyDmgBlockFormat::Legacy && lastDmgIndex >= 0 && blockIndex > lastDmgIndex + 1; --blockIndex)
+      parentBlock->swapBlocks(blockIndex, blockIndex - 1);
   }
 
-  const String updatedFileText = build_blk_text(loadedBlk, lineEnding);
-  if (!write_string_to_file(resolvedBlkPath, updatedFileText))
+  const String updatedFileText = build_blk_text(loadedBlkDocument.blk, loadedBlkDocument.lineEnding);
+  if (!write_string_to_file(loadedBlkDocument.path, updatedFileText))
   {
     wingw::message_box(wingw::MBS_EXCL | wingw::MBS_OK, "Canopy parameters", "Failed to write canopy parameters to '%s'.",
-      resolvedBlkPath.str());
+      loadedBlkDocument.path.str());
     return false;
   }
 
@@ -1659,7 +1953,7 @@ void save_current_canopy_editor_window_state()
   }
 }
 
-bool CanopyEditorWindow::canEditParameters() const { return !loadedFileText.empty() && !currentAssetName.empty(); }
+bool CanopyEditorWindow::canEditParameters() const { return !loadedBlkDocument.fileText.empty() && !currentAssetName.empty(); }
 
 void CanopyEditorWindow::updateDirtyState()
 {
@@ -1680,7 +1974,7 @@ void CanopyEditorWindow::syncTextEditorWidget()
 void CanopyEditorWindow::onTextEditorValueChanged(const char *text)
 {
   textEditorWidgetText = text ? text : "";
-  editorParametersText = normalize_line_endings(textEditorWidgetText, lineEnding);
+  editorParametersText = normalize_line_endings(textEditorWidgetText, loadedBlkDocument.lineEnding);
   pendingTextParse = true;
   lastTextChangeMs = get_time_msec();
   updateDirtyState();

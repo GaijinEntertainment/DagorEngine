@@ -623,6 +623,34 @@ public:
       eventHandler->onWcChange(windowBaseForEventHandler);
   }
 
+  bool deselectLeaf(TLeafHandle leaf)
+  {
+    bool selectionChanged = false;
+
+    TreeNode *node = leafHandleAsNode(leaf);
+    if (multiSelectionEnabled)
+    {
+      if (node->getFlagValue(TreeNode::SELECTED))
+      {
+        node->setFlagValue(TreeNode::SELECTED, false);
+        selectionChanged = true;
+
+        if (node == lastSelected)
+          lastSelected = nullptr;
+      }
+    }
+    else if (node == lastSelected)
+    {
+      lastSelected = nullptr;
+      selectionChanged = true;
+    }
+
+    if (selectionChanged && eventHandler)
+      eventHandler->onWcChange(windowBaseForEventHandler);
+
+    return selectionChanged;
+  }
+
   TLeafHandle getSelectedLeaf() const { return nodeAsLeafHandle(lastSelected); }
 
   // Visible means that the item's parents are expanded, and the item might be visible.
@@ -775,12 +803,19 @@ public:
   // If control_height is 0 then it will use the entire available height.
   void updateImgui(float control_height = 0.0f)
   {
+    G_ASSERT(treeRenderEx);
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
     // "c" stands for child. It could be anything.
     const ImGuiID childWindowId = ImGui::GetCurrentWindow()->GetID("c");
     const ImVec2 regionAvailable = ImGui::GetContentRegionAvail();
     const ImVec2 childSize(regionAvailable.x, control_height > 0.0f ? control_height : regionAvailable.y);
+    const eastl::optional<ImU32> borderColor = treeRenderEx->getBorderColor();
+    if (borderColor)
+    {
+      ImGui::PushStyleColor(ImGuiCol_Border, *borderColor);
+      ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+    }
     if (ImGui::BeginChild(childWindowId, childSize, ImGuiChildFlags_FrameStyle,
           ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_HorizontalScrollbar))
     {
@@ -922,6 +957,11 @@ public:
         drawMessage();
     }
     ImGui::EndChild();
+    if (borderColor)
+    {
+      ImGui::PopStyleVar();
+      ImGui::PopStyleColor();
+    }
   }
 
   void setTreeRenderEx(ITreeRenderEx *interface);

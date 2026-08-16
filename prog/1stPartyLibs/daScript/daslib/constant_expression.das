@@ -19,16 +19,7 @@ require daslib/algorithm
 
 [function_macro(name=constexpr)]
 class ConstExprAnnotation : AstFunctionAnnotation {
-    //! This macro implements a constexpr function argument checker. Given list of arguments to verify, it will fail for every one where non-constant expression is passed. For example::
-    //!
-    //!     [constexpr (a)]
-    //!     def foo ( t:string; a : int )
-    //!         print("{t} = {a}\n")
-    //!     var BOO = 13
-    //!     [export]
-    //!     def main
-    //!         foo("blah", 1)
-    //!         foo("ouch", BOO)    // compilation error: `a is not a constexpr, BOO`
+    //! Checks selected function arguments and fails when any receives a non-constant expression.
     def override verifyCall(var call : ExprCallFunc?; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
         for (aa in args) {
             if (aa.basicType == Type.tBool) {
@@ -59,15 +50,6 @@ def public isConstantExpression(expr : Expression?) : bool {
 [function_macro(name="constant_expression")]
 class ConstantExpressionMacro : AstFunctionAnnotation {
     //! This function annotation implements constant expression folding for the given arguments.
-    //! When argument is specified in the annotation, and is passed as a constant expression,
-    //! custom version of the function is generated, and an argument is substituted with a constant value.
-    //! This allows using of static_if expression on the said arguments, as well as other optimizations.
-    //! For example::
-    //!
-    //!     [constant_expression(constString)]
-    //!     def take_const_arg(constString:string)
-    //!         print("constant string is = {constString}\n")   // note - constString here is not an argument
-    //!
     def override transform(var expr : ExprCallFunc?; var errors : das_string) : Expression? {
         macro_verify(expr.func != null, compiling_program(), expr.at, "expecting inferred function")
         var argi : array<int>
@@ -127,10 +109,7 @@ class ConstantExpressionMacro : AstFunctionAnnotation {
         compiling_module() |> add_function(func_copy)
         var new_call = clone_expression(expr)
         var ncall = new_call as ExprCall
-        // Resolve the generated specialization in thisModule (where add_function placed it below), not the
-        // call site's defining module. Matters when the annotated function is called from library-internal
-        // generic code (e.g. json_boost`from_json_row`'s apply_imm): such a call site lives in the generic's
-        // ORIGIN module, so a plain name would search there and miss the specialization in the program root.
+        // Resolve the generated specialization in thisModule (where add_function placed it below), not the call site's defining module. Matters when the annotated function is called from library-internal generic code (e.g. json_boost`from_json_row`'s apply_imm): such a call site lives in the generic's ORIGIN module, so a plain name would search there and miss the specialization in the program root.
         ncall.name := "__::{func_name}"
         for (i in argi) {
             ncall.arguments |> erase(i)

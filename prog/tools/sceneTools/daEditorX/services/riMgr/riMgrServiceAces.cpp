@@ -3232,7 +3232,7 @@ bool AcesRendInstEntity::showRiExtraInstance(bool moved)
   rendinst::moveRIGenExtra44(riexHandle, m, true, true);
   if (autoInstSeed && riExtraRenderInited)
     rendinst::set_riextra_instance_seed(riexHandle, instSeed);
-  if (is_main_thread())
+  if (is_main_thread() && !rendinst::isRIExtraBulkUpdateInProgress())
     rendinst::applyTiledScenesUpdateForRIGenExtra(1000, 0);
   return false;
 }
@@ -3340,7 +3340,8 @@ void AcesRendInstEntity::setPerInstanceSeed(int seed)
       if (makeVisible && !showRiExtraInstance(false) && riExtraRenderInited)
       {
         rendinst::set_riextra_instance_seed(riexHandle, instSeed);
-        rendinst::applyTiledScenesUpdateForRIGenExtra(1000, 0);
+        if (!rendinst::isRIExtraBulkUpdateInProgress())
+          rendinst::applyTiledScenesUpdateForRIGenExtra(1000, 0);
       }
     }
     else

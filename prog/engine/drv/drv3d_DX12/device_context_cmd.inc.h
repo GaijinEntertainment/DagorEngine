@@ -219,9 +219,10 @@ DX12_END_CONTEXT_COMMAND
 DX12_BEGIN_CONTEXT_COMMAND(true, EnhancedTextureBarrier)
   DX12_CONTEXT_COMMAND_PARAM(d3d::TextureBarrier, barrier)
   DX12_CONTEXT_COMMAND_PARAM(Image *, image)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, texFlags)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.enhancedTextureBarrier(barrier, image);
+  ctx.enhancedTextureBarrier(barrier, image, texFlags);
 #endif
 DX12_END_CONTEXT_COMMAND
 

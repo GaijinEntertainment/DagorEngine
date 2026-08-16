@@ -15,7 +15,7 @@ You can run the examples using:
 
 .. code-block:: shell
 
-   dargbox-64-dev.exe -config\:script\:t=samples_prog/_basic/layout/basic_layout.ui.nut
+   windows-x86_64\dargbox-dev.exe -config\:script\:t=samples_prog/_basic/layout/basic_layout.ui.nut
 
 Use ``s.bat`` to launch the example browser. The examples themselves are located
 at:

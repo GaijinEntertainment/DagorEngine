@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <generic/dag_tab.h>
+#include "drvCommonConsts.h"
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_dispatchMesh.h>
 #include <drv/3d/dag_dispatch.h>
@@ -77,7 +78,10 @@ void d3d::delete_program(PROGRAM prog)
   render.deleteProgram(prog);
 }
 
-int d3d::set_vs_constbuffer_register_count(int required_count) { return min(Render::MAX_CBUFFER_SIZE / 16, required_count); }
+int d3d::set_vs_constbuffer_register_count(int required_count)
+{
+  return required_count > 0 ? min(Render::MAX_CBUFFER_SIZE / 16, required_count) : DEF_VS_CONSTS;
+}
 
 bool d3d::set_const(unsigned stage, unsigned reg_base, const void *data, unsigned num_regs)
 {
@@ -87,7 +91,10 @@ bool d3d::set_const(unsigned stage, unsigned reg_base, const void *data, unsigne
   return true;
 }
 
-int d3d::set_cs_constbuffer_register_count(int required_count) { return min(Render::MAX_CBUFFER_SIZE / 16, required_count); }
+int d3d::set_cs_constbuffer_register_count(int required_count)
+{
+  return required_count > 0 ? min(Render::MAX_CBUFFER_SIZE / 16, required_count) : DEF_CS_CONSTS;
+}
 
 bool d3d::dispatch(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t thread_group_z, GpuPipeline gpu_pipeline)
 {

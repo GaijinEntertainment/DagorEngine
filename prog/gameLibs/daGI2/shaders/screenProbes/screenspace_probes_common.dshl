@@ -126,6 +126,12 @@ macro SCREENSPACE_PROBES_POSITIONS_COMMON_MATH(code)
     {
       return getScreenProbeCenterScreenUV(tile_coord, sp_tile_center_to_screen_uv, screenspace_probe_screen_limit.xy);
     }
+    // probes are anchored (and traced) at coord_ofs inside their tile, not at the tile
+    // center; center-ray reconstruction misplaces them by up to half a tile
+    float2 getScreenProbeAnchorScreenUV(uint2 tile_coord, uint2 coord_ofs)
+    {
+      return min(screenICoordToScreenUV(tile_coord*uint(screenspace_probe_res.z) + coord_ofs), screenspace_probe_screen_limit.xy);
+    }
   }
 endmacro
 

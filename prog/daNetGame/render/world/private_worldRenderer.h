@@ -989,6 +989,25 @@ public:
   DaGI *getGI() override;
   uint32_t getGIHistoryFrames() const;
   void setGILightsToShader(bool allow_frustum_lights);
+  struct GIConvergenceState
+  {
+    bool requiresUpdate;
+    uint32_t historyFrames;
+    uint32_t historyFramesNeed;
+  };
+  struct StaticShadowsConvergenceState
+  {
+    uint32_t completelyValidFrames;
+    uint32_t completelyValidFramesNeed;
+  };
+  void logConvergenceMarkers();
+  GIConvergenceState logGIConvergence();
+  StaticShadowsConvergenceState logStaticShadowsConvergence();
+  // makes every marker log again, so a test can wait for convergence more than once
+  void resetConvergenceMarkers();
+  bool giConvergenceLogged = false;
+  bool texStreamingConvergenceLogged = false;
+  bool staticShadowsConvergenceLogged = false;
 
 private:
   void setupSkyPanoramaAndReflection(bool use_panorama);
@@ -1125,7 +1144,7 @@ private:
   BBox3 giCurrentGlobalLightsBox;
   bool giGlobalLightsPrepared = false;
   RiGenVisibility *rendinst_voxelize_visibility = nullptr;
-  eastl::unique_ptr<LRURendinstCollision> lruCollision;
+  eastl::shared_ptr<LRURendinstCollision> lruCollision;
   eastl::unique_ptr<DaGISettings> giSettingsOverride;
 
   PostFxRenderer ambientBilateralBlur, ambientPerPixelVoxelsRT;
@@ -1170,6 +1189,7 @@ private:
   CameraViewVisibilityMgr camcamVisibilityMgr{RI_EXTRA_VB_CTX_CAMCAM_ASYNC, "cam_in_cam", CameraViewVisibilityMgr::SUB_VIEW};
   eastl::optional<CameraParams> camcamParams;
   eastl::optional<CameraParams> prevCamcamParams;
+  CameraParams cockpitCameraParams;
   CameraParams currentFrameCamera;
   CameraParams prevFrameCamera;
   TexStreamingContext currentTexCtx = TexStreamingContext(0);
@@ -1222,8 +1242,6 @@ private:
 
   eastl::fixed_vector<dafg::NodeHandle, 4> finalOpaqueControlNodes;
 
-  eastl::fixed_vector<dafg::NodeHandle, 3> ssrFGNodes;
-  eastl::array<dafg::NodeHandle, 3> aoFGNodes;
   dafg::NodeHandle giRenderFGNode;
 
   dafg::NodeHandle giCalcFGNode;

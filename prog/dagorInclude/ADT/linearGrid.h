@@ -17,10 +17,15 @@
 #include <dag/dag_vector.h>
 #include <dag/dag_vectorSet.h>
 #include <dag/dag_relocatable.h>
+#include <generic/dag_relocatableFixedVector.h>
+#include <generic/dag_span.h>
+#include <memory/dag_framemem.h> // framemem_allocator, used by the rebuild scratch buffers
 #include <util/dag_jobPool.h>
+#include <util/dag_stlqsort.h>
 #include <EASTL/vector_set.h>
 #include <EASTL/bitvector.h>
 #include <EASTL/array.h>
+#include <EASTL/fixed_function.h>
 
 #if _TARGET_PC_MACOSX && __SSE__ // Disable vectorcall calling convention due to clang 15.0 code generation bug on macOS
 #undef VECTORCALL
@@ -49,6 +54,11 @@
 const unsigned LINEAR_GRID_DEFAULT_CELL_SIZE = 128;
 const unsigned LINEAR_GRID_SUBGRID_WIDTH = 8;
 const unsigned LINEAR_GRID_SUBGRID_WIDTH_LOG2 = get_const_log2(LINEAR_GRID_SUBGRID_WIDTH);
+// Cells per side below which the woo corridor test does not pay for itself. Its benefit scales with
+// min(width, height), because the rectangle is width*height cells while the corridor is about
+// 3*max(width, height), so an axis parallel ray has nothing to reject however long it is. Measured
+// crossover is a span of two to three cells, see linearGrid.md.
+constexpr unsigned LINEAR_GRID_WOO_MIN_SIDE = 3;
 
 #if EXTRA_SMALL_BRANCHES_AND_64K_LEAFS_LIMIT
 typedef uint16_t leaf_id_t;
@@ -158,17 +168,19 @@ public:
   vec4f getLowestCellBox() const { return lowestCellBox; }
   void setLowestCellBox(vec4f box) { lowestCellBox = box; }
 
+  // ext is maxSubExtension plus the ray radius, ie how far the per cell corridor test is widened.
+  // Once that approaches the sub cell the test stops rejecting anything and only costs, so a fat
+  // capsule goes down the plain directed walk instead.
   __forceinline static bool shouldUseWooRay(vec4i clamped_limits)
   {
     LG_VERIFYF(v_check_xyzw_all_true(v_cast_vec4f(
                  v_andi(v_cmp_gti(clamped_limits, v_splatsi(-1)), v_cmp_lti(clamped_limits, v_splatsi(LINEAR_GRID_SUBGRID_WIDTH))))),
       "Not clamped limits");
-    const int MIN_SIDE = 4;
     uint64_t from = v_extract_xi64(clamped_limits);
     uint64_t to = v_extract_yi64(clamped_limits);
     uint64_t size = to - from;
-    bool zcheck = unsigned(size >> 32) >= MIN_SIDE;
-    bool xcheck = unsigned(size) >= MIN_SIDE;
+    bool zcheck = unsigned(size >> 32) >= LINEAR_GRID_WOO_MIN_SIDE;
+    bool xcheck = unsigned(size) >= LINEAR_GRID_WOO_MIN_SIDE;
     return DAGOR_UNLIKELY(zcheck && xcheck);
   }
 
@@ -223,6 +235,20 @@ public:
 
   static void checkForRebuild(LinearGrid<ObjectType> *parent_grid, LinearGridSubCell<ObjectType> &cell)
   {
+    if (parent_grid->isDeferringRebuild())
+    {
+      // must match the immediate path below, isOptimized() included: a cell rebuilt before the grid is
+      // optimized can end up branched, and the pre-optimize paths read LinearGridLeaf as a plain leaf
+      if (cell.changes >= parent_grid->configChangesBeforeRebuild && parent_grid->isOptimized())
+      {
+        // reset on record rather than on rebuild: a hot cell would otherwise stay over the threshold and
+        // be recorded again by every following op, growing the dirty list with the op count, not the
+        // cell count. The flush dedups either way, so this does not change what gets rebuilt.
+        cell.changes = 0;
+        parent_grid->recordDeferredDirtySubCell(&cell);
+      }
+      return;
+    }
     if (DAGOR_UNLIKELY(cell.changes >= parent_grid->configChangesBeforeRebuild && parent_grid->isOptimized()))
     {
       cell.changes = 0;
@@ -381,53 +407,64 @@ __forceinline static void pack_bboxes_32b(vec4f &min_correction, vec4f &max_corr
   max_correction = v_or(maxOffset, v_and(maxMask, V_CI_SIGN_MASK));
 }
 
-template <bool fast_pos_check = false, typename ObjectType, typename ObjectsIterator>
+// closest_hit only exists to keep the signature in step with the ray flavour, box queries never use it
+template <bool closest_hit = false, typename ObjectType, typename ObjectsIterator>
 __forceinline eastl::pair<bool, ObjectType> find_object_intersection(const dag::Vector<ObjectType, MidmemAlloc> &objects, bbox3f box,
-  vec4f max_extended_box_2d, const ObjectsIterator &__restrict objects_iterator)
+  const ObjectsIterator &__restrict objects_iterator)
 {
+  static_assert(!closest_hit, "closest hit is a ray only mode");
   for (ObjectType object : objects)
   {
     vec4f wbsph = object.getWBSph();
     LG_VERIFY(v_extract_w(wbsph) > VERY_SMALL_NUMBER); // check for very small, and also for negative radiuses
     if (!objects_iterator.filterFunc(object, wbsph))
       continue;
-    if (fast_pos_check)
-    {
-      vec4f pos2d = v_perm_xzxz(wbsph);
-      vec4f cmp = v_cmp_gt(pos2d, max_extended_box_2d);
-      if (DAGOR_LIKELY(v_truemask(cmp) != 0b0011))
-        continue;
-    }
     if (objects_iterator.checkObjectBounding(wbsph, box) && objects_iterator.predFunc(object))
       return eastl::make_pair(true, object);
   }
   return eastl::make_pair(false, ObjectType::null());
 }
 
-template <bool fast_pos_check = false, typename ObjectType, typename ObjectsIterator>
+// closest_hit keeps scanning after a hit and instead shortens the ray to the caller's new best t,
+// which prunes every later box and object test. The caller owns that t, we only read it back.
+template <bool closest_hit = false, typename ObjectType, typename ObjectsIterator>
 __forceinline eastl::pair<bool, ObjectType> find_object_intersection(const dag::Vector<ObjectType, MidmemAlloc> &objects,
-  const LinearGridRay *__restrict ray, vec4f max_extended_box_2d, const ObjectsIterator &__restrict objects_iterator)
+  LinearGridRay *__restrict ray, const ObjectsIterator &__restrict objects_iterator)
 {
+  bool found = false; // not best != null(), LinearGridPosObject only compares against the inner type
+  ObjectType best = ObjectType::null();
   for (ObjectType object : objects)
   {
     vec4f wbsph = object.getWBSph();
     LG_VERIFY(v_extract_w(wbsph) > VERY_SMALL_NUMBER); // check for very small, and also for negative radiuses
     if (!objects_iterator.filterFunc(object, wbsph))
       continue;
-    if (fast_pos_check)
+    if (!objects_iterator.checkObjectBounding(wbsph, ray->start, ray->dir, ray->len, ray->radius))
+      continue;
+    if constexpr (closest_hit)
     {
-      vec4f pos2d = v_perm_xzxz(wbsph);
-      vec4f cmp = v_cmp_gt(pos2d, max_extended_box_2d);
-      if (DAGOR_LIKELY(v_truemask(cmp) != 0b0011))
-        continue;
+      // Win against the caller's own previous distance, not against ray->len. The two are kept
+      // equal (the walk starts at the caller's distance and only shrinks to it), but reading bestT
+      // is what makes this independent of that invariant: comparing against the ray length would
+      // score any object that failed to improve a nearer caller distance as a win, return a
+      // non-hit as the closest hit, and truncate the ray to the stale best.
+      const float prevBest = *objects_iterator.bestT;
+      objects_iterator.predFunc(object); // return value is ignored, see the closest hit notes
+      const float newBest = *objects_iterator.bestT;
+      if (newBest < prevBest) // it won, and tells us the new limit
+      {
+        ray->len = v_splats(newBest);
+        best = object;
+        found = true;
+      }
     }
-    if (objects_iterator.checkObjectBounding(wbsph, ray->start, ray->dir, ray->len, ray->radius) && objects_iterator.predFunc(object))
+    else if (objects_iterator.predFunc(object))
       return eastl::make_pair(true, object);
   }
-  return eastl::make_pair(false, ObjectType::null());
+  return eastl::make_pair(found, best);
 }
 
-template <typename ObjectType, typename FilterType, typename ObjectsIterator>
+template <bool closest_hit = false, typename ObjectType, typename FilterType, typename ObjectsIterator>
 VECTORCALL DAGOR_NOINLINE static ObjectType leaf_iterate_intersected(const LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx,
   const bbox3f &parent_leaf_box, const FilterType &bbox_or_ray, const ObjectsIterator &__restrict objects_iterator)
 {
@@ -451,26 +488,46 @@ VECTORCALL DAGOR_NOINLINE static ObjectType leaf_iterate_intersected(const Linea
         v_bbox3_extend(extRightBox, bbox_or_ray->radius);
       }
       leftIntersected = v_test_ray_box_intersection_unsafe(bbox_or_ray->start, bbox_or_ray->dir, bbox_or_ray->len, extLeftBox);
-      rightIntersected = v_test_ray_box_intersection_unsafe(bbox_or_ray->start, bbox_or_ray->dir, bbox_or_ray->len, extRightBox);
+      // for closest_hit the left descent may shorten the ray, so test the sibling after it
+      if constexpr (!closest_hit)
+        rightIntersected = v_test_ray_box_intersection_unsafe(bbox_or_ray->start, bbox_or_ray->dir, bbox_or_ray->len, extRightBox);
     }
 
+    ObjectType best = ObjectType::null();
     if (leftIntersected)
     {
-      ObjectType object = leaf_iterate_intersected(grid, branch.leftIdx, branch.leftBox, bbox_or_ray, objects_iterator);
+      ObjectType object = leaf_iterate_intersected<closest_hit>(grid, branch.leftIdx, branch.leftBox, bbox_or_ray, objects_iterator);
       if (object != ObjectType::null())
-        return object;
+      {
+        if constexpr (!closest_hit)
+          return object;
+        best = object;
+      }
     }
+    if constexpr (closest_hit)
+      if constexpr (!eastl::is_same_v<FilterType, bbox3f>)
+      {
+        bbox3f extRightBox = branch.rightBox;
+        if (objects_iterator.isCapsule())
+          v_bbox3_extend(extRightBox, bbox_or_ray->radius);
+        rightIntersected = v_test_ray_box_intersection_unsafe(bbox_or_ray->start, bbox_or_ray->dir, bbox_or_ray->len, extRightBox);
+      }
     if (rightIntersected)
     {
-      ObjectType object = leaf_iterate_intersected(grid, branch.rightIdx, branch.rightBox, bbox_or_ray, objects_iterator);
+      ObjectType object = leaf_iterate_intersected<closest_hit>(grid, branch.rightIdx, branch.rightBox, bbox_or_ray, objects_iterator);
       if (object != ObjectType::null())
-        return object;
+      {
+        if constexpr (!closest_hit)
+          return object;
+        best = object;
+      }
     }
+    return best;
   }
   else // lnode
   {
     eastl::pair<bool, ObjectType> isect =
-      find_object_intersection(grid->getLeaf(leaf_idx).objects, bbox_or_ray, v_zero(), objects_iterator);
+      find_object_intersection<closest_hit>(grid->getLeaf(leaf_idx).objects, bbox_or_ray, objects_iterator);
     if (isect.first)
       return isect.second;
   }
@@ -625,7 +682,7 @@ VECTORCALL DAGOR_NOINLINE static leaf_id_t leaf_insert_object(LinearGrid<ObjectT
         bbox3f bbox = obj.getWBBox();
         LG_VERIFYF(v_bbox3_test_box_inside(extOldBox, bbox),
           "leaf_insert_object old_parent_leaf_box " FMT_B3 " objBox " FMT_B3 " (%s @ %llx @ " FMT_P3 ")", VB3D(old_parent_leaf_box),
-          VB3D(bbox), obj.getDebugName(), obj.handle, V3D(obj.getWBSph()));
+          VB3D(bbox), obj.getDebugName(), (unsigned long long)obj.getHandle(), V3D(obj.getWBSph()));
       }
 #endif
       // debug("riGrid: creating branch on leaf %i", leaf_idx);
@@ -907,10 +964,17 @@ public:
   template <typename ObjectsIterator>
   __forceinline ObjectType foreach(const ObjectsIterator &objects_iterator)
   {
-    eastl::pair<bool, LinearGridPosObject<ObjectType>> isect =
-      find_object_intersection<true>(grid->oversizeObjects, queryBox, maxBox2d, objects_iterator);
-    if (DAGOR_UNLIKELY(isect.first))
-      return isect.second;
+    ObjectType oversizeHit = ObjectType::null();
+    grid->foreachOversizeCandidate(oversizeRect2d, [&](const LinearGridPosObject<ObjectType> &po) {
+      if (!objects_iterator.filterFunc(po.obj, po.wbsph))
+        return false;
+      if (!objects_iterator.checkObjectBounding(po.wbsph, queryBox) || !objects_iterator.predFunc(po.obj))
+        return false;
+      oversizeHit = po.obj;
+      return true;
+    });
+    if (DAGOR_UNLIKELY(oversizeHit != ObjectType::null()))
+      return oversizeHit;
 
     LinearGridBoxIteratorImpl<LinearGrid<ObjectType>, ObjectType> mainLayerIterator(grid, mainLimits, queryBox);
     return mainLayerIterator.foreachCell([&](uint64_t xz, const LinearGridMainCell<ObjectType> &__restrict cv) FORCEINLINE_ATTR {
@@ -956,15 +1020,14 @@ private:
     }
     mainLimits = grid->getClampedOffsets(mainBox, false /*subgrid*/);
     subLimits = grid->getClampedOffsets(subBox, true /*subgrid*/);
-    v_bbox3_extend(bbox, v_splats(grid->maxOversizeRad));
-    maxBox2d = v_perm_xzac(bbox.bmin, bbox.bmax);
+    oversizeRect2d = v_perm_xzac(bbox.bmin, bbox.bmax);
   }
 
   const LinearGrid<ObjectType> *__restrict grid;
   bbox3f queryBox;
   vec4i mainLimits;
   vec4i subLimits;
-  vec4f maxBox2d;
+  vec4f oversizeRect2d;
 };
 
 template <typename GridType, typename ObjectType>
@@ -972,7 +1035,7 @@ class LinearGridDirectedRayIteratorImpl
 {
 public:
   typedef typename GridType::CellType CellType;
-  template <typename>
+  template <typename, bool>
   friend class LinearGridRayIterator;
 
   template <typename T>
@@ -1038,7 +1101,7 @@ class LinearGridWooRayIteratorImpl
 {
 public:
   typedef typename GridType::CellType CellType;
-  template <typename>
+  template <typename, bool>
   friend class LinearGridRayIterator;
 
   template <typename T>
@@ -1130,7 +1193,9 @@ private:
   vec4f extLowestGridCellBox;
 };
 
-template <typename ObjectType>
+// ClosestHit scans the whole (shrinking) ray instead of stopping at the first hit, and returns the
+// object that produced the closest one. The caller keeps owning the hit distance, see bestT.
+template <typename ObjectType, bool ClosestHit = false>
 class LinearGridRayIterator
 {
 public:
@@ -1140,21 +1205,51 @@ public:
   template <typename ObjectsIterator>
   __forceinline ObjectType foreach(const ObjectsIterator &objects_iterator)
   {
-    eastl::pair<bool, LinearGridPosObject<ObjectType>> isect =
-      find_object_intersection<true>(grid->oversizeObjects, &ray, maxBox2d, objects_iterator);
-    if (DAGOR_UNLIKELY(isect.first))
-      return isect.second;
+    // oversize objects go first, so a hit among them shortens the ray before the walk starts
+    ObjectType best = ObjectType::null();
+    bool stoppedOnOversize = false;
+    grid->foreachOversizeCandidate(oversizeRect2d, [&](const LinearGridPosObject<ObjectType> &po) {
+      if (!objects_iterator.filterFunc(po.obj, po.wbsph))
+        return false;
+      if (!objects_iterator.checkObjectBounding(po.wbsph, ray.start, ray.dir, ray.len, ray.radius))
+        return false;
+      if constexpr (ClosestHit)
+      {
+        const float prevBest = *objects_iterator.bestT;
+        objects_iterator.predFunc(po.obj);
+        const float newBest = *objects_iterator.bestT;
+        if (newBest < prevBest)
+        {
+          ray.len = v_splats(newBest);
+          best = po.obj;
+        }
+        return false; // never stop, the shrinking ray is what bounds the walk
+      }
+      else if (objects_iterator.predFunc(po.obj))
+      {
+        best = po.obj;
+        stoppedOnOversize = true;
+        return true;
+      }
+      return false;
+    });
+    if (DAGOR_UNLIKELY(stoppedOnOversize))
+      return best;
 
-    auto mainLayerCb = [this, &objects_iterator](uint64_t xz, const LinearGridMainCell<ObjectType> &__restrict cv) FORCEINLINE_ATTR {
+    auto mainLayerCb = [&](uint64_t xz, const LinearGridMainCell<ObjectType> &__restrict cv) FORCEINLINE_ATTR {
       bbox3f bb = cv.getBBox();
       if (!objects_iterator.checkBoxBounding(bb, false /*is_safe*/, ray.start, ray.dir, ray.len, ray.radius))
         return ObjectType::null();
       if (DAGOR_LIKELY(cv.rootLeaf != EMPTY_LEAF)) // TODO: separate sub and main boxes
       {
-        const LinearGridRay *__restrict rayPtr = &ray;
-        ObjectType object = leaf_iterate_intersected(grid, cv.rootLeaf, cv.getBBoxRefUnsafe(), rayPtr, objects_iterator);
+        LinearGridRay *__restrict rayPtr = &ray;
+        ObjectType object = leaf_iterate_intersected<ClosestHit>(grid, cv.rootLeaf, cv.getBBoxRefUnsafe(), rayPtr, objects_iterator);
         if (DAGOR_UNLIKELY(object != ObjectType::null()))
-          return object;
+        {
+          if constexpr (!ClosestHit)
+            return object;
+          best = object;
+        }
       }
       if (const LinearSubGrid<ObjectType> *__restrict subGrid = grid->getSubGrid(cv.subGridIdx))
       {
@@ -1165,11 +1260,19 @@ public:
         if (v_truemask(v_cast_vec4f(haveIntersection)) != 0b0011)
           return ObjectType::null();
         vec4i clampedSubLimits = v_clampi(relOffsets, v_zeroi(), v_splatsi(LINEAR_GRID_SUBGRID_WIDTH - 1));
-        auto subLayerCb = [this, &objects_iterator](uint64_t, const LinearGridSubCell<ObjectType> &__restrict cv) FORCEINLINE_ATTR {
+        auto subLayerCb = [&](uint64_t, const LinearGridSubCell<ObjectType> &__restrict cv) FORCEINLINE_ATTR {
           if (!objects_iterator.checkBoxBounding(cv.getBBox(), true /*is_safe*/, ray.start, ray.dir, ray.len, ray.radius))
             return ObjectType::null();
-          const LinearGridRay *__restrict rayPtr = &ray;
-          return leaf_iterate_intersected(grid, cv.rootLeaf, cv.getBBoxRefUnsafe(), rayPtr, objects_iterator);
+          LinearGridRay *__restrict rayPtr = &ray;
+          ObjectType object = leaf_iterate_intersected<ClosestHit>(grid, cv.rootLeaf, cv.getBBoxRefUnsafe(), rayPtr, objects_iterator);
+          if constexpr (ClosestHit)
+          {
+            if (object != ObjectType::null())
+              best = object;
+            return ObjectType::null(); // never stop, the shrinking ray is what bounds the walk
+          }
+          else
+            return object;
         };
 
         if (subGrid->shouldUseWooRay(clampedSubLimits))
@@ -1189,18 +1292,25 @@ public:
       return ObjectType::null();
     };
 
+    // Neither walker re-derives its cell range from ray->len, so shortening the ray prunes the per
+    // cell and per object tests but not the set of cells enumerated.
+    ObjectType walked = ObjectType::null();
     if (grid->shouldUseWooRay(mainLimits))
     {
       vec4f extLowestCellBox = v_bbox2_extend(grid->getLowestCellBox(), mainExt);
       LinearGridWooRayIteratorImpl<LinearGrid<ObjectType>, ObjectType> mainWooRayIterator(grid, mainLimits, &ray, rayDirXZ,
         extLowestCellBox, grid->cellSizeLog2);
-      return mainWooRayIterator.foreachCell(mainLayerCb);
+      walked = mainWooRayIterator.foreachCell(mainLayerCb);
     }
     else
     {
       LinearGridDirectedRayIteratorImpl<LinearGrid<ObjectType>, ObjectType> mainSimpleRayIterator(grid, mainLimits, &ray, rayDirXZ);
-      return mainSimpleRayIterator.foreachCell(mainLayerCb);
+      walked = mainSimpleRayIterator.foreachCell(mainLayerCb);
     }
+    if constexpr (ClosestHit)
+      return best;
+    else
+      return walked;
   }
 
 private:
@@ -1223,8 +1333,8 @@ private:
     v_bbox3_extend(subBox, subExt);
     mainLimits = grid->getClampedOffsets(mainBox, false /*subgrid*/);
     subLimits = grid->getClampedOffsets(subBox, true /*subgrid*/);
-    v_bbox3_extend(bbox, v_splats(grid->maxOversizeRad));
-    maxBox2d = v_perm_xzac(bbox.bmin, bbox.bmax);
+    v_bbox3_extend(bbox, ray_radius);
+    oversizeRect2d = v_perm_xzac(bbox.bmin, bbox.bmax);
   }
 
   LinearGridRay ray;
@@ -1234,7 +1344,7 @@ private:
   vec4i subLimits;
   vec4f mainExt;
   vec4f subExt;
-  vec4f maxBox2d;
+  vec4f oversizeRect2d;
 };
 
 template <typename ObjectType>
@@ -1243,9 +1353,11 @@ class alignas(EA_CACHE_LINE_SIZE) LinearGrid
 public:
   typedef LinearGridMainCell<ObjectType> CellType;
   friend LinearGridBoxIterator<ObjectType>;
-  friend LinearGridRayIterator<ObjectType>;
+  friend LinearGridRayIterator<ObjectType, false>;
+  friend LinearGridRayIterator<ObjectType, true>;
   friend LinearGridBoxIteratorImpl<LinearGrid<ObjectType>, ObjectType>;
   friend LinearGridWooRayIteratorImpl<LinearGrid<ObjectType>, ObjectType>;
+  friend LinearSubGrid<ObjectType>;
   static_assert(sizeof(ObjectType) <= sizeof(uint64_t)); // Objects always passed by copy
   static_assert(sizeof(LinearGridSubCell<ObjectType>) == sizeof(bbox3f));
   static_assert(sizeof(LinearGridMainCell<ObjectType>) == sizeof(bbox3f));
@@ -1259,6 +1371,7 @@ public:
     cellSizeLog2 = get_const_log2(LINEAR_GRID_DEFAULT_CELL_SIZE);
     gridWidth = 0;
     maxOversizeRad = 0.f;
+    oversizeBounds2d = v_make_vec4f(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX); // empty list rejects every query
     maxSubExtension = 0.f;
     maxMainExtension = v_zero();
     optimized = false;
@@ -1276,14 +1389,22 @@ public:
     return LinearGridRayIterator<ObjectType>(this, from, dir, len, radius, with_extension);
   }
 
+  // Closest hit: the objects iterator must expose `const float *bestT` pointing at the caller's
+  // current hit distance. predFunc traces and updates it, the walk reads it back to shorten the ray.
+  // That distance is an in-out limit; pass the query length for "no hit yet". predFunc's return
+  // value is ignored in this mode.
+  __forceinline auto getClosestRayIterator(vec3f from, vec3f dir, vec4f len, vec4f radius, bool with_extension) const
+  {
+    return LinearGridRayIterator<ObjectType, true>(this, from, dir, len, radius, with_extension);
+  }
+
   __forceinline static bool shouldUseWooRay(vec4i limits)
   {
-    const int MIN_SIDE = 4;
     uint64_t from = v_extract_xi64(limits);
     uint64_t to = v_extract_yi64(limits);
     uint64_t size = to - from;
-    bool zcheck = unsigned(size >> 32) >= MIN_SIDE;
-    bool xcheck = unsigned(size) >= MIN_SIDE;
+    bool zcheck = unsigned(size >> 32) >= LINEAR_GRID_WOO_MIN_SIDE;
+    bool xcheck = unsigned(size) >= LINEAR_GRID_WOO_MIN_SIDE;
     return DAGOR_UNLIKELY(zcheck && xcheck);
   }
 
@@ -1451,6 +1572,26 @@ public:
     insertAt(object, newIds, newSubIds, v_bbox3_get_box_intersection(sphBox, wbb), 0 /*change_weight*/);
   }
 
+  // Bulk-move batching. Between begin and end, insertAt/eraseAt skip the per-cell rebuild/rebalance
+  // and just record each touched cell; end rebuilds every touched cell once. Lets the editor move a
+  // whole composit (thousands of sub-entities) with the grid rebalanced once, not per instance.
+  void beginDeferRebuild() { deferRebuild = true; }
+  void endDeferRebuild()
+  {
+    flushDeferredRebuild();
+    deferRebuild = false;
+  }
+  void flushDeferredRebuild()
+  {
+    // restore instead of clear: the rebuilds must not re-enter the deferred path they iterate, but a
+    // flush inside an open scope has to leave that scope deferring
+    const bool wasDeferring = deferRebuild;
+    deferRebuild = false;
+    rebuildDirtyCells(deferredDirtyCells);
+    rebuildDirtyCells(deferredDirtySubCells);
+    deferRebuild = wasDeferring;
+  }
+
   struct OptimizationStats
   {
     uint32_t totalObjects = 0;
@@ -1530,13 +1671,13 @@ public:
     for (const LinearGridMainCell<ObjectType> &cell : cells)
     {
       if (cell.rootLeaf != EMPTY_LEAF)
-        leaf_verify_bboxes(this, cell.rootLeaf, cell.getBBox(), ObjectType::null());
+        LG_VERIFY(leaf_verify_bboxes(this, cell.rootLeaf, cell.getBBox(), ObjectType::null()));
       if (const LinearSubGrid<ObjectType> *subGrid = getSubGrid(cell.subGridIdx))
       {
         for (const LinearGridSubCell<ObjectType> &subCell : subGrid->getCells())
         {
           if (subCell.rootLeaf != EMPTY_LEAF)
-            leaf_verify_bboxes(this, subCell.rootLeaf, subCell.getBBox(), ObjectType::null());
+            LG_VERIFY(leaf_verify_bboxes(this, subCell.rootLeaf, subCell.getBBox(), ObjectType::null()));
         }
       }
     }
@@ -1563,7 +1704,8 @@ public:
     leafsMem += (leafs.capacity() - stats.branchesCount) * allocationCost;
     leafsMem += data_size(branches) + allocationCost;
     unsigned subGridsMem = subGrids.capacity() * (sizeof(LinearSubGrid<ObjectType>) + sizeof(void *)) + allocationCost;
-    unsigned oversizeMem = data_size(oversizeObjects) + allocationCost;
+    unsigned oversizeMem =
+      data_size(oversizeObjects) + data_size(oversizeX) + data_size(oversizeZ) + data_size(oversizeRad) + allocationCost * 4;
     unsigned oversizeCells = getCellsCountWithOversizeObjects();
     depth_stats_t depthStats;
     addLeafDepthStats(depthStats);
@@ -1610,7 +1752,11 @@ public:
   template <typename print_func_t>
   void printOversize(print_func_t print_func)
   {
-    sortAndPrint(print_func, make_span(oversizeObjects)); // vec changed
+    // sorts a copy: the prefilter mirrors are index aligned to oversizeObjects and are refilled only
+    // on insert or erase, so reordering the records in place would leave every later query testing
+    // one object's footprint and then handing a different object to the exact test
+    dag::Vector<LinearGridPosObject<ObjectType>> sorted(oversizeObjects.begin(), oversizeObjects.end());
+    sortAndPrint(print_func, make_span(sorted));
   }
 
   template <typename print_func_t>
@@ -1699,6 +1845,7 @@ public:
     leafsData = nullptr;
     gridWidth = 0;
     maxOversizeRad = 0.f;
+    oversizeBounds2d = v_make_vec4f(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX);
     maxSubExtension = 0.f;
     maxMainExtension = v_zero();
     for (uint32_t leafIdx = 0; leafIdx < leafs.size(); leafIdx++)
@@ -1723,6 +1870,20 @@ public:
     subGrids.shrink_to_fit();
     oversizeObjects.clear();
     oversizeObjects.shrink_to_fit();
+    oversizeX.clear();
+    oversizeX.shrink_to_fit();
+    oversizeZ.clear();
+    oversizeZ.shrink_to_fit();
+    oversizeRad.clear();
+    oversizeRad.shrink_to_fit();
+
+    // releasing these two is not just capacity hygiene: a recorded rebuild points into the cells and sub
+    // grids freed above. Deferring ends here too, so a leaked scope cannot carry into the next level.
+    deferRebuild = false;
+    deferredDirtyCells.clear();
+    deferredDirtyCells.shrink_to_fit();
+    deferredDirtySubCells.clear();
+    deferredDirtySubCells.shrink_to_fit();
   }
 
   template <typename T>
@@ -1813,10 +1974,21 @@ private:
       maxOversizeRad = max(maxOversizeRad, v_extract_w(wbsph));
       G_ASSERT(maxOversizeRad < 32000.f);
       oversizeObjects.emplace_back(LinearGridPosObject<ObjectType>{wbsph, object});
+      refillOversizePrefilter();
       return;
     }
     if (DAGOR_UNLIKELY(!isInGrid(v_main_cell_ids)))
+    {
+      // grow() reallocs the main cells array, so only those recorded pointers would dangle. A sub grid
+      // is a separate heap object, so its recorded cells survive and their rebuild waits for the flush.
+      if (deferRebuild)
+      {
+        deferRebuild = false;
+        rebuildDirtyCells(deferredDirtyCells);
+        deferRebuild = true;
+      }
       grow(v_main_cell_ids);
+    }
     LinearGridMainCell<ObjectType> &cell = getCellByIds(v_main_cell_ids);
     bbox3f oldMainBox = cell.getBBox();
     cell.setBBox(v_bbox3_sum(oldMainBox, wbb));
@@ -1862,12 +2034,56 @@ private:
     }
   }
 
+  // Rebuilt whole rather than patched: the list holds a few dozen objects and only changes when one
+  // too big for any cell appears or leaves, so an incremental update would only buy a way to get the
+  // two representations out of step.
+  void refillOversizePrefilter()
+  {
+    const unsigned count = oversizeObjects.size();
+    const unsigned padded = (count + 3) & ~3u;
+    oversizeX.resize(padded);
+    oversizeZ.resize(padded);
+    oversizeRad.resize(padded);
+    for (unsigned i = 0; i < count; i++)
+    {
+      vec4f wbsph = oversizeObjects.data()[i].wbsph;
+      oversizeX.data()[i] = v_extract_x(wbsph);
+      oversizeZ.data()[i] = v_extract_z(wbsph);
+      oversizeRad.data()[i] = v_extract_w(wbsph);
+    }
+    // Padding only exists so the last four wide load stays in bounds. Its radius has to be the empty
+    // bbox sentinel and not merely negative: the scan tests the distance from the centre to the query
+    // rect, which goes negative inside it, so any query rect holding the pad centre beats a small
+    // negative radius and the padding would be offered as a candidate.
+    const float padRad = v_extract_x(V_C_MIN_VAL);
+    for (unsigned i = count; i < padded; i++)
+    {
+      oversizeX.data()[i] = 0.f;
+      oversizeZ.data()[i] = 0.f;
+      oversizeRad.data()[i] = padRad;
+    }
+
+    // Union of the expanded footprints. Left inverted when the list is empty, which rejects every
+    // query without a special case.
+    float minX = FLT_MAX, minZ = FLT_MAX, maxX = -FLT_MAX, maxZ = -FLT_MAX;
+    for (unsigned i = 0; i < count; i++)
+    {
+      const float x = oversizeX.data()[i], z = oversizeZ.data()[i], r = oversizeRad.data()[i];
+      minX = min(minX, x - r);
+      maxX = max(maxX, x + r);
+      minZ = min(minZ, z - r);
+      maxZ = max(maxZ, z + r);
+    }
+    oversizeBounds2d = v_make_vec4f(minX, minZ, maxX, maxZ);
+  }
+
   VECTORCALL void eraseAt(ObjectType object, vec4i v_main_cell_ids, vec4i v_sub_cell_ids, int change_weight = +1)
   {
     auto it = eastl::find(oversizeObjects.begin(), oversizeObjects.end(), object);
     if (DAGOR_UNLIKELY(it != oversizeObjects.end()))
     {
       oversizeObjects.erase(it);
+      refillOversizePrefilter();
       return;
     }
     G_ASSERTF_RETURN(isInGrid(v_main_cell_ids), , "CellIds %i %i GridSize %i %i %i %i", v_extract_xi(v_main_cell_ids),
@@ -1890,16 +2106,87 @@ private:
     G_ASSERTF(false, "Failed to remove object from grid. Erased twice or wrong old position.");
   }
 
+  // leaf_rebuild packs the tree against the box it returns, and that box covers the main tree alone.
+  // A cell that also has a subgrid holds objects outside it, and a query tests the cell box before it
+  // reaches either the tree or the subgrid, so writing the tree's box straight onto the cell strands
+  // them. When the main tree has emptied that box is the empty sentinel, which strands all of them.
+  VECTORCALL void setCellBoxAfterRebuild(LinearGridMainCell<ObjectType> &cell, bbox3f tree_box)
+  {
+    const LinearSubGrid<ObjectType> *subGrid = getSubGrid(cell.subGridIdx);
+    if (!subGrid)
+    {
+      cell.setBBox(tree_box); // the tree is all the cell holds, and it is already packed against this
+      return;
+    }
+    bbox3f cellBox = tree_box;
+    // an empty sub cell holds the empty sentinel, so it contributes nothing and needs no test
+    for (const LinearGridSubCell<ObjectType> &subCell : subGrid->getCells())
+      v_bbox3_add_box(cellBox, subCell.getBBox());
+    cell.setBBox(cellBox);
+    // Branch nodes carry no boxes of their own, they are derived from the parent box threaded down, so
+    // a tree packed against tree_box has to be repacked once the cell hands it a wider one. cellBox is
+    // a union that started at tree_box, so inside means equal and the walk would recompute nothing.
+    // The test has to stay xyz only: v_bbox3_add_box has minmaxed the sub cells' packed w lanes in.
+    if (cell.rootLeaf != EMPTY_LEAF && !v_bbox3_test_box_inside(tree_box, cellBox))
+      leaf_repack_bboxes(this, cell.rootLeaf, tree_box, cell.getBBox());
+  }
+
   void checkForRebuild(LinearGridMainCell<ObjectType> &cell)
   {
+    if (deferRebuild)
+    {
+      // must match the immediate path below, isOptimized() included; see checkForRebuild for sub-cells
+      if (cell.changes >= configChangesBeforeRebuild && isOptimized())
+      {
+        cell.changes = 0; // see checkForRebuild for sub-cells
+        deferredDirtyCells.push_back(&cell);
+      }
+      return;
+    }
     if (DAGOR_UNLIKELY(cell.changes >= configChangesBeforeRebuild && isOptimized()))
     {
       cell.changes = 0;
       bbox3f bboxesSum;
       cell.rootLeaf = leaf_rebuild(this, cell.rootLeaf, bboxesSum);
-      cell.setBBox(bboxesSum);
+      setCellBoxAfterRebuild(cell, bboxesSum);
     }
   }
+
+  // one body for both cell types: they differ only in the sub-cell empty flag, which a main cell does
+  // not have (that slot holds subGridIdx, and its isEmpty() is a constant false)
+  template <typename CellType>
+  void rebuildDirtyCells(dag::Vector<CellType *, MidmemAlloc> &dirty_cells)
+  {
+    if (dirty_cells.empty())
+      return;
+    stlsort::sort_branchless(dirty_cells.begin(), dirty_cells.end());
+    CellType *prev = nullptr;
+    for (CellType *cell : dirty_cells)
+    {
+      if (cell == prev || cell->rootLeaf == EMPTY_LEAF) // sorted: skip duplicates and emptied cells
+      {
+        prev = cell;
+        continue;
+      }
+      prev = cell;
+      cell->changes = 0;
+      bbox3f bboxesSum;
+      cell->rootLeaf = leaf_rebuild(this, cell->rootLeaf, bboxesSum);
+      if constexpr (eastl::is_same_v<CellType, LinearGridSubCell<ObjectType>>)
+      {
+        cell->setBBox(bboxesSum); // nothing nests under a sub cell, so its tree is all it holds
+        cell->empty = isEmptyLeaf(cell->rootLeaf) ? 1 : 0;
+      }
+      else
+        setCellBoxAfterRebuild(*cell, bboxesSum); // a main cell has to keep covering its subgrid too
+    }
+    dirty_cells.clear();
+    dirty_cells.shrink_to_fit();
+  }
+
+  // access route for LinearSubGrid::checkForRebuild, which owns the sub cell but not the defer state
+  bool isDeferringRebuild() const { return deferRebuild; }
+  void recordDeferredDirtySubCell(LinearGridSubCell<ObjectType> *cell) { deferredDirtySubCells.push_back(cell); }
 
   LinearGridMainCell<ObjectType> &getCellByIds(vec4i v_cell_ids)
   {
@@ -1939,6 +2226,39 @@ private:
     vec4i vGridMax = v_addi(v_permi_zwzw(vGridSize), v_set_all_bitsi());
     vec4i vClampedCellIds = v_clampi(vCellIds, vGridMin, vGridMax);
     return v_subi(vClampedCellIds, vGridMin);
+  }
+
+  // Oversize objects are brute-forced before any cell is touched, so this scan is a fixed cost on
+  // every query of every shape
+  template <typename Body>
+  __forceinline void foreachOversizeCandidate(vec4f rect_2d, const Body &body) const
+  {
+    // Nearly every query wants nothing from this list: miss is 98.7% over 38.6M scans on dalniy
+    vec4f lo = v_perm_xyab(rect_2d, oversizeBounds2d);   // qMinX, qMinZ, bMinX, bMinZ
+    vec4f hi = v_perm_zwcd(oversizeBounds2d, rect_2d);   // bMaxX, bMaxZ, qMaxX, qMaxZ
+    if (DAGOR_LIKELY(v_truemask(v_cmp_gt(lo, hi)) != 0)) // separated on some axis
+      return;
+
+    const vec4f qMinX = v_splat_x(rect_2d), qMinZ = v_splat_y(rect_2d);
+    const vec4f qMaxX = v_splat_z(rect_2d), qMaxZ = v_splat_w(rect_2d);
+    const float *__restrict xs = oversizeX.data();
+    const float *__restrict zs = oversizeZ.data();
+    const float *__restrict rads = oversizeRad.data();
+    for (unsigned base = 0, n = oversizeX.size(); base < n; base += 4)
+    {
+      vec4f x = v_ldu(xs + base);
+      vec4f z = v_ldu(zs + base);
+      vec4f dx = v_max(v_sub(qMinX, x), v_sub(x, qMaxX)); // Chebyshev distance to the rect, <= 0 inside
+      vec4f dz = v_max(v_sub(qMinZ, z), v_sub(z, qMaxZ));
+      int mask = v_truemask(v_cmp_le(v_max(dx, dz), v_ldu(rads + base)));
+      while (EASTL_UNLIKELY(mask))
+      {
+        unsigned i = base + __bsf_unsafe(mask);
+        mask &= mask - 1;
+        if (body(oversizeObjects.data()[i]))
+          return;
+      }
+    }
   }
 
   bool isInGrid(vec4i cell_ids) const
@@ -2037,9 +2357,14 @@ private:
     // objects and boxes are index-parallel for the whole build, including all recursive partitions.
     // Declaration order must match allocation order, framemem frees in reverse.
     constexpr unsigned SUB_CELLS = LINEAR_GRID_SUBGRID_WIDTH * LINEAR_GRID_SUBGRID_WIDTH;
-    constexpr uint8_t NOT_IN_SUBGRID = 0xFF;
+    // The tag must hold any subcell offset plus one sentinel, so its type caps the subgrid width:
+    // uint8_t worked only while SUB_CELLS stayed under 255, and a 16 wide subgrid aliased offset
+    // 255 with the sentinel, sending that subcell's objects to the main list while its counted
+    // slots stayed default constructed - a tree of null objects behind a live bbox.
+    constexpr uint16_t NOT_IN_SUBGRID = 0xFFFF;
+    static_assert(SUB_CELLS < NOT_IN_SUBGRID);
     dag::Vector<bbox3f, framemem_allocator> boxes;
-    dag::Vector<uint8_t, framemem_allocator> subCellIdxs;
+    dag::Vector<uint16_t, framemem_allocator> subCellIdxs;
     dag::Vector<ObjectType, framemem_allocator> subObjects;
     dag::Vector<bbox3f, framemem_allocator> subBoxes;
     eastl::array<uint32_t, SUB_CELLS + 1> subCellStarts;
@@ -2440,19 +2765,28 @@ private:
   LinearGridMainCell<ObjectType> *__restrict cellsData;
   LinearGridLeaf<ObjectType> *__restrict leafsData;
   unsigned cellSizeLog2;
-  unsigned gridWidth; // cached
-  float maxOversizeRad;
+  unsigned gridWidth;   // cached
+  float maxOversizeRad; // diagnostics only, the scan tests each object against its own radius
   float maxSubExtension;
   vec4f maxMainExtension;
   eastl::bitvector<MidmemAlloc> branches; // 32 bytes
   vec4f lowestCellBox;
   dag::Vector<LinearGridPosObject<ObjectType>, MidmemAlloc> oversizeObjects;
+  // Prefilter mirror of oversizeObjects, index aligned to it, see foreachOversizeCandidate. Padded to
+  // a multiple of four with the empty bbox radius sentinel, so the tail lanes never pass.
+  dag::Vector<float, MidmemAlloc> oversizeX;
+  dag::Vector<float, MidmemAlloc> oversizeZ;
+  dag::Vector<float, MidmemAlloc> oversizeRad;
+  vec4f oversizeBounds2d; // (minX, minZ, maxX, maxZ) of the footprints above, inverted when empty
   dag::Vector<LinearGridMainCell<ObjectType>, MidmemAlloc> cells;
   dag::Vector<LinearGridLeaf<ObjectType>, MidmemAlloc> leafs;
   dag::Vector<LinearSubGrid<ObjectType> *, MidmemAlloc> subGrids;
   dag::Vector<leaf_id_t, MidmemAlloc> freeLeafs;
   dag::VectorSet<leaf_id_t, eastl::less<leaf_id_t>, MidmemAlloc> unsplittableLeafs;
   bool optimized;
+  bool deferRebuild = false;
+  dag::Vector<LinearGridMainCell<ObjectType> *, MidmemAlloc> deferredDirtyCells;
+  dag::Vector<LinearGridSubCell<ObjectType> *, MidmemAlloc> deferredDirtySubCells;
   OptimizationStats optimizationStats;
 
 public:

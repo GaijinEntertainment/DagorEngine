@@ -1683,9 +1683,21 @@ Point3 WaterHeightmap::getHeightmapOffset() const
 
 float WaterHeightmap::getHeightmapCellSize() const { return max(1.f / tcOffsetScale.z / gridSize, 1.f / tcOffsetScale.w / gridSize); }
 
+// Half-open texel span of one padded page axis covered by the grid cell's texel steps [k0, k1), for a page shared by
+// cells_per_page grid cells. This is the integer form of the fmod(x / crdScale, 1) remap in getHeightmapDataBilinear.
+// The span reaches one texel past the last covered one: the surface interpolates towards that neighbour, which is what the
+// 1-texel page padding exists for.
+static inline IPoint2 water_page_texel_span(int sub, int k0, int k1, int cells_per_page)
+{
+  const int page = WaterHeightmap::HEIGHTMAP_PAGE_SIZE;
+  const int padded = WaterHeightmap::PAGE_SIZE_PADDED;
+  const int begin = min((sub * page + k0) / cells_per_page + 1, padded - 2);
+  const int last = (sub * page + k1 - 1) / cells_per_page + 1;
+  return IPoint2(begin, clamp(last + 2, begin + 1, padded));
+}
+
 bool WaterHeightmap::getHeightmapHeightMinMaxInChunk(const Point2 &pos, const real &chunk_size, real &hmin, real &hmax) const
 {
-  const Point2 origin = Point2(-tcOffsetScale.x / tcOffsetScale.z, -tcOffsetScale.y / tcOffsetScale.w);
   const Point2 pageSize = Point2(1.f / tcOffsetScale.z, 1.f / tcOffsetScale.w) / gridSize;
   const Point2 texelSize = pageSize / HEIGHTMAP_PAGE_SIZE;
 
@@ -1706,44 +1718,71 @@ bool WaterHeightmap::getHeightmapHeightMinMaxInChunk(const Point2 &pos, const re
   pageStart = {max(0, pageStart.x), max(0, pageStart.y)};
   pageEnd = {min(pageEnd.x, gridSize - 1), min(pageEnd.y, gridSize - 1)};
 
+  // Reduce over the raw page texels rather than calling getHeightmapDataBilinear per texel: whole-texel steps put every sample
+  // on a texel boundary, so its 2x2 blend never reaches past the immediate neighbour and the raw min/max over the span bounds
+  // it. Below is in global texel units (grid cell units scaled by the page texel count), half-open [texelStart, texelStop).
+  const float texelsPerCell = float(gridSize) * HEIGHTMAP_PAGE_SIZE;
+  const Point2 texelBegin = Point2((extendedStartPos.x * tcOffsetScale.z + tcOffsetScale.x) * texelsPerCell,
+    (extendedStartPos.y * tcOffsetScale.w + tcOffsetScale.y) * texelsPerCell);
+  const Point2 texelLimit = Point2(((extendedStartPos.x + extendedChunkSize.x) * tcOffsetScale.z + tcOffsetScale.x) * texelsPerCell,
+    ((extendedStartPos.y + extendedChunkSize.y) * tcOffsetScale.w + tcOffsetScale.y) * texelsPerCell);
+  const IPoint2 texelStart = IPoint2(floorf(texelBegin.x), floorf(texelBegin.y));
+  const IPoint2 texelStop = IPoint2(ceilf(texelLimit.x), ceilf(texelLimit.y));
+
+  // Reduce over the raw uint16 heights: round(h) * (heightScale / UINT16_MAX) + heightOffset is monotone in h, so converting
+  // only the two extremes at the end yields exactly the floats a per-texel conversion would have produced.
+  uint16_t texelMin = UINT16_MAX, texelMax = 0;
+  const int pageStride = PAGE_SIZE_PADDED * pagesX;
+
   hmin = 1000000;
   hmax = -1000000;
   for (int pageY = pageStart.y; pageY <= pageEnd.y; ++pageY)
   {
     for (int pageX = pageStart.x; pageX <= pageEnd.x; ++pageX)
     {
+      const uint16_t cellData = grid[pageY * gridSize + pageX];
       // Flat (no-data) pages are rendered at the global water level, not at heightOffset, so treat such a page as a sample at
       // waterLevel. Otherwise flat ocean gets a culling box offset from where it is actually drawn and pops out of the frustum.
-      if (grid[pageY * gridSize + pageX] == 0xFFFF)
+      if (cellData == 0xFFFF)
       {
         hmin = min(hmin, waterLevel);
         hmax = max(hmax, waterLevel);
         continue;
       }
 
-      const Point2 pageStartPos = origin + mul(pageSize, Point2(pageX, pageY));
-      const Point2 pageEndPos = pageStartPos + pageSize;
+      const int gridX = (cellData >> 1) & 0x7F;
+      const int gridZ = (cellData >> 8) & 0xFF;
+      // A non-detailed page is shared by scale x scale grid cells, so this cell only owns a HEIGHTMAP_PAGE_SIZE / scale
+      // sub-block of it.
+      const int cellsPerPage = (cellData & 1) ? 1 : max(scale, 1);
 
-      Point2 from = extendedStartPos;
-      from = mul(floor(div(from - pageStartPos, texelSize)), texelSize) + pageStartPos;
-      from = max(pageStartPos, from);
-      Point2 to = extendedStartPos + extendedChunkSize;
-      to = mul(ceil(div(to - pageStartPos, texelSize)), texelSize) + pageStartPos;
-      to = min(to, pageEndPos);
+      const int kx0 = max(texelStart.x - pageX * HEIGHTMAP_PAGE_SIZE, 0);
+      const int kx1 = min(texelStop.x - pageX * HEIGHTMAP_PAGE_SIZE, HEIGHTMAP_PAGE_SIZE);
+      const int kz0 = max(texelStart.y - pageY * HEIGHTMAP_PAGE_SIZE, 0);
+      const int kz1 = min(texelStop.y - pageY * HEIGHTMAP_PAGE_SIZE, HEIGHTMAP_PAGE_SIZE);
+      if (kx1 <= kx0 || kz1 <= kz0)
+        continue;
 
-      for (float y = from.y; y < to.y; y += texelSize.y) //-V1034
-      {
-        for (float x = from.x; x < to.x; x += texelSize.x) //-V1034
+      const IPoint2 spanX = water_page_texel_span(pageX % cellsPerPage, kx0, kx1, cellsPerPage);
+      const IPoint2 spanZ = water_page_texel_span(pageY % cellsPerPage, kz0, kz1, cellsPerPage);
+
+      const uint16_t *pageRow = pages.data() + (gridZ * PAGE_SIZE_PADDED + spanZ.x) * pageStride + gridX * PAGE_SIZE_PADDED;
+      G_ASSERT((gridZ * PAGE_SIZE_PADDED + spanZ.y - 1) * pageStride + gridX * PAGE_SIZE_PADDED + spanX.y - 1 < pages.size());
+      for (int tz = spanZ.x; tz < spanZ.y; ++tz, pageRow += pageStride)
+        for (int tx = spanX.x; tx < spanX.y; ++tx)
         {
-          float height;
-          if (getHeightmapDataBilinear(x, y, height))
-          {
-            hmin = min(hmin, height);
-            hmax = max(hmax, height);
-          }
+          texelMin = min(texelMin, pageRow[tx]);
+          texelMax = max(texelMax, pageRow[tx]);
         }
-      }
     }
+  }
+
+  if (texelMin <= texelMax)
+  {
+    G_ASSERT(heightScale >= 0.0f);
+    const float toHeight = heightScale / UINT16_MAX;
+    hmin = min(hmin, texelMin * toHeight + heightOffset);
+    hmax = max(hmax, texelMax * toHeight + heightOffset);
   }
 
   BBox2 chunkBox(pos, pos + Point2(chunk_size, chunk_size));
@@ -1758,7 +1797,7 @@ bool WaterHeightmap::getHeightmapHeightMinMaxInChunk(const Point2 &pos, const re
     }
   }
 
-  // No page contributed anything (data pages whose bilinear samples were all out of range): fall back to the water level.
+  // No page contributed anything (every data page in range ended up with an empty texel span): fall back to the water level.
   if (hmin > hmax)
     hmin = hmax = waterLevel;
   return true;

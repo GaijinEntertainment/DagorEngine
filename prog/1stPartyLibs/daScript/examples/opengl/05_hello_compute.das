@@ -1,11 +1,14 @@
 options gen2
+options persistent_heap
+options gc
 require glfw/glfw_boost
 require opengl/opengl_boost
 require glsl/glsl_opengl
-require daslib/defer
 require math
+require strings
 
 require daslib/safe_addr
+require live/live_gc
 
 struct MatTest {
     a, b, a_times_b, b_times_a : float4x4
@@ -53,6 +56,7 @@ def compute_effect {
     }
 }
 
+var window : GLFWwindow?
 var compute_program, display_program : uint
 var vao : uint
 var vbo : uint
@@ -103,71 +107,99 @@ def create_gl_objects {
 }
 
 [export]
-def main {
+def init() {
     if (glfwInit() == 0) {
         panic("can't init glfw")
     }
-    defer() {
-        glfwTerminate()
-    }
     glfwInitOpenGL(4, 6)
-    var window = glfwCreateWindow(1280, 720, "OpenGL - Hello compute shader", null, null)
+    window = glfwCreateWindow(1280, 720, "OpenGL - Hello compute shader", null, null)
     if (window == null) {
         panic("can't create window")
     }
-    defer() {
-        glfwDestroyWindow(window)
-    }
     glfwMakeContextCurrent(window)
     create_gl_objects()
-    eval_main_loop() {
-        if (glfwWindowShouldClose(window) != 0) {
-            return false
+}
+
+[export]
+def update() {
+    glfwPollEvents()
+    var display_w, display_h : int
+    glfwGetFramebufferSize(window, display_w, display_h)
+    // fill c_mat with values
+    let rot = quat_from_unit_vec_ang(normalize(float3(1., 0., 0.)), PI * 0.25)
+    c_mat.a = compose(float3(0.), rot, float3(1.))
+    c_mat.b = translation(float3(1., 2., 3.))
+    identity(c_mat.a_times_b)
+    identity(c_mat.b_times_a)
+    c_mat.a_times_1234 = float4(0.)
+    c_mat.b_times_1234 = float4(0.)
+    // run program
+    glUseProgram(compute_program)
+    write_ssbo(ssbo, c_mat)             // upload c_mat
+    c_destTex := texture
+    compute_effect_bind_uniform(compute_program)
+    glDispatchCompute(16u, 16u, 1u)
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT)
+    read_ssbo(ssbo, c_mat)              // read c_mat back
+    c_offset ++
+    // make a copy in e_mat, do computations on CPU
+    var e_mat = c_mat
+    e_mat.a_times_b = e_mat.a * e_mat.b
+    e_mat.b_times_a = e_mat.b * e_mat.a
+    e_mat.a_times_1234 = e_mat.a * float4(1, 2, 3, 4)
+    e_mat.b_times_1234 = e_mat.b * float4(1, 2, 3, 4)
+    // compare CPU computations with GPU computations
+    assert(e_mat.a_times_b == c_mat.a_times_b)
+    assert(e_mat.b_times_a == c_mat.b_times_a)
+    assert(e_mat.a_times_1234 == c_mat.a_times_1234)
+    assert(e_mat.b_times_1234 == c_mat.b_times_1234)
+    // render
+    glViewport(0, 0, display_w, display_h)
+    glUseProgram(display_program)
+    glBindBuffer(GL_ARRAY_BUFFER, vbo)
+    f_tex := texture
+    vs_effect_bind_uniform(display_program)
+    fs_effect_bind_uniform(display_program)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null)
+    // swap buffers
+    glfwMakeContextCurrent(window)
+    glfwSwapBuffers(window)
+}
+
+[export]
+def shutdown() {
+    if (window != null) {
+        glfwDestroyWindow(window)
+        window = null
+    }
+    glfwTerminate()
+}
+
+var max_frame_limit = 0
+
+def parse_args() {
+    let args <- get_command_line_arguments()
+    for (i in range(length(args) - 1)) {
+        if (args[i] == "--max-frames") {
+            max_frame_limit = to_int(args[i + 1])
         }
-        glfwPollEvents()
-        var display_w, display_h : int
-        glfwGetFramebufferSize(window, display_w, display_h)
-        // fill c_mat with values
-        let rot = quat_from_unit_vec_ang(normalize(float3(1., 0., 0.)), PI * 0.25)
-        c_mat.a = compose(float3(0.), rot, float3(1.))
-        c_mat.b = translation(float3(1., 2., 3.))
-        identity(c_mat.a_times_b)
-        identity(c_mat.b_times_a)
-        c_mat.a_times_1234 = float4(0.)
-        c_mat.b_times_1234 = float4(0.)
-        // run program
-        glUseProgram(compute_program)
-        write_ssbo(ssbo, c_mat)             // upload c_mat
-        c_destTex := texture
-        compute_effect_bind_uniform(compute_program)
-        glDispatchCompute(16u, 16u, 1u)
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT)
-        read_ssbo(ssbo, c_mat)              // read c_mat back
-        c_offset ++
-        // make a copy in e_mat, do computations on CPU
-        var e_mat = c_mat
-        e_mat.a_times_b = e_mat.a * e_mat.b
-        e_mat.b_times_a = e_mat.b * e_mat.a
-        e_mat.a_times_1234 = e_mat.a * float4(1, 2, 3, 4)
-        e_mat.b_times_1234 = e_mat.b * float4(1, 2, 3, 4)
-        // compare CPU computations with GPU computaions
-        assert(e_mat.a_times_b == c_mat.a_times_b)
-        assert(e_mat.b_times_a == c_mat.b_times_a)
-        assert(e_mat.a_times_1234 == c_mat.a_times_1234)
-        assert(e_mat.b_times_1234 == c_mat.b_times_1234)
-        // render
-        glViewport(0, 0, display_w, display_h)
-        glUseProgram(display_program)
-        glBindBuffer(GL_ARRAY_BUFFER, vbo)
-        f_tex := texture
-        vs_effect_bind_uniform(display_program)
-        fs_effect_bind_uniform(display_program)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null)
-        // swap buffers
-        glfwMakeContextCurrent(window)
-        glfwSwapBuffers(window)
-        return true
     }
 }
 
+// on web the wasm host auto-drives init/update/shutdown per frame and never calls main
+[export]
+def main() {
+    parse_args()
+    init()
+    var frame_count = 0
+    while (glfwWindowShouldClose(window) == 0) {
+        update()
+        maybe_collect_gc()
+        frame_count ++
+        if (max_frame_limit > 0 && frame_count >= max_frame_limit) {
+            break
+        }
+    }
+    shutdown()
+}

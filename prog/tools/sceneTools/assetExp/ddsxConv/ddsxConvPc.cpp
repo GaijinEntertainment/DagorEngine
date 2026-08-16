@@ -626,7 +626,7 @@ static bool convert_dds_cubetex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t
     ERR_PRINTF("Cannot transcode cubemap DXT format=%08X %c%c%c%c", fmt, _DUMP4C(fmt));
     return false;
   }
-  else if (fmt == D3DFMT_R32F || fmt == D3DFMT_R16F)
+  else if (fmt == D3DFMT_R32F || fmt == D3DFMT_R16F || fmt == D3DFMT_A32B32G32R32F || fmt == D3DFMT_A16B16G16R16F)
     ; // ok
   else if (dsc.ddpfPixelFormat.dwFlags & DDPF_FOURCC)
   {
@@ -791,7 +791,7 @@ static bool convert_dds_tex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t *sp
     ERR_PRINTF("Cannot transcode DXT format=%08X %c%c%c%c", fmt, _DUMP4C(fmt));
     return false;
   }
-  else if (fmt == D3DFMT_R32F || fmt == D3DFMT_R16F || fmt == D3DFMT_A32B32G32R32F)
+  else if (fmt == D3DFMT_R32F || fmt == D3DFMT_R16F || fmt == D3DFMT_A32B32G32R32F || fmt == D3DFMT_A16B16G16R16F)
     ; // ok
   else if (dsc.ddpfPixelFormat.dwFlags & DDPF_FOURCC)
   {

@@ -108,23 +108,54 @@ inline const CollisionNode *collres_get_node(const CollisionResource &collres, c
 
 inline int collres_get_nodesCount(const CollisionResource &collres) { return collres.getAllNodes().size(); }
 
-inline BBox3 collres_get_node_bbox(const CollisionResource &collres, int node_id) { return collres.getNodeBBox(node_id); }
+// Per-node accessors below mirror the C++ contract the script side cannot read: an invalid
+// node_id returns a zero/empty/IDENT value indistinguishable from legitimate data, node ids are
+// positional and stay stable only until the resource's node list is mutated (sortNodesList /
+// append), and box/sphere bbox values, sphere bsphere values and capsule endpoints all
+// compose the node's current placement (see the frame table in dag_collisionResource.h) --
+// do not multiply those by collres_get_node_tm. A BOX node's bsphere is the one stored
+// NODE-LOCAL value. Dev builds assert on out-of-range ids so stale ids surface in CI.
+inline void collres_assert_node_id(const CollisionResource &collres, int node_id)
+{
+  G_ASSERTF((uint32_t)node_id < collres.getAllNodes().size(), "collres node_id %d out of range (%d nodes)", node_id,
+    (int)collres.getAllNodes().size());
+  G_UNUSED(collres);
+  G_UNUSED(node_id);
+}
+inline BBox3 collres_get_node_bbox(const CollisionResource &collres, int node_id)
+{
+  collres_assert_node_id(collres, node_id);
+  return collres.getNodeBBox(node_id);
+}
+// Returns false for an invalid id or a non-capsule node and leaves `out` UNCHANGED (the one
+// getter here whose failure is observable): check the boolean before reading a reused output.
 inline bool collres_get_node_capsule(const CollisionResource &collres, int node_id, Capsule &out)
 {
   return collres.getNodeCapsule(node_id, out);
 }
-inline const char *collres_get_node_name(const CollisionResource &collres, int node_id) { return collres.getNodeName(node_id); }
-inline TMatrix collres_get_node_tm(const CollisionResource &collres, int node_id) { return collres.getNodeTm(node_id); }
+inline const char *collres_get_node_name(const CollisionResource &collres, int node_id)
+{
+  collres_assert_node_id(collres, node_id);
+  return collres.getNodeName(node_id);
+}
+inline TMatrix collres_get_node_tm(const CollisionResource &collres, int node_id)
+{
+  collres_assert_node_id(collres, node_id);
+  return collres.getNodeTm(node_id);
+}
 inline float collres_get_node_max_tm_scale(const CollisionResource &collres, int node_id)
 {
+  collres_assert_node_id(collres, node_id);
   return collres.getNodeMaxTmScale(node_id);
 }
 inline Point3 collres_get_node_bsphere_center(const CollisionResource &collres, int node_id)
 {
+  collres_assert_node_id(collres, node_id);
   return collres.getNodeBSphereCenter(node_id);
 }
 inline float collres_get_node_bsphere_radius(const CollisionResource &collres, int node_id)
 {
+  collres_assert_node_id(collres, node_id);
   return collres.getNodeBSphereRadius(node_id);
 }
 

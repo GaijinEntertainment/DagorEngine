@@ -124,7 +124,7 @@ bool Picture::load(const char *name)
   AsyncLoadRequest *req = PicAsyncLoad::make_request(this);
 
   bool sync = PictureManager::get_picture_ex(name, picId, texId, smpId, &req->tcLt, &req->tcRb, /*picSize*/ nullptr,
-    PicAsyncLoad::pic_mgr_async_load_cb, req);
+    PicAsyncLoad::pic_mgr_async_load_cb, req, PicAsyncLoad::pic_mgr_load_confirm_cb);
 
   pic.pic = picId;
   pic.tex = texId;

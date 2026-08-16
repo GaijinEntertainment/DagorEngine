@@ -70,10 +70,6 @@ macro PROJECT_TRACE(code, supports_raygen)
 
           uint flags = RAY_FLAG_CULL_BACK_FACING_TRIANGLES | (dagi_force_opaque_trace ? RAY_FLAG_FORCE_OPAQUE : RAY_FLAG_NONE);
 
-          #ifdef HAS_RAYQUERY_FLAG_ALLOW_OPACITY_MICROMAPS
-            flags |= RAY_FLAG_FORCE_OMM_2_STATE;
-          #endif
-
           TraceRay(bvhMain, flags, bvhGroupGI, 0, 0, 0, ray, payload);
 
           hit.hitAt = pl_get_distance(payload);

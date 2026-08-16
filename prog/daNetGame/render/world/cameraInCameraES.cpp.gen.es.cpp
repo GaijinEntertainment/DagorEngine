@@ -104,34 +104,6 @@ inline void get_camcam_frame_number_ecs_query(ecs::EntityManager &manager, Calla
     }
   );
 }
-static constexpr ecs::ComponentDesc check_if_scope_disables_camcam_ecs_query_comps[] =
-{
-//start of 1 ro components at [0]
-  {ECS_HASH("gunmod__lensOnlyZoomDisabled"), ecs::ComponentTypeInfo<bool>()}
-};
-static ecs::CompileTimeQueryDesc check_if_scope_disables_camcam_ecs_query_desc
-(
-  "check_if_scope_disables_camcam_ecs_query",
-  empty_span(),
-  make_span(check_if_scope_disables_camcam_ecs_query_comps+0, 1)/*ro*/,
-  empty_span(),
-  empty_span());
-template<typename Callable>
-inline void check_if_scope_disables_camcam_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
-{
-  perform_query(&manager, eid, check_if_scope_disables_camcam_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
-    {
-        constexpr size_t comp = 0;
-        {
-          function(
-              ECS_RO_COMP(check_if_scope_disables_camcam_ecs_query_comps, "gunmod__lensOnlyZoomDisabled", bool)
-            );
-
-        }
-    }
-  );
-}
 static constexpr ecs::ComponentDesc update_camcam_state_ecs_query_comps[] =
 {
 //start of 3 rw components at [0]

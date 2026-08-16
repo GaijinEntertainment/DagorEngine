@@ -13,4 +13,4 @@ class PhysMapTexData;
 void destroy_phys_map_tex_data(PhysMapTexData *);
 Texture *create_phys_map_ht_tex(PhysMapTexData *); // to be called from main thread
 PhysMapTexData *render_phys_map_ht_data(const PhysMap &phys_map, const BBox2 &region, float &maxHt, float htscale,
-  bool apply_decals = true); // to be called from loading thread
+  bool apply_decals = true, bool force_r8 = false); // to be called from loading thread

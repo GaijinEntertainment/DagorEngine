@@ -552,7 +552,7 @@ void update(float dt, float current_time, const TMatrix4 &glob_tm)
     rendinstdestr::update(dt, current_time, &frustum);
     rendinstdestr::perform_delayed_destruction();
   }
-  destructables::update(dt, dedicated::is_dedicated() ? Point3::ZERO : get_cam_itm().getcol(3));
+  destructables::update(dt, current_time, dedicated::is_dedicated() ? Point3::ZERO : get_cam_itm().getcol(3));
 }
 
 void shutdown()

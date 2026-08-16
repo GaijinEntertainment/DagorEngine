@@ -80,17 +80,40 @@ protected:
     __fn_URange = 76,
     __fn_Range64 = 77,
     __fn_URange64 = 78,
-    __fn_WalkBlock = 79,
-    __fn_WalkFunction = 80,
-    __fn_WalkEnumeration = 81,
-    __fn_WalkEnumeration8 = 82,
-    __fn_WalkEnumeration16 = 83,
-    __fn_WalkEnumeration64 = 84,
-    __fn_FakeContext = 85,
-    __fn_InvalidData = 86,
+    __fn_Float16 = 79,
+    __fn_Half2 = 80,
+    __fn_Half3 = 81,
+    __fn_Half4 = 82,
+    __fn_Half8 = 83,
+    __fn_Short2 = 84,
+    __fn_Short3 = 85,
+    __fn_Short4 = 86,
+    __fn_Short8 = 87,
+    __fn_UShort2 = 88,
+    __fn_UShort3 = 89,
+    __fn_UShort4 = 90,
+    __fn_UShort8 = 91,
+    __fn_Byte2 = 92,
+    __fn_Byte3 = 93,
+    __fn_Byte4 = 94,
+    __fn_Byte8 = 95,
+    __fn_Byte16 = 96,
+    __fn_UByte2 = 97,
+    __fn_UByte3 = 98,
+    __fn_UByte4 = 99,
+    __fn_UByte8 = 100,
+    __fn_UByte16 = 101,
+    __fn_WalkBlock = 102,
+    __fn_WalkFunction = 103,
+    __fn_WalkEnumeration = 104,
+    __fn_WalkEnumeration8 = 105,
+    __fn_WalkEnumeration16 = 106,
+    __fn_WalkEnumeration64 = 107,
+    __fn_FakeContext = 108,
+    __fn_InvalidData = 109,
   };
 protected:
-  int _das_class_method_offset[87];
+  int _das_class_method_offset[110];
 public:
   DapiDataWalker_Adapter ( const StructInfo * info ) {
       _das_class_method_offset[__fn_canVisitHandle] = info->fields[2]->offset;
@@ -172,14 +195,37 @@ public:
       _das_class_method_offset[__fn_URange] = info->fields[78]->offset;
       _das_class_method_offset[__fn_Range64] = info->fields[79]->offset;
       _das_class_method_offset[__fn_URange64] = info->fields[80]->offset;
-      _das_class_method_offset[__fn_WalkBlock] = info->fields[81]->offset;
-      _das_class_method_offset[__fn_WalkFunction] = info->fields[82]->offset;
-      _das_class_method_offset[__fn_WalkEnumeration] = info->fields[83]->offset;
-      _das_class_method_offset[__fn_WalkEnumeration8] = info->fields[84]->offset;
-      _das_class_method_offset[__fn_WalkEnumeration16] = info->fields[85]->offset;
-      _das_class_method_offset[__fn_WalkEnumeration64] = info->fields[86]->offset;
-      _das_class_method_offset[__fn_FakeContext] = info->fields[87]->offset;
-      _das_class_method_offset[__fn_InvalidData] = info->fields[88]->offset;
+      _das_class_method_offset[__fn_Float16] = info->fields[81]->offset;
+      _das_class_method_offset[__fn_Half2] = info->fields[82]->offset;
+      _das_class_method_offset[__fn_Half3] = info->fields[83]->offset;
+      _das_class_method_offset[__fn_Half4] = info->fields[84]->offset;
+      _das_class_method_offset[__fn_Half8] = info->fields[85]->offset;
+      _das_class_method_offset[__fn_Short2] = info->fields[86]->offset;
+      _das_class_method_offset[__fn_Short3] = info->fields[87]->offset;
+      _das_class_method_offset[__fn_Short4] = info->fields[88]->offset;
+      _das_class_method_offset[__fn_Short8] = info->fields[89]->offset;
+      _das_class_method_offset[__fn_UShort2] = info->fields[90]->offset;
+      _das_class_method_offset[__fn_UShort3] = info->fields[91]->offset;
+      _das_class_method_offset[__fn_UShort4] = info->fields[92]->offset;
+      _das_class_method_offset[__fn_UShort8] = info->fields[93]->offset;
+      _das_class_method_offset[__fn_Byte2] = info->fields[94]->offset;
+      _das_class_method_offset[__fn_Byte3] = info->fields[95]->offset;
+      _das_class_method_offset[__fn_Byte4] = info->fields[96]->offset;
+      _das_class_method_offset[__fn_Byte8] = info->fields[97]->offset;
+      _das_class_method_offset[__fn_Byte16] = info->fields[98]->offset;
+      _das_class_method_offset[__fn_UByte2] = info->fields[99]->offset;
+      _das_class_method_offset[__fn_UByte3] = info->fields[100]->offset;
+      _das_class_method_offset[__fn_UByte4] = info->fields[101]->offset;
+      _das_class_method_offset[__fn_UByte8] = info->fields[102]->offset;
+      _das_class_method_offset[__fn_UByte16] = info->fields[103]->offset;
+      _das_class_method_offset[__fn_WalkBlock] = info->fields[104]->offset;
+      _das_class_method_offset[__fn_WalkFunction] = info->fields[105]->offset;
+      _das_class_method_offset[__fn_WalkEnumeration] = info->fields[106]->offset;
+      _das_class_method_offset[__fn_WalkEnumeration8] = info->fields[107]->offset;
+      _das_class_method_offset[__fn_WalkEnumeration16] = info->fields[108]->offset;
+      _das_class_method_offset[__fn_WalkEnumeration64] = info->fields[109]->offset;
+      _das_class_method_offset[__fn_FakeContext] = info->fields[110]->offset;
+      _das_class_method_offset[__fn_InvalidData] = info->fields[111]->offset;
   }
   __forceinline Func get_canVisitHandle ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitHandle]);
@@ -889,6 +935,213 @@ public:
   __forceinline void invoke_URange64 ( Context * __context__, Func __funcCall__, void * self, urange64 & value ) const {
     das_invoke_function<void>::invoke
       <void *,urange64 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_Float16 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Float16]);
+  }
+  __forceinline void invoke_Float16 ( Context * __context__, Func __funcCall__, void * self, float16_t & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,float16_t &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_Half2 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Half2]);
+  }
+  __forceinline void invoke_Half2 ( Context * __context__, Func __funcCall__, void * self, half2 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,half2 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_Half3 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Half3]);
+  }
+  __forceinline void invoke_Half3 ( Context * __context__, Func __funcCall__, void * self, half3 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,half3 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_Half4 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Half4]);
+  }
+  __forceinline void invoke_Half4 ( Context * __context__, Func __funcCall__, void * self, half4 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,half4 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_Half8 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Half8]);
+  }
+  __forceinline void invoke_Half8 ( Context * __context__, Func __funcCall__, void * self, half8 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,half8 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_Short2 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Short2]);
+  }
+  __forceinline void invoke_Short2 ( Context * __context__, Func __funcCall__, void * self, short2 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,short2 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_Short3 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Short3]);
+  }
+  __forceinline void invoke_Short3 ( Context * __context__, Func __funcCall__, void * self, short3 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,short3 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_Short4 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Short4]);
+  }
+  __forceinline void invoke_Short4 ( Context * __context__, Func __funcCall__, void * self, short4 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,short4 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_Short8 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Short8]);
+  }
+  __forceinline void invoke_Short8 ( Context * __context__, Func __funcCall__, void * self, short8 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,short8 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_UShort2 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_UShort2]);
+  }
+  __forceinline void invoke_UShort2 ( Context * __context__, Func __funcCall__, void * self, ushort2 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,ushort2 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_UShort3 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_UShort3]);
+  }
+  __forceinline void invoke_UShort3 ( Context * __context__, Func __funcCall__, void * self, ushort3 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,ushort3 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_UShort4 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_UShort4]);
+  }
+  __forceinline void invoke_UShort4 ( Context * __context__, Func __funcCall__, void * self, ushort4 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,ushort4 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_UShort8 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_UShort8]);
+  }
+  __forceinline void invoke_UShort8 ( Context * __context__, Func __funcCall__, void * self, ushort8 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,ushort8 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_Byte2 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Byte2]);
+  }
+  __forceinline void invoke_Byte2 ( Context * __context__, Func __funcCall__, void * self, byte2 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,byte2 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_Byte3 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Byte3]);
+  }
+  __forceinline void invoke_Byte3 ( Context * __context__, Func __funcCall__, void * self, byte3 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,byte3 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_Byte4 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Byte4]);
+  }
+  __forceinline void invoke_Byte4 ( Context * __context__, Func __funcCall__, void * self, byte4 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,byte4 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_Byte8 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Byte8]);
+  }
+  __forceinline void invoke_Byte8 ( Context * __context__, Func __funcCall__, void * self, byte8 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,byte8 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_Byte16 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Byte16]);
+  }
+  __forceinline void invoke_Byte16 ( Context * __context__, Func __funcCall__, void * self, byte16 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,byte16 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_UByte2 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_UByte2]);
+  }
+  __forceinline void invoke_UByte2 ( Context * __context__, Func __funcCall__, void * self, ubyte2 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,ubyte2 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_UByte3 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_UByte3]);
+  }
+  __forceinline void invoke_UByte3 ( Context * __context__, Func __funcCall__, void * self, ubyte3 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,ubyte3 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_UByte4 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_UByte4]);
+  }
+  __forceinline void invoke_UByte4 ( Context * __context__, Func __funcCall__, void * self, ubyte4 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,ubyte4 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_UByte8 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_UByte8]);
+  }
+  __forceinline void invoke_UByte8 ( Context * __context__, Func __funcCall__, void * self, ubyte8 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,ubyte8 &>
+        (__context__,nullptr,__funcCall__,
+          self,value);
+  }
+  __forceinline Func get_UByte16 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_UByte16]);
+  }
+  __forceinline void invoke_UByte16 ( Context * __context__, Func __funcCall__, void * self, ubyte16 & value ) const {
+    das_invoke_function<void>::invoke
+      <void *,ubyte16 &>
         (__context__,nullptr,__funcCall__,
           self,value);
   }

@@ -111,6 +111,16 @@ def fill_grid {
     IGRID <- [-100, -7, -1, 0, 1, 3, 42, 1000]
 }
 
+// A host may build the runtime with -ffast-math (dagor does), which lets a/b become
+// a*(1/b) and flushes denormals - so the vector path and the scalar reference stop being
+// bit-equal. Probed through module-level vars so the compiler cannot fold the answer.
+var private g_probe_x = -200.0
+var private g_probe_s = 7.0
+
+def private host_recips_division() : bool {
+    return (float3(g_probe_x, g_probe_x, g_probe_x) / g_probe_s).x != g_probe_x / g_probe_s
+}
+
 def fapprox(t : T?; a, b : float) {
     let m = max(max(abs(a), abs(b)), 1.0)
     t |> success(abs(a - b) <= 1.0e-4 * m, "ctor approx mismatch: {a} vs {b}")
@@ -129,7 +139,7 @@ def cmp3f_approx(t : T?; a, b : float3) {
 }
 
 [test]
-def test_flatten_ctor(t : T?) {
+def test_flatten_ctor(t : T?) {  // nolint:STYLE038 — flat list of independent `t |> run` cases, one per ctor lane rewrite
     t |> run("zero-lane kill collapses the whole product (exact)") @(t : T?) {
         for (v in GRID) {
             cmp2f(t, z_kill_flat(v), z_kill(v))
@@ -202,9 +212,16 @@ def test_flatten_ctor(t : T?) {
             cmp3f(t, sf_const_flat(v, -v, 1.0), sf_const(v, -v, 1.0))
         }
     }
-    t |> run("shared divisor -> ctor / s (exact)") @(t : T?) {
+    t |> run("shared divisor -> ctor / s (exact on an IEEE host)") @(t : T?) {
+        let recips = host_recips_division()
         for (v in GRID) {
-            cmp3f(t, sf_div_flat(v, -v, 1.0, 3.5), sf_div(v, -v, 1.0, 3.5))
+            let flat = sf_div_flat(v, -v, 1.0, 3.5)
+            let ref_ = sf_div(v, -v, 1.0, 3.5)
+            if (recips) {
+                cmp3f_approx(t, flat, ref_)
+            } else {
+                cmp3f(t, flat, ref_)
+            }
         }
     }
     t |> run("majority const factor compensates the odd lane (approx)") @(t : T?) {

@@ -18,6 +18,7 @@ require suite
 require log
 require math
 require dastest_clargs
+require worker_policy
 
 options multiple_contexts
 
@@ -30,7 +31,7 @@ let private jsonResultPrefix = "##dastest##\n"
 
 struct FileTiming {
     uri : string
-    dt : int     // microseconds
+    dt : int64     // microseconds
 }
 
 struct JsonTestReport {
@@ -41,7 +42,7 @@ struct JsonTestReport {
     errors : int
     skipped : int
     success : bool
-    time_usec : int
+    time_usec : int64
     tests : array<SuiteTestResult>
 }
 
@@ -53,6 +54,7 @@ struct FailedFile {
 var private fileTimings : array<FileTiming>
 var private failedFiles : array<FailedFile>
 var private timingOutliers : int = 0
+var private maxFileTime : float = 0.0
 var private jsonFilePath : string
 var private jsonTestFile : string
 
@@ -143,7 +145,7 @@ struct IsolatedResult {
     parsedResult : bool
     status : SuiteResult
     tests : array<SuiteTestResult>
-    fileDt : int
+    fileDt : int64
     err : array<string>
     log : array<string>
 }
@@ -178,7 +180,7 @@ def private build_iso_cmd(filesList : array<string>; prefix, suffix : string) : 
 }
 
 // Run one subprocess and parse its streamed per-file JSON reports.
-def private run_iso_subprocess(cmd : string; timeoutSec : float; var br : BatchRun) {
+def private run_iso_subprocess(cmd : string; timeoutSec : float; var br : BatchRun) {  // nolint:STYLE038 - one linear spawn/poll/reap pass
     var pending : array<string>
     // popen_timeout's stderr handling is timeout-dependent: with timeout<=0 it
     // falls back to plain _popen (stdout only — stderr DROPPED), which is the
@@ -223,7 +225,7 @@ def private run_iso_subprocess(cmd : string; timeoutSec : float; var br : BatchR
                             var r = IsolatedResult(
                                 parsedResult = true,
                                 status = SuiteResult(js),
-                                fileDt = from_JV(obj?["time_usec"] ?? JV(0), type<int>), // nolint:STYLE020 — `?? defV` doesn't typecheck on _object indexing; suite_result.das pattern
+                                fileDt = from_JV(obj?["time_usec"] ?? JV(0), type<int64>), // nolint:STYLE020 — `?? defV` doesn't typecheck on _object indexing; suite_result.das pattern
                                 log <- pending
                             )
                             parse_test_results(js, r.tests)
@@ -373,6 +375,7 @@ def serialize_path(ctx : SuiteCtx, files : array<string>, out_file : string) {
             using() $(var mg : ModuleGroup) {
                 using() $(var cop : CodeOfPolicies) {
                     cop.aot_module = true
+                    cop.tune_frozen = true   // a serialized AST is a cross-box artifact — no per-box [tune] stamps
                     cop.aot = ctx.use_aot
                     cop.fail_on_no_aot = ctx.use_aot
                     cop.threadlock_context = true
@@ -395,7 +398,7 @@ def serialize_path(ctx : SuiteCtx, files : array<string>, out_file : string) {
         }
         fwrite(f, res.total)
         ast_serializer_get_data(ser) $(data) {
-            let sz = uint64(length(data))
+            let sz = long_length(data)
             fwrite(f, sz)
             fwrite(f, data)
         }
@@ -421,12 +424,13 @@ def deserialize_path(var ctx : SuiteCtx, _files : array<string>, in_file : strin
         unsafe {
             _builtin_read(f, addr(count), typeinfo sizeof(count))
         }
-        var sz = 0 |> uint64()
+        var sz = 0l
         unsafe {
             _builtin_read(f, addr(sz), typeinfo sizeof(sz))
         }
         var data : array<uint8>
-        data |> resize(int(sz))
+        data |> reserve(sz)   // the blob size is known: exact reserve, and the resize never grows
+        data |> resize(sz)
         fread(f, data)
         log::info("Deserializing {count:d} programs from {in_file}")
         var ser = create_ast_deserializer(data)
@@ -461,7 +465,7 @@ def deserialize_path(var ctx : SuiteCtx, _files : array<string>, in_file : strin
 }
 
 [export]
-def main() : int {
+def main() : int {  // nolint:STYLE037,STYLE038 - CLI dispatch, one arm per mode
     // ansi-colors detection scans full argv for --color / --no-color so the
     // user can place either flag before or after the "--" separator.
     log::init_log()
@@ -478,6 +482,11 @@ def main() : int {
     }
     var test_args <- parse_result |> move_unwrap
 
+    // Set BEFORE the --run worker early-return below: workers must honor
+    // --failures-only too, or every PASS line of every test flows through the
+    // captured pipe (parent-side display filtering already handles the rest).
+    log::failuresOnly = test_args.failures_only
+
     if (!empty(test_args.run)) {
         // Isolated/semi-isolated worker subprocess: run each --run file in this
         // one process, emitting a ##dastest## JSON report PER FILE as it
@@ -489,7 +498,7 @@ def main() : int {
             suite::clear_test_results()
             let t0 = ref_time_ticks()
             let res = suite::test_file(rf, rctx)
-            let dt = get_time_usec(t0)
+            let dt = get_time_nsec(t0) / 1000
             let report = JsonTestReport(
                 file = rf,
                 total = res.total,
@@ -507,7 +516,6 @@ def main() : int {
         return rc
     }
 
-    log::failuresOnly = test_args.failures_only
 
     var res : SuiteResult
     let startTime = ref_time_ticks()
@@ -548,6 +556,7 @@ def main() : int {
     }
 
     timingOutliers = test_args.timing_outliers
+    maxFileTime = test_args.max_file_time
     jsonFilePath = test_args.json_file
     if (!empty(jsonFilePath)) {
         suite::clear_test_results()
@@ -582,7 +591,7 @@ def main() : int {
             let uri = ctx.uriPaths ? file_name_to_uri(file) : file
             let fileTime = ref_time_ticks()
             let status = suite::test_file(file, ctx)
-            let fileDt = get_time_usec(fileTime)
+            let fileDt = get_time_nsec(fileTime) / 1000
             if (status.errors + status.failed == 0) {
                 if (status.total > 0) {
                     log::green("PASS {uri} {time_dt_hr(fileDt)}")
@@ -592,7 +601,7 @@ def main() : int {
                 let reason = "{status.failed} failed, {status.errors} errors"
                 failedFiles |> push(FailedFile(uri = clone_string(uri), reason = clone_string(reason)))
             }
-            if (timingOutliers > 0) {
+            if (timingOutliers > 0 || maxFileTime > 0.0) {
                 fileTimings |> push(FileTiming(uri = clone_string(uri), dt = fileDt))
             }
             res += status
@@ -601,7 +610,9 @@ def main() : int {
         let totalFiles = length(files)
         var totalThreads = test_args.isolated_mode_threads
         if (totalThreads == 0) {
-            totalThreads = get_total_hw_threads() * 2
+            totalThreads = (jit_enabled()
+                ? default_jit_isolated_threads(get_total_hw_threads())
+                : max(1, get_total_hw_threads() * 2))
         }
         let testTimeout = test_args.test_timeout
         // --headless is a pass-through flag (not parsed by DastestArgs); detect once
@@ -636,8 +647,11 @@ def main() : int {
         // Forward --stack-on-exception to each worker: the flag sets the test
         // context's at-throw stack walk, and the tests run in the worker, not here.
         let stackExcFlag = test_args.stack_on_exception ? " --stack-on-exception" : ""
+        // Forward --failures-only so workers suppress per-test PASS lines at the
+        // source instead of streaming them all through the captured pipe.
+        let failuresOnlyFlag = test_args.failures_only ? " --failures-only" : ""
         let cmdPrefix = "{launchPrefix} {jitstr} {aotstr} --"
-        let cmdSuffix = " {benchstr}{log::useTtyColors ? " --color" : ""}{headlessFlag}{stackExcFlag}"
+        let cmdSuffix = " {benchstr}{log::useTtyColors ? " --color" : ""}{headlessFlag}{stackExcFlag}{failuresOnlyFlag}"
         let batchSize = max(1, test_args.batch)
         // Group files into batches of batchSize. Each batch is run by one worker
         // subprocess (batchCmd); per-file singleCmds are kept so a crash can be
@@ -666,6 +680,8 @@ def main() : int {
             bidx = hi
         }
         let numBatches = length(batches)
+        let workerLimit = max(1, numBatches)
+        totalThreads = min(totalThreads, workerLimit)
         log::info("Running {totalFiles} tests in isolated mode: {totalThreads} threads, batch {batchSize} ({numBatches} worker subprocess(es))\n")
         with_channel(numBatches) $(inputChannel) {
             with_channel(totalFiles) $(outputChannel) {
@@ -704,7 +720,7 @@ def main() : int {
                         for (err in isoRes.err) {
                             log::error(err)
                         }
-                        if (timingOutliers > 0) {
+                        if (timingOutliers > 0 || maxFileTime > 0.0) {
                             fileTimings |> push(FileTiming(uri = clone_string(isoRes.uri), dt = isoRes.fileDt))
                         }
                         let isoPassed = isoRes.exitCode == 0 && isoRes.parsedResult && isoRes.status.failed + isoRes.status.errors == 0
@@ -799,9 +815,32 @@ def private print_timing_outliers() {
 }
 
 
-def finish_tests(res : SuiteResult; start_time : int64) : int {
+def private enforce_max_file_time(var res : SuiteResult) {
+    if (maxFileTime <= 0.0) return
+    let limitUsec = double(maxFileTime) * 1000000.0lf
+    let limitStr = fmt(":.3f", maxFileTime)
+    for (ft in fileTimings) {
+        if (double(ft.dt) <= limitUsec) continue
+        let dtStr = fmt(":.3f", double(ft.dt) / 1000000.0lf)
+        let timingReason = "took {dtStr}s, exceeding --max-file-time {limitStr}s"
+        let failedIndex = find_index_if(failedFiles) $(ff) => ff.uri == ft.uri
+        if (failedIndex >= 0) {
+            failedFiles[failedIndex].reason = "{failedFiles[failedIndex].reason}; {timingReason}"
+        } else {
+            failedFiles |> push(FailedFile(uri = clone_string(ft.uri), reason = clone_string(timingReason)))
+            // Treat the file-time contract as one synthetic test failure so
+            // text and JSON summaries remain internally consistent.
+            res.total++
+            res.failed++
+        }
+    }
+}
+
+
+def finish_tests(var res : SuiteResult; start_time : int64) : int {
+    enforce_max_file_time(res)
     let resCode = res.failed + res.errors
-    let totalDt = get_time_usec(start_time)
+    let totalDt = get_time_nsec(start_time) / 1000
     log::info("\n{to_string(res)}")
     if (resCode == 0 && timingOutliers > 0 && length(fileTimings) > 1) {
         print_timing_outliers()

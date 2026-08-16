@@ -1,4 +1,5 @@
 from "%scripts/ui/ui_library.nut" import *
+from "types" import String
 
 let { showWarning } = require("%scripts/ui/widgets/msgbox.nut")
 let { hardPersistWatched } = require("%sqstd/globalState.nut")
@@ -44,7 +45,7 @@ foreach (i, presetName in presets){
   let preset = {}
   mapOptionsByPreset[presetName] <- preset
   foreach (opt, perPreset in mapOptionsByPresetTable) {
-    let blkPath = type(opt)=="string" ? opt : opt.blkPath
+    let blkPath = opt instanceof String ? opt : opt.blkPath
     preset[blkPath] <- perPreset[i]
   }
 }

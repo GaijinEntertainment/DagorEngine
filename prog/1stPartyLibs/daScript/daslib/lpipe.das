@@ -21,7 +21,7 @@ def lpipe_expr(var fnCall : ExpressionPtr&; var arg : ExpressionPtr&) : Expressi
         var pVar = fnCall as ExprVar
         var pCall = make_call(pVar.at, "{pVar.name}")
         fnCall = null
-        var pCallFunc = unsafe(reinterpret<ExprLooksLikeCall?> pCall)
+        var pCallFunc = unsafe(reinterpret<ExprLooksLikeCall?>(pCall))
         pCallFunc.arguments |> emplace(arg)
         return pCall
     } elif (fnCall is ExprCopy) {
@@ -46,7 +46,7 @@ def lpipe_expr(var fnCall : ExpressionPtr&; var arg : ExpressionPtr&) : Expressi
         (cLet as ExprLet).variables[0].init = lpipe_expr(pLet.variables[0].init, arg)
         return cLet
     } elif (fnCall |> is_expr_like_call()) {
-        var pCall = unsafe(reinterpret<ExprLooksLikeCall?> fnCall)
+        var pCall = unsafe(reinterpret<ExprLooksLikeCall?>(fnCall))
         if (pCall.name == "lpipe") return null  // not piping pipe into pipe
         pCall.arguments |> emplace(arg)
         return fnCall
@@ -59,16 +59,7 @@ def lpipe_expr(var fnCall : ExpressionPtr&; var arg : ExpressionPtr&) : Expressi
 
 [call_macro(name="lpipe")]
 class LpipeMacro : AstCallMacro {
-    //! This macro will implement the lpipe function. It allows piping blocks the previous line call. For example::
-    //!
-    //!     def take2(a,b:block)
-    //!         invoke(a)
-    //!         invoke(b)
-    //!     ...
-    //!     take2 <|
-    //!         print("block1\n")
-    //!     lpipe <|    // this block will pipe into take2
-    //!         print("block2\n")
+    //! Implements ``lpipe``, allowing blocks to pipe the previous line's call.
     def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : ExpressionPtr {
         macro_verify(call.arguments |> length == 1, prog, call.at, "expecting lpipe(value)")
         var success = false

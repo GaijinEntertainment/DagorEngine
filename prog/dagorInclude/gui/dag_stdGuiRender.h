@@ -518,6 +518,7 @@ public:
 
   GuiViewPort currentViewPort; // cuurent view port in logical coordinates
   GuiViewPort deviceViewPort;  // device view port in real coordinates
+  int prerotateAngle;
 
   // next state (set rollState after modification)
   GuiState guiState;
@@ -593,7 +594,7 @@ public:
   // set screen logical resolution in pixels.
   // if resolution is zero, use current device resolution.
   // call it before beginChunk()
-  void setTarget(int screen_width, int screen_height, int left = 0, int top = 0);
+  void setTarget(int screen_width, int screen_height, int left = 0, int top = 0, int prerotation_angle = 0);
   // setup render parameters. call it before any GUI rendering.
   // set screen logical resolution to current device resolution.
   void setTarget();

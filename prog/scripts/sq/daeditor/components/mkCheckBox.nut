@@ -14,7 +14,7 @@ function mkCheckBox(value, onClick) {
         watch = hoverFlag
         color = (hoverFlag.get() != 0) ? colors.Hover : colors.Interactive
         group
-        size = [pw(50), ph(50)]
+        size = const [pw(50), ph(50)]
         hplace = ALIGN_CENTER
         vplace = ALIGN_CENTER
       }
@@ -29,7 +29,7 @@ function mkCheckBox(value, onClick) {
 
       children = [
         {
-          size = [fontH(80), fontH(80)]
+          size = const [fontH(80), fontH(80)]
           rendObj = ROBJ_SOLID
           color = colors.ControlBg
 

@@ -244,12 +244,12 @@ if $(Platform) in windows {
   }
 
   if $(Platform) in linux {
-    Sources += posix/posixAIOAsyncRead.cpp ;
+    if $(Sanitize) = thread {
+      Sources += posix/posixThreadAsyncRead.cpp ;
+    } else {
+      Sources += posix/posixAIOAsyncRead.cpp ;
+    }
     if $(LinuxUseGUI) = yes {
-      Sources +=
-        linux/linuxSetTitle.cpp
-        linux/linuxClipboard.cpp
-      ;
       UseProgLibs += engine/osApiWrappers/linuxGUI ;
       Target = $(Target:S=~linuxGUI.lib) ;
     } else {

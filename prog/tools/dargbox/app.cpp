@@ -164,7 +164,12 @@ das::Context *get_context(int stack_size) { return new das::Context(stack_size);
 das::smart_ptr<das::FileAccess> get_file_access(char *pak)
 {
   if (pak)
-    return das::make_smart<das::FsFileAccess>(pak, das::make_smart<das::FsFileAccess>());
+  {
+    das::ModuleGroup libGroup;
+    das::TextWriter logs;
+    auto program = das::compileDaScript(pak, das::make_smart<das::FsFileAccess>(), logs, libGroup);
+    return das::make_smart<das::FsFileAccess>(pak, program);
+  }
   return das::make_smart<das::FsFileAccess>();
 }
 

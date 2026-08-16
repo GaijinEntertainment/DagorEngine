@@ -34,6 +34,7 @@
 #include "spinEditInt.h"
 #include "splitter.h"
 #include "static.h"
+#include "staticWithIcon.h"
 #include "tabPanel.h"
 #include "targetButton.h"
 #include "toolbar.h"
@@ -69,10 +70,10 @@ ContainerPropertyControl *ContainerPropertyControl::createContainer(int id, bool
 }
 
 ContainerPropertyControl *ContainerPropertyControl::createExtensible(int id, bool new_line, const char *menu_button_icon,
-  const char *menu_button_tooltip)
+  const char *menu_button_tooltip, const char *menu_button_label)
 {
   ExtensiblePropertyControl *newControl = new ExtensiblePropertyControl(mEventHandler, this, id, getNextControlX(),
-    getNextControlY(new_line), getClientWidth(), hdpi::Px(0), menu_button_icon, menu_button_tooltip);
+    getNextControlY(new_line), getClientWidth(), hdpi::Px(0), menu_button_icon, menu_button_tooltip, menu_button_label);
 
   addControl(newControl, new_line);
   return newControl;
@@ -555,6 +556,14 @@ TLeafHandle ContainerPropertyControl::createTreeLeaf(TLeafHandle parent, const c
 {
   G_ASSERT(false && "Tree leaf can be created only in Tree control!");
   return 0;
+}
+
+void ContainerPropertyControl::createStaticWithIcon(int id, const char caption[], bool new_line, bool word_wrap)
+{
+  StaticWithIconPropertyControl *newControl = new StaticWithIconPropertyControl(mEventHandler, this, id, getNextControlX(new_line),
+    getNextControlY(new_line), hdpi::Px(0), caption, hdpi::Px(0), word_wrap);
+
+  addControl(newControl, new_line);
 }
 
 void ContainerPropertyControl::createIndirect(DataBlock &dataBlock, ISetControlParams &controlParams)

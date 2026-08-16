@@ -791,6 +791,8 @@ void EntityManager::clearQueries()
   queryStack.freeAll();
 }
 
+void EntityManager::freePerThreadQueryData() { queryStack.freeThreadData(); }
+
 uint32_t EntityManager::addOneQuery()
 {
   // todo: may be keep free list instead?

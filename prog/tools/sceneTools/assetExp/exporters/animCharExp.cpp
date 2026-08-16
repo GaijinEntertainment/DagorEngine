@@ -3,6 +3,7 @@
 #include <assets/daBuildExpPluginChain.h>
 #include <assets/assetExporter.h>
 #include <libTools/pageAsg/asg_sysHelper.h>
+#include <3d/dag_texMgr.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_direct.h>
 #include <util/dag_simpleString.h>
@@ -66,6 +67,8 @@ public:
       sysHelper.sgOutDir = make_eff_app_relative_path(p);
 
     ::page_sys_hlp = &sysHelper;
+    if (first_managed_d3dres() == BAD_TEXTUREID)
+      enable_tex_mgr_mt(true, appblk.getInt("texMgrReserveTIDcount", 128 << 10));
     return true;
   }
   void __stdcall destroy() override

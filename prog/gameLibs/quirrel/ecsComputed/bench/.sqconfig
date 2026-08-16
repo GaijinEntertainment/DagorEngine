@@ -1,0 +1,7 @@
+; csq static analysis (prog/scripts/drey.py) config for game/bench.nut.
+; The harness binds ecs, ecs.computed and bench natively; csq has none of them,
+; so point it at the shared stubs plus the local one for the harness module.
+mount = %sqstd=../../../../scripts/sq/std
+
+base_path = ../../../../scripts/sq/stubs/
+base_path = stubs

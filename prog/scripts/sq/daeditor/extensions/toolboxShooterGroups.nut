@@ -56,8 +56,8 @@ function updateGroupsList() {
   groupsList.trigger()
 }
 
-let onSym  = "+"
-let offSym = "-"
+const onSym  = "+"
+const offSym = "-"
 
 function mkGroupListItemName(item): string {
   if (item.active > 0 && item.active != item.count)

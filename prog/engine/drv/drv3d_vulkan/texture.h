@@ -361,6 +361,7 @@ struct BaseTex final : public D3dResourceNameImpl<BaseTexture>
 
   ~BaseTex() { tryFinishReadbackWithoutResultWait(); }
 
+  void useExternalResource(Image *resource);
   static Texture *wrapVKImage(VkImage tex_res, ResourceBarrier current_state, int width, int height, int layers, int mips,
     const char *name, int flg);
 

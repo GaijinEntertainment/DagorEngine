@@ -25,6 +25,9 @@ struct EditLayerProps
   EditLayerProps(unsigned t, unsigned nid) : lock(0), hide(0), renderToMask(0), exp(1), renameable(0), type(t), nameId(nid) {}
   const char *name() const { return layerNames.getName(nameId); }
 
+  bool isLayerOrTypeHidden() const;
+  bool isLayerOrTypeLocked() const;
+
 public:
   static FastNameMapEx layerNames;
   static Tab<EditLayerProps> layerProps;
@@ -76,4 +79,17 @@ public:
   }
   static void renameLayer(int idx, const char *new_name);
   static const char *layerName(int idx) { return layerProps[idx].name(); }
+  static void updateEntityLayerHiddenMask();
+};
+
+struct LandscapeObjectTypeState
+{
+  bool visible = true;
+  bool locked = false;
+
+  static LandscapeObjectTypeState types[EditLayerProps::TYPENUM];
+
+  static void resetAllObjectTypesToDefault();
+  static void saveAllObjectTypeConfig(DataBlock &local_data);
+  static void loadAllObjectTypeConfig(const DataBlock &local_data);
 };

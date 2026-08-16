@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE016: adjacent guards leading to identical early-exit can be combined with '||'
 //
 // Problem: Two adjacent if-guards with the same exit (return/break/continue with the

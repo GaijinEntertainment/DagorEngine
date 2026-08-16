@@ -112,6 +112,29 @@ namespace das {
         virtual void URange ( urange & ) {}
         virtual void Range64 ( range64 & ) {}
         virtual void URange64 ( urange64 & ) {}
+        virtual void Float16 ( float16_t & ) {}
+        virtual void Half2 ( half2 & ) {}
+        virtual void Half3 ( half3 & ) {}
+        virtual void Half4 ( half4 & ) {}
+        virtual void Half8 ( half8 & ) {}
+        virtual void Short2 ( short2 & ) {}
+        virtual void Short3 ( short3 & ) {}
+        virtual void Short4 ( short4 & ) {}
+        virtual void Short8 ( short8 & ) {}
+        virtual void UShort2 ( ushort2 & ) {}
+        virtual void UShort3 ( ushort3 & ) {}
+        virtual void UShort4 ( ushort4 & ) {}
+        virtual void UShort8 ( ushort8 & ) {}
+        virtual void Byte2 ( byte2 & ) {}
+        virtual void Byte3 ( byte3 & ) {}
+        virtual void Byte4 ( byte4 & ) {}
+        virtual void Byte8 ( byte8 & ) {}
+        virtual void Byte16 ( byte16 & ) {}
+        virtual void UByte2 ( ubyte2 & ) {}
+        virtual void UByte3 ( ubyte3 & ) {}
+        virtual void UByte4 ( ubyte4 & ) {}
+        virtual void UByte8 ( ubyte8 & ) {}
+        virtual void UByte16 ( ubyte16 & ) {}
         virtual void VoidPtr ( void * & ) {}
         virtual void WalkBlock ( Block * ) {}
         virtual void WalkFunction ( Func * ) {}

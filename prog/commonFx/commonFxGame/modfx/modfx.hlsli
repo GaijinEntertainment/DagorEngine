@@ -380,7 +380,8 @@ DAFX_CULLING_RET_TYPE dafx_emission_shader_cb(
       ModfxDeclServiceTrail pp;
       pp.prev_last_emitter_pos = prev_last_emitter_pos;
       pp.last_emitter_pos = cur_emitter_pos;
-      pp.flags = MODFX_TRAIL_FLAG_LAST_POS_VALID | MODFX_TRAIL_FLAG_EMITTED_THIS_FRAME;
+      bool hadAliveParticles = cdesc.aliveCount > cdesc.count; // Alive count includes newly spawned, so if it's greater it means we had alive particles.
+      pp.flags = MODFX_TRAIL_FLAG_LAST_POS_VALID | (hadAliveParticles ? MODFX_TRAIL_FLAG_NEED_READJUST_PREV_LAST_PART : 0);
 
       ModfxDeclServiceTrail_save( pp, buf, cdesc.serviceDataOffset + serviceSave_ofs );
       serviceSave_ofs += MODFX_SERVICE_TRAIL_SIZE / 4;
@@ -429,15 +430,16 @@ DAFX_CULLING_RET_TYPE dafx_simulation_shader_cb(
   float etm_scale;
   float4x4 etm = dafx_get_44mat_scale( buf, parent_rdata.mods_offsets[MODFX_RMOD_INIT_TM], etm_scale );
 
+  // At the spawn frame the new particles aren't included in simulation, so in fact it's the previously last particle.
   bool last_sim_part = cdesc.idx == ( cdesc.count - 1 );
   bool attach_last_part = FLAG_ENABLED( parent_sdata.flags, MODFX_SFLAG_ATTACH_LAST_PART_TO_EMITTER ) && last_sim_part;
   if ( FLAG_ENABLED( parent_sdata.flags, MODFX_SFLAG_TRAIL_ENABLED ) && attach_last_part )
   {
     // This is code is very sensitive to emission/simulation order. If emission is not first - it wont work!
     ModfxDeclServiceTrail pp = ModfxDeclServiceTrail_load( buf, cdesc.serviceDataOffset );
-    if ( pp.flags & MODFX_TRAIL_FLAG_EMITTED_THIS_FRAME )
+    if ( pp.flags & MODFX_TRAIL_FLAG_NEED_READJUST_PREV_LAST_PART )
     {
-      pp.flags &= ~MODFX_TRAIL_FLAG_EMITTED_THIS_FRAME;
+      pp.flags &= ~MODFX_TRAIL_FLAG_NEED_READJUST_PREV_LAST_PART;
       rdata.pos = pp.prev_last_emitter_pos;
       ModfxDeclServiceTrail_save( pp, buf, cdesc.serviceDataOffset );
       attach_last_part = false;

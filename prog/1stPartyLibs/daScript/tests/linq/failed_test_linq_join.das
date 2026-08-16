@@ -3,7 +3,7 @@
 // clear macro_error pointing at raw SQL as the escape hatch.
 //
 // Each rejected shape produces one macro_failed (40104) diagnostic.
-// See modules/dasSQLITE/API_REWORK.md "### 23-joins" for the spec.
+// See history/dasSQLITE/API_REWORK.md "### 23-joins" for the spec.
 options gen2
 expect 50503:5
 

@@ -1,3 +1,5 @@
+include "pre_rotation_inc.dshl"
+
 macro SCREEN_TO_TC()
 hlsl(vs) {
   float2 screen_to_texcoords(float2 pos)
@@ -68,6 +70,9 @@ macro POSTFX_VS(pos_z)
 
       #ifdef USE_VIEW_VEC
         output.USE_VIEW_VEC = get_view_vec_by_vertex_id(vertexId);
+      #endif
+      #ifdef POSTFX_PRE_ROTATION
+        output.pos.xy = apply_pre_rotation(output.pos.xy);
       #endif
       return output;
     }

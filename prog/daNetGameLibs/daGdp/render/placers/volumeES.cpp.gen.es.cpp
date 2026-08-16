@@ -121,7 +121,7 @@ static ecs::EntitySystemDesc dagdp_placer_volume_changed_es_es_desc
 static constexpr ecs::ComponentDesc dagdp_placer_on_meshes_resource_link_es_comps[] =
 {
 //start of 1 rw components at [0]
-  {ECS_HASH("dagdp__resource_ids"), ecs::ComponentTypeInfo<ClientRiexPoolList>()},
+  {ECS_HASH("dagdp__resource_ids"), ecs::ComponentTypeInfo<ecs::IntList>()},
 //start of 1 ro components at [1]
   {ECS_HASH("dagdp__resource_names"), ecs::ComponentTypeInfo<ecs::StringList>()},
 //start of 1 rq components at [2]
@@ -133,7 +133,7 @@ static void dagdp_placer_on_meshes_resource_link_es_all_events(const ecs::Event 
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     dagdp::dagdp_placer_on_meshes_resource_link_es(static_cast<const dagdp::EventViewFinalize&>(evt)
         , ECS_RO_COMP(dagdp_placer_on_meshes_resource_link_es_comps, "dagdp__resource_names", ecs::StringList)
-    , ECS_RW_COMP(dagdp_placer_on_meshes_resource_link_es_comps, "dagdp__resource_ids", ClientRiexPoolList)
+    , ECS_RW_COMP(dagdp_placer_on_meshes_resource_link_es_comps, "dagdp__resource_ids", ecs::IntList)
     );
   while (++comp != compE);
 }
@@ -493,7 +493,7 @@ static constexpr ecs::ComponentDesc on_ri_placers_ecs_query_comps[] =
 {
 //start of 3 ro components at [0]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
-  {ECS_HASH("dagdp__resource_ids"), ecs::ComponentTypeInfo<ClientRiexPoolList>()},
+  {ECS_HASH("dagdp__resource_ids"), ecs::ComponentTypeInfo<ecs::IntList>()},
   {ECS_HASH("dagdp__csm_cascade_count"), ecs::ComponentTypeInfo<int>()},
 //start of 1 rq components at [3]
   {ECS_HASH("dagdp_placer_on_ri"), ecs::ComponentTypeInfo<ecs::Tag>()}
@@ -515,7 +515,7 @@ inline void dagdp::on_ri_placers_ecs_query(ecs::EntityManager &manager, Callable
         {
           function(
               ECS_RO_COMP(on_ri_placers_ecs_query_comps, "eid", ecs::EntityId)
-            , ECS_RO_COMP(on_ri_placers_ecs_query_comps, "dagdp__resource_ids", ClientRiexPoolList)
+            , ECS_RO_COMP(on_ri_placers_ecs_query_comps, "dagdp__resource_ids", ecs::IntList)
             , ECS_RO_COMP(on_ri_placers_ecs_query_comps, "dagdp__csm_cascade_count", int)
             );
 
@@ -527,7 +527,7 @@ static constexpr ecs::ComponentDesc around_ri_placers_ecs_query_comps[] =
 {
 //start of 6 ro components at [0]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
-  {ECS_HASH("dagdp__resource_ids"), ecs::ComponentTypeInfo<ClientRiexPoolList>()},
+  {ECS_HASH("dagdp__resource_ids"), ecs::ComponentTypeInfo<ecs::IntList>()},
   {ECS_HASH("dagdp__volume_box_eids"), ecs::ComponentTypeInfo<ecs::EidList>()},
   {ECS_HASH("dagdp__volume_cylinder_eids"), ecs::ComponentTypeInfo<ecs::EidList>()},
   {ECS_HASH("dagdp__volume_sphere_eids"), ecs::ComponentTypeInfo<ecs::EidList>()},
@@ -552,7 +552,7 @@ inline void dagdp::around_ri_placers_ecs_query(ecs::EntityManager &manager, Call
         {
           function(
               ECS_RO_COMP(around_ri_placers_ecs_query_comps, "eid", ecs::EntityId)
-            , ECS_RO_COMP(around_ri_placers_ecs_query_comps, "dagdp__resource_ids", ClientRiexPoolList)
+            , ECS_RO_COMP(around_ri_placers_ecs_query_comps, "dagdp__resource_ids", ecs::IntList)
             , ECS_RO_COMP(around_ri_placers_ecs_query_comps, "dagdp__volume_box_eids", ecs::EidList)
             , ECS_RO_COMP(around_ri_placers_ecs_query_comps, "dagdp__volume_cylinder_eids", ecs::EidList)
             , ECS_RO_COMP(around_ri_placers_ecs_query_comps, "dagdp__volume_sphere_eids", ecs::EidList)

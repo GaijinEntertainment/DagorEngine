@@ -18,7 +18,15 @@ def private sum_const_iter(var src : iterator<int const&>) : int {
 def private sum_const_generic(var src : iterator<auto(TT) const&>) : int {
     var total = 0
     for (it in src) {
-        total += int(it)
+        total += it
+    }
+    return total
+}
+
+def private sum_plain_generic(var src : iterator<auto(TT)>) : int {
+    var total = 0
+    for (it in src) {
+        total += it
     }
     return total
 }
@@ -55,5 +63,19 @@ def test_generic_const_param_accepts_both_flavors(t : T?) {
         let from_const = sum_const_generic([iterator for(x in 100..103); x])
         t |> equal(60, from_mut)
         t |> equal(303, from_const)
+    }
+}
+
+[test]
+def test_plain_generic_flavor_siblings_no_ice(t : T?) {
+    // A PLAIN-element generic mints one instance per element flavor (mut, then
+    // const). Pre-fix a THIRD mut-source call ICE'd with `error[50609]: multiple
+    // instances of ...` — the instance re-lookup matched both siblings through
+    // element variance with no exact-flavor tie-break. Order matters: mut first.
+    let arr <- [1, 2, 3]
+    unsafe {
+        t |> equal(6, sum_plain_generic(each(arr)))
+        t |> equal(33, sum_plain_generic([iterator for(x in 10..13); x]))
+        t |> equal(6, sum_plain_generic(each(arr)))
     }
 }

@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE030: non-public 'require X' that is entirely unused — no symbol from X
 // (or anything it re-exports) is referenced. Drop it.
 //

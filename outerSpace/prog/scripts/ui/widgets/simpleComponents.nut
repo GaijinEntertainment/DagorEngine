@@ -5,7 +5,7 @@ from "math" import max
 
 let dtext = @(text, style=null) {text, rendObj=ROBJ_TEXT, color = Color(180,180,180)}.__update(style ?? {})
 
-let cursorC = Color(255,255,255,255)
+const cursorC = Color(255,255,255,255)
 let cursor = {
   rendObj = ROBJ_VECTOR_CANVAS
   size = fsh(2)
@@ -56,10 +56,10 @@ let drCorner = mkCorner([0,1,1,0], {hplace = ALIGN_RIGHT, vplace = ALIGN_BOTTOM}
 let dlCorner = mkCorner([0,0,1,1], {vplace = ALIGN_BOTTOM})
 let corners = freeze({children = [ulCorner, dlCorner, urCorner, drCorner] size = flex()})
 
-let menuBtnTextColorNormal = Color(150,250,200)
-let menuBtnTextColorHover = Color(255,255,255)
-let menuBtnFillColorNormal = 0
-let menuBtnFillColorHover = Color(50,50,50,60)
+const menuBtnTextColorNormal = Color(150,250,200)
+const menuBtnTextColorHover = Color(255,255,255)
+const menuBtnFillColorNormal = 0
+const menuBtnFillColorHover = Color(50,50,50,60)
 
 function menuBtn(text, onClick, style = null) {
   let stateFlags = Watched(0)

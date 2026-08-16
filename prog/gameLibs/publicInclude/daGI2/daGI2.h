@@ -178,6 +178,7 @@ public:
     const request_albedo_data_cb &albedo_cb, const cancel_albedo_data_cb &cancel_albedo_cb) = 0;
   virtual bool requiresUpdate() const = 0;
   virtual void updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const rasterize_albedo_cb &albedo_cb) = 0;
+  virtual void updateConstants() = 0;
   virtual void invalidateBox(const BBox3 &box) = 0;
   virtual void invalidateRadianceFrustum(const Frustum &frustum) = 0;
   enum class RadianceUpdate

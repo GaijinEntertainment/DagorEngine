@@ -14,8 +14,10 @@
 #include <memory/dag_framemem.h>
 #include <startup/dag_globalSettings.h>
 #include <effectManager/effectManagerDetails.h>
+#include <generic/dag_initOnDemand.h>
 #include <generic/dag_relocatableFixedVector.h>
 #include <landMesh/biomeQuery.h>
+#include <ska_hash_map/flat_hash_map2.hpp>
 
 #if DAGOR_DBGLEVEL > 0
 #include <debug/dag_log.h>
@@ -56,6 +58,42 @@ static ActiveShadowVec activeShadowVec;
 static int maxActiveShadows = 0;
 static float invMagnification = 1.0f;
 static float invMagnificationSq = 1.0f;
+
+struct FxGlobalConfig
+{
+  ska::flat_hash_map<eastl::string, Color4, ska::power_of_two_std_hash<eastl::string>> biomeColorReplacements;
+};
+static InitOnDemand<FxGlobalConfig> fx_global_config;
+
+void EffectManager::loadGlobalConfig(const DataBlock &fx_blk)
+{
+  fx_global_config.demandDestroy();
+  fx_global_config.demandInit();
+  auto &replacements = fx_global_config->biomeColorReplacements;
+  replacements.clear();
+  const DataBlock *replacementsBlk = fx_blk.getBlockByNameEx("biomeColorReplacement");
+  for (int b = 0; b < replacementsBlk->blockCount(); b++)
+  {
+    const DataBlock *replaceBlk = replacementsBlk->getBlock(b);
+    const Color4 color = Color4::xyzw(replaceBlk->getPoint4("color", Point4(1, 1, 1, 1)));
+    const int biomeNid = replaceBlk->getNameId("biome");
+    for (int i = 0; i < replaceBlk->paramCount(); i++)
+      if (replaceBlk->getParamNameId(i) == biomeNid && replaceBlk->getParamType(i) == DataBlock::TYPE_STRING)
+        replacements.emplace(eastl::string(replaceBlk->getStr(i)), color);
+  }
+}
+
+static Color4 get_biome_color_mult(const BiomeQueryResult &result)
+{
+  if (fx_global_config)
+    if (const char *groupName = biome_query::get_biome_group_name(result.mostFrequentBiomeGroupIndex))
+    {
+      auto it = fx_global_config->biomeColorReplacements.find_as(groupName);
+      if (it != fx_global_config->biomeColorReplacements.end())
+        return it->second;
+    }
+  return Color4::xyzw(result.averageBiomeColor);
+}
 
 void EffectManager::onSettingsChanged(bool shadows_enabled, int max_active_shadows)
 {
@@ -1009,7 +1047,7 @@ void EffectManager::updateLoading()
         continue;
       pe.biomeQueryId = -1;
       if (status == GpuReadbackResultState::SUCCEEDED)
-        pe.colorMult = Color4::xyzw(result.averageBiomeColor);
+        pe.colorMult = get_biome_color_mult(result);
     }
 
     const Point3 &pos = fx->tm.getcol(3);

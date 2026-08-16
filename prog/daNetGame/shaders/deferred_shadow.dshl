@@ -1,9 +1,6 @@
 include "deferred_shadow_common.dshl"
 include "camera_in_camera.dshl"
 
-int depth_bounds_support = 0;
-interval depth_bounds_support: no<1, yes;
-
 int envi_cover_use_in_resolve = 1;
 interval envi_cover_use_in_resolve : no < 1, yes;
 

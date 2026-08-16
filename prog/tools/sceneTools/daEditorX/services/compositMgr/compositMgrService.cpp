@@ -26,6 +26,7 @@
 #include <debug/dag_debug.h>
 #include <generic/dag_relocatableFixedVector.h>
 #include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstExtra.h>
 
 using namespace objgenerator; // prng
 
@@ -97,6 +98,37 @@ protected:
 
 static BoundsPool boxCache;
 
+// createSubEnt() knows the seeds a child composit must be built with, but the child is created through the
+// generic clone path, which builds the child's whole subtree right away. Handing the seeds over here lets
+// that subtree be built once, already seeded, instead of setSeed() tearing it down and rebuilding it and
+// setPerInstanceSeed() re-placing it - which for nested composits multiplied per level. The clone cannot
+// take them as arguments: it goes through IObjEntity::clone(), an interface shared by every entity service.
+// Scoped to one clone() call, and take() consumes them before that clone builds a subtree of its own.
+struct PendingCloneSeeds
+{
+  PendingCloneSeeds(bool arm, int rnd_seed, int inst_seed)
+  {
+    valid = arm;
+    rndSeed = rnd_seed;
+    instSeed = inst_seed;
+  }
+  ~PendingCloneSeeds() { valid = false; }
+
+  static bool take(int &rnd_seed, int &inst_seed)
+  {
+    if (!valid)
+      return false;
+    valid = false;
+    rnd_seed = rndSeed;
+    inst_seed = instSeed;
+    return true;
+  }
+
+private:
+  static inline bool valid = false;
+  static inline int rndSeed = 0, instSeed = 0;
+};
+
 
 class CompositEntity : public VirtualCompositEntity,
                        public IRandomSeedHolder,
@@ -109,6 +141,7 @@ public:
   CompositEntity(int cls) : VirtualCompositEntity(cls)
   {
     gizmoEnabled = 0;
+    interactiveMove = 0;
     boxId = -2;
     rndSeed = 123;
     autoRndSeed = true;
@@ -154,6 +187,9 @@ public:
   int getCompositSubEntityIdxByLabel(const char *label) override;
   void setCompositPlaceTypeOverride(int placeType) override;
   int getCompositPlaceTypeOverride() override { return placeTypeOverride; }
+  void setCompositInteractiveMove(bool on) override;
+  bool getCompositAutoInstSeed() override;
+  bool canCompositUseInstSeed() override;
 
   // IRandomSeedHolder interface
   void setSeed(int new_seed) override;
@@ -186,9 +222,13 @@ public:
   TMatrix tm;
   static constexpr unsigned BAD_ENT_IDX = 0x3FFFFFFFu;
   unsigned entIdx : 30;
-  unsigned autoRndSeed : 1, gizmoEnabled : 1;
+  unsigned autoRndSeed : 1, gizmoEnabled : 1, interactiveMove : 1;
   int rndSeed;
   int instSeed = 0;
+
+  // depth of the recursive setGizmoTranformMode()/setCompositInteractiveMove() propagation: a composit
+  // child runs the same function, and only the outermost call may repair the collision grid
+  static inline int gizmoModeDepth = 0;
   int placeTypeOverride = -1;
   mutable int boxId;
   unsigned short dataBlockId = IDataBlockIdHolder::invalid_id;
@@ -265,6 +305,7 @@ public:
     G_STATIC_ASSERT(IDataBlockIdHolder::invalid_id == 0);
     unsigned nextDataBlockId = 1;
     defPlaceTypeOverride = blk.getInt("placeTypeOverride", -1);
+    defAutoInstSeed = blk.getBool("autoInstSeed", true);
     loadAssetData(blk, nextDataBlockId, TMatrix::IDENT, false, ignoreParentSeeds);
     /*
     DAEDITOR3.conNote("beginInd.size=%d endInd.size=%d comp.size=%d", beginInd.size(), endInd.size(), comp.size());
@@ -349,15 +390,32 @@ public:
     return asset.getNameId() == assetNameId; // strcmp(assetFname, asset.getName()) == 0;
   }
 
+  // The per-instance seed handed to the sub-entities: explicit or inherited when there is one, a hash of
+  // the composit position otherwise. Both createSubEnt() and setTm() give it out, so it lives in one place.
+  // An explicit seed is also what makes a huge composit movable: it does not change as the composit moves,
+  // so setPerInstanceSeed() finds nothing to do and no sub-entity is rebuilt. autoInstSeed:b=no asks the
+  // editor to give a placed object one, it does not change what happens here.
+  int getSubEntInstSeed(CompositEntity *e, const TMatrix &e_tm)
+  {
+    if (!forceInstSeed0 && e->instSeed)
+    {
+      return e->instSeed;
+    }
+    return mem_hash_fnv1(reinterpret_cast<const char *>(&e_tm.m[3][0]), 3 * 4);
+  }
+
   void createSubEnt(CompositEntity *e)
   {
+    // No bulk update scope here: a freshly cloned sub-entity still has an uninitialized transform, so
+    // nothing below reaches the riExtra grid or the tiled scenes. The instances appear later, from the
+    // setTm() that places the subtree, and that call has its own scope.
     int realEntCnt = comp.size() - emptyComponents;
     if (realEntCnt <= 0)
       return;
     G_ASSERTF(e->entIdx == e->BAD_ENT_IDX, "e->entIdx=%d", e->entIdx);
     e->entIdx = ePool.addEntities(realEntCnt);
 
-    int seed = 0, pos_seed = (!forceInstSeed0 && e->instSeed) ? e->instSeed : mem_hash_fnv1((const char *)&e->tm.m[3][0], 12);
+    int seed = 0, pos_seed = getSubEntInstSeed(e, e->tm);
     int place_type_override = -1;
     if (ICompositObj *ico = e->queryInterface<ICompositObj>())
       place_type_override = ico->getCompositPlaceTypeOverride();
@@ -372,14 +430,24 @@ public:
         IObjEntity *entity = obj.ent;
         if (entity)
         {
+          const int inst_seed = comp[i].setInstSeed0 ? 0 : pos_seed;
           if (ISplineEntity *se = entity->queryInterface<ISplineEntity>())
             ePool.ent[e->entIdx + j] = se->createSplineEntityInstance();
           else
-            ePool.ent[e->entIdx + j] = IObjEntity::clone(entity);
-          if (IRandomSeedHolder *irsh = ePool.ent[e->entIdx + j]->queryInterface<IRandomSeedHolder>())
           {
-            irsh->setSeed(seed);
-            irsh->setPerInstanceSeed(comp[i].setInstSeed0 ? 0 : pos_seed);
+            // armed only for a composit child: another entity type may clone entities of its own inside
+            // clone(), and one of those would consume the seeds meant for this one
+            PendingCloneSeeds pending(entity->getAssetTypeId() == compositEntityClassId, seed, inst_seed);
+            ePool.ent[e->entIdx + j] = IObjEntity::clone(entity);
+          }
+          // a child composit was seeded by cloneEntity() before its subtree was built
+          if (!CompositEntity::castFrom(ePool.ent[e->entIdx + j]))
+          {
+            if (IRandomSeedHolder *irsh = ePool.ent[e->entIdx + j]->queryInterface<IRandomSeedHolder>())
+            {
+              irsh->setSeed(seed);
+              irsh->setPerInstanceSeed(inst_seed);
+            }
           }
           if (ICompositObj *ico = ePool.ent[e->entIdx + j]->queryInterface<ICompositObj>())
             ico->setCompositPlaceTypeOverride(place_type_override);
@@ -445,6 +513,7 @@ public:
   }
   void releaseSubEnt(CompositEntity *e)
   {
+    rendinst::ScopedRIExtraBulkUpdate riExtraBulkUpdate; // as in createSubEnt(), one grid flush for the subtree
     int realEntCnt = comp.size() - emptyComponents;
     if (realEntCnt > 0 && e->entIdx != e->BAD_ENT_IDX)
     {
@@ -533,6 +602,12 @@ public:
 
   void setTm(const TMatrix &tm, int ent_idx, CompositEntity *ce)
   {
+    // While the composit follows the mouse its sub-entities are kept out of the collision grid instead of
+    // being re-inserted per move; the end of the drag puts them back. The markers are set explicitly by
+    // whoever owns the drag, so a top-level move for any other reason (asset regeneration, generators)
+    // keeps the grid current - it has no matching end that would restore it. Children of a marked composit
+    // defer with it: the guard never clears an outer deferral, and the marked root's end restores them.
+    rendinst::ScopedRIExtraDeferGridUpdate deferGrid(ce->gizmoEnabled || ce->interactiveMove);
     if (tm.m[3][0] >= POS_NOT_INITED_XZ)
       return;
     int realEntCnt = comp.size() - emptyComponents;
@@ -543,7 +618,7 @@ public:
     TMatrix stm(tm);
 
     int rndseed;
-    int pos_seed = (!forceInstSeed0 && ce->instSeed) ? ce->instSeed : mem_hash_fnv1((const char *)&tm.m[3][0], 3 * 4);
+    const int pos_seed = getSubEntInstSeed(ce, tm);
     IRandomSeedHolder *irsh = ce->queryInterface<IRandomSeedHolder>();
     if (irsh)
       rndseed = irsh->getSeed();
@@ -619,8 +694,14 @@ public:
 
         if (e)
         {
-          if (IRandomSeedHolder *irsh = e->queryInterface<IRandomSeedHolder>())
-            irsh->setPerInstanceSeed(comp[i].setInstSeed0 ? 0 : pos_seed);
+          // Set the child's per-instance seed WITHOUT re-placing here. For a composit child the
+          // generic setPerInstanceSeed re-runs its whole subtree setTm, which e->setTm(stm) below
+          // immediately repeats -> ~2^depth on nested composits. e->setTm(stm) re-applies this seed.
+          const int inst_seed = comp[i].setInstSeed0 ? 0 : pos_seed;
+          if (CompositEntity *child_composit = CompositEntity::castFrom(e))
+            child_composit->instSeed = inst_seed;
+          else if (IRandomSeedHolder *irsh = e->queryInterface<IRandomSeedHolder>())
+            irsh->setPerInstanceSeed(inst_seed);
           if (ICompositObj *ico = e->queryInterface<ICompositObj>())
             ico->setCompositPlaceTypeOverride(ce->placeTypeOverride);
           e->setTm(stm);
@@ -665,6 +746,15 @@ public:
     for (int i = 0; i < realEntCnt; i++)
       if (ePool.ent[ent_idx + i])
         ePool.ent[ent_idx + i]->setGizmoTranformMode(enabled);
+  }
+  void setInteractiveMove(int ent_idx, bool on)
+  {
+    int realEntCnt = comp.size() - emptyComponents;
+    if (realEntCnt <= 0)
+      return;
+    for (int i = 0; i < realEntCnt; i++)
+      if (ICompositObj *c = ePool.ent[ent_idx + i] ? ePool.ent[ent_idx + i]->queryInterface<ICompositObj>() : nullptr)
+        c->setCompositInteractiveMove(on);
   }
   bool supportsColor(int ent_idx)
   {
@@ -761,6 +851,8 @@ public:
   // IDagorAssetChangeNotify interface
   void onAssetRemoved(int asset_name_id, int asset_type) override
   {
+    seedFlagGen++;
+    splineSubEnt = -1;
     // release all derivative entities
     if (comp.size())
       for (int i = ent.size() - 1; i >= 0; i--)
@@ -865,6 +957,60 @@ public:
     }
   }
   bool isSubEntGenerated() const { return generated; }
+
+  // Only the direct components matter: every level of recreateSubent() asks its own pool.
+  bool hasSplineSubEnt()
+  {
+    if (splineSubEnt >= 0)
+      return splineSubEnt != 0;
+
+    splineSubEnt = 0;
+    for (int i = 0; i < comp.size(); i++)
+      for (int j = 0; j < comp[i].entList.size(); j++)
+        if (comp[i].entList[j].ent && comp[i].entList[j].ent->queryInterface<ISplineEntity>())
+        {
+          splineSubEnt = 1;
+          return true;
+        }
+
+    return false;
+  }
+
+  bool getDefAutoInstSeed() const { return defAutoInstSeed; }
+  bool isForceInstSeed0() const { return forceInstSeed0; }
+
+  // Whether reseeding a composit of this asset can change anything. A component that picks by weight sets
+  // `generated`, so otherwise the seed only reaches the sub-entities, and most of them (riExtra above all)
+  // ignore it and say so through isSeedSetSupported(). Answering no lets setSeed() skip the regeneration
+  // and the subtree walk it recurses into. Composit components are asked through their own pool, because
+  // their virtual entity is a VirtualCompositEntity and does not implement IRandomSeedHolder.
+  bool seedAffectsResult()
+  {
+    if (seedAffectsRes >= 0 && seedAffectsGen == seedFlagGen)
+      return seedAffectsRes != 0;
+    seedAffectsGen = seedFlagGen;
+    seedAffectsRes = 1; // answer conservatively while computing, so a self referencing asset terminates
+    if (generated)
+      return true;
+    for (int i = 0; i < comp.size(); i++)
+      for (int j = 0; j < comp[i].entList.size(); j++)
+      {
+        IObjEntity *e = comp[i].entList[j].ent;
+        if (!e)
+          continue;
+        if (e->getAssetTypeId() == compositEntityClassId)
+        {
+          VirtualCompositEntity *vce = static_cast<VirtualCompositEntity *>(e);
+          if (!vce->getPool() || vce->getPool()->seedAffectsResult())
+            return true; // no pool: unknown, so answer conservatively
+        }
+        else if (IRandomSeedHolder *irsh = e->queryInterface<IRandomSeedHolder>())
+          if (irsh->isSeedSetSupported())
+            return true;
+      }
+    seedAffectsRes = 0;
+    return false;
+  }
 
 protected:
   struct ObjCoordData
@@ -990,7 +1136,15 @@ protected:
   DagorAssetMgr *aMgr;
   int assetNameId;
   int defPlaceTypeOverride = -1;
+  bool defAutoInstSeed = true; // asset level, read by getCompositAutoInstSeed()
   unsigned generated : 1, forceInstSeed0 : 1, quantizeTm : 1;
+  int seedAffectsRes = -1; // -1 not computed yet, see seedAffectsResult()
+  unsigned seedAffectsGen = 0;
+  int splineSubEnt = -1; // -1 not computed yet, see hasSplineSubEnt()
+
+  // bumped whenever any composit asset is reloaded: a pool's cached seedAffectsResult() answer covers its
+  // whole component tree, so one asset changing can invalidate the answer of any pool above it
+  static inline unsigned seedFlagGen = 1;
   SmallTab<bool, TmpmemAlloc> entIsReferenced;
   friend class CompositEntityManagementService;
 
@@ -1302,23 +1456,36 @@ void CompositEntity::setSeed(int new_seed)
   if (rndSeed == new_seed)
     return;
   rndSeed = new_seed;
-  if (!gizmoEnabled)
+  // the seed is still stored, so a later asset change that makes it matter regenerates from the right one
+  if (!gizmoEnabled && pool->getPools()[poolIdx]->seedAffectsResult())
     recreateSubent();
 }
 
 void CompositEntity::recreateSubent()
 {
+  // The pool setTm() below calls CompositEntity::setTm() per composit child, and each of those would
+  // otherwise open and close its own scope, flushing the collision grid once per child.
+  rendinst::ScopedRIExtraBulkUpdate riExtraBulkUpdate;
   CompositEntityPool *cPool = pool->getPools()[poolIdx];
   if (cPool->isSubEntGenerated() || entIdx == BAD_ENT_IDX)
   {
     cPool->releaseSubEnt(this);
     cPool->createSubEnt(this);
+    // sub-entities were just created, so they carry none of our own state yet
+    cPool->setTm(tm, entIdx, this);
+    cPool->setSubtype(subType, entIdx);
+    cPool->setEditLayerIdx(editLayerIdx, entIdx);
   }
   else
+  {
+    // Nothing was recreated, so the sub-entities keep the transform, subtype and layer they already have,
+    // and only their seed changes. A composit sub-entity re-places itself from its own setSeed(); a spline
+    // one is the exception that still needs a transform pass, because its setSeed() only stores the seed
+    // and its geometry is regenerated by setTm().
     cPool->updateSubEntSeed(this, rndSeed);
-  cPool->setTm(tm, entIdx, this);
-  cPool->setSubtype(subType, entIdx);
-  cPool->setEditLayerIdx(editLayerIdx, entIdx);
+    if (cPool->hasSplineSubEnt())
+      cPool->setTm(tm, entIdx, this);
+  }
 
   if (boxId >= 0)
     boxCache.del(boxId);
@@ -1327,6 +1494,9 @@ void CompositEntity::recreateSubent()
 
 void CompositEntity::setTm(const TMatrix &_tm)
 {
+  // Batch riExtra grid rebuilds across this whole (possibly nested) composit move; ref-counted, so
+  // nested composits share one deferral and the grid rebuilds once when the outermost setTm returns.
+  rendinst::ScopedRIExtraBulkUpdate riExtraBulkUpdate;
   G_ASSERTF_RETURN(!check_nan(_tm.getcol(3).x) && !check_nan(_tm.getcol(3).y) && !check_nan(_tm.getcol(3).z), ,
     "%p=%s[%d].setTm(_tm=%@), current tm=%@", getPool(), getPool()->getObjAssetName(), entIdx, _tm, tm);
   tm = _tm;
@@ -1366,11 +1536,37 @@ void CompositEntity::setGizmoTranformMode(bool enabled)
 {
   if (gizmoEnabled == enabled)
     return;
+  // Opened before the sub-entities are told, because every composit child runs this same function: with the
+  // scope any deeper it is entered at depth 0 once per node, and the whole tree pays a collision-grid and
+  // tiled-scene flush each time instead of one for the drag.
+  rendinst::ScopedRIExtraBulkUpdate riExtraBulkUpdate;
+  gizmoModeDepth++;
   gizmoEnabled = enabled;
   pool->getPools()[poolIdx]->setGizmoTranformMode(entIdx, enabled);
-  if (!gizmoEnabled)
+  // Only the outermost call rebuilds, and only it repairs the grid. The propagation above is depth first,
+  // so a rebuild at any deeper level is thrown away by the one above it - which also had to erase from the
+  // collision grid everything that level had just inserted. The outermost rebuild reaches the whole tree:
+  // it either recreates the sub-entities outright, or reseeds them, and a sub-entity whose seed decides
+  // what it contains rebuilds itself from its own setSeed().
+  if (--gizmoModeDepth == 0 && !gizmoEnabled)
+  {
     recreateSubent();
+    rendinst::flushRIExtraGridDefer();
+  }
 }
+void CompositEntity::setCompositInteractiveMove(bool on)
+{
+  if (interactiveMove == on)
+    return;
+  rendinst::ScopedRIExtraBulkUpdate riExtraBulkUpdate; // one scope for the whole tree, see setGizmoTranformMode
+  gizmoModeDepth++;
+  interactiveMove = on;
+  pool->getPools()[poolIdx]->setInteractiveMove(entIdx, on);
+  if (--gizmoModeDepth == 0 && !on)
+    rendinst::flushRIExtraGridDefer(); // the move is over, and only the outermost call repairs the grid
+}
+bool CompositEntity::getCompositAutoInstSeed() { return pool->getPools()[poolIdx]->getDefAutoInstSeed(); }
+bool CompositEntity::canCompositUseInstSeed() { return !pool->getPools()[poolIdx]->isForceInstSeed0(); }
 void CompositEntity::setColor(unsigned int in_color) { pool->getPools()[poolIdx]->setColor(in_color, entIdx); }
 bool CompositEntity::supportsColor() { return pool->getPools()[poolIdx]->supportsColor(entIdx); }
 
@@ -1387,6 +1583,11 @@ int CompositEntity::getCompositSubEntityIdxByLabel(const char *label)
 }
 void CompositEntity::setCompositPlaceTypeOverride(int placeType)
 {
+  // The pool call walks the whole sub-entity tree. A subtree always carries the composit's own value
+  // (createSubEnt propagates it right after addEntityRaw writes the field), so an unchanged value has
+  // nothing to update below.
+  if (placeTypeOverride == placeType)
+    return;
   pool->getPools()[poolIdx]->setCompositPlaceTypeOverride(placeTypeOverride = placeType, entIdx);
 }
 
@@ -1488,7 +1689,16 @@ public:
       ent = new CompositEntity(o->getAssetTypeId());
 
     ent->initTm();
-    ent->rndSeed = 124;
+    // taken before addEntity() builds the subtree, so it is already seeded when its components are picked
+    int cloneRndSeed = 0, cloneInstSeed = 0;
+    if (PendingCloneSeeds::take(cloneRndSeed, cloneInstSeed))
+    {
+      ent->rndSeed = cloneRndSeed;
+      ent->instSeed = cloneInstSeed;
+      ent->autoRndSeed = false; // as setSeed() did, which the caller no longer needs to call
+    }
+    else
+      ent->rndSeed = 124;
 
     cPool.addEntity(ent, o->poolIdx);
     // debug("clone ent: %p", ent);

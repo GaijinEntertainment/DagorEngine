@@ -24,6 +24,7 @@
 #include "daGIMediaScene.h"
 
 #include "skyVisibility.h"
+#include "skyVisibility/dagi_sky_vis.hlsli"
 #include <daGI2/daGI2.h>
 
 CONSOLE_BOOL_VAL("gi", gi_screen_probes, true);
@@ -48,6 +49,7 @@ CONSOLE_INT_VAL("gi", gi_draw_sequence, 0, 0, 1 << 20);
 CONSOLE_INT_VAL("gi", gi_debug_sky_visibility, 0, 0, 9);
 
 CONSOLE_BOOL_VAL("gi", gi_radiance_grid_update_position, true);
+extern void dagi_publish_irradiance_first_valid(int first_valid, float probe_size0);
 CONSOLE_INT_VAL("gi", gi_debug_radiance_grid_type, 0, 0, 4);
 CONSOLE_INT_VAL("gi", gi_debug_irradiance_grid_type, 0, 0, 6);
 CONSOLE_BOOL_VAL("gi", gi_auto_invalidation, true);
@@ -81,6 +83,11 @@ struct DaGIImpl final : public DaGI
     const request_albedo_data_cb &albedo_cb, const cancel_albedo_data_cb &cancel_albedo_cb);
   bool requiresUpdate() const;
   void updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const rasterize_albedo_cb &albedo_cb);
+  void updateConstants()
+  {
+    if (worldSdf)
+      worldSdf->updateConstants();
+  }
   void invalidateBox(const BBox3 &box);
   void invalidateRadianceFrustum(const Frustum &frustum);
   void setSettings(const DaGISettings &s) { nextSettings = s; }
@@ -226,6 +233,8 @@ void DaGIImpl::fix(DaGISettings &s) const
   if (s.radianceGrid.w)
     RadianceGrid::fixup_settings(s.radianceGrid.w, s.radianceGrid.d, s.radianceGrid.clips, s.radianceGrid.additionalIrradianceClips,
       s.radianceGrid.irradianceProbeDetail);
+
+  s.skyVisibility.clips = min<uint8_t>(s.skyVisibility.clips, DAGI_MAX_SKY_VIS_CLIPS);
 
 #if RADIANCE_CACHE
   s.radianceCache.probesMax = clamp(s.radianceCache.probesMax, 1.f, 16.f);
@@ -374,6 +383,10 @@ void DaGIImpl::updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const ras
   }
   if (skyVisibility)
     skyVisibility->updatePos(pos, false);
+  // a frozen grid (position updates off) never scrolls and never reads the
+  // lit scene back, so there is no feedback for the ambient gate to stop
+  if (radianceGrid && !gi_radiance_grid_update_position)
+    dagi_publish_irradiance_first_valid(-1, 0);
   /*
   carray<uint8_t, 16> worldClipToObjectMip;
   if (objectsSdf)
@@ -503,7 +516,7 @@ void DaGIImpl::updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const ras
           {
             SCOPE_RENDER_TARGET;
             ssgi.setSubsampledTargetAndOverride(maxRes*world_sdf_rasterize_supersample, maxRes*world_sdf_rasterize_supersample);
-            bool prims = rasterize_sdf_prims.get() && d3d::get_driver_desc().shaderModel < 6.1_sm;
+            bool prims = rasterize_sdf_prims.get() && !d3d::get_driver_desc().caps.hasBarycentrics;
             lruColl.rasterize(dag::Span<uint64_t>(handles.data(), handles.size()), tex, lruColl.voxelizeCollisionElem, 3, nullptr,
   prims); ssgi.resetOverride(); } else
           {

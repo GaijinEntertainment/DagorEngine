@@ -95,13 +95,14 @@ shader dof_downsample
     downsampled_close_depth_tex@smp2d = dof_downsampled_close_depth_tex;
     downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
     dof_coc_history@tex2d = dof_coc_history;
-    dof_mask@smp2d = dof_mask;
+    dof_mask@tex2d = dof_mask;
   }
   INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
   NEAR_FAR_DEFINES()
 
   hlsl(ps) {
     #define dof_coc_history_samplerstate global_linear_clamp_sampler
+    #define dof_mask_samplerstate global_linear_clamp_sampler
     #include <dof/circleOfConfusion.hlsl>
 
     struct OutDownscaleDof

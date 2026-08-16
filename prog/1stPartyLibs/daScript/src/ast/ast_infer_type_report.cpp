@@ -2,13 +2,56 @@
 
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_generate.h"
+#include "daScript/ast/ast_handle.h"
 #include "daScript/ast/ast_infer_type.h"
 #include "daScript/ast/ast_visitor.h"
 
 namespace das {
 
-    // in ast_handle of all places, due to reporting fields
-    void reportTrait(const TypeDeclPtr &type, const string &prefix, const callable<void(const TypeDeclPtr &, const string &)> &report);
+    void reportTrait ( const TypeDeclPtr & type, const string & prefix, set<Structure *> & visited, const callable<void(const TypeDeclPtr &, const string &)> & report ) {
+        report(type, prefix);
+        if ( type->baseType==Type::tPointer ) {
+            // trait never propages via pointer
+            //if ( type->firstType ) reportTrait(type->firstType, prefix, visited, report);
+        } else if ( type->baseType==Type::tStructure ) {
+            if ( type->structType ) {
+                if ( visited.find(type->structType)!=visited.end() ) return;
+                visited.insert(type->structType);
+                for ( auto & fld : type->structType->fields ) {
+                    reportTrait(fld.type, prefix+"."+fld.name, visited, report);
+                }
+            }
+        } else if ( type->baseType==Type::tTuple || type->baseType==Type::tVariant ) {
+            if ( type->argNames.size() ) {
+                int index = 0;
+                for ( auto & argN : type->argNames ) {
+                    reportTrait(type->argTypes[index], prefix+"."+argN, visited, report);
+                    index++;
+                }
+            } else if ( type->argTypes.size() ) {
+                for ( size_t i=0; i!=type->argTypes.size(); ++i ) {
+                    reportTrait(type->argTypes[i], prefix+"."+to_string(i), visited, report);
+                }
+            }
+        } else if ( type->baseType==Type::tArray ) {
+            if ( type->firstType ) reportTrait(type->firstType, prefix+"[]", visited, report);
+        } else if ( type->baseType==Type::tTable ) {
+            if ( type->firstType ) reportTrait(type->firstType, prefix+".key", visited, report);
+            if ( type->secondType ) reportTrait(type->secondType, prefix+".value", visited, report);
+        } else if ( type->baseType==Type::tHandle ) {
+            if ( type->annotation->rtti_isBasicStructureAnnotation() ) {
+                auto sa = (BasicStructureAnnotation *)(type->annotation);
+                for ( auto & fld : sa->fields ) {
+                    reportTrait((fld.second).decl, prefix+"."+fld.first, visited, report);
+                }
+            }
+        }
+    }
+
+    void reportTrait ( const TypeDeclPtr & type, const string & prefix, const callable<void(const TypeDeclPtr &, const string &)> & report ) {
+        set<Structure *> visited;
+        reportTrait(type, prefix, visited, report);
+    }
 
     string InferTypes::reportInferAliasErrors(const TypeDeclPtr &decl) const {
         if (!verbose)

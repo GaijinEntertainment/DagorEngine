@@ -15,7 +15,7 @@ def OvFoo_setXY(var that : OvFoo; x, y : int) {
 
 struct OvFoo3D : OvFoo {
     z : int = 3
-    override set = cast<auto> @@OvFoo3D_setXY
+    override set = cast<auto>(@@OvFoo3D_setXY)
     override set2 = @@OvFoo3D_setXY2
 }
 
@@ -27,7 +27,7 @@ def OvFoo3D_setXY(var that : OvFoo3D; x, y : int) {
 
 def OvFoo3D_setXY2(var _that : OvFoo; x, y : int) {
     unsafe {
-        var that : OvFoo3D& = upcast<auto> _that
+        var that : OvFoo3D& = upcast<auto>(_that)
         that.x = x
         that.y = y
         that.z = 0

@@ -58,12 +58,19 @@ public:
   DeferredRenderTarget &operator=(const DeferredRenderTarget &) = delete;
 
   void resourceBarrier(ResourceBarrier barrier);
-  void setRt() { renderTargets.setRt(); }
+  void setRt(DepthAccess depth_access = DepthAccess::RW, BaseTexture *depth_override = nullptr)
+  {
+    renderTargets.setRt(depth_access, depth_override);
+  }
   void resolve(BaseTexture *resolveTarget, const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *depth_bounds_tex = nullptr,
     ShadingResolver::ClearTarget clear_target = ShadingResolver::ClearTarget::No, const TMatrix4 &gbufferTm = TMatrix4::IDENT,
     const RectInt *resolve_area = nullptr);
   void setVar() { renderTargets.setVar(); }
   void resetVar() { renderTargets.resetVar(); }
+  void setUvTransform(const Point4 &uv_transform, const IPoint4 &uv_transform_i)
+  {
+    renderTargets.setUvTransform(uv_transform, uv_transform_i);
+  }
   void changeResolution(const int w, const int h) { renderTargets.changeResolution(w, h); }
   void debugRender(BaseTexture *depth = nullptr, int show_gbuffer = USE_DEBUG_GBUFFER_MODE);
   void debugRenderVectors(int show_gbuffer = USE_DEBUG_GBUFFER_MODE, int vec_count = -1, int vec_scale = 0.f);

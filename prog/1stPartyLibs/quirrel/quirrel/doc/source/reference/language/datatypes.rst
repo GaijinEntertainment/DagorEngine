@@ -26,10 +26,14 @@ the ``types`` module):
 * ``Class``
 * ``Instance``
 * ``WeakRef``
-* ``Userdata``
+* ``UserData``
 
 These classes can be used with ``instanceof`` for type checking.
 See :ref:`Built-in Type Classes <builtin_type_classes>` for available methods on each type.
+
+.. note:: Instances of script classes are an exception: for them ``instanceof``
+    only walks the script class hierarchy, so ``x instanceof Instance`` is always
+    false. Use ``type(x) == "instance"`` to test whether a value is a class instance.
 
 .. _userdata-index:
 

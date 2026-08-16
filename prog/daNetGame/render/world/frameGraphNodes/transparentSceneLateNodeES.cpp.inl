@@ -85,7 +85,13 @@ dafg::NodeHandle makeMainHeroTransNode(MainNodeRenderPass mode)
     else
       registry.requestRenderPass().color({"target_for_transparency"}).depthReadTestOnly("depth_for_transparency");
 
-    registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewTm>().bindAsProj<&CameraParams::jitterProjTm>();
+    // implicitly relies on multiplexed glass resources
+    registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
+
+    auto cameraHndl = registry.readBlob<CameraParams>("current_cockpit_camera")
+                        .bindAsView<&CameraParams::viewTm>()
+                        .bindAsProj<&CameraParams::jitterProjTm>()
+                        .handle();
     registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
     read_prev_frame_tex(registry);
 
@@ -96,11 +102,10 @@ dafg::NodeHandle makeMainHeroTransNode(MainNodeRenderPass mode)
 
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
 
-    registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
-    auto cameraHndl = read_camera_in_camera(registry).handle();
-
     return [cameraHndl, debugTriangle](const dafg::multiplexing::Index multiplex_index) {
-      const camera_in_camera::ApplyMasterState camcam{multiplex_index};
+      if (multiplex_index.subCamera != 0)
+        return;
+
       STATE_GUARD_0(ShaderGlobal::set_int(var::rendinst_transparent_triangle_size_debug, VALUE), debugTriangle);
       render_mainhero_trans(cameraHndl.ref().viewTm);
     };

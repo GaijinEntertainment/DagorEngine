@@ -1,4 +1,8 @@
 options gen2
+// these tests exercise jitted array access through REAL calls; a splice of
+// outOfRange would expose the literal x[13] to the folder and turn the intended
+// runtime panic into a compile-time 50300
+options auto_inline_functions = false
 require dastest/testing_boost
 
 struct Foo {
@@ -36,8 +40,8 @@ def make_dim_cmres {
 }
 
 def make_dim_on_stack(which : bool) {
-    var a = fixed_array<int>(1, 2, 3, 4, 5)
-    var b = fixed_array<int>(6, 7, 8, 9, 10)
+    let a = fixed_array<int>(1, 2, 3, 4, 5)
+    let b = fixed_array<int>(6, 7, 8, 9, 10)
     return which ? a : b
 }
 
@@ -69,7 +73,7 @@ def test_dim(t : T?) {
         var x : int[10]
         var failed = false
         try {
-            var r = outOfRange(x, 13)
+            let r = outOfRange(x, 13)
             t |> success(r == 123456)// code never gets here
         } recover {
             failed = true
@@ -78,7 +82,7 @@ def test_dim(t : T?) {
     }
     t |> run("make dim cmres") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@make_dim_cmres))
-        var x = make_dim_cmres()
+        let x = make_dim_cmres()
         t |> equal(length(x), 5)
         for (i in range(5)) {
             t |> equal(x[i], i + 1)
@@ -86,8 +90,8 @@ def test_dim(t : T?) {
     }
     t |> run("make dim on stack") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@make_dim_on_stack))
-        var a = make_dim_on_stack(true)
-        var b = make_dim_on_stack(false)
+        let a = make_dim_on_stack(true)
+        let b = make_dim_on_stack(false)
         t |> equal(length(a), 5)
         t |> equal(length(b), 5)
         for (i in range(5)) {
@@ -97,7 +101,7 @@ def test_dim(t : T?) {
     }
     t |> run("make dim with index to call cmres") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@make_dim_with_index_call_to_cmres))
-        var x = make_dim_with_index_call_to_cmres()
+        let x = make_dim_with_index_call_to_cmres()
         t |> equal(length(x), 5)
         for (i in range(5)) {
             t |> equal(x[i].a, i + 1)
@@ -106,7 +110,7 @@ def test_dim(t : T?) {
     }
     t |> run("make struct with subdim") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@make_struct_with_subdim))
-        var x = make_struct_with_subdim()
+        let x = make_struct_with_subdim()
         for (i in range(5)) {
             t |> equal(x.a[i], i + 1)
             t |> equal(x.b[i], i + 6)

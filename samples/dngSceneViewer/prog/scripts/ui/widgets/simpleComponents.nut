@@ -4,10 +4,10 @@ from "math" import max
 
 let dtext = @(text, style=null) {text, rendObj=ROBJ_TEXT, color = Color(180,180,180)}.__update(style ?? {})
 
-let cursorC = Color(255,255,255,255)
+const cursorC = Color(255,255,255,255)
 let cursor = {
   rendObj = ROBJ_VECTOR_CANVAS
-  size = [fsh(2), fsh(2)]
+  size = const [fsh(2), fsh(2)]
   hotspot = [0, 0]
   commands = [
     [VECTOR_WIDTH, hdpx(1)],
@@ -47,17 +47,17 @@ let vflow = @(...) { flow = FLOW_VERTICAL children=flatten(vargv), gap = hdpx(5)
 let hudTxt  = @(text) {text, rendObj=ROBJ_TEXT, color = Color(150,250,150)}
 
 
-let mkCorner = @(borderWidth, style=null) freeze({rendObj = ROBJ_FRAME borderWidth color = Color(105,105,105,105) size = [hdpx(10), hdpx(10)]}.__update(style ?? {}))
+let mkCorner = @(borderWidth, style=null) freeze({rendObj = ROBJ_FRAME borderWidth color = Color(105,105,105,105) size = const [hdpx(10), hdpx(10)]}.__update(style ?? {}))
 let ulCorner = mkCorner([1,0,0,1])
 let urCorner = mkCorner([1,1,0,0], {hplace = ALIGN_RIGHT})
 let drCorner = mkCorner([0,1,1,0], {hplace = ALIGN_RIGHT, vplace = ALIGN_BOTTOM})
 let dlCorner = mkCorner([0,0,1,1], {vplace = ALIGN_BOTTOM})
 let corners = freeze({children = [ulCorner, dlCorner, urCorner, drCorner] size = flex()})
 
-let menuBtnTextColorNormal = Color(150,250,200)
-let menuBtnTextColorHover = Color(255,255,255)
-let menuBtnFillColorNormal = 0
-let menuBtnFillColorHover = Color(50,50,50,60)
+const menuBtnTextColorNormal = Color(150,250,200)
+const menuBtnTextColorHover = Color(255,255,255)
+const menuBtnFillColorNormal = 0
+const menuBtnFillColorHover = Color(50,50,50,60)
 
 function menuBtn(text, onClick, style = null) {
   let stateFlags = Watched(0)
@@ -98,12 +98,12 @@ function input(text_state, state_flags, group, placeholder, fontSize) {
     borderColor = (sf & S_HOVER) ? Color(195,195,195) : ((sf & S_KB_FOCUS) ? Color(155,155,155) : Color(40,40,40))
     group
     size = flex()
-    padding = [hdpx(2), hdpx(5)]
+    padding = const [hdpx(2), hdpx(5)]
     watch = [state_flags, text_state]
     valign = ALIGN_CENTER
     children = {
       rendObj = ROBJ_TEXT
-      size = [flex(), SIZE_TO_CONTENT]
+      size = const [flex(), SIZE_TO_CONTENT]
       group
       behavior = Behaviors.TextInput
       text = text_state.get()
@@ -153,12 +153,12 @@ function listItem(text, onClick, isCurrent) {
   return @() {
     rendObj = ROBJ_BOX
     onClick
-    size = [flex(), SIZE_TO_CONTENT]
+    size = const [flex(), SIZE_TO_CONTENT]
     minWidth = SIZE_TO_CONTENT
     behavior = Behaviors.Button
     watch = stateFlags
     onElemState = @(s) stateFlags.set(s)
-    padding = [hdpx(5), hdpx(10)]
+    padding = const [hdpx(5), hdpx(10)]
     fillColor = stateFlags.get() & S_HOVER ? menuBtnFillColorHover : menuBtnFillColorNormal
     children = {
       color = (stateFlags.get() & S_HOVER)
@@ -211,13 +211,13 @@ function mkCombo(opt, _group=null, _xmbNode=null) {
     color = Color(0,0,0, 150)
     eventPassThrough = true
     onClick = close
-    rendObj = ROBJ_SOLID pos = [-sw(101), -sh(101)] size = [sw(202), sh(202)]
+    rendObj = ROBJ_SOLID pos = [-sw(101), -sh(101)] size = const [sw(202), sh(202)]
   })
 
   function popup(){
     return {
       stopMouse = true
-      size = [0,0]
+      size = const [0,0]
       children = [back, list]
       zOrder = 1
     }
@@ -240,7 +240,7 @@ function mkCombo(opt, _group=null, _xmbNode=null) {
   return function() {
     return {
       flow = FLOW_HORIZONTAL
-      size = [flex(), SIZE_TO_CONTENT]
+      size = const [flex(), SIZE_TO_CONTENT]
       onDetach = close
       valign = ALIGN_CENTER
       gap = hdpx(10)

@@ -212,6 +212,14 @@ void init()
   create_billboard_blases();
 }
 
+void collect_blas_addresses(dag::Vector<uint64_t> &addresses)
+{
+  if (billboard_blas)
+    addresses.push_back(billboard_blas.getGPUAddress());
+  if (billboard_shadow_blas)
+    addresses.push_back(billboard_shadow_blas.getGPUAddress());
+}
+
 void teardown()
 {
   billboard_blas.reset();

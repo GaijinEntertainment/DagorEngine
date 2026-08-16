@@ -527,10 +527,10 @@ namespace drv3d_dx12::debug::gpu_postmortem::nvidia
 LibPointer Aftermath::try_load_library()
 {
   static const char libName[] =
-#if _TARGET_64BIT
+#if _TARGET_ARCH_ARM64
+    "GFSDK_Aftermath_Lib.arm64.dll";
+#elif _TARGET_ARCH_X86_64
     "GFSDK_Aftermath_Lib.x64.dll";
-#else
-    "GFSDK_Aftermath_Lib.x86.dll";
 #endif
   logdbg("DX12: ...loading '%s'...", libName);
   return {LoadLibraryA(libName), {}};
@@ -832,7 +832,7 @@ void Aftermath::onDeviceRemoved(D3DDevice *, HRESULT reason, call_stack::Reporte
   lastError = reason;
   if (DXGI_ERROR_INVALID_CALL == reason)
   {
-    // Invalid call is catched by the runtime and we will not get anything from Aftermath.
+    // Invalid call is caught by the runtime and we will not get anything from Aftermath.
     return;
   }
 

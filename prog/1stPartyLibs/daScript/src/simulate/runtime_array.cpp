@@ -14,6 +14,7 @@ namespace das
         arr.size = arr.capacity = capacity;
         arr.lock = 1;
         arr.magic = DAS_ARRAY_MAGIC;
+        arr.borrowed = true;
     }
 
     void array_mark_locked ( Array & arr, void * data, uint64_t size, uint64_t capacity ) {
@@ -22,6 +23,23 @@ namespace das
         arr.capacity = capacity;
         arr.lock = 1;
         arr.magic = DAS_ARRAY_MAGIC;
+        arr.borrowed = true;
+    }
+
+    // the inverse of array_mark_locked for views that outlive a temp scope: reset the view
+    // WITHOUT freeing the storage (it belongs to a file mapping / another allocator). false =
+    // not a mark_locked view (untouched) — callers turn that into a runtime error. The
+    // borrowed bit is the discriminator: an OWNED array that merely holds a lock has the same
+    // lock/magic signature, and "forgetting" it would leak its storage.
+    bool array_forget_locked ( Array & arr ) {
+        if ( arr.lock != 1 || arr.magic != DAS_ARRAY_MAGIC || !arr.borrowed ) return false;
+        arr.data = nullptr;
+        arr.size = 0;
+        arr.capacity = 0;
+        arr.lock = 0;
+        arr.magic = 0;
+        arr.flags = 0;  // the whole word (incl. borrowed) — back to the fresh-empty-array state
+        return true;
     }
 
     void array_lock ( Context & context, Array & arr, LineInfo * at ) {
@@ -96,6 +114,15 @@ namespace das
             context.throw_error_at(at, "array_resize: newSize exceeds INT64_MAX [newSize=%llu]", (unsigned long long)newSize);
         }
         if ( newSize > arr.capacity ) {
+            // Without this, the pow2 round-up below silently doubles a huge one-shot allocation;
+            // an exact reserve (never rounded) is the deliberate spelling. Divide: newSize*stride
+            // can overflow uint64 (same trick as the array_reserve guard).
+            if ( stride && newSize > context.maxUnreservedSize / uint64_t(stride) ) {
+                context.throw_error_at(at, "array resize to %llu elements of %u bytes each grows past max_unreserved_size (%llu bytes); reserve the final size first, ensure_capacity for open-ended appends, or raise the max_unreserved_size option",
+                    (unsigned long long)newSize, stride, (unsigned long long)context.maxUnreservedSize);
+            }
+            // Round the capacity up to the next power of two, leaving slack so append-style
+            // repeated resize stays amortized O(1) (push grows geometrically via array_grow).
             uint64_t newCapacity = uint64_t(1) << (64 - das_clz64(das::max(newSize, uint64_t(2)) - 1));
             newCapacity = das::max(newCapacity, uint64_t(16));
             // The pow2 round-up overflows past INT64_MAX when newSize > 2^62; clamp so the
@@ -103,7 +130,9 @@ namespace das
             if ( newCapacity > uint64_t(INT64_MAX) ) newCapacity = uint64_t(INT64_MAX);
             array_reserve(context, arr, newCapacity, stride, at);
         }
-        if ( zero && newSize>arr.size ) {
+        // stride 0 (zero-size elements) allocates nothing, so arr.data stays null - and
+        // memset's first argument is declared nonnull even for a zero byte count (UBSan)
+        if ( zero && newSize>arr.size && stride ) {
             memset ( arr.data + arr.size*stride, 0, size_t(newSize-arr.size)*size_t(stride) );
         }
         arr.size = newSize;

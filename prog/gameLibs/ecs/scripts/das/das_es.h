@@ -14,6 +14,7 @@
 #include <daScript/misc/sysos.h>
 #include <ecs/scripts/dascripts.h>
 #include <dasModules/dasCreatingTemplate.h>
+#include <osApiWrappers/dag_atomic.h>
 
 struct DasEcsStatistics;
 
@@ -35,7 +36,7 @@ struct BaseEsDesc
   eastl::unique_ptr<uint8_t[]> flags;
   eastl::unique_ptr<vec4f[]> def;
 
-  bool resolved = false;
+  int resolved = 0; // access only via interlocked ops: resolution may run concurrently
   bool useManager = false;
   uint8_t combinedFlags = 0;
 
@@ -64,8 +65,8 @@ struct BaseEsDesc
   {
     return make_span_const<ecs::ComponentDesc>(compPtr(c), (uint32_t)compCount(c));
   }
-  bool isResolved() const { return resolved; }
-  void resolveUnresolved(ecs::EntityManager *mgr)
+  bool isResolved() const { return interlocked_acquire_load(resolved) != 0; }
+  void ensureResolved(ecs::EntityManager *mgr)
   {
     if (!isResolved())
       resolveUnresolvedOutOfLine(mgr);

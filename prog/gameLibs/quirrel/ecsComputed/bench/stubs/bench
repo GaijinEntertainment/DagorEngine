@@ -1,0 +1,13 @@
+// Stub of the "bench" native module main.cpp binds, for csq static analysis.
+// The values are whatever the harness passes on the command line; analysis only
+// needs the names and types.
+return {
+  mode = "pull"
+  shape = "map"
+  subscribed = true
+  filterMode = "off"
+  log = @(_s) null
+  subscribedCount = 0
+  derivedCount = 0
+  sameWrites = false
+}

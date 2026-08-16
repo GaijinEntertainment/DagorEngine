@@ -35,9 +35,9 @@ const char *HeightmapLandOutlinerInterface::getTypeName(int type, bool plural)
   return nullptr;
 }
 
-bool HeightmapLandOutlinerInterface::isTypeVisible(int type) { return objectTypeStates[type].visible; }
+bool HeightmapLandOutlinerInterface::isTypeVisible(int type) { return LandscapeObjectTypeState::types[type].visible; }
 
-bool HeightmapLandOutlinerInterface::isTypeLocked(int type) { return objectTypeStates[type].locked; }
+bool HeightmapLandOutlinerInterface::isTypeLocked(int type) { return LandscapeObjectTypeState::types[type].locked; }
 
 bool HeightmapLandOutlinerInterface::doesSelectionModeAllowSelectingType(int type)
 {
@@ -94,7 +94,7 @@ void HeightmapLandOutlinerInterface::selectAllTypeObjects(int type, bool select)
   objectEditor.getUndoSystem()->begin();
 
   for (int i = 0; i < EditLayerProps::layerProps.size(); ++i)
-    if (EditLayerProps::layerProps[i].type == type && !EditLayerProps::layerProps[i].lock)
+    if (EditLayerProps::layerProps[i].type == type && !EditLayerProps::layerProps[i].isLayerOrTypeLocked())
       HmapLandPlugin::self->selectLayerObjects(i, select);
 
   objectEditor.getUndoSystem()->accept("Type selection in Outliner");
@@ -102,40 +102,18 @@ void HeightmapLandOutlinerInterface::selectAllTypeObjects(int type, bool select)
 
 void HeightmapLandOutlinerInterface::toggleTypeVisibility(int type)
 {
-  const bool newVisible = !objectTypeStates[type].visible;
-  objectTypeStates[type].visible = newVisible;
-
-  for (int i = 0; i < EditLayerProps::layerProps.size(); ++i)
-  {
-    EditLayerProps &layerProp = EditLayerProps::layerProps[i];
-
-    if (layerProp.type == type)
-    {
-      layerProp.hide = !newVisible;
-
-      LayerHiddenMask lhMask = DAEDITOR3.getEntityLayerHiddenMask();
-      lhMask.setHidden(i, layerProp.hide);
-      DAEDITOR3.setEntityLayerHiddenMask(lhMask);
-    }
-  }
+  LandscapeObjectTypeState::types[type].visible = !LandscapeObjectTypeState::types[type].visible;
+  EditLayerProps::updateEntityLayerHiddenMask();
 }
 
 void HeightmapLandOutlinerInterface::toggleTypeLock(int type)
 {
-  const bool newLock = !objectTypeStates[type].locked;
-  objectTypeStates[type].locked = newLock;
+  const bool newLock = !LandscapeObjectTypeState::types[type].locked;
+  LandscapeObjectTypeState::types[type].locked = newLock;
 
   for (int i = 0; i < EditLayerProps::layerProps.size(); ++i)
-  {
-    EditLayerProps &layerProp = EditLayerProps::layerProps[i];
-
-    if (layerProp.type == type)
-    {
-      layerProp.lock = newLock;
-      if (layerProp.lock)
-        HmapLandPlugin::self->selectLayerObjects(i, false);
-    }
-  }
+    if (EditLayerProps::layerProps[i].type == type && newLock)
+      HmapLandPlugin::self->selectLayerObjects(i, false);
 }
 
 int HeightmapLandOutlinerInterface::addNewLayer(int type, const char *name)
@@ -150,6 +128,9 @@ int HeightmapLandOutlinerInterface::addNewLayer(int type, const char *name)
     return -1;
 
   EditLayerProps::layerProps[layerPropsIndex].renameable = true;
+
+  // The object type could be hidden, so update the mask.
+  EditLayerProps::updateEntityLayerHiddenMask();
 
   objectEditor.invalidateObjectProps();
 
@@ -187,7 +168,7 @@ bool HeightmapLandOutlinerInterface::isLayerVisible(int type, int per_type_layer
 {
   EditLayerProps *props = getEditLayerProps(type, per_type_layer_index);
   if (props)
-    return !props->hide;
+    return !props->isLayerOrTypeHidden();
 
   G_ASSERT(false);
   return true;
@@ -197,7 +178,7 @@ bool HeightmapLandOutlinerInterface::isLayerLocked(int type, int per_type_layer_
 {
   EditLayerProps *props = getEditLayerProps(type, per_type_layer_index);
   if (props)
-    return props->lock;
+    return props->isLayerOrTypeLocked();
 
   G_ASSERT(false);
   return false;
@@ -276,7 +257,7 @@ void HeightmapLandOutlinerInterface::setLayerActive(int type, int per_type_layer
 void HeightmapLandOutlinerInterface::selectAllLayerObjects(int type, int per_type_layer_index, bool select)
 {
   const int layerPropsIndex = getLayerPropsIndex(type, per_type_layer_index);
-  if (EditLayerProps::layerProps[layerPropsIndex].lock)
+  if (EditLayerProps::layerProps[layerPropsIndex].isLayerOrTypeLocked())
     return;
 
   HmapLandPlugin::self->selectLayerObjects(layerPropsIndex, select);
@@ -291,10 +272,7 @@ void HeightmapLandOutlinerInterface::toggleLayerVisibility(int type, int per_typ
   EditLayerProps &layerProp = EditLayerProps::layerProps[layerPropsIndex];
 
   layerProp.hide = !layerProp.hide;
-
-  LayerHiddenMask lhMask = DAEDITOR3.getEntityLayerHiddenMask();
-  lhMask.setHidden(layerPropsIndex, layerProp.hide);
-  DAEDITOR3.setEntityLayerHiddenMask(lhMask);
+  EditLayerProps::updateEntityLayerHiddenMask();
 }
 
 void HeightmapLandOutlinerInterface::toggleLayerLock(int type, int per_type_layer_index)

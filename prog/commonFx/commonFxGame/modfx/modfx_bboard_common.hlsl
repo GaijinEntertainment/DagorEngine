@@ -42,6 +42,10 @@
   #endif
 #endif
 
+#if MODFX_USE_FOG && !MODFX_USE_FOG_PS_APPLY && !FX_FOG_MULT_ALPHA && FX_FOG_EMISSION_IN_PS
+  #define EMISSION_PS_FOG_MULT 1
+#endif
+
 #if MODFX_RIBBON_SHAPE
   #define PARAM_INTERPOLATION linear
 #else
@@ -123,7 +127,7 @@
     float4 scattering_base                                     : TEXCOORD14;
   #else
     float3 fog_add    : TEXCOORD5;
-    #if FX_FOG_MULT_ALPHA
+    #if FX_FOG_MULT_ALPHA || EMISSION_PS_FOG_MULT
       float3 fog_mul : TEXCOORD14;
     #endif
   #endif
@@ -343,39 +347,7 @@
     return mvAB;
   }
 
-  float3 calc_debug_color(float2 delta_xy, float delta_scale, float border_scale, float center_scale)
-  {
-    float2 dd = delta_xy.xy * 0.5 + 0.5;
-
-    float border = 0;
-    float tt = 0.05;
-    if ( dd.x < tt || dd.x > ( 1 - tt ) )
-      border = 1;
-
-    if ( dd.y < tt || dd.y > ( 1 - tt ) )
-      border = 1;
-
-    float center = 0;
-    if ( dot( delta_xy, delta_xy ) < 0.3 )
-      center = 1;
-
-    dd *= delta_scale;
-    border *= border_scale;
-    center *= center_scale;
-
-    float3 color;
-    color.r = ( center > 0 ? 1 : 0 );
-    color.gb = ( center > 0 ? 0 : 1 ) * dd;
-    color.rgb += border;
-    color = saturate( color );
-    return color;
-  }
-
-  float3 calc_debug_color(float2 delta_xy)
-  {
-    // default params for debug rendering
-    return calc_debug_color(delta_xy, 0.1, 0.2, 0.3);
-  }
+  #include "fx_debug_color.hlsli"
 
   bool color_discard_test(float4 src, uint flags)
   {

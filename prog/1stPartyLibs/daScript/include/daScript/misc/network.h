@@ -1,5 +1,7 @@
 #pragma once
 
+#include "daScript/misc/platform.h"
+
 namespace das {
     #ifdef _WIN32
         #ifdef _WIN64
@@ -11,7 +13,7 @@ namespace das {
         typedef int socket_t;
     #endif
 
-    class Server {
+    class DAS_API Server {
     public:
         Server ();
         virtual ~Server();

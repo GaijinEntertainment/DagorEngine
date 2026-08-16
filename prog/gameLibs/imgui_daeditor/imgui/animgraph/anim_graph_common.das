@@ -211,7 +211,7 @@ def out_pin(id : int; text : string implicit; indent : float; blk : block<() : v
   ImGuiEx_EndColumn()
 
 
-def link_child(var graph : AnimationGraph; var nod : IAnimBlendNode?; outId : int; var childNode : IAnimBlendNode?; var context : AnimgraphContext)
+def link_child(graph : AnimationGraph; var nod : IAnimBlendNode?; outId : int; var childNode : IAnimBlendNode?; var context : AnimgraphContext)
   if childNode == null
     return
   let childNodeId = *childNode |> anim_blend_node_getAnimNodeId()
@@ -228,7 +228,7 @@ def link_child(var graph : AnimationGraph; var nod : IAnimBlendNode?; outId : in
   print("'{name}' : {*nod |> anim_blend_node_class_name()} {graph |> anim_graph_getAnimNodeName(*nod |> anim_blend_node_getAnimNodeId)} child mismatch {*childNode |> anim_blend_node_getAnimNodeId} {*childNode |> anim_blend_node_class_name()}")
 
 
-def get_param_value_str(var state : AnimGraphStateHolder; var graph : AnimationGraph; paramId : int)
+def get_param_value_str(state : AnimGraphStateHolder; graph : AnimationGraph; paramId : int)
   var paramValue = "-"
   if paramId >= 0
     let paramType = graph |> anim_graph_getParamType(paramId)
@@ -258,7 +258,7 @@ def set_anim_char_view_vars(vars_blk : DataBlock)
     param_view_settings |> insert("{paramBlk |> datablock_getBlockName()}", settings)
 
 
-def get_enum_items(var graph : AnimationGraph; enum_cls : string; var names : array<string>; var values : array<int>)
+def get_enum_items(graph : AnimationGraph; enum_cls : string; var names : array<string>; var values : array<int>)
   let enumListBlk = graph |> anim_graph_getEnumList(enum_cls)
   if enumListBlk == null
     return
@@ -272,7 +272,7 @@ def get_enum_items(var graph : AnimationGraph; enum_cls : string; var names : ar
     values |> push(item.value)
 
 
-def get_enum_name_of_parameter_value(var graph : AnimationGraph; var state : AnimGraphStateHolder; id : int)
+def get_enum_name_of_parameter_value(graph : AnimationGraph; state : AnimGraphStateHolder; id : int)
   let paramType = graph |> anim_graph_getParamType(id)
   if paramType == PT_ScalarParamInt
     let value = state |> anim_state_holder_getParamInt(id)
@@ -284,7 +284,7 @@ def get_enum_name_of_parameter_value(var graph : AnimationGraph; var state : Ani
     return ""
 
 
-def draw_param_hint(var graph : AnimationGraph; var state : AnimGraphStateHolder; id : int; name : string)
+def draw_param_hint(graph : AnimationGraph; state : AnimGraphStateHolder; id : int; name : string)
   if IsItemHovered() && id >= 0
     imgui_node_editor::Suspend()
     BeginTooltip()
@@ -300,14 +300,14 @@ def draw_param_hint(var graph : AnimationGraph; var state : AnimGraphStateHolder
     imgui_node_editor::Resume()
 
 
-def draw_param_info(var graph : AnimationGraph; var state : AnimGraphStateHolder; paramId : int; name : string)
+def draw_param_info(graph : AnimationGraph; state : AnimGraphStateHolder; paramId : int; name : string)
   let paramName = graph |> anim_graph_getParamName(paramId)
   let displayStr = paramId == -1 ? "---" : "{paramName} = {get_param_value_str(state, graph, paramId)}"
   imgui::Text("[P] {name} ({paramId}): {displayStr}")
   draw_param_hint(graph, state, paramId, paramName)
 
 
-def get_node_name(var graph : AnimationGraph; var nod : IAnimBlendNode?)
+def get_node_name(graph : AnimationGraph; var nod : IAnimBlendNode?)
   if nod == null
     return "-"
   return graph |> anim_graph_getAnimNodeName(*nod |> anim_blend_node_getAnimNodeId())
@@ -457,7 +457,7 @@ def render_AnimBlendCtrl_1axis(var nod : IAnimBlendNode?; var graph : AnimationG
           link_child(graph, nod, outId, childNode, context)
 
 
-def render_AnimFifo3QueueParam(paramId : int; var graph : AnimationGraph; var state : AnimGraphStateHolder; var context : AnimgraphContext; drawNodeCb : block<(var nod : IAnimBlendNode?; index : int; weight : float) : void>)
+def render_AnimFifo3QueueParam(paramId : int; graph : AnimationGraph; var state : AnimGraphStateHolder; var context : AnimgraphContext; drawNodeCb : block<(var nod : IAnimBlendNode?; index : int; weight : float) : void>) // nolint:LINT014
   unsafe
     var queue : AnimFifo3Queue? = reinterpret<AnimFifo3Queue?>(state |> anim_state_holder_getInlinePtr(paramId))
 
@@ -600,7 +600,7 @@ def private param_switcher_find_child_idx_from_end(var ctrl : AnimBlendCtrl_Para
   return -1
 
 
-def private apply_graph_action(var act : UndoRedoAction; is_redo : bool; var graph : AnimationGraph)
+def private apply_graph_action(act : UndoRedoAction; is_redo : bool; var graph : AnimationGraph)
   unsafe
     // actions address nodes by name, resolve them against the currently viewed graph and skip actions which no longer resolve
     var ctrl = graph |> anim_graph_getBlendNodePtr(graph |> anim_graph_getBlendNodeId(act.ctrlName))
@@ -1101,7 +1101,7 @@ def render_AnimBlendCtrl_ParametricSwitcher(var nod : IAnimBlendNode?; var graph
 
 
 [unused_argument(context)]
-def render_general_post_blend_controller(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : AnimGraphStateHolder; var context : AnimgraphContext)
+def render_general_post_blend_controller(var nod : IAnimBlendNode?; graph : AnimationGraph; var state : AnimGraphStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = reinterpret<AnimPostBlendCtrl?> nod
     var debugContext = context.animchar.animcharDebugContext
@@ -1499,7 +1499,7 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
         blk |> datablock_for_each_block() <| $(stateBlk)
           let bookmarkName = stateBlk |> datablock_getBlockName()
           if bookmarkName != "" && bookmarks |> find_index(bookmarkName) < 0
-            bookmarks |> push_clone(bookmarkName)
+            bookmarks |> push(clone_string(bookmarkName))
 
     invoke(load, "animgraph_viewer_bookmarked_states", bookmarkedStates)
     invoke(load, "animgraph_viewer_bookmarked_params", bookmarkedParams)
@@ -1614,7 +1614,7 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
           if imgui::BeginPopupContextItem("StateContextMenu##states_{stateName}")
             let bookmarkIndex = bookmarkedStates |> find_index("{stateName}")
             if bookmarkIndex < 0 && imgui::MenuItem("Bookmark")
-              bookmarkedStates |> push_clone(stateName)
+              bookmarkedStates |> push(clone_string(stateName))
               saveBookmarks = true
             elif bookmarkIndex >= 0 && imgui::MenuItem("Remove Bookmark")
               bookmarkedStates |> erase(bookmarkIndex)
@@ -1653,7 +1653,7 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
             imgui::Separator()
             let bookmarkIndex = bookmarkedParams |> find_index(name)
             if bookmarkIndex < 0 && imgui::MenuItem("Bookmark")
-              bookmarkedParams |> push_clone(name)
+              bookmarkedParams |> push(clone_string(name))
               saveBookmarks = true
             elif bookmarkIndex >= 0 && imgui::MenuItem("Remove Bookmark")
               eraseBookmarkParamId = bookmarkIndex

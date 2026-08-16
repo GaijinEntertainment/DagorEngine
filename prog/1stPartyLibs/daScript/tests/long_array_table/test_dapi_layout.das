@@ -17,7 +17,7 @@ require daslib/debugger
 def test_dapi_array_size_capacity_match(t : T?) {
     var arr : array<int>
     arr |> resize(int64(7))
-    let view = unsafe(reinterpret<DapiArray?>(unsafe(addr(arr))))
+    let view = unsafe(addr<DapiArray?>(arr))
     t |> equal(view.size, uint64(7))
     t |> equal(view.capacity, uint64(long_capacity(arr)))
 }
@@ -26,17 +26,17 @@ def test_dapi_array_size_capacity_match(t : T?) {
 def test_dapi_array_data_pointer_non_null(t : T?) {
     var arr : array<int>
     arr |> resize(int64(3))
-    let view = unsafe(reinterpret<DapiArray?>(unsafe(addr(arr))))
+    let view = unsafe(addr<DapiArray?>(arr))
     t |> success(view.data != null)
 }
 
 [test]
 def test_dapi_table_size_tombstones_match(t : T?) {
-    var tab : table<int; int>
+    var tab : table<int; int>  // nolint:STYLE031 — layout after the canonical insert path is under test
     tab |> insert(1, 100)
     tab |> insert(2, 200)
     tab |> insert(3, 300)
-    let view = unsafe(reinterpret<DapiTable?>(unsafe(addr(tab))))
+    let view = unsafe(addr<DapiTable?>(tab))
     t |> equal(view.size, uint64(3))
     t |> equal(view.tombstones, uint64(0))
 }
@@ -47,7 +47,7 @@ def test_dapi_table_keys_hashes_non_null(t : T?) {
     // would land at the wrong offsets and either read garbage or null.
     var tab : table<int; int>
     tab |> insert(42, 100)
-    let view = unsafe(reinterpret<DapiTable?>(unsafe(addr(tab))))
+    let view = unsafe(addr<DapiTable?>(tab))
     t |> success(view.keys != null)
     t |> success(view.hashes != null)
 }
@@ -61,7 +61,7 @@ def test_dapi_table_tombstones_after_erase(t : T?) {
         tab |> insert(i, i * 100)
     }
     tab |> erase(3)
-    let view = unsafe(reinterpret<DapiTable?>(unsafe(addr(tab))))
+    let view = unsafe(addr<DapiTable?>(tab))
     t |> equal(view.size, uint64(9))
     t |> equal(view.tombstones, uint64(1))
 }
@@ -76,7 +76,7 @@ def test_dapi_table_keys_offset_matches_runtime(t : T?) {
     for (i in range(8)) {
         tab |> insert(i, i * 10)
     }
-    let view = unsafe(reinterpret<DapiTable?>(unsafe(addr(tab))))
+    let view = unsafe(addr<DapiTable?>(tab))
     let data_addr = intptr(view.data)
     let expected_keys_addr = data_addr + view.capacity * uint64(4)   // value type = int = 4 bytes
     t |> equal(intptr(view.keys), expected_keys_addr)

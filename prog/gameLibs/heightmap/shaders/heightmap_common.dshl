@@ -20,8 +20,6 @@ hlsl {
 
 texture heightmap_holes_tex;
 float4 hmap_holes_scale_step_offset = (0., 0., 10., 10.) always_referenced;
-buffer heightmap_holes_zones_cb;
-int heightmap_holes_zones_num = 0;
 int heightmap_holes_support_assume = 1;
 interval heightmap_holes_support_assume: off < 1, on;//should be assumed
 
@@ -479,47 +477,6 @@ BEGIN_ONCE_STAGE(use_hmap_holes_included, stage)
     }
   }
 END_ONCE()
-endmacro
-
-macro INIT_HMAP_HOLES_ZONES(stage)
-if (heightmap_holes_support_assume == on)
-{
-  (stage) {
-    heightmapHolesZonesCB@cbuf = heightmap_holes_zones_cb hlsl {
-      cbuffer heightmapHolesZonesCB@cbuf
-      {
-        #include "heightmap_holes_zones.hlsli"
-        float4 heightmap_holes_zones[MAX_HEIGHTMAP_HOLES_ZONES * 2]; // 2 * i bbox min, 2 * i + 1 bbox max
-      };
-    };
-    heightmap_holes_zones_num@i1 = heightmap_holes_zones_num;
-  }
-}
-endmacro
-
-macro USE_HMAP_HOLES_ZONES(stage)
-  BEGIN_ONCE(use_hmap_holes_zones)
-  hlsl (stage)
-  {
-    bool testBbox(float3 v, float3 bottomLeft, float3 topRight) {
-        float3 s = clamp(v, bottomLeft, topRight);
-        return all(s == v);
-    }
-    bool checkHeightmapHolesZones(float3 worldPos)
-    {
-      ##if heightmap_holes_support_assume == on
-        for (int i = 0; i < heightmap_holes_zones_num; i++)
-        {
-          float3 bmin = heightmap_holes_zones[2 * i].xyz;
-          float3 bmax = heightmap_holes_zones[2 * i + 1].xyz;
-          if (testBbox(worldPos, bmin, bmax))
-            return true;
-        }
-      ##endif
-      return false;
-    }
-  }
-  END_ONCE()
 endmacro
 
 macro INIT_WORLD_HEIGHTMAP(code)

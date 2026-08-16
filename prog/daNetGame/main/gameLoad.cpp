@@ -34,6 +34,8 @@
 #include "sound/dngSound.h"
 #include "ui/userUi.h"
 #include "ui/uiShared.h"
+#include "ui/uiRender.h"
+#include <daRg/dag_guiScene.h>
 #include <math/random/dag_random.h>
 
 #include <gameRes/dag_gameResources.h>
@@ -1247,6 +1249,10 @@ static void switch_scene_and_apply_update(eastl::string_view scene)
     if (reloadDascript && shouldReloadDas)
     {
       statsd::counter("gameload.reload_scripts", 1, {"reload", "das"});
+
+      // in-flight daRg das jobs reference shared modules deleted by the unload below
+      for (darg::IGuiScene *scn : uirender::get_all_scenes())
+        scn->waitAllDasJobsDone();
 
       gamescripts::unload_all_das_scripts_without_debug_agents();
       // game_init.das is very small and contains only events, load it synchronously before sq

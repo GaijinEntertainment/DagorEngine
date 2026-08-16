@@ -71,7 +71,11 @@ hlsl(code) {
     QuadLeafVerts q;
     // W1 (base + o3A high), W2, W3 are contiguous after the box node -- one fetch instead of three.
     uint3 w1w2w3 = loadBuffer3(blas_data, dataOffset);
-    uint w1 = w1w2w3.x, w2 = w1w2w3.y, w3 = w1w2w3.z;
+    uint w1 = w1w2w3.x, w2 = w1w2w3.y;
+    // W3's top bits belong to the BLAS owner (QUAD_LEAF_USER_*), never to geometry. The offset
+    // fields below sign-extend 13 bits and would discard them anyway; dropping them once here means
+    // that stays true if a field ever widens, and no geometry decode can alias an owner's value.
+    uint w3 = w1w2w3.z & ~(QUAD_LEAF_USER_MASK << QUAD_LEAF_USER_SHIFT);
     int o1 = swblas_sx(skip, QUAD_O_BITS);
     int o2 = swblas_sx(skip >> QUAD_O2_SHIFT, QUAD_O_BITS);
     int o3 = swblas_sx(((skip >> QUAD_O3_LO_SHIFT) & QUAD_O3_LO_MASK) | ((w1 >> QUAD_O3_HI_SHIFT) << QUAD_O3_LO_BITS), QUAD_O_BITS);

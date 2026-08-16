@@ -47,41 +47,6 @@ hlsl {
   #include <sp_calc_common.hlsl>
 }
 
-/*
-include "sq_clouds_shadow.dshl"
-include "dagi_volmap_gi.dshl"
-include "dagi_helpers.dshl"
-include "dagi_volmap_common_25d.dshl"
-macro SAMPLE_GRID_IRRADIANCE(code)
-  INIT_SKY_DIFFUSE_BASE(cs)
-  USE_SKY_DIFFUSE_BASE(cs)
-  INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(cs)
-  SAMPLE_INIT_VOLMAP_25D(cs)
-  SAMPLE_VOLMAP_25D(cs)
-  SSGI_USE_VOLMAP_GI(cs)
-  hlsl(code) {
-    float3 getGridIrradiance(float3 worldPos, float3 normal)
-    {
-      float3 filteredWorldPos = worldPos;
-      float useProbeSize = 0.5*lerp(ssgi_ambient_volmap_crd_to_world0_xyz(1).x, ssgi_ambient_volmap_crd_to_world0_xyz(0).x, getAmbientVignette(worldPos, 0));
-      filteredWorldPos = worldPos + normalize(sp_world_view_pos - worldPos)*useProbeSize;
-      worldPos = filteredWorldPos;
-      half3 enviLight = GetSkySHDiffuse(normal);
-      half3 ambient = enviLight;
-      float giAmount = get_ambient3d(worldPos, normal, enviLight, ambient);
-      BRANCH
-      if (giAmount < 1)
-      {
-        half3 ambient25d = enviLight;
-        half ambient25dAmount = sample_25d_volmap(worldPos, normal, ambient25d);
-        enviLight = lerp(enviLight, ambient25d, ambient25dAmount);
-      }
-      return lerp(enviLight, ambient, giAmount);
-    }
-  }
-endmacro
-*/
-
 buffer screenspace_tile_classificator;
 buffer screenspace_encoded_radiance;
 shader calc_screenspace_irradiance_cs
@@ -107,7 +72,6 @@ shader calc_screenspace_irradiance_cs
   }
   SCREENSPACE_PROBES_POSITIONS(cs)
   SREENSPACE_PROBES_OCTAHEDRAL(cs)
-  //SAMPLE_GRID_IRRADIANCE(cs)
   if (sp_irradiance_oct_quality == same_as_radiance_8 || sp_irradiance_oct_quality == radiance_downsample)
   {
     // to optimize amount of permutations.
@@ -358,7 +322,6 @@ shader calc_screenspace_irradiance_sph3_cs
   }
   SCREENSPACE_PROBES_POSITIONS(cs)
   SREENSPACE_PROBES_OCTAHEDRAL(cs)
-  //SAMPLE_GRID_IRRADIANCE(cs)
   if (sp_irradiance_oct_quality != same_as_radiance_8 && sp_irradiance_oct_quality != radiance_downsample)
   {
     // it actually works slower, than direct computations

@@ -14,6 +14,7 @@ float4x4 inv_proj_tm;
 
 texture ptgi_target;
 texture rt_nr;
+texture ptgi_validation_texture;
 
 float4 ptgi_hit_dist_params;
 
@@ -25,8 +26,6 @@ int ptgi_checkerboard = 0;
 
 float ptgi_history_weight = 1;
 
-float impostor_shadow_offset = -10;
-
 int ptgi_max_bounces = 3;
 
 int blue_noise_frame_index;
@@ -36,6 +35,7 @@ float ptgi_boost_range = 0;
 float4 ptgi_uv_scale;
 
 int ptgi_use_csm_shadows = 1;
+int ptgi_use_prev_frame_sample = 1;
 
 int ptgi_pipeline_mode = 0;
 interval ptgi_pipeline_mode : inline < 1, raygen < 2, ser;
@@ -68,6 +68,7 @@ shader rt_gi
     max_bounces@u1 = ptgi_max_bounces;
     hit_dist_params@f3 = ptgi_hit_dist_params;
     frame_index@i1 = blue_noise_frame_index;
+    ptgi_use_prev_frame_sample@i1 = ptgi_use_prev_frame_sample;
     boost@f1 = ptgi_boost;
     boost_range@f1 = ptgi_boost_range;
   }
@@ -126,6 +127,11 @@ shader rt_gi
 
   INIT_RT_LIGHTING(cs, false, true, false, false, ptgi_use_csm_shadows, false)
   USE_RT_LIGHTING(cs, 0, true)
+
+  if (ptgi_pipeline_mode == inline)
+  {
+    RT_PREV_FRAME_SAMPLE(cs, PTGIScreenSample)
+  }
 
   INIT_BVH_WATER_FADE_BASE(cs)
   USE_BVH_WATER_FADE_BASE(cs)
@@ -283,7 +289,6 @@ shader rt_gi
       float3 throughput = 1;
       float3 giColor = 0;
       float rayLength = w;
-      float traceLength = 0;
       float firstDistance = NRD_FP16_MAX;
 
       SurfaceParams surface = (SurfaceParams)0;
@@ -307,6 +312,15 @@ shader rt_gi
       [loop]
       for (uint bounce = 0; bounce < max_bounces && any(throughput > throughputTreshold); ++bounce)
       {
+        if (bounce > 0)
+        {
+          // Cut dim paths and scale up the survivors
+          float survivalProbability = saturate(max3(throughput));
+          if (ml::Rng::Hash::GetFloat() >= survivalProbability)
+            break;
+          throughput /= survivalProbability;
+        }
+
         float diffuseProbability = EstimateDiffuseProbability(surface);
 
         float rnd = ml::Rng::Hash::GetFloat();
@@ -354,11 +368,12 @@ shader rt_gi
 
         ##if ptgi_pipeline_mode == inline
           HitInfo hitInfo;
-          bool isHit = trace_ray(bvhMain, surface.position, sampleDir, minT, giDistance, rayLength, groupMask, hitInfo, traceFlags);
+          bool isHit = trace_ray_with_screen_sample<PTGIScreenSample>(bvhMain, surface.position, sampleDir, minT, giDistance, rayLength, groupMask, hitInfo, traceFlags);
           if (isHit)
           {
-            hitSurface = calc_surface_params(hitInfo, -sampleDir, -TRACING_LOD); // Use fix texture LOD
             hitDistance = hitInfo.t;
+            if (!hitInfo.isScreenHit || !ptgi_use_prev_frame_sample)
+              hitSurface = calc_surface_params(hitInfo, -sampleDir, -TRACING_LOD); // Use fix texture LOD
           }
         ##else
           RayPayload payload = (RayPayload)0;
@@ -371,10 +386,6 @@ shader rt_gi
           ray.TMax = giDistance;
 
           uint flags = RAY_FLAG_CULL_BACK_FACING_TRIANGLES | traceFlags;
-
-          #ifdef HAS_RAYQUERY_FLAG_ALLOW_OPACITY_MICROMAPS
-            flags |= RAY_FLAG_FORCE_OMM_2_STATE;
-          #endif
 
           TraceRay(bvhMain, flags, groupMask, 0, 0, 0, ray, payload);
 
@@ -404,15 +415,21 @@ shader rt_gi
         if (isHit)
         {
           rayLength += hitDistance;
-          traceLength += hitDistance;
+          firstDistance = bounce == 0 ? hitDistance : firstDistance;
+
+          ##if ptgi_pipeline_mode == inline
+            if (hitInfo.isScreenHit && ptgi_use_prev_frame_sample)
+            {
+              // The previous frame is already lit with GI, we can stop here
+              giColor += hitInfo.screenRadiance * throughput;
+              break;
+            }
+          ##endif
 
           half3 diffuseLighting = light_hit_surface(hitSurface, -sampleDir, rayLength, 10000, RAY_FLAG_FORCE_OPAQUE);
           half3 combinedLighting = diffuseLighting;
 
           giColor += combinedLighting * throughput;
-
-          firstDistance = bounce == 0 ? hitDistance : firstDistance;
-
           surface = hitSurface;
         }
         else
@@ -421,12 +438,12 @@ shader rt_gi
           firstDistance = bounce == 0 ? NRD_FP16_MAX : firstDistance;
           bounce = max_bounces;
         }
+
+        // After the first bounce, we don't care about camo nets.
+        groupMask &= ~bvhGroupCamoNet;
       }
 
       giColor = lerp(dagiColor, giColor, underwaterFade);
-
-      // After the first bounce, we don't care about camo nets.
-      groupMask &= ~bvhGroupCamoNet;
 
       write_output(outputIndex, giColor, firstDistance, w, roughness);
     }
@@ -550,4 +567,28 @@ shader rt_gi_decode
   }
 
   compile("cs_6_5", "rt_gi_decode_cs");
+}
+
+shader ptgi_validation_renderer
+{
+  cull_mode  = none;
+  z_test = false;
+  z_write = false;
+
+  blend_src = sa; blend_dst = isa;
+
+  POSTFX_VS_TEXCOORD(0, uv)
+
+  (ps) {
+    ptgi_validation_texture@smp2d = ptgi_validation_texture;
+  }
+
+  hlsl(ps) {
+    float4 ptgi_validation_renderer_ps(VsOutput i) : SV_Target
+    {
+      return tex2D(ptgi_validation_texture, i.uv);
+    }
+  }
+
+  compile("target_ps", "ptgi_validation_renderer_ps");
 }

@@ -11,10 +11,8 @@ module cpp_bind public
 //! Used together with ``log_cpp_class_adapter``.
 
 require daslib/fio
-require daslib/rtti
 require daslib/ast
 require daslib/ast_boost
-require daslib/strings_boost
 
 def private log_cpp_class_method(cpp_file : file; name : string; fntype : TypeDeclPtr) {
     var cft = clone_type(fntype.firstType)
@@ -70,9 +68,6 @@ def private log_cpp_class_method_call(cpp_file : file; name : string; fntype : T
 
 def log_cpp_class_adapter(cpp_file : file; name : string; var cinfo : TypeDeclPtr) {
     //! Generates C++ class adapter for the Daslang class.
-    //! Intended use::
-    //!
-    //!     log_cpp_class_adapter(cppFileNameDotInc, "daslangClassName", typeinfo ast_typedecl(type<daslangClassName>))
     assert(cinfo.isClass, "can only make adapter out of a class")
     var methods : array<tuple<name : string; index : int>>
     var types : array<TypeDeclPtr>

@@ -18,6 +18,7 @@ String get_template_text_src_clouds(uint32_t variant, NodeBasedShaderQuality nbs
   templateNames.push_back(String("globalHlslFunctions.hlsl"));
   templateNames.push_back(String("../../../daSkies2/shaders/clouds2/cloud_settings.hlsli"));
   templateNames.push_back(String("../../../daSkies2/shaders/clouds2/clouds_density_height_lut.hlsli"));
+  templateNames.push_back(String("../../../daSkies2/shaders/clouds2/noise_functions.hlsl"));
   templateNames.push_back(String("cloudsNbsCommon.hlsl"));
   templateNames.push_back(String("../../../render/shaders/noise/Value3D.hlsl"));
 

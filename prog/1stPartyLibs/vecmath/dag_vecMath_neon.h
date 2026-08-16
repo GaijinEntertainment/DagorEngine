@@ -653,6 +653,18 @@ VECTORCALL VECMATH_FINLINE vec4f v_dot3(vec4f a, vec4f b)
 VECTORCALL VECMATH_FINLINE vec4f v_dot4_x(vec4f a, vec4f b) { return vdupq_n_f32(vaddvq_f32(vmulq_f32(a, b))); }
 VECTORCALL VECMATH_FINLINE vec4f v_dot4(vec4f a, vec4f b) { return vdupq_n_f32(vaddvq_f32(vmulq_f32(a, b))); }
 
+// fmulx is fmul for every finite input (only 0*inf differs) but cannot be contracted into the
+// fsub, so both products stay rounded and a x a is exactly 0. A plain vmulq pair is folded
+// back into fmls whatever -ffp-contract says.
+VECTORCALL VECMATH_FINLINE vec3f v_cross3(vec3f a, vec3f b)
+{
+  // (a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x)
+  // yzxy, not yzxw: lane 3 of the products is never read, and yzxy is 2 ext where yzxw is 3 ops
+  vec3f ayzx = v_perm_yzxy(a);
+  vec3f byzx = v_perm_yzxy(b);
+  return v_perm_yzxy(vsubq_f32(vmulxq_f32(a, byzx), vmulxq_f32(ayzx, b)));
+}
+
 // v_length*_sq and v_norm2/3/4 live in dag_vecMath_common.h (portable form).
 
 VECTORCALL VECMATH_FINLINE vec4f v_plane_dist_x(plane3f a, vec3f b) { return v_add_x(v_dot3_x(a,b), v_rot_3(a)); }

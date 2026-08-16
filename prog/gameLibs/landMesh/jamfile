@@ -1,4 +1,6 @@
 Root    ?= ../../.. ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
 Location = prog/gameLibs/landMesh ;
 
 TargetType  = lib ;
@@ -51,5 +53,15 @@ if $(Config) in dbg dev {
 } else {
   Sources += clipmapDebugStub.cpp ;
 }
+
+if $(PlatformSpec) in gcc clang { # degenerate SoA4 leaf lanes self-reject via det == 0, which FMA contraction breaks
+  local xclang = - ;
+  if $(Platform) in windows xboxOne scarlett { xclang = /clang:- ; }
+  if $(PlatformSpec) = clang { CPPopt += -Wno-overriding-option ; } # for -fno-trapping-math after -fno-unsafe-math-optimizations
+  if $(Platform) in macOS iOS ps4 ps5 nswitch linux { CPPopt += -Wno-overriding-t-option ; } # ditto for older clang ver
+  CPPopt += $(xclang)fno-unsafe-math-optimizations $(xclang)fno-trapping-math $(xclang)ffp-contract=off ;
+  if $(PlatformArch) in x86 x86_64 { CPPopt += $(xclang)mno-fma ; }
+}
+CPPopt += -DVECMATH_NO_FMA ; # v_madd on NEON is explicit vfmaq that ignores ffp-contract=off
 
 include $(Root)/prog/_jBuild/build.jam ;

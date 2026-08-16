@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE018: redundant boolean comparison ('b == true' / 'b != false')
 //
 // Problem: Comparing a bool to a boolean literal is redundant — the bool already IS

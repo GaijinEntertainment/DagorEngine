@@ -160,7 +160,7 @@ static void animchar_mirror_before_render_es(const UpdateStageInfoBeforeRender &
     if (mirrorCameraData != nullptr)
     {
       vec4f mirrorCamPos = v_ldu(&mirrorCameraData->viewPos.x);
-      preprocess_visible_animchars_in_frustum(stg, mirrorCameraData->frustum, mirrorCamPos, VISFLG_DYNAMIC_MIRROR);
+      preprocess_visible_animchars_in_frustum(stg, mirrorCameraData->frustum, mirrorCamPos, VISFLG_DYNAMIC_MIRROR, 1);
     }
   });
 }

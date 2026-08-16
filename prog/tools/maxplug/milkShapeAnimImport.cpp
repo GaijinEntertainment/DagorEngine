@@ -19,10 +19,9 @@ static TCHAR importFilename[256] = _T("F:\\SETUPS\\Graphics\\MilkShape\\ascii\\W
 
 bool inputFilename(HWND hpanel)
 {
-  static TCHAR fname[260];
+  TCHAR fname[260] = {};
 
-  _tcsncpy(fname, ::importFilename, 259);
-  fname[259] = 0;
+  _tcsncpy_s(fname, _countof(fname), ::importFilename, _TRUNCATE);
 
   OPENFILENAME ofn;
   memset(&ofn, 0, sizeof(ofn));
@@ -43,7 +42,7 @@ bool inputFilename(HWND hpanel)
 
   if (GetOpenFileName(&ofn))
   {
-    _tcscpy(::importFilename, fname);
+    _tcsncpy_s(::importFilename, _countof(::importFilename), fname, _TRUNCATE);
     return 1;
   }
 

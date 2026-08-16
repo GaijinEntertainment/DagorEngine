@@ -6,15 +6,19 @@
 #include <filesystem>
 #include <max.h>
 
-// boolean guard
+// boolean guard: sets the flag for the duration of the scope, then puts back what was there
 class Autotoggle
 {
   bool &f;
+  const bool prev;
 
 public:
-  explicit Autotoggle(bool &f_) : f(f_) { f = true; }
-  Autotoggle(bool &f_, bool v_) : f(f_) { f = v_; }
-  ~Autotoggle() { f = !f; }
+  explicit Autotoggle(bool &f_) : f(f_), prev(f_) { f = true; }
+  Autotoggle(bool &f_, bool v_) : f(f_), prev(f_) { f = v_; }
+  ~Autotoggle() { f = prev; }
+
+  Autotoggle(const Autotoggle &) = delete;
+  Autotoggle &operator=(const Autotoggle &) = delete;
 };
 
 
@@ -75,16 +79,6 @@ bool isProxymatName(std::wstring_view mat_name);
 inline bool iequal(std::wstring_view s1, std::wstring_view s2)
 {
   return s1.size() == s2.size() && (s1.empty() || _wcsnicmp(s1.data(), s2.data(), s1.size()) == 0);
-}
-
-template <typename T>
-inline T clamp(T v, T min, T max)
-{
-  if (v < min)
-    return min;
-  if (v > max)
-    return max;
-  return v;
 }
 
 std::wstring simplifyRN(std::wstring_view from);

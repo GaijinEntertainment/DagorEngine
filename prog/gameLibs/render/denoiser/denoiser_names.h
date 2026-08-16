@@ -20,6 +20,7 @@ ENUM_AO_DENOISED_NAMES
 
 #define NAME(name) const char *GIDenoiser::TextureNames::name = TOSTRING(name);
 ENUM_GI_DENOISED_NAMES
+const char *GIDenoiser::TextureNames::gi_validation = "gi_validation";
 #undef NAME
 
 #define NAME(name) const char *ReflectionDenoiser::TextureNames::name = TOSTRING(name);

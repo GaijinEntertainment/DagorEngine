@@ -15,8 +15,8 @@ struct Foo {
 
 [test]
 def test_new_and_init(t : T?) {
-    var f : Foo
-    let q : Foo? = unsafe(reinterpret<Foo?> new_and_init(f))
+    let f : Foo
+    let q : Foo? = unsafe(reinterpret<Foo?>(new_and_init(f)))
     t |> success(q.x == 1 && q.y == 2 && q.z == 3 && q.w == 4)
 }
 

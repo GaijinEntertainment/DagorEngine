@@ -33,3 +33,6 @@ bool poll_manual_ready_watchdog();
 // Per-frame main-thread tick for hosted-internal-server bookkeeping. Wraps the manual-ready
 // watchdog (and any future server-management polls). Call near net_update().
 void hosted_internal_server_management_update();
+
+typedef void (*HostedServerLogSink)(int level, const char *message, const char *filename, int code_line);
+void set_hosted_internal_server_log_sink(HostedServerLogSink sink);

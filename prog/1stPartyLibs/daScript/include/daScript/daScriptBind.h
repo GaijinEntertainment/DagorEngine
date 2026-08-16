@@ -275,6 +275,16 @@ static inline void write_module_includes(das::TextWriter &tw, const CharT *...pa
     ...);
 }
 
+// Functions bound through these macros are compiled with asserting stubs in the AOT compiler
+// (DAS_AOT_COMPILER), so folding a call with all-constant arguments would execute the stub.
+// The mark is unconditional: folding in only one of the two compilers would diverge AOT hashes.
+template <typename FnT>
+inline FnT das_bind_no_fold(FnT fn)
+{
+  fn->noFolding = true;
+  return fn;
+}
+
 } // namespace das::detail
 
 #ifdef DAS_AOT_COMPILER
@@ -328,12 +338,12 @@ struct das::CallPropertyForType<ThisT, RetT (*)(ClassT &), Fn>
   addPropertyExtConstForManagedType<DAS_PROP_DECL_CONST(ManagedType::__VA_ARGS__)>(DAS_NAME, DAS_MACRO_STRINGIFY(__VA_ARGS__))
 
 // functions
-#define DAS_ADD_FUN_BIND(NAME, SIDE_EFFECTS, ...)                                                                        \
-  das::detail::addExternAutoSelectSimNode<DAS_FUN_DECL(::__VA_ARGS__)>(*this, lib, NAME, das::SideEffects::SIDE_EFFECTS, \
-    "::" DAS_MACRO_STRINGIFY(__VA_ARGS__))
-#define DAS_ADD_FUN_BIND_VALUE_RET(NAME, SIDE_EFFECTS, ...)                                            \
-  das::addExtern<DAS_FUN_DECL(::__VA_ARGS__), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, NAME, \
-    das::SideEffects::SIDE_EFFECTS, "::" DAS_MACRO_STRINGIFY(__VA_ARGS__))
+#define DAS_ADD_FUN_BIND(NAME, SIDE_EFFECTS, ...)                                                       \
+  das::detail::das_bind_no_fold(das::detail::addExternAutoSelectSimNode<DAS_FUN_DECL(::__VA_ARGS__)>( \
+    *this, lib, NAME, das::SideEffects::SIDE_EFFECTS, "::" DAS_MACRO_STRINGIFY(__VA_ARGS__)))
+#define DAS_ADD_FUN_BIND_VALUE_RET(NAME, SIDE_EFFECTS, ...)                                                     \
+  das::detail::das_bind_no_fold(das::addExtern<DAS_FUN_DECL(::__VA_ARGS__), das::SimNode_ExtFuncCallAndCopyOrMove>( \
+    *this, lib, NAME, das::SideEffects::SIDE_EFFECTS, "::" DAS_MACRO_STRINGIFY(__VA_ARGS__)))
 #define DAS_ADD_METHOD_BIND(NAME, SIDE_EFFECTS, ...)                                                                        \
   das::detail::addExternAutoSelectSimNode<DAS_METHOD_DECL(::__VA_ARGS__)>(*this, lib, NAME, das::SideEffects::SIDE_EFFECTS, \
     "::das::das_call_member<decltype(&::" DAS_MACRO_STRINGIFY(__VA_ARGS__) "),&::" DAS_MACRO_STRINGIFY(__VA_ARGS__) ">::invoke")

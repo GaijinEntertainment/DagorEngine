@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE011: variable declaration followed by immediate assignment
 //
 // Problem: Declaring a variable and immediately assigning it on the next line

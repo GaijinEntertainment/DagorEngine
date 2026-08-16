@@ -219,15 +219,15 @@ public:
 };
 
 
-class FormatedDecoder
+class FormattedDecoder
 {
 protected:
   const char *defaultFormat = "dx12";
 
 public:
-  FormatedDecoder() = default;
-  FormatedDecoder(const char *fmt) : defaultFormat{fmt} {}
-  FormatedDecoder(const FormatedDecoder &) = default;
+  FormattedDecoder() = default;
+  FormattedDecoder(const char *fmt) : defaultFormat{fmt} {}
+  FormattedDecoder(const FormattedDecoder &) = default;
 };
 
 template <typename D, size_t N = 64>
@@ -281,7 +281,7 @@ struct ObjectHashDecoder
   }
 };
 
-class InputLayoutDeEncoder : FormatedDecoder,
+class InputLayoutDeEncoder : FormattedDecoder,
                              public DefaultHashNameInvokeDecoder<InputLayout, InputLayoutDeEncoder>,
                              public EncoderBlockNameStore<InputLayoutDeEncoder>,
                              public EncoderBlockHashNameStore<InputLayout>,
@@ -293,7 +293,7 @@ class InputLayoutDeEncoder : FormatedDecoder,
 public:
   static inline const char *blockFormat = "il_%u";
 
-  using FormatedDecoder::FormatedDecoder;
+  using FormattedDecoder::FormattedDecoder;
 
   bool decode(const DataBlock &blk, InputLayout &target, dxil::HashValue &hash) const;
   bool encode(DataBlock &blk, const InputLayout &source) const;
@@ -302,7 +302,7 @@ public:
 using InputLayoutDecoder = InputLayoutDeEncoder;
 using InputLayoutEncoder = InputLayoutDeEncoder;
 
-class RenderStateDeEncoder : FormatedDecoder,
+class RenderStateDeEncoder : FormattedDecoder,
                              public DefaltInvokeDecoder<RenderStateSystem::StaticState, RenderStateDeEncoder>,
                              public EncoderBlockNameStore<RenderStateDeEncoder>,
                              public EncoderBlockHashNameStore<RenderStateSystem::StaticState>,
@@ -314,7 +314,7 @@ class RenderStateDeEncoder : FormatedDecoder,
 public:
   static inline const char *blockFormat = "rs_%u";
 
-  using FormatedDecoder::FormatedDecoder;
+  using FormattedDecoder::FormattedDecoder;
 
   bool decode(const DataBlock &blk, RenderStateSystem::StaticState &target, dxil::HashValue &hash) const;
   bool encode(DataBlock &blk, const RenderStateSystem::StaticState &source) const;
@@ -323,7 +323,7 @@ public:
 using RenderStateDecoder = RenderStateDeEncoder;
 using RenderStateEncoder = RenderStateDeEncoder;
 
-class FramebufferLayoutDeEncoder : FormatedDecoder,
+class FramebufferLayoutDeEncoder : FormattedDecoder,
                                    public DefaltInvokeDecoder<FramebufferLayout, FramebufferLayoutDeEncoder>,
                                    public EncoderBlockNameStore<FramebufferLayoutDeEncoder>,
                                    public EncoderBlockHashNameStore<FramebufferLayout>,
@@ -335,7 +335,7 @@ class FramebufferLayoutDeEncoder : FormatedDecoder,
 public:
   static inline const char *blockFormat = "fb_%u";
 
-  using FormatedDecoder::FormatedDecoder;
+  using FormattedDecoder::FormattedDecoder;
 
   bool decode(const DataBlock &blk, FramebufferLayout &target, dxil::HashValue &hash) const;
   bool encode(DataBlock &blk, const FramebufferLayout &source) const;

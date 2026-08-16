@@ -8,10 +8,11 @@ module jobque_boost shared public
 //! Job queue macro helpers.
 //!
 //! Provides ``new_job``, ``new_thread``, ``with_job_que``,
-//! ``with_job_status``, ``channel_next``, ``channel_push``, and
+//! ``with_job_status``, channel capture helpers
+//! (``capture_jobque_channel``/``release_capture_jobque_channel``), and
 //! other convenience wrappers that capture lambda closures and
 //! correctly manage context cloning for multi-threaded execution.
-//! Extends the built-in ``jobque`` module.
+//! Extends the built-in ``jobque`` module, which it re-exports.
 
 require jobque public
 require math
@@ -26,20 +27,12 @@ require daslib/templates_boost
 [tag_function(new_job_tag)]
 def new_job(var l : lambda) {
     //! Create a new job.
-    //!     * new context is cloned from the current context.
-    //!     * lambda is cloned to the new context.
-    //!     * new job is added to the job queue.
-    //!     * once new job is invoked, lambda is invoked on the new context on the job thread.
     invoke(l)   // note, this is never called if job-que is there.
 }
 
 [tag_function(new_job_tag)]
 def new_thread(var l : lambda) {
-    //! Create a new thread
-    //!     * new context is cloned from the current context.
-    //!     * lambda is cloned to the new context.
-    //!     * new thread is created.
-    //!     * lambda is invoked on the new context on the new thread.
+    //! Creates a new thread with a cloned context and invokes the cloned lambda on that thread.
     invoke(l)   // note, this is never called if job-que is there
 }
 
@@ -89,7 +82,7 @@ def gather(ch : Channel?; blk : block<(arg : auto(TT)#) : void>) {
     //! reads input from the channel (in order it was pushed) and invokes the block on each input.
     //! afterwards input is consumed
     _builtin_channel_gather(ch) $(var data : void?) {
-        invoke(blk, *(unsafe(reinterpret<TT?#> data)))
+        invoke(blk, *(unsafe(reinterpret<TT?#>(data))))
     }
 }
 
@@ -97,7 +90,7 @@ def gather_ex(ch : Channel?; blk : block<(arg : auto(TT)#; info : TypeInfo const
     //! reads input from the channel (in order it was pushed) and invokes the block on each input.
     //! afterwards input is consumed
     _builtin_channel_gather_ex(ch) $(var data : void?; info : TypeInfo const?; var ctx : Context) {
-        invoke(blk, *(unsafe(reinterpret<TT?#> data)), info, ctx)
+        invoke(blk, *(unsafe(reinterpret<TT?#>(data))), info, ctx)
     }
 }
 
@@ -105,7 +98,7 @@ def gather_and_forward(ch, toCh : Channel?; blk : block<(arg : auto(TT)#) : void
     //! reads input from the channel (in order it was pushed) and invokes the block on each input.
     //! afterwards input is consumed
     _builtin_channel_gather_and_forward(ch, toCh) $(var data : void?) {
-        invoke(blk, *(unsafe(reinterpret<TT?#> data)))
+        invoke(blk, *(unsafe(reinterpret<TT?#>(data))))
     }
 }
 
@@ -113,7 +106,7 @@ def peek(ch : Channel?; blk : block<(arg : auto(TT)#) : void>) {
     //! reads input from the channel (in order it was pushed) and invokes the block on each input.
     //! afterwards input is not consumed
     _builtin_channel_peek(ch) $(var data : void?) {
-        invoke(blk, *(unsafe(reinterpret<TT?#> data)))
+        invoke(blk, *(unsafe(reinterpret<TT?#>(data))))
     }
 }
 
@@ -129,7 +122,7 @@ def for_each(channel : Channel?; blk : block<(res : auto(TT)#) : void>) {
             void_data = vd
         }
         if (void_data == null) break
-        let typed_data = unsafe(reinterpret<TT?#> void_data)
+        let typed_data = unsafe(reinterpret<TT?#>(void_data))
         invoke(blk, *typed_data)
     }
 }
@@ -144,11 +137,11 @@ def for_each_clone(channel : Channel?; blk : block<(res : auto(TT)#) : void>) {
         _builtin_channel_pop(channel) $(vd) {
             if (vd != null) {
                 any = true
-                temp := *(unsafe(reinterpret<TT -# -& -const?#> vd))
+                temp := *(unsafe(reinterpret<TT -# -& -const?#>(vd)))
             }
         }
         if (!any) break
-        invoke(blk, unsafe(reinterpret<TT -& -const#> temp))
+        invoke(blk, unsafe(reinterpret<TT -& -const#>(temp)))
         delete temp
     }
 }
@@ -161,7 +154,7 @@ def pop_one(channel : Channel?; blk : block<(res : auto(TT)#) : void>) {
         void_data = vd
     }
     if (void_data == null) return false
-    let typed_data = unsafe(reinterpret<TT?#> void_data)
+    let typed_data = unsafe(reinterpret<TT?#>(void_data))
     invoke(blk, *typed_data)
     return true
 }
@@ -173,11 +166,11 @@ def pop_and_clone_one(channel : Channel?; blk : block<(res : auto(TT)#) : void>)
     _builtin_channel_pop(channel) $(vd) {
         if (vd != null) {
             any = true
-            temp := *(unsafe(reinterpret<TT -# -& -const?#> vd))
+            temp := *(unsafe(reinterpret<TT -# -& -const?#>(vd)))
         }
     }
     if (!any) return false
-    invoke(blk, unsafe(reinterpret<TT -& -const#> temp))
+    invoke(blk, unsafe(reinterpret<TT -& -const#>(temp)))
     delete temp
     return true
 }
@@ -187,7 +180,7 @@ def try_pop(channel : Channel?; blk : block<(res : auto(TT)#) : void>) : bool {
     //! Does not wait for data — returns immediately.
     var result = false
     result = _builtin_channel_try_pop(channel) $(data) {
-        invoke(blk, *(unsafe(reinterpret<TT?#> data)))
+        invoke(blk, *(unsafe(reinterpret<TT?#>(data))))
     }
     return result
 }
@@ -198,10 +191,10 @@ def try_pop_clone(channel : Channel?; blk : block<(res : auto(TT)#) : void>) : b
     var temp : TT -# -& -const
     var any = false
     any = _builtin_channel_try_pop(channel) $(data) {
-        temp := *(unsafe(reinterpret<TT -# -& -const?#> data))
+        temp := *(unsafe(reinterpret<TT -# -& -const?#>(data)))
     }
     if (!any) return false
-    invoke(blk, unsafe(reinterpret<TT -& -const#> temp))
+    invoke(blk, unsafe(reinterpret<TT -& -const#>(temp)))
     delete temp
     return true
 }
@@ -211,7 +204,7 @@ def pop_with_timeout(channel : Channel?; timeout_ms : int; blk : block<(res : au
     //! Returns true if an item was available within the timeout, false if timed out or channel exhausted.
     var result = false
     result = _builtin_channel_pop_with_timeout(channel, timeout_ms) $(data) {
-        invoke(blk, *(unsafe(reinterpret<TT?#> data)))
+        invoke(blk, *(unsafe(reinterpret<TT?#>(data))))
     }
     return result
 }
@@ -222,10 +215,10 @@ def pop_with_timeout_clone(channel : Channel?; timeout_ms : int; blk : block<(re
     var temp : TT -# -& -const
     var any = false
     any = _builtin_channel_pop_with_timeout(channel, timeout_ms) $(data) {
-        temp := *(unsafe(reinterpret<TT -# -& -const?#> data))
+        temp := *(unsafe(reinterpret<TT -# -& -const?#>(data)))
     }
     if (!any) return false
-    invoke(blk, unsafe(reinterpret<TT -& -const#> temp))
+    invoke(blk, unsafe(reinterpret<TT -& -const#>(temp)))
     delete temp
     return true
 }
@@ -245,6 +238,7 @@ def push(channel : Channel?; data : auto?) {
 def push_batch_clone(channel : Channel?; data : array<auto(TT)>) {
     //! clones data and pushes values to the channel (at the end)
     var heap_data : array<TT?>
+    heap_data |> reserve(length(data))
     for (d in data) {
         var tt = new TT
         *tt := d
@@ -279,7 +273,7 @@ def get(box : LockBox?; blk : block<(res : auto(TT)#) : void>) {
     var res = false
     _builtin_lockbox_get(box) $(void_data) {
         if (void_data != null) {
-            let typed_data = unsafe(reinterpret<TT?#> void_data)
+            let typed_data = unsafe(reinterpret<TT?#>(void_data))
             invoke(blk, *typed_data)
             res = true
         }
@@ -291,13 +285,13 @@ def update(box : LockBox?; blk : block<(var res : auto(TT)#) : void>) {
     //! update value in the lock box and invokes the block on it
     _builtin_lockbox_update(box, unsafe(reinterpret<TypeInfo?>(typeinfo rtti_typeinfo(type<TT? -#>)))) $(var void_data : void?) {
         if (void_data != null) {
-            var typed_data = unsafe(reinterpret<TT?#> void_data)
+            var typed_data = unsafe(reinterpret<TT?#>(void_data))
             invoke(blk, *typed_data)
             return void_data
         } else {
             var heap_data = new TT
             invoke(blk, *heap_data)
-            return unsafe(reinterpret<void?> heap_data)
+            return unsafe(reinterpret<void?>(heap_data))
         }
     }
 }
@@ -307,7 +301,7 @@ def clear(box : LockBox?; type_ : auto(TT)) {
     //! clear value from the lock box
     _builtin_lockbox_update(box, unsafe(reinterpret<TypeInfo?>(typeinfo rtti_typeinfo(type<TT? -#>)))) $(var void_data : void?) : void? {
         if (void_data != null) {
-            var typed_data = unsafe(reinterpret<TT -const?> void_data)
+            var typed_data = unsafe(reinterpret<TT -const?>(void_data))
             unsafe {
                 delete typed_data
             }
@@ -328,12 +322,41 @@ def grab(box : LockBox?; blk : block<(var res : auto(TT)) : void>) : bool {
     var res = false
     _builtin_lockbox_grab(box) $(void_data) {
         if (void_data != null) {
-            var typed_data = unsafe(reinterpret<TT -const?> void_data)
+            var typed_data = unsafe(reinterpret<TT -const?>(void_data))
             invoke(blk, *typed_data)
             res = true
         }
     }
     return res
+}
+
+def publish(box : SeqBox?; value : auto(TT)) : bool {
+    //! Publishes a snapshot of ``value``, replacing whatever was there. Wait-free and never blocked by
+    //! a reader, so a realtime thread can call it; false when another writer holds the box, or the size
+    //! does not fit. ``TT`` is raw POD — no array/table/string/pointer — within ``SEQ_BOX_PAYLOAD`` bytes.
+    //! Publish through a reference you hold: a concurrent last ``seq_box_release`` deletes the box
+    //! from under a caller that merely borrowed the pointer.
+    concept_assert(typeinfo is_pod(type<TT>) && typeinfo is_raw(type<TT>),
+        "SeqBox payload must be raw POD - the value is copied byte-wise, heap references would dangle")
+    concept_assert(typeinfo sizeof(type<TT>) <= SEQ_BOX_PAYLOAD, "SeqBox payload is at most 64 bytes")
+    return _builtin_seq_box_publish(box, unsafe(addr<void?>(value)), typeinfo sizeof(type<TT>))
+}
+
+def read(box : SeqBox?; blk : block<(value : auto(TT)) : void>) : bool {
+    //! Copies the latest snapshot out and invokes the block on the copy; false when nothing has been
+    //! published, or the stored size differs from ``TT``. Reading consumes nothing and blocks no one —
+    //! and size is the box's only identity, so an equal-size different type reads back reinterpreted.
+    //! Read through a reference you hold: a concurrent last ``seq_box_release`` deletes the box
+    //! from under a caller that merely borrowed the pointer.
+    concept_assert(typeinfo is_pod(type<TT>) && typeinfo is_raw(type<TT>),
+        "SeqBox payload must be raw POD - the value is copied byte-wise, heap references would dangle")
+    concept_assert(typeinfo sizeof(type<TT>) <= SEQ_BOX_PAYLOAD, "SeqBox payload is at most 64 bytes")
+    var value : TT = default<TT>
+    if (!_builtin_seq_box_read(box, unsafe(addr<void?>(value)), typeinfo sizeof(type<TT>))) {
+        return false
+    }
+    invoke(blk, value)
+    return true
 }
 
 [template(tinfo), deprecated(message="use `each_clone` instead")]
@@ -350,7 +373,7 @@ def each(var channel : Channel?; tinfo : auto(TT)) {
                 }
                 if (void_data == null) break
                 unsafe {
-                    yield *reinterpret<TT?#> void_data
+                    yield *reinterpret<TT?#>(void_data)
                 }
             }
             return false
@@ -373,11 +396,11 @@ def each_clone(var channel : Channel?; tinfo : auto(TT)) {
                 _builtin_channel_pop(channel) $(vd) {
                     if (vd != null) {
                         any = true
-                        temp := *(unsafe(reinterpret<TT -# -& -const?#> vd))
+                        temp := *(unsafe(reinterpret<TT -# -& -const?#>(vd)))
                     }
                 }
                 if (!any) break
-                yield unsafe(reinterpret<TT -& -const#> temp)
+                yield unsafe(reinterpret<TT -& -const#>(temp))
                 delete temp
             }
             return false
@@ -388,13 +411,10 @@ def each_clone(var channel : Channel?; tinfo : auto(TT)) {
 }
 
 //
-// Stream wrappers — cross-context byte pipeline. Bytes are owned C++-side,
-// so either end may free the Stream without coordinating with the other.
-//
 
 require daslib/archive
 
-def push(stream : Stream?; var data : array<uint8>) {
+def push(stream : Stream?; data : array<uint8>) {
     //! Copy bytes into the stream (at the tail). Bytes are owned by the Stream C++-side
     //! after push — caller may free the source buffer immediately.
     _builtin_stream_push(stream, data)
@@ -405,7 +425,7 @@ def push(stream : Stream?; data : array<uint8> const#) {
     _builtin_stream_push(stream, data)
 }
 
-def push_batch(stream : Stream?; var data : array<array<uint8>>) {
+def push_batch(stream : Stream?; data : array<array<uint8>>) {
     //! Copy a batch of byte blobs into the stream atomically under a single lock.
     _builtin_stream_push_batch(stream, data)
 }
@@ -452,7 +472,7 @@ def pop_archive(stream : Stream?; blk : block<(var value : auto(TT)&) : void>) :
     var any = false
     var value : TT -# -& -const
     _builtin_stream_pop(stream) $(bytes : array<uint8># -const) {
-        if (length(bytes) > 0) {
+        if (!empty(bytes)) {
             any = true
             mem_archive_load(bytes, value)
         }
@@ -522,11 +542,7 @@ def done(var status : JobStatus?&) {
 }
 
 def _parallel_for(range_begin, range_end : int; num_jobs : int; blk : block<(job_begin : int; job_end : int; var wg : JobStatus?) : void>) {
-    //! Partitions ``[range_begin..range_end)`` into ``num_jobs`` chunks and invokes ``blk`` once per chunk
-    //! on the calling thread with ``(chunk_begin, chunk_end, wg)``. The block is expected to dispatch work
-    //! via ``new_job`` and call ``wg |> notify_and_release`` when each job finishes.
-    //! ``parallel_for`` blocks until all notifications are received (via internal ``with_wait_group``).
-    //! Requires ``with_job_que`` context.
+    //! Partitions ``[range_begin..range_end)`` into ``num_jobs`` chunks and invokes ``blk`` once per chunk on the calling thread with ``(chunk_begin, chunk_end, wg)``. The block is expected to dispatch work via ``new_job`` and call ``wg |> notify_and_release`` when each job finishes.
     let total = range_end - range_begin
     if (total <= 0 || num_jobs <= 0) return
     let actual_jobs = min(num_jobs, total)
@@ -540,6 +556,11 @@ def _parallel_for(range_begin, range_end : int; num_jobs : int; blk : block<(job
             let job_end = offset + this_chunk
             offset = job_end
             invoke(blk, job_begin, job_end, wg)
+        }
+        // main participates: flush the batch, then keep executing queued jobs on this thread until
+        // the wait group is ready (or the fifo drains — the workers then finish their in-flight tail)
+        while (!wg.isReady) {
+            break if (!jobque_try_run_one())
         }
     }
 }
@@ -568,22 +589,132 @@ class private ParallelForJobMacro : AstFunctionAnnotation {
     }
 }
 
+[tag_function(tag_team_parallel_for), unused_argument(num_jobs)]
+def team_parallel_for(range_begin, range_end : int; num_jobs : int; var l : lambda<(job_begin : int; job_end : int) : void>) {
+    //! Team-mode ``parallel_for`` (see ``set_jobque_team_mode``): partitions ``[range_begin..range_end)`` into ``num_jobs`` chunks with the same split as ``parallel_for``, but instead of one fifo job per chunk the lambda is cloned once per WORKER and the workers self-serve chunk indices off a single atomic — no fifo, no wait group; the caller participates and spin-joins. Falls back to one inline invoke over the whole range when team mode is off (or the range/pool is trivial).
+    invoke(l, range_begin, range_end)   // note, this is never called if job-que is there.
+}
+
+[tag_function(tag_team_parallel_for_indexed), unused_argument(num_jobs)]
+def team_parallel_for_indexed(range_begin, range_end : int; num_jobs : int; var l : lambda<(slot : int; job_begin : int; job_end : int) : void>) {
+    //! ``team_parallel_for`` with the claiming worker's slot exposed: the lambda receives ``(slot, job_begin, job_end)``. No two in-flight invocations share a slot, so per-slot scratch (sized ``get_total_hw_jobs() + 1`` — the caller participates as the last slot) needs no locks. Chunk split and self-serve scheduling are identical to ``team_parallel_for``; degenerate paths (team mode off, trivial range/pool) run one inline invoke over the whole range as slot 0.
+    invoke(l, 0, range_begin, range_end)   // note, this is never called if job-que is there.
+}
+
+[tag_function(tag_team_parallel_stages)]
+def team_parallel_stages(stages : array<int3>; var l : lambda<(stage : int; job_begin : int; job_end : int) : void>) {
+    //! Multi-stage team dispatch: one team rendezvous runs the ``stages`` in order, with a worker-side barrier between consecutive stages — stage ``s+1`` may read anything stage ``s`` wrote. Each stage is ``int3(range_begin, range_end, num_chunks)``; the lambda receives ``(stage, job_begin, job_end)`` with the same chunk split as ``team_parallel_for``. The whole chain costs ONE publish + ONE join (the lambda is cloned once per worker), so a fused matmul→matmul chain pays the dispatch tail once instead of per op. Falls back to running the stages sequentially inline when team mode is off (or the pool/ranges are trivial).
+    var idx = 0
+    for (s in stages) {
+        // empty stage (zero range) is a pure barrier — skip the invoke, matching
+        // team_parallel_stages_invoke. (Normally dead: the macro rewrites every direct call.)
+        if (s.y > s.x) {
+            invoke(l, idx, s.x, s.y)
+        }
+        idx++
+    }
+}
+
+[tag_function_macro(tag="tag_team_parallel_stages")]
+class private TeamParallelStagesMacro : AstFunctionAnnotation {
+    //! Rewrites ``team_parallel_stages`` into ``team_parallel_stages_invoke``, generating the same
+    //! lambda cloning infrastructure as ``team_parallel_for`` (per-worker cloning on the C++ side).
+    def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
+        macro_verify(call.arguments[1] is ExprAscend, compiling_program(), call.at, "expecting lambda declaration, ExprAscend")
+        var asc = call.arguments[1] as ExprAscend
+        macro_verify(asc.subexpr is ExprMakeStruct, compiling_program(), call.at, "expecting lambda declaration, ExprMakeStruct")
+        var mks = asc.subexpr as ExprMakeStruct
+        macro_verify(!(mks._type == null || mks._type.baseType != Type.tStructure), compiling_program(), call.at, "expecting lambda declaration, not a structure")
+        // clone structure type. make fields non-constant, so that they can be cloned
+        var stype <- clone_structure(mks._type.structType)
+        stype.name := "{stype.name}_team_stages_clone"
+        var stype_ptr = stype
+        var sttype = new TypeDecl(at = call.at, baseType = Type.tStructure, structType = stype_ptr)
+        for (fld in stype.fields) {
+            fld._type.flags.constant = false
+            fld.flags.capturedConstant = false
+        }
+        var pclone = make_clone_structure(stype_ptr)
+        let const_clone = pclone.arguments[1]._type.flags.constant
+        compiling_module() |> add_function(pclone)
+        compiling_module() |> add_structure(stype)
+        // make an @@<function<(var L;L):void> type or @@<function<(var L;var L):void> type - depending on how the capture went
+        var ftype = new TypeDecl(at = call.at, baseType = Type.tFunction)
+        ftype.firstType = new TypeDecl(at = call.at, baseType = Type.tVoid)
+        ftype.argTypes |> emplace_new <| clone_type(sttype)
+        ftype.argTypes |> emplace <| sttype
+        if (const_clone) {
+            ftype.argTypes[1].flags.constant = true
+        }
+        // make a team_parallel_stages_invoke call
+        var ncall = new ExprCall(at = call.at, name := "team_parallel_stages_invoke")
+        ncall.arguments |> emplace_new <| clone_expression(call.arguments[0])
+        ncall.arguments |> emplace_new <| clone_expression(call.arguments[1])
+        ncall.arguments |> emplace_new <| new ExprAddr(at = call.at, target := "clone", funcType <- ftype)
+        ncall.arguments |> emplace_new <| new ExprConstInt(at = call.at, value = mks._type.sizeOf)
+        return <- ncall
+    }
+}
+
+[tag_function_macro(tag="tag_team_parallel_for")]
+class private TeamParallelForMacro : AstFunctionAnnotation {
+    //! Rewrites ``team_parallel_for`` into ``team_parallel_for_invoke``, generating the same lambda
+    //! cloning infrastructure as ``new_job`` (the per-worker cloning itself happens on the C++ side).
+    function_name : string = "team_parallel_for_invoke"
+    def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
+        macro_verify(call.arguments[3] is ExprAscend, compiling_program(), call.at, "expecting lambda declaration, ExprAscend")
+        var asc = call.arguments[3] as ExprAscend
+        macro_verify(asc.subexpr is ExprMakeStruct, compiling_program(), call.at, "expecting lambda declaration, ExprMakeStruct")
+        var mks = asc.subexpr as ExprMakeStruct
+        macro_verify(!(mks._type == null || mks._type.baseType != Type.tStructure), compiling_program(), call.at, "expecting lambda declaration, not a structure")
+        // clone structure type. make fields non-constant, so that they can be cloned
+        var stype <- clone_structure(mks._type.structType)
+        stype.name := "{stype.name}_team_pfor_clone"
+        var stype_ptr = stype
+        var sttype = new TypeDecl(at = call.at, baseType = Type.tStructure, structType = stype_ptr)
+        for (fld in stype.fields) {
+            fld._type.flags.constant = false
+            fld.flags.capturedConstant = false
+        }
+        var pclone = make_clone_structure(stype_ptr)
+        let const_clone = pclone.arguments[1]._type.flags.constant
+        compiling_module() |> add_function(pclone)
+        compiling_module() |> add_structure(stype)
+        // make an @@<function<(var L;L):void> type or @@<function<(var L;var L):void> type - depending on how the capture went
+        var ftype = new TypeDecl(at = call.at, baseType = Type.tFunction)
+        ftype.firstType = new TypeDecl(at = call.at, baseType = Type.tVoid)
+        ftype.argTypes |> emplace_new <| clone_type(sttype)
+        ftype.argTypes |> emplace <| sttype
+        if (const_clone) {
+            ftype.argTypes[1].flags.constant = true
+        }
+        // make a team_parallel_for_invoke call
+        var ncall = new ExprCall(at = call.at, name := function_name)
+        ncall.arguments |> emplace_new <| clone_expression(call.arguments[0])
+        ncall.arguments |> emplace_new <| clone_expression(call.arguments[1])
+        ncall.arguments |> emplace_new <| clone_expression(call.arguments[2])
+        ncall.arguments |> emplace_new <| clone_expression(call.arguments[3])
+        ncall.arguments |> emplace_new <| new ExprAddr(at = call.at, target := "clone", funcType <- ftype)
+        ncall.arguments |> emplace_new <| new ExprConstInt(at = call.at, value = mks._type.sizeOf)
+        return <- ncall
+    }
+}
+
+[tag_function_macro(tag="tag_team_parallel_for_indexed")]
+class private TeamParallelForIndexedMacro : TeamParallelForMacro {
+    //! Same lowering as ``TeamParallelForMacro``; the C++ entry point invokes the lambda with
+    //! the extra leading worker-slot argument.
+    override function_name : string = "team_parallel_for_indexed_invoke"
+}
+
 def _parallel_for_each(arr : array<auto(TT)>; num_jobs : int; blk : block<(job_begin : int; job_end : int; var wg : JobStatus?) : void>) {
     //! Runtime implementation for ``parallel_for_each``.
-    //! Partitions array indices ``[0..length(arr))`` into ``num_jobs`` chunks and invokes ``blk``
-    //! with ``(chunk_begin_idx, chunk_end_idx, wg)`` on the calling thread.
-    //! The block should dispatch ``new_job`` calls that process ``arr[i]`` for ``i`` in ``[chunk_begin_idx..chunk_end_idx)``,
-    //! then call ``wg |> notify_and_release``.
-    //! Blocks until all jobs finish. Requires ``with_job_que`` context.
     _parallel_for(0, length(arr), num_jobs, blk)
 }
 
 [tag_function(tag_parallel_for_each)]
 def parallel_for_each(arr : array<auto(TT)>; num_jobs : int; blk : block<(job_begin : int; job_end : int; var wg : JobStatus?) : void>) {
     //! Convenience wrapper around ``parallel_for`` for arrays.
-    //! Partitions array indices ``[0..length(arr))`` into ``num_jobs`` chunks.
-    //! The block body is automatically wrapped in ``new_job``.
-    //! Blocks until all jobs finish. Requires ``with_job_que`` context.
     pass
 }
 
@@ -596,10 +727,6 @@ class private ParallelForEachJobMacro : ParallelForJobMacro {
 
 def _parallel_map(arr : array<auto(TT)>; num_jobs : int; var results_channel : Channel?; blk : block<(job_begin : int; job_end : int; var ch : Channel?; var wg : JobStatus?) : void>) {
     //! Runtime implementation for ``parallel_map``.
-    //! Partitions array indices ``[0..length(arr))`` into ``num_jobs`` chunks and invokes ``blk``
-    //! on the calling thread with ``(chunk_begin_idx, chunk_end_idx, results_channel, wg)``.
-    //! Blocks until all jobs finish. Results are available in ``results_channel`` after this call returns.
-    //! Requires ``with_job_que`` context.
     _parallel_for(0, length(arr), num_jobs) $(job_begin, job_end, wg) {
         invoke(blk, job_begin, job_end, results_channel, wg)
     }
@@ -608,9 +735,6 @@ def _parallel_map(arr : array<auto(TT)>; num_jobs : int; var results_channel : C
 [tag_function(tag_parallel_map)]
 def parallel_map(arr : array<auto(TT)>; num_jobs : int; var results_channel : Channel?; blk : block<(job_begin : int; job_end : int; var ch : Channel?; var wg : JobStatus?) : void>) {
     //! Partitions array indices ``[0..length(arr))`` into ``num_jobs`` chunks.
-    //! The block body is automatically wrapped in ``new_job``.
-    //! Blocks until all jobs finish. Results are available in ``results_channel`` after this call returns.
-    //! Requires ``with_job_que`` context.
     pass
 }
 
@@ -645,6 +769,12 @@ def public capture_jobque_stream(var s : Stream?) : Stream? {
     return s
 }
 
+def public capture_jobque_seq_box(var box : SeqBox?) : SeqBox? {
+    //! this function is used to capture a seq box that is used by the jobque.
+    box |> add_ref
+    return box
+}
+
 def public release_capture_jobque_channel(ch : Channel?) {
     //! this function is used to release a channel that is used by the jobque.
     if (ch != null) {
@@ -670,6 +800,15 @@ def public release_capture_jobque_stream(s : Stream?) {
     //! this function is used to release a stream that is used by the jobque.
     if (s != null) {
         panic("Stream has not been released. missing stream|>release or stream|>notify_and_release")
+    }
+}
+
+def public release_capture_jobque_seq_box(box : SeqBox?) {
+    //! this function is used to release a seq box that is used by the jobque.
+    // seq_box_release, not the family `release` - the latter only drops a share, so the last
+    // reference dropped through it leaks the box
+    if (box != null) {
+        panic("SeqBox has not been released. missing box|>seq_box_release")
     }
 }
 
@@ -702,7 +841,7 @@ class private ChannelAndStatusCapture : AstCaptureMacro {
         )
         return <- pCall
     }
-    //! This macro implements capturing of the `jobque::Channel`, `jobque::JobStatus`, `jobque::LockBox`, and `jobque::Stream` types.
+    //! This macro implements capturing of the `jobque::Channel`, `jobque::JobStatus`, `jobque::LockBox`, `jobque::SeqBox`, and `jobque::Stream` types.
     //! When captured reference counts are increased. When lambda is destroyed, reference counts are decreased.
     def override captureExpression(prog : Program?; mod : Module?; expr : ExpressionPtr; typ : TypeDeclPtr) : ExpressionPtr {
         //! Implementation details for the capture macro.
@@ -712,16 +851,13 @@ class private ChannelAndStatusCapture : AstCaptureMacro {
             return <- make_capture_call(expr, "jobque_boost::capture_jobque_job_status")
         } elif (typ |> isPtrToJQ("LockBox")) {
             return <- make_capture_call(expr, "jobque_boost::capture_jobque_lock_box")
+        } elif (typ |> isPtrToJQ("SeqBox")) {
+            return <- make_capture_call(expr, "jobque_boost::capture_jobque_seq_box")
         } elif (typ |> isPtrToJQ("Stream")) return <- make_capture_call(expr, "jobque_boost::capture_jobque_stream")
         return null
     }
     def override captureFunction(prog : Program?; mod : Module?; var lcs : Structure?; var fun : FunctionPtr) : void {
         //! Implementation details for the capture macro.
-        //! Note: generators are skipped because their ``finally`` section is called on every
-        //! iteration, not just once at destruction. This means ``Channel``, ``JobStatus``,
-        //! ``LockBox``, and ``Stream`` captures inside generators do NOT get automatic release checks.
-        //! Users must manually call ``release`` on captured jobque objects inside generators.
-        // generator gets finally section called every single time. nothing we can do
         if (fun.flags._generator) return
         for (fld in lcs.fields) {
             if (fld._type |> isPtrToJQ("Channel")) {
@@ -732,6 +868,9 @@ class private ChannelAndStatusCapture : AstCaptureMacro {
                 (fun.body as ExprBlock).finalList |> emplace(pCall)
             } elif (fld._type |> isPtrToJQ("LockBox")) {
                 var pCall = make_release_call(fld, "jobque_boost::release_capture_jobque_lock_box")
+                (fun.body as ExprBlock).finalList |> emplace(pCall)
+            } elif (fld._type |> isPtrToJQ("SeqBox")) {
+                var pCall = make_release_call(fld, "jobque_boost::release_capture_jobque_seq_box")
                 (fun.body as ExprBlock).finalList |> emplace(pCall)
             } elif (fld._type |> isPtrToJQ("Stream")) {
                 var pCall = make_release_call(fld, "jobque_boost::release_capture_jobque_stream")

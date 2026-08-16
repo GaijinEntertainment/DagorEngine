@@ -23,7 +23,9 @@ Sources =
   objPropDlg.cpp
   shaderPropSeparators.cpp
   colorDlgAppMat.cpp
+  saveAsCompositeDlg.cpp
   compositeEditor.cpp
+  compositeEditorSubStack.cpp
   compositeEditorCopyDlg.cpp
   compositeEditorGizmoClient.cpp
   compositeEditorPanel.cpp
@@ -34,6 +36,7 @@ Sources =
   compositeEditorUndo.cpp
   compositeEditorViewport.cpp
   outlineRenderer.cpp
+  editModeRenderer.cpp
 ;
 
 

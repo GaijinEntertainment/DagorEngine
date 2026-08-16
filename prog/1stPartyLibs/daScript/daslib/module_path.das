@@ -30,9 +30,16 @@ module module_path shared public
 //! ``<rel>`` is the substring of the call-site directory starting at
 //! the last ``/modules/`` segment (e.g. ``modules/dasCards/cards``).
 //! Tiers 1+2 are skipped when the call site has no ``/modules/`` segment
-//! (project-local code outside the package layout); tier 3 then returns
-//! the baked dir if it still exists on disk (dev) or ``<exe_dir>`` if it
-//! doesn't (relocated bundle). The result is never empty.
+//! (project-local code outside the package layout).
+//!
+//! A **standalone exe** (``is_standalone_exe()``, folded true only in a
+//! ``daspkg release`` ``-exe``) never resolves to tier 3's baked dev
+//! path: the compile-machine source dir is meaningless on a target box,
+//! and on the *author's own* machine it still exists — so the baked dir
+//! would shadow the assets shipped next to the exe. When standalone,
+//! tier 3 falls back to ``<exe_dir>``. Project-local code also falls
+//! back to ``<exe_dir>`` when the baked dir has gone missing (relocated
+//! bundle), even interpreted. The result is never empty.
 //!
 //! Usage::
 //!
@@ -64,6 +71,7 @@ class private GetThisModuleDirMacro : AstCallMacro {
     def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : Expression? {
         macro_verify(empty(call.arguments), prog, call.at, "expecting get_this_module_dir()")
         let baked = string(call.at.fileInfo.name)
-        return qmacro(__builtin_resolve_this_module_dir($v(baked)))
+        // is_standalone_exe() folds to a compile-time constant in a -exe build, so the resolver can refuse the baked dev path in a released bundle.
+        return qmacro(__builtin_resolve_this_module_dir($v(baked), is_standalone_exe()))
     }
 }

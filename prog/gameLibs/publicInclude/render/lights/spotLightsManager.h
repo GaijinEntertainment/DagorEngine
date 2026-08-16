@@ -32,26 +32,19 @@ class OmniShadowMap;
 class Occlusion;
 class LightsPartition;
 
-class SpotLightsManager : public LightsManager<SpotLight>
+// see the thread-safety NOTE on LightsManager in lightsManager.h
+class SpotLightsManager : public LightsManager<SpotLight, RenderSpotLight, SpotLightMaskType, MAX_SCENE_SPOT_LIGHTS>
 {
   friend class LightsPartition;
 
 public:
-  typedef SpotLight Light;
-  typedef Light RawLight;
-  using MaskType = SpotLightMaskType;
-  using RenderLight = RenderSpotLight;
-
-  static constexpr int MAX_LIGHTS = MAX_SCENE_SPOT_LIGHTS;
-
   SpotLightsManager();
-  ~SpotLightsManager();
-
-  void init();
-  void close();
+  SpotLightsManager(const char *name);
 
   void renderDebugBboxes();
   int addLight(const Light &light); // return -1 if fails
+  void afterLightAllocation(unsigned int id) override;
+  void beforeLightDeallocation(unsigned int id) override;
   void destroyLight(unsigned int id);
 
   const Light &getLight(unsigned int id) const override { return rawLights[id]; }
@@ -119,8 +112,6 @@ public:
   bbox3f getBoundingBox(unsigned id) const { return boundingBoxes[id]; }
   vec4f getBoundingSphere(unsigned id) const override { return boundingSpheres[id]; }
 
-  void destroyAllLights();
-
   // light_up_dir is only used if texture id is also provided
   int addLight(const Point3 &pos, const Color3 &color, const Point3 &dir, const float angle, float radius, float attenuation_k = 1.f,
     bool contact_shadows = false, const Point3 &light_up_dir = Point3(0, 1, 0), int tex = -1, float illuminating_plane = 0);
@@ -182,9 +173,12 @@ public:
   }
   void setLightShadows(unsigned int id, bool shadows) { rawLights[id].shadows = shadows; }
 
-  void removeEmpty();
-  int maxIndex() const { return maxLightIndex; }
-
+  // nonOptLightIds packs multiple lightIds per word: concurrent set() calls to different
+  // ids in the same word race. Only addLight/destroyLight serialize it, via
+  // lightAllocationSpinlock; resetLightOptimization/setLightOptimized below (reached from
+  // setLight/setLightPos/setLightDirAngle/setLightRadius and from the shadow readback
+  // completion path) do not, so they are excluded from the base class's per-lightId
+  // thread-safety guarantee.
   bool isLightNonOptimized(int id) { return nonOptLightIds.test(id); }
   bool tryGetNonOptimizedLightId(int &id)
   {
@@ -204,21 +198,11 @@ public:
     rawLights[id].culling_radius = -1.0f;
   }
 
-  IesTextureCollection::PhotometryData getPhotometryData(int texId) const;
-
   void updateShadowVolume(uint32_t light_id) override;
 
 private:
-  carray<Light, MAX_LIGHTS> rawLights;                 //-V730_NOINIT
-  carray<vec4f, MAX_LIGHTS> boundingSpheres;           //-V730_NOINIT
-  carray<bbox3f, MAX_LIGHTS> boundingBoxes;            //-V730_NOINIT
-  alignas(16) carray<float, MAX_LIGHTS> cosHalfAngles; //-V730_NOINIT
-  // masks allows to ignore specific lights in specific cases
-  // for example, we can ignore highly dynamic lights for GI
-  carray<SpotLightMaskType, MAX_LIGHTS> masks; //-V730_NOINIT
-
-  StaticTab<uint16_t, MAX_LIGHTS> freeLightIds; //-V730_NOINIT
+  carray<vec4f, MAX_LIGHTS> boundingSpheres;
+  carray<bbox3f, MAX_LIGHTS> boundingBoxes;
+  alignas(16) carray<float, MAX_LIGHTS> cosHalfAngles;
   Bitset<MAX_LIGHTS> nonOptLightIds;
-  IesTextureCollection *photometryTextures = nullptr;
-  int maxLightIndex = -1;
 };

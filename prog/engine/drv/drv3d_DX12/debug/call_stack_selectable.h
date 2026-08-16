@@ -81,7 +81,7 @@ public:
       CommandData::ActiveMember mode;
     };
 
-    static const ModeNameTableEntry modes[] =                             //
+    constexpr ModeNameTableEntry modes[] =                                //
       {{"null", CommandData::ActiveMember::AS_NULL},                      //
         {"return_address", CommandData::ActiveMember::AS_RETURN_ADDRESS}, //
         {"full_stack", CommandData::ActiveMember::AS_FULL_STACK}};

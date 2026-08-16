@@ -854,7 +854,9 @@ struct PhysicalDeviceSet // -V553
 #if VK_KHR_acceleration_structure
     if (hasExtension<AccelerationStructureKHR>())
     {
-      hasAccelerationStructure = deviceAccelerationStructureFeature.accelerationStructure == VK_TRUE;
+      hasAccelerationStructure = hasDeviceBufferDeviceAddress && deviceAccelerationStructureFeature.accelerationStructure == VK_TRUE;
+      if (!hasDeviceBufferDeviceAddress) //-V1051
+        debug("vulkan: acceleration structure disabled: dependency buffer_device_address is not available");
       deviceAccelerationStructureFeature.pNext = nullptr;
     }
     else

@@ -47,16 +47,16 @@ def test_cast(t : T?) {
         t |> equal(f3d.x, 1)
         t |> equal(f3d.y, 2)
         setFoo(f, 3, 4)
-        setFoo(cast<Foo> f3d, 3, 4)
+        setFoo(cast<Foo>(f3d), 3, 4)
         t |> equal(f.x, 3)
         t |> equal(f.y, 4)
         t |> equal(f3d.x, 3)
         t |> equal(f3d.y, 4)
-        (cast<Foo> f3d).y = 5
+        (cast<Foo>(f3d)).y = 5
         t |> equal(f3d.y, 5)
         var fv : FooVision
-        (cast<Foo> fv.f3d).y = 13
-        t |> equal((cast<Foo> fv.f3d).y, 13)
+        (cast<Foo>(fv.f3d)).y = 13
+        t |> equal((cast<Foo>(fv.f3d)).y, 13)
     }
     t |> run("cast pointer struct") @(t : T?) {
         var f = new Foo
@@ -72,16 +72,16 @@ def test_cast(t : T?) {
         t |> equal(f3d.x, 1)
         t |> equal(f3d.y, 2)
         setFooPtr(f, 3, 4)
-        setFooPtr(cast<Foo?> f3d, 3, 4)
+        setFooPtr(cast<Foo?>(f3d), 3, 4)
         t |> equal(f.x, 3)
         t |> equal(f.y, 4)
         t |> equal(f3d.x, 3)
         t |> equal(f3d.y, 4)
-        (cast<Foo?> f3d).y = 5
+        (cast<Foo?>(f3d)).y = 5
         t |> equal(f3d.y, 5)
         var fv = new FooVision
-        (cast<Foo> fv.f3d).y = 13
-        t |> equal((cast<Foo> fv.f3d).y, 13)
+        (cast<Foo>(fv.f3d)).y = 13
+        t |> equal((cast<Foo>(fv.f3d)).y, 13)
         unsafe {
             delete f
             delete f3d

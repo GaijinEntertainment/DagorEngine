@@ -38,9 +38,15 @@ macro VOXEL_SHADOWS_STCODE_USE(code)
 
     #define VOXEL_SHADOWS_MAX_CASCADES 4 // must match shadervar arrays
 
+    uint voxel_shadows_clamp_cascade(uint cascade_id)
+    {
+      ##assert(cascade_id < VOXEL_SHADOWS_MAX_CASCADES, "voxel_shadows cascade_id out of bounds: %d, cascade count %d", cascade_id, voxel_shadows_cascade_count);
+      return min(cascade_id, uint(VOXEL_SHADOWS_MAX_CASCADES - 1));
+    }
+
     int3 voxel_shadows_volindex_to_world_voxel(uint3 voxel_idx, uint cascade_id)
     {
-      return tor_vgrid_volindex_to_world_voxel(voxel_idx, voxel_shadows_origin[cascade_id].xyz, voxel_shadows_tex_dim_half);
+      return tor_vgrid_volindex_to_world_voxel(voxel_idx, voxel_shadows_origin[voxel_shadows_clamp_cascade(cascade_id)].xyz, voxel_shadows_tex_dim_half);
     }
 
     uint3 voxel_shadows_world_voxel_to_tex_tci(int3 world_voxel, uint cascade_id)
@@ -52,7 +58,7 @@ macro VOXEL_SHADOWS_STCODE_USE(code)
 
     float3 voxel_shadows_world_pos_to_tex_tc_linear(float3 world_pos, uint cascade_id)
     {
-      return tor_vgrid_world_pos_to_tex_tc_linear(world_pos, voxel_shadows_world_to_tc[cascade_id].xy);
+      return tor_vgrid_world_pos_to_tex_tc_linear(world_pos, voxel_shadows_world_to_tc[voxel_shadows_clamp_cascade(cascade_id)].xy);
     }
 
     float3 voxel_shadows_tc_linear_to_atlas(float3 tc, uint cascade_id)
@@ -69,7 +75,7 @@ macro VOXEL_SHADOWS_STCODE_USE(code)
 
     float3 voxel_shadows_world_ofs_to_tc_ofs_atlas(float3 world_ofs, uint cascade_id)
     {
-      return tor_vgrid_world_ofs_to_tc_ofs_atlas(world_ofs, voxel_shadows_world_to_tc[cascade_id].xy, voxel_shadows_tex_dim.y, voxel_shadows_cascade_count);
+      return tor_vgrid_world_ofs_to_tc_ofs_atlas(world_ofs, voxel_shadows_world_to_tc[voxel_shadows_clamp_cascade(cascade_id)].xy, voxel_shadows_tex_dim.y, voxel_shadows_cascade_count);
     }
   }
 endmacro

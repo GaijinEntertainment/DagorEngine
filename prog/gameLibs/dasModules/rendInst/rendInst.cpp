@@ -246,6 +246,8 @@ public:
       das::SideEffects::modifyExternal, "rendinst::moveToOriginalScene");
     das::addExtern<DAS_BIND_FUN(rendinst::removeFromTiledScene)>(*this, lib, "rendinst_removeFromTiledScene",
       das::SideEffects::modifyExternal, "rendinst::removeFromTiledScene");
+    das::addExtern<DAS_BIND_FUN(rendinst::setRIGenExtraRenderVisible)>(*this, lib, "rendinst_setRIGenExtraRenderVisible",
+      das::SideEffects::modifyExternal, "rendinst::setRIGenExtraRenderVisible");
     das::addExtern<DAS_BIND_FUN(rendinst::removeRIGenExtraFromGrid)>(*this, lib, "rendinst_removeRIGenExtraFromGrid",
       das::SideEffects::modifyExternal, "rendinst::removeRIGenExtraFromGrid");
     das::addExtern<DAS_BIND_FUN(rendinst::restoreRIGenExtraInGrid)>(*this, lib, "rendinst_restoreRIGenExtraInGrid",

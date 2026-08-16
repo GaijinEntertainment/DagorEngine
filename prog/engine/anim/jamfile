@@ -16,7 +16,6 @@ Sources =
   animGraph.cpp
   animGraphDbg.cpp
   animStateHolder.cpp
-  footLockerIKCtrl.cpp
   simpleNodeAnim.cpp
 ;
 

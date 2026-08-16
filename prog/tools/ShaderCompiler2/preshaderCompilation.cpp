@@ -653,10 +653,8 @@ eastl::optional<PreshaderCompilationOutput> compile_variant_preshader(const Pres
       true /* allow_out_of_range */));
   }
 
-  // Reserve special global consts block slot if such a block was declared
-  // @TODO: find out the reason why just checking supp blks is not enough (this was how it was done before too)
-  if (vctx.tgtCtx().blocks().countBlock(ShaderBlockLevel::GLOBAL_CONST) > 0)
-    CHECK(reserve_special_cbuffer_at(HlslSlotSemantic::RESERVED_FOR_GLOBAL_CONST_CBUF, GLOBAL_CONST_BUF_REGISTER, ctx));
+  // Reserve special global consts block slot even if such a block was declared to avoid spurious unbinds
+  CHECK(reserve_special_cbuffer_at(HlslSlotSemantic::RESERVED_FOR_GLOBAL_CONST_CBUF, GLOBAL_CONST_BUF_REGISTER, ctx));
 
   if (!vctx.tgtCtx().refinedBlockLayout().empty())
   {

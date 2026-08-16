@@ -1,5 +1,6 @@
 from "%sqstd/ecs.nut" import *
 from "%darg/ui_imports.nut" import *
+from "types" import Integer
 
 let entity_editor = require_optional("entity_editor")
 let { selectedEntity, selectedEntities, selectedEntitiesSetKeyVal, selectedEntitiesDeleteKey,
@@ -49,7 +50,7 @@ function getEntityExtraName(eid): string|null {
 }
 
 function getSceneLoadTypeText(v): string {
-  let loadTypeVal = type(v) == "integer" ? v : v.loadType
+  let loadTypeVal = v instanceof Integer ? v : v.loadType
   let loadType = (
     (loadTypeVal == 1) ? "COMMON" :
     (loadTypeVal == 2) ? "CLIENT" :

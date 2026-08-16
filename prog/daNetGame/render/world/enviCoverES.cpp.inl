@@ -11,6 +11,11 @@
 #define INSIDE_RENDERER
 #include <render/world/private_worldRenderer.h>
 
+namespace var
+{
+static ShaderVariableInfo envi_cover_rt("envi_cover_rt", true);
+}
+
 static void updateEnviCover(bool envi_cover)
 {
   envi_cover_vars::set_envi_cover(envi_cover);
@@ -62,3 +67,12 @@ ECS_TAG(render)
 ECS_ON_EVENT(on_disappear)
 ECS_REQUIRE(const ecs::string &envi_cover_intensity_map)
 static void envi_cover_intensity_map_unload_es(const ecs::Event &) { envi_cover_vars::unset_intensity_map(); }
+
+ECS_TAG(render)
+ECS_ON_EVENT(OnLevelLoaded)
+static void envi_cover_rt_on_es(const ecs::Event &, bool envi_cover_rt) { ShaderGlobal::set_int(var::envi_cover_rt, envi_cover_rt); }
+
+ECS_TAG(render)
+ECS_ON_EVENT(on_disappear)
+ECS_REQUIRE(bool envi_cover_rt)
+static void envi_cover_rt_off_es(const ecs::Event &) { ShaderGlobal::set_int(var::envi_cover_rt, 0); }

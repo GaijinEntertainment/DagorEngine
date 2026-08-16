@@ -1,5 +1,7 @@
 options gen2
 
+module grep_usage
+
 require common public
 require daslib/json
 require daslib/json_boost
@@ -14,7 +16,7 @@ def private try_ast_grep(cmd : string) : bool {
     var found = false
     let rc = unsafe(popen_argv([cmd, "--version"], 5.0, $(f) {
         if (f == null) return
-        let line = unsafe(fread_to_eof(f))
+        let line = fread(f)
         if (find(line, "ast-grep") >= 0) {
             found = true
         }
@@ -28,15 +30,19 @@ def detect_ast_grep() : string {
     // (`npm install -g @ast-grep/cli`) the global PATH only gets `sg.cmd`, so
     // CreateProcess(NULL, "sg ...") fails — fall through to the explicit
     // `.cmd` / `.exe` / `.bat` candidates so the shim is picked up.
-    let candidates = ["sg", "sg.exe", "sg.cmd", "sg.bat"]
+    // prefer the `ast-grep` binary: the `sg` alias is deprecated, and newer
+    // installs print a deprecation banner ahead of the JSON payload
+    let candidates = ["ast-grep", "ast-grep.exe", "ast-grep.cmd", "ast-grep.bat", "sg", "sg.exe", "sg.cmd", "sg.bat"]
     for (c in candidates) {
         if (try_ast_grep(c)) return c
     }
     // try .venv paths (not activated): Scripts/ on Windows, bin/ on Linux/macOS
     let das_root = get_das_root()
     for (subdir in ["Scripts", "bin"]) {
-        let venv_sg = "{das_root}/.venv/{subdir}/sg"
-        if (try_ast_grep(venv_sg)) return venv_sg
+        for (name in ["ast-grep", "sg"]) {
+            let venv_sg = "{das_root}/.venv/{subdir}/{name}"
+            if (try_ast_grep(venv_sg)) return venv_sg
+        }
     }
     return ""
 }
@@ -46,6 +52,18 @@ def get_ast_grep_cmd() : string {
         ast_grep_cmd = detect_ast_grep()
     }
     return ast_grep_cmd
+}
+
+// The deprecated `sg` alias of ast-grep prints a deprecation banner ahead of
+// the JSON payload — drop anything before the first JSON bracket.
+def strip_ast_grep_banner(raw : string) : string {
+    let ai = find(raw, "[")
+    let oi = find(raw, "\{")
+    var cut = ai
+    if (cut < 0 || (oi >= 0 && oi < cut)) {
+        cut = oi
+    }
+    return cut > 0 ? slice(raw, cut) : raw
 }
 
 def json_to_int(v : JsonValue?) : int {
@@ -71,7 +89,11 @@ def get_start_line(m : JsonValue?) : int {
 def do_grep_usage(symbol, directory, context_lines_str, glob_filter : string) : string {
     if (empty(symbol)) return make_tool_result("'symbol' argument is required", true)
     let das_root = get_das_root()
-    let search_dir = resolve_path(!empty(directory) ? directory : ".")
+    // "" and "." both mean the repo root. Going through resolve_path(".") would append
+    // a trailing "/.", and ast-grep cannot relativize candidate paths against a root
+    // spelled that way -- every slash-anchored --globs filter then matches nothing and
+    // the tool reports a silent "0 matches" instead of an error.
+    let search_dir = (empty(directory) || directory == "." ? get_das_root() : resolve_path(directory))
     // build ast-grep command
     let sg = get_ast_grep_cmd()
     let cd_root = "cd \"{das_root}\" && "
@@ -90,6 +112,7 @@ def do_grep_usage(symbol, directory, context_lines_str, glob_filter : string) : 
             }
         }
     }
+    raw_json = strip_ast_grep_banner(raw_json)
     if (empty(raw_json) || raw_json == "[]") return make_tool_result("No matches found for '{symbol}' in {search_dir}")
     // parse JSON array from ast-grep
     var err : string
@@ -125,6 +148,10 @@ def do_grep_usage(symbol, directory, context_lines_str, glob_filter : string) : 
         }
     }
     unsafe { delete parsed; }
+    return make_tool_result(format_grep_matches(symbol, by_file, file_order))
+}
+
+def private format_grep_matches(symbol : string; var by_file : table<string; array<string>>; file_order : array<string>) : string {
     let total = length(by_file)
     var match_count = 0
     for (fp in file_order) {
@@ -132,7 +159,7 @@ def do_grep_usage(symbol, directory, context_lines_str, glob_filter : string) : 
             match_count += length(by_file[fp])
         }
     }
-    let output = build_string() $(var w) {
+    return build_string() $(var w) {
         write(w, "Found {match_count} match")
         if (match_count != 1) {
             write(w, "es")
@@ -152,5 +179,4 @@ def do_grep_usage(symbol, directory, context_lines_str, glob_filter : string) : 
             write(w, "\n")
         }
     }
-    return make_tool_result(output)
 }

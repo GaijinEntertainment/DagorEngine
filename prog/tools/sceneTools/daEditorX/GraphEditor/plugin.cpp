@@ -13,6 +13,7 @@
 
 #include <EASTL/algorithm.h>
 #include <EASTL/hash_set.h>
+#include <EASTL/sort.h>
 
 #include <imgui/imgui.h>
 
@@ -94,12 +95,13 @@ bool prompt_texture_substring(String &out_substring)
 }
 
 // Adapter installed into the texgen service. compile() runs on the worker
-// thread; it takes the plugin's graphMutex for the full compile-and-commit so
-// that source-of-truth graph state (gd.nodes / edges / properties) and the
-// compiled output (gd.mainGraphBlk / shaderListBlk) are written under the same
-// lock. The service does not commit the BLKs itself -- doing so under stateLock
-// while main loaders write under graphMutex would race on the same memory under
-// two different locks.
+// thread and holds the plugin's graphMutex for the whole compile-and-commit: it
+// READS the source-of-truth graph (gd.nodes / edges / properties) and writes only
+// the compiled output (gd.mainGraphBlk / shaderListBlk), so a main-thread writer
+// cannot mutate the source mid-compile. Main stays the only writer of nodes and
+// edges; display-side readers rely on that. The service does not commit the BLKs
+// itself -- doing so under stateLock while main loaders write under graphMutex
+// would race on the same memory under two different locks.
 class GraphCompilerImpl final : public IGraphCompiler
 {
 public:
@@ -108,6 +110,7 @@ public:
   bool compile() override
   {
     bool ok = false;
+    eastl::string compileMsg;
     plugin.mutateGraphData([&](GraphData &gd) {
       // Compile into local BLKs first so a failure (e.g. iteration-limit hit)
       // leaves gd.mainGraphBlk / shaderListBlk untouched -- the service relies
@@ -140,7 +143,7 @@ public:
       }
 
       ok = compile_graph_to_blks(*compileGd, plugin.getBaseNodesBlk(), plugin.getShaderIncludesDir(), newMain, newShader,
-        pendingNamesByIdx);
+        pendingNamesByIdx, &compileMsg);
       if (ok)
       {
         gd.mainGraphBlk.setFrom(&newMain);
@@ -164,11 +167,29 @@ public:
       }
     });
 
+    // Pushed on every compile, empty included, so a fixed graph clears the status bar. The message
+    // carries no "GraphEditor:" prefix -- the status bar is already inside the graph panel.
+    if (IGraphTexGenService *svc = plugin.getTexGenService())
+    {
+      svc->setGraphCompileOutcome(!ok, compileMsg.c_str());
+    }
     if (!ok)
     {
-      DAEDITOR3.conError("GraphEditor: graph compile hit iteration limit");
+      DAEDITOR3.conError("GraphEditor: %s", compileMsg.empty() ? "graph compile failed" : compileMsg.c_str());
+    }
+    else if (!compileMsg.empty())
+    {
+      DAEDITOR3.conWarning("GraphEditor: %s", compileMsg.c_str());
     }
     return ok;
+  }
+
+  void copyCompiledGraph(DataBlock &main_graph_blk, DataBlock &shader_list_blk) override
+  {
+    plugin.readGraphData([&](const GraphData &gd) {
+      main_graph_blk.setFrom(&gd.mainGraphBlk);
+      shader_list_blk.setFrom(&gd.shaderListBlk);
+    });
   }
 
 private:
@@ -1416,8 +1437,11 @@ void GraphEditorPlg::appendSubgraphTemplatesToBaseNodes()
   struct Boundary
   {
     eastl::string ifaceName;
-    eastl::string types; // CSV form, matches base_nodes.blk's `types:t` schema
-    bool isInput;        // mirrors subgraph in:TYPE boundary (true) vs subgraph out (false)
+    eastl::string types;  // CSV form, matches base_nodes.blk's `types:t` schema
+    bool isInput = false; // mirrors subgraph in:TYPE boundary (true) vs subgraph out (false)
+    // `subgraph separator` boundary: contributes a pinless section divider rather than a real pin.
+    bool isSeparator = false;
+    float y = 0.0f; // boundary node's canvas y, used to order pins as the author laid them out
   };
 
   auto processFile = [&](const String &filePath, const char *fileName) {
@@ -1503,14 +1527,24 @@ void GraphEditorPlg::appendSubgraphTemplatesToBaseNodes()
       const char *dn = n.descName.c_str();
       const bool isInBoundary = strncmp(dn, "subgraph in:", 12) == 0;
       const bool isOutBoundary = strcmp(dn, "subgraph out") == 0;
-      if (!isInBoundary && !isOutBoundary)
+      const bool isSeparatorBoundary = strcmp(dn, "subgraph separator") == 0;
+      if (!isInBoundary && !isOutBoundary && !isSeparatorBoundary)
       {
         continue;
       }
 
       Boundary b;
       b.ifaceName = effective_subgraph_boundary_name(childGd, n.id);
-      b.isInput = isInBoundary;
+      b.isInput = isInBoundary || isSeparatorBoundary;
+      b.isSeparator = isSeparatorBoundary;
+      b.y = n.y;
+      if (isSeparatorBoundary)
+      {
+        // No types / role: it is a label, and the schema validator ignores it entirely (it only
+        // recognises in / out boundaries), so an unnamed separator is legal and draws a bare rule.
+        boundaries.push_back(eastl::move(b));
+        continue;
+      }
       if (isInBoundary)
       {
         // descName format: "subgraph in: <type>". Slice past the colon + spaces.
@@ -1547,13 +1581,21 @@ void GraphEditorPlg::appendSubgraphTemplatesToBaseNodes()
     nodeBlk->setBool("generated", true);
     nodeBlk->setInt("width", 200);
 
-    // Inputs first then outputs for canonical layout. The boundaries vector already holds
-    // entries in load order (which the converter emits sorted by the boundary node's view.y
-    // -- matching what the user authored visually); the only re-ordering this loop applies
-    // is grouping inputs ahead of outputs.
+    // Order by the boundary node's y so the pin order matches what the author laid out vertically
+    eastl::stable_sort(boundaries.begin(), boundaries.end(), [](const Boundary &a, const Boundary &b) { return a.y < b.y; });
+
+    // Inputs first then outputs for canonical layout; the only re-ordering this loop applies is
+    // grouping inputs ahead of outputs. Separators ride along in the input pass.
     auto emitPin = [&](const Boundary &b) {
       DataBlock *pinBlk = nodeBlk->addNewBlock("pin");
       pinBlk->setStr("name", b.ifaceName.c_str());
+      if (b.isSeparator)
+      {
+        // Section divider: name is the label, nothing else applies. Emitted inline in the input run
+        // so it lands between the pins the author placed it between inside the subgraph.
+        pinBlk->setBool("separator", true);
+        return;
+      }
       pinBlk->setStr("types", b.types.c_str());
       pinBlk->setStr("role", b.isInput ? "in" : "out");
       // singleConnect on instance inputs mirrors the boundary's single-driver semantics:
@@ -1969,6 +2011,45 @@ void GraphEditorPlg::addEdgeUndoable(GraphData::Edge edge)
   undoSystem->begin();
   undoSystem->put(new UndoCreateEdge(*this, edge));
   undoSystem->accept("Create edge");
+}
+
+void GraphEditorPlg::setEdgeMuted(int edge_id, bool muted)
+{
+  bool changed = false;
+  mutateGraphData([edge_id, muted, &changed](GraphData &gd) {
+    auto it = eastl::find_if(gd.edges.begin(), gd.edges.end(), [edge_id](const GraphData::Edge &e) { return e.id == edge_id; });
+    if (it != gd.edges.end() && it->muted != muted)
+    {
+      it->muted = muted;
+      changed = true;
+    }
+  });
+  if (!changed)
+  {
+    return;
+  }
+  // Endpoints did not move, so the cull cache stays valid -- but the compile result does not.
+  // The canvas picks up the new dead-path set through the graph revision bumped above.
+  markGraphDirtyAndRegen();
+}
+
+void GraphEditorPlg::toggleEdgeMutedUndoable(int edge_id)
+{
+  // Main-thread read of edge data (see the snapshot note in deleteNodesUndoable).
+  auto it =
+    eastl::find_if(graphData.edges.begin(), graphData.edges.end(), [edge_id](const GraphData::Edge &e) { return e.id == edge_id; });
+  if (it == graphData.edges.end())
+  {
+    return;
+  }
+  const bool oldMuted = it->muted;
+
+  setEdgeMuted(edge_id, !oldMuted);
+
+  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
+  undoSystem->begin();
+  undoSystem->put(new UndoToggleEdgeMuted(*this, edge_id, oldMuted));
+  undoSystem->accept(oldMuted ? "Unmute edge" : "Mute edge");
 }
 
 void GraphEditorPlg::deleteEdgesUndoable(const eastl::vector<int> &edge_ids)

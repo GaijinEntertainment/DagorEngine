@@ -36,7 +36,6 @@ namespace das {
 
     DAS_API bool builtin_string_endswith ( const char * str, const char * cmp, Context * context );
     DAS_API bool builtin_string_startswith ( const char * str, const char * cmp, Context * context );
-    DAS_API bool builtin_string_starts_with ( const string & str, const char * cmp, Context * context );
     DAS_API bool builtin_string_startswith2 ( const char * str, const char * cmp, uint32_t cmpLen, Context * context );
     DAS_API bool builtin_string_startswith3 ( const char * str, int32_t offset, const char * cmp, Context * context );
     DAS_API bool builtin_string_startswith4 ( const char * str, int32_t offset, const char * cmp, uint32_t cmpLen, Context * context );
@@ -50,7 +49,6 @@ namespace das {
     DAS_API int builtin_find_first_of ( const char * str, const char * substr, Context * context );
     DAS_API int builtin_find_first_char_of ( const char * str, int Ch, Context * context );
     DAS_API int builtin_find_first_char_of2 ( const char * str, int Ch, int start, Context * context );
-    DAS_API int builtin_string_length ( const char *str, Context * context );
     DAS_API char* builtin_string_slice1 ( const char *str, int start, int end, Context * context, LineInfoArg * at );
     DAS_API char* builtin_string_slice2 ( const char *str, int start, Context * context, LineInfoArg * at );
     DAS_API char* builtin_string_reverse ( const char *str, Context * context, LineInfoArg * at );
@@ -85,7 +83,6 @@ namespace das {
     DAS_API void builtin_append_char_to_string(string & str, int32_t Ch);
     DAS_API bool builtin_string_ends_with(const string &str, char * substr, Context * context);
     DAS_API bool builtin_string_starts_with(const string &str, const char * cmp, Context * context);
-    DAS_API int32_t builtin_ext_string_length(const string & str);
     DAS_API void builtin_resize_string(string & str, int32_t newLength);
     DAS_API char * string_repeat ( const char * str, int count, Context * context, LineInfoArg * at );
     DAS_API char * to_string_char(int ch, Context * context, LineInfoArg * at);

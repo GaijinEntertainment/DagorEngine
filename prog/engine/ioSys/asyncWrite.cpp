@@ -5,6 +5,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_unicode.h>
 #include <memory/dag_framemem.h>
+#include <util/dag_compilerDefs.h>
 
 #if _TARGET_APPLE | _TARGET_PC_LINUX | _TARGET_ANDROID | _TARGET_IOS
 #include <unistd.h>
@@ -24,6 +25,14 @@
 #define THREAD_YIELD sleep_msec(0)
 #else
 #define THREAD_YIELD sleep_msec(0)
+#endif
+
+// glibc serves posix aio with helper threads that tsan knows nothing about, and
+// the first allocation made in such a thread crashes the tsan runtime
+#if _TARGET_APPLE | (_TARGET_PC_LINUX && !DAGOR_THREAD_SANITIZER)
+#define USE_POSIX_AIO 1
+#else
+#define USE_POSIX_AIO 0
 #endif
 
 #if _TARGET_PC_WIN | _TARGET_XBOX
@@ -47,7 +56,7 @@ class AsyncWriterCB final : public IGenSave
   const int bufMaxSize;
   Tab<char> buf, bufNext;
 
-#if _TARGET_APPLE | _TARGET_PC_LINUX
+#if USE_POSIX_AIO
   aiocb aio;
 #elif _TARGET_PC_WIN | _TARGET_XBOX
   OVERLAPPED overlapped;
@@ -116,7 +125,7 @@ AsyncWriterCB::AsyncWriterCB(int buf_size) :
   bufMaxSize(buf_size),
   fileHandle(INVALID_FILE_HANDLE)
 {
-#if _TARGET_APPLE | _TARGET_PC_LINUX
+#if USE_POSIX_AIO
   memset(&aio, 0, sizeof(aio));
 #elif _TARGET_PC_WIN | _TARGET_XBOX
   memset(&overlapped, 0, sizeof(overlapped));
@@ -189,7 +198,7 @@ void __stdcall AsyncWriterCB::on_write_done_cb(DWORD dwErr, DWORD cbWritten, OVE
     clear_and_shrink(wcb->bufNext);
   }
 }
-#elif _TARGET_APPLE | _TARGET_PC_LINUX
+#elif USE_POSIX_AIO
 void AsyncWriterCB::poll_aio_result()
 {
   int bwr = 0;
@@ -208,7 +217,7 @@ void AsyncWriterCB::poll_aio_result()
       default: done = WRITE_FAILED; break;
     }
 }
-#elif _TARGET_ANDROID | _TARGET_IOS
+#elif _TARGET_ANDROID | _TARGET_IOS | _TARGET_PC_LINUX
 void AsyncWriterCB::poll_aio_result()
 {
   if (done != WRITE_IN_PROGRESS)
@@ -285,7 +294,7 @@ void AsyncWriterCB::write(const void *ptr, int size)
     return;
 
   TIME_PROFILE(AsyncWriterCB__asyncWriteBegin)
-#if _TARGET_APPLE | _TARGET_PC_LINUX
+#if USE_POSIX_AIO
   G_ASSERT(offs >= 0);
   memset(&aio, 0, sizeof(aio));
   aio.aio_fildes = fileHandle;
@@ -300,7 +309,7 @@ void AsyncWriterCB::write(const void *ptr, int size)
 
   done = WRITE_IN_PROGRESS;
 
-#if _TARGET_APPLE | _TARGET_PC_LINUX
+#if USE_POSIX_AIO
   int failcnt = 0;
   while (aio_write(&aio) != 0)
     if (errno == EAGAIN)

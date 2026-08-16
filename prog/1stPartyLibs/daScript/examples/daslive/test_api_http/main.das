@@ -7,6 +7,7 @@ require daslib/json
 require daslib/json_boost
 require live/live_commands
 require live/live_api
+require live/live_gc
 require strings
 require live_host
 
@@ -31,7 +32,7 @@ def check(name : string; condition : bool) {
 
 var cmd_counter : int = 0
 
-[live_command]
+[live_command, unused_argument(input)]
 def ping(input : JsonValue?) : JsonValue? {
     cmd_counter++
     return JV("\{\"pong\": {cmd_counter}}")
@@ -163,6 +164,7 @@ def main() {
     init()
     while (!exit_requested()) {
         update()
+        maybe_collect_gc()
     }
     shutdown()
 }

@@ -945,6 +945,10 @@ inline void das_stable_sort_r(void *base, size_t nel, size_t width, Compare cmp)
 // inlines, unlike the runtime-width byte path — while comparisons use the typed
 // comparator. Requires trivially-relocatable T (the daslang array-element model,
 // same assumption as das_sort<T>).
+// void* relocation: trivially-relocatable contract, avoids -Wnontrivial-memcall.
+template <typename T> static inline void das_reloc_t(T *dst, const T *src, size_t bytes) {
+    memcpy((void *)dst, (const void *)src, bytes);
+}
 
 template <typename T, typename Compare>
 static inline void das_stable_insertion_run_t(T *data, size_t lo, size_t hi, Compare cmp)
@@ -954,10 +958,10 @@ static inline void das_stable_insertion_run_t(T *data, size_t lo, size_t hi, Com
         T held = data[i];                                                  // value copy for the comparisons
         size_t j = i;
         do {
-            memcpy(&data[j], &data[j - 1], sizeof(T));
+            das_reloc_t(&data[j], &data[j - 1], sizeof(T));
             j--;
         } while (j > lo && cmp(held, data[j - 1]));
-        memcpy(&data[j], &held, sizeof(T));
+        das_reloc_t(&data[j], &held, sizeof(T));
     }
 }
 
@@ -969,12 +973,12 @@ static inline void das_stable_merge_runs_t(const T *src, T *dst, size_t l, size_
         int cl = 0, cr = 0;
         for (;;) {                                                          // one-at-a-time
             if (cmp(src[j], src[i])) {                                       // right < left
-                memcpy(&dst[k++], &src[j++], sizeof(T));
+                das_reloc_t(&dst[k++], &src[j++], sizeof(T));
                 cr++; cl = 0;
                 if (j >= r) goto done;
                 if (cr >= DAS_STABLE_MIN_GALLOP) break;
             } else {                                                        // left <= right (stable)
-                memcpy(&dst[k++], &src[i++], sizeof(T));
+                das_reloc_t(&dst[k++], &src[i++], sizeof(T));
                 cl++; cr = 0;
                 if (i >= m) goto done;
                 if (cl >= DAS_STABLE_MIN_GALLOP) break;
@@ -984,19 +988,19 @@ static inline void das_stable_merge_runs_t(const T *src, T *dst, size_t l, size_
             size_t is = i;                                                  // left run: src[i..] <= src[j]
             while (i < m && !cmp(src[j], src[i])) i++;
             size_t lenL = i - is;
-            if (lenL) { memcpy(&dst[k], &src[is], lenL * sizeof(T)); k += lenL; if (i >= m) goto done; }
-            memcpy(&dst[k++], &src[j++], sizeof(T)); if (j >= r) goto done;
+            if (lenL) { das_reloc_t(&dst[k], &src[is], lenL * sizeof(T)); k += lenL; if (i >= m) goto done; }
+            das_reloc_t(&dst[k++], &src[j++], sizeof(T)); if (j >= r) goto done;
             size_t js = j;                                                  // right run: src[j..] < src[i]
             while (j < r && cmp(src[j], src[i])) j++;
             size_t lenR = j - js;
-            if (lenR) { memcpy(&dst[k], &src[js], lenR * sizeof(T)); k += lenR; if (j >= r) goto done; }
-            memcpy(&dst[k++], &src[i++], sizeof(T)); if (i >= m) goto done;
+            if (lenR) { das_reloc_t(&dst[k], &src[js], lenR * sizeof(T)); k += lenR; if (j >= r) goto done; }
+            das_reloc_t(&dst[k++], &src[i++], sizeof(T)); if (i >= m) goto done;
             if (lenL < size_t(DAS_STABLE_MIN_GALLOP) && lenR < size_t(DAS_STABLE_MIN_GALLOP)) break;
         }
     }
 done:
-    if (i < m) { memcpy(&dst[k], &src[i], (m - i) * sizeof(T)); }
-    if (j < r) { memcpy(&dst[k], &src[j], (r - j) * sizeof(T)); }
+    if (i < m) { das_reloc_t(&dst[k], &src[i], (m - i) * sizeof(T)); }
+    if (j < r) { das_reloc_t(&dst[k], &src[j], (r - j) * sizeof(T)); }
 }
 
 // Typed stable sort — the AOT _T binding path. Same algorithm as das_stable_sort_r
@@ -1049,14 +1053,14 @@ inline void das_stable_sort(T *first, T *last, Compare cmp)
             nxt[nn++] = cur[t + 2];
         }
         if (t < R) {
-            memcpy(&dst[cur[t]], &src[cur[t]], (cur[t + 1] - cur[t]) * sizeof(T));
+            das_reloc_t(&dst[cur[t]], &src[cur[t]], (cur[t + 1] - cur[t]) * sizeof(T));
             nxt[nn++] = cur[t + 1];
         }
         T *ts = src; src = dst; dst = ts;
         size_t *tb = cur; cur = nxt; nxt = tb;
         nb = nn;
     }
-    if (src != data) memcpy(data, src, nel * sizeof(T));
+    if (src != data) das_reloc_t(data, src, nel * sizeof(T));
 
     free(bndA); free(bndB); free(buf);
 }

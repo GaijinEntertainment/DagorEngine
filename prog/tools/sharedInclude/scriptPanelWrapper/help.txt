@@ -4,9 +4,29 @@ Script panel wrapper help, by ti, 2011
 
 Base sceme
 
-EXAMPLE:
+The panel script is loaded as a module. New scripts should export the
+scheme table:
 
-scheme <-
+  let scheme = { controls = [ ... ] }
+  return { scheme }
+
+Writing the ::scheme root global still works but is the legacy form,
+kept only for old scripts; it is slated for removal in 2027, and
+loading through it without a module export reports a logerr.
+
+The exported scheme must be a table; a non-table export (including an
+explicit null) is rejected with a logerr and the loader falls back to
+::scheme. When a script provides both forms, the exported table wins
+over ::scheme.
+
+The std io, math and string root bindings (print, format, file, ...)
+are deprecated the same way and go away with the root surface in 2027;
+require the std modules instead: "math", "string", "iostream", "io",
+"system", "datetime".
+
+EXAMPLE (legacy root form):
+
+::scheme <-
 {
   controls =
   [
@@ -28,8 +48,7 @@ onChange = NULL (change callback)
 
 EXAMPLE:
 
-scheme <-
-{
+let scheme = {
   controls =
   [
     {
@@ -44,15 +63,39 @@ scheme <-
   ]
 }
 
+return { scheme }
+
 //------------------------------------------------------------------------
 
 Global routines:
 
 getControl("scheme/full_control_name_with_slashes")
 
+New scripts should import it from the module instead of using the root
+global; import is compile time and the runtime always registers these
+modules:
+
+  from "script_panel" import getControl
+
+The mission editor panel api is likewise a module:
+
+  from "mission_editor" import update_weather, get_game_dir, get_missioned_dir
+
+Scripts that must also run in older tool builds without these modules
+can fall back to the root global:
+
+  let getControl = require_optional("script_panel")?.getControl
+    ?? getroottable()?["getControl"]
+
+The fallback arm is a temporary bridge, not a lasting contract: the
+root globals go away with the root surface in 2027; from then on
+scripts rely on the module alone.
+
 EXAMPLE:
 
-scheme <- {
+from "script_panel" import getControl
+
+let scheme = {
   controls =   [
     {name = "attack_type", type = "enum_text",
       extensible = true, itemsCount =[0,1]
@@ -71,6 +114,8 @@ scheme <- {
     }
   ]
 }
+
+return { scheme }
 
 //------------------------------------------------------------------------
 

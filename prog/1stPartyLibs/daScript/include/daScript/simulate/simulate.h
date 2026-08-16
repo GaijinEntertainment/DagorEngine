@@ -83,6 +83,12 @@ namespace das
         FuncInfo *  debugInfo;
         uint64_t    mangledNameHash;
         void *      aotFunction;
+        // native JIT entry (the SimNode_Jit::func mirror), type JitFunction. Set/cleared by
+        // das_instrument_jit / das_remove_jit only — mutually exclusive with aotFunction, so
+        // the invoke fastpaths test aot first, then jit, then fall to code->eval. Written at
+        // install time (before any dispatch); the team publish/claim seq_cst pair orders it
+        // for workers. Fork/clone contexts share the functions array, so one write is global.
+        void *      jitFunction;
         uint32_t    stackSize;
         union {
             uint32_t    flags;
@@ -223,6 +229,7 @@ namespace das
     };
 
     struct DAS_API SimVisitor {
+        virtual ~SimVisitor () = default;
         virtual void preVisit ( SimNode * ) { }
         virtual void cr () {}
         virtual void op ( const char * /* name */, uint32_t /* sz */ = 0, const string & /* TT */ = string() ) {}
@@ -327,6 +334,7 @@ namespace das
         {
             uint32_t category = 0;
             uint32_t stackSize = 0;
+            bool skipInitScript = false;    // pure-data fork: skip running the global init (and, symmetrically, shutdown) script
         };
 
         static constexpr uint32_t CONTEXT_MAGIC = 0xDA514C09;  // "das" + "ctx" + version
@@ -417,7 +425,7 @@ namespace das
         }
 
         __forceinline void freeTempString ( char * ptr, const LineInfo * at ) {
-            if ( stringHeap->isIntern() ) return;
+            if ( stringHeap->isIntern() || stringHeap->isReclaimDisabled() ) return;
             if ( stringDisposeQue ) freeString(stringDisposeQue,(uint64_t)strlen(stringDisposeQue),at, /*temp*/true);
             stringDisposeQue = ptr;
         }
@@ -833,7 +841,24 @@ namespace das
         bool                            gcLogTime = false;          // log per-phase heap GC timing
         bool                            failed = false;
         bool                            verySafeContext = false;    // when true, array and table reserves don't free memory
+        uint64_t                        maxUnreservedSize = 64ull<<20;  // mirrors CodeOfPolicies::max_unreserved_size (assigned in setup/simulate; this initializer covers raw contexts)
         bool                            sharedPtrContext = false;   // there is a shared ptr to this context
+        bool                            skipInitShutdownScript = false; // this (cloned) context skipped global init, so skip shutdown too
+        // atomic (relaxed): a job's post-notify cleanup reads these on a worker while the main
+        // thread may already be toggling them for the next batch — either value is coherent at
+        // the boundary (the fork either pools or deletes), it just must not be a data race
+        atomic<bool>                    keepForkContexts{false};    // pool job-fork contexts on this context instead of clone/destroy per job
+        atomic<bool>                    forkSkipInitScript{false};  // when pooling, clone job-forks with CopyOptions::skipInitScript (pure-data jobs)
+        atomic<bool>                    forkSkipHeapReset{false};   // when pooling, skip restartHeaps() on reuse (pure-compute jobs whose only fork-heap alloc, the lambda capture, is freed LIFO per job — see acquireForkContext)
+    public:
+        // Job-fork context pooling (opt-in via keepForkContexts). Forks are reused across new_job
+        // dispatches instead of cloned/destroyed each time; acquire runs on the dispatching thread,
+        // release on the worker thread, so the pool is mutex-guarded. Only safe for pure-data jobs.
+        Context * acquireForkContext ( uint32_t category );
+        void releaseForkContext ( Context * forkContext );
+    protected:
+        vector<Context *>               forkContextPool;
+        mutex                           forkContextPoolMutex;
     public:
         string                          name;
         Bitfield                        category = 0;

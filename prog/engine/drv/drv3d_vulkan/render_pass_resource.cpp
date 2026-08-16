@@ -246,9 +246,38 @@ void RenderPassResource::bindInputAttachments(PipelineStageStateBase &tgt, uint3
     input_index, this, getBaseHandle(), getDebugName(), activeSubpass, desc.inputAttachments[activeSubpass].size(),
     pipeline->printDebugInfoBuffered(), Backend::ctx.getCurrentCmdCaller());
   uint32_t attIdx = desc.inputAttachments[activeSubpass][input_index];
-  tgt.setTinputAttachment(flat_binding_index, state->targets.data[attIdx].image,
-    // only const DS for now, must be changed if special const RT will be found
-    desc.attImageLayouts[activeSubpass][attIdx] == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, bakedAttachments->views[attIdx]);
+  const StateFieldRenderPassTarget &t = state->targets.data[attIdx];
+  // only const DS for now, must be changed if special const RT will be found
+  const bool asConstDS = desc.attImageLayouts[activeSubpass][attIdx] == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+
+  VulkanImageViewHandle view = bakedAttachments->views[attIdx];
+  // The framebuffer attachment view of a depth/stencil target carries both aspects, which is illegal
+  // for an input-attachment descriptor (VUID-VkDescriptorImageInfo-imageView-01976) and reads back
+  // zero for multisampled depth on desktop drivers. Bind a single-aspect (depth) view instead.
+  if (t.image->getFormat().getAspektFlags() & VK_IMAGE_ASPECT_STENCIL_BIT)
+  {
+    ImageViewState ivs;
+    ivs.isCubemap = 0;
+    ivs.setFormat(t.image->getFormat().getLinearVariant());
+    ivs.setMipBase(t.mipLevel);
+    ivs.setMipCount(1);
+    if (t.layer >= d3d::RENDER_TO_WHOLE_ARRAY)
+    {
+      ivs.isArray = 1;
+      ivs.setArrayBase(0);
+      ivs.setArrayCount(t.image->getArrayLayers());
+    }
+    else
+    {
+      ivs.isArray = 0;
+      ivs.setArrayBase(t.layer);
+      ivs.setArrayCount(1);
+    }
+    ivs.isInputAttachment = 1;
+    view = t.image->getImageView(ivs);
+  }
+
+  tgt.setTinputAttachment(flat_binding_index, t.image, asConstDS, view);
 }
 
 void RenderPassResource::advanceSubpass()

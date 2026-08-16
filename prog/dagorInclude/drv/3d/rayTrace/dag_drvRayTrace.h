@@ -86,9 +86,11 @@ struct RaytraceGeometryDescription
   };
   enum class IndexFormat
   {
-    /// Pulls index format from buffer
-    UseBuffer,
-    /// Forces to interpret index data as 8 bit wide unsigned int
+    /// Pulls index format from buffer.
+    /// Deliberately 0: a zeroed desc must resolve to it
+    UseBuffer = 0,
+    /// Forces to interpret index data as 8 bit wide unsigned int.
+    /// OMM linkage only: not a valid triangles width (see TrianglesInfo::indexFormat)
     U8,
     /// Forces to interpret index data as 16 bit wide unsigned int
     U16,
@@ -119,8 +121,17 @@ struct RaytraceGeometryDescription
     // use VSDT_* vertex format types
     uint32_t vertexFormat;
     uint32_t indexCount;
+    // in elements of the RESOLVED index width (indexFormat/flag, see below),
+    // not of what the buffer's creation flag alone would suggest
     uint32_t indexOffset;
     Flags flags;
+    // Index type of indexBuffer; UseBuffer (0, the value in a zeroed desc)
+    // derives it from the buffer's SBCF_INDEX32 flag. Set explicitly when the
+    // buffer holds a different format than its creation flag says
+    // (suballocated heaps). Only U16 and U32 are valid for triangles; U8
+    // exists for the OMM linkage only. Producers that fill descs without
+    // zero-initialization must write this field.
+    IndexFormat indexFormat;
   };
 
   /// Provides linkage data for opacity micro map triangles
@@ -169,11 +180,20 @@ struct RaytraceGeometryDescription
     bool hasOpacityMicroMapLinkage : 1 = false;
   };
 
+  // TrianglesInfo is deliberately the first member: initializing a union from
+  // an empty braced list copy-initializes its FIRST member from {} when no
+  // variant member carries a default initializer ([dcl.init.aggr]), and zero
+  // initialization likewise zeroes the first member - so data{} below makes
+  // every constructed desc read indexFormat = UseBuffer by the language, not
+  // by compiler habit. The first member's full representation is the whole
+  // union storage (static_assert below), so a {}-initialized aabbs reads all
+  // zero too
   union AnyInfo
   {
-    AABBsInfo aabbs;
     TrianglesInfo triangles;
+    AABBsInfo aabbs;
   };
+  static_assert(sizeof(TrianglesInfo) >= sizeof(AABBsInfo), "the first union member must stay the largest, see AnyInfo");
 
   Type type = Type::TRIANGLES;
   AnyInfo data{};
@@ -181,6 +201,29 @@ struct RaytraceGeometryDescription
   OpacityMicroMapLinkage ommLinkage{};
 };
 DAGOR_ENABLE_ENUM_BITMASK(RaytraceGeometryDescription::Flags);
+
+// The one authority resolving a triangle index width from TrianglesInfo::indexFormat:
+// only an explicit U16/U32 overrides; any other value derives from the buffer's
+// creation flag, i.e. behaves as before the field existed. A zeroed desc (memset,
+// aggregate init) reads UseBuffer; a producer that skips initialization entirely
+// must still write this field (a union member cannot carry a default initializer).
+// Backends map the bool to their API type; none may consult the format directly.
+inline bool raytrace_tris_index32(RaytraceGeometryDescription::IndexFormat fmt, unsigned index_buffer_create_flags)
+{
+  // U8 (no triangles backend delivers 8 bit) and out-of-enum garbage (an
+  // unwritten field of a non-zeroed desc) are producer errors; debug builds
+  // catch them here, release falls through to the flag width below. Unwritten
+  // bytes that happen to read exactly U16/U32 are indistinguishable from an
+  // explicit format and cannot be caught in any build - the write obligation
+  // on the field is the only guard for that
+  G_ASSERT(fmt == RaytraceGeometryDescription::IndexFormat::UseBuffer || fmt == RaytraceGeometryDescription::IndexFormat::U16 ||
+           fmt == RaytraceGeometryDescription::IndexFormat::U32);
+  if (fmt == RaytraceGeometryDescription::IndexFormat::U32)
+    return true;
+  if (fmt == RaytraceGeometryDescription::IndexFormat::U16)
+    return false;
+  return (index_buffer_create_flags & SBCF_INDEX32) != 0;
+}
 
 enum class RaytraceBuildFlags : uint32_t
 {
@@ -294,6 +337,15 @@ struct BottomAccelerationStructureBuildInfo : BottomAccelerationCreateInfo
 {
   /// Do an update instead of a rebuild.
   /// Only valid to use when previous rebuilds had the flag RaytraceBuildFlags::ALLOW_UPDATE set.
+  /// Every build and update must present geometry descs matching the create-time shape
+  /// (count, per-geometry type and layout fields): the structure's memory was sized from
+  /// them at create. Every build and update must also resolve the same triangle index
+  /// width as the create (TrianglesInfo::indexFormat combined with the buffer flag) or
+  /// the index bytes are reinterpreted at the wrong width. Consoles validate and refuse a
+  /// mismatched build or update - the structure keeps its previous state (a prior valid
+  /// build for updates; a refused first build stays never built) and a D3D_ERROR is
+  /// logged in all build types, since the void API cannot report the refusal; PC
+  /// backends do not validate.
   bool doUpdate = false;
   /// Needs to be set when RaytraceBuildFlags::ALLOW_COMPACTION flag is set, otherwise ignored.
   /// At the end of the build process, the GPU will write the required size of a compacted

@@ -6,6 +6,7 @@ PhysName = Jolt ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
 UseD3DMulti = yes ;
+UseD3DMultiForced ?= windows linux ;
 if ! $(UseD3DMultiList) {
   UseD3DMultiList_windows = DX11 vulkan ;
   UseD3DMultiList_linux   = vulkan ;

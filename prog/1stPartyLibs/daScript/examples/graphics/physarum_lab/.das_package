@@ -1,0 +1,20 @@
+options gen2
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("physarum_lab")
+    package_author("borisbat")
+    package_description("Physarum Lab — millions of slime-mold agents sense, steer and deposit their own trails, building emergent transport networks partitioned across worker threads you control live. OpenGL + Dear ImGui, with a strudel soundtrack that swells as you stir the slime. Threading + audio showcase.")
+}
+
+[export]
+def release() {
+    // The source lives one level up (shared examples/graphics tree); dasImgui is in-tree,
+    // discovered from the compiled require chain at release time — no deps to declare.
+    // dashv is skipped on wasm (the harness ?dashv-guards live_api),
+    // so a single source serves desktop live-reload and the threaded wasm64 build. The in-tree
+    // dasAudio/strudel modules are auto-discovered from the requires; the daspkg wasm link adds the
+    // AudioWorklet flags so the strudel soundtrack plays in the browser.
+    release_main("../physarum_lab_opengl_imgui_example.das")
+}

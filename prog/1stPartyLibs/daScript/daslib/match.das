@@ -110,12 +110,37 @@ def match_copy(what : TypeDeclPtr; wths : Expression?; makeType : TypeDeclPtr; a
     return match_any(makeType, wths, access_new, to)
 }
 
+def public match_peel_r2v(var e : Expression?) : Expression? {
+    //! Strip post-typer ``ExprRef2Value`` wrappers. The ``match`` macro emits this around the source side of AST class patterns so a clean pattern (``ExprField(...)``) matches a typer-wrapped source, mirroring ``qmatch``'s transparency rule. ``$v`` captures of Expression-typed values go through it too, so they bind the peeled node.
+    while (e != null && e is ExprRef2Value) {
+        e = (e as ExprRef2Value).subexpr
+    }
+    return e
+}
+
+def public match_peel_r2v(e : Expression const?) : Expression const? {
+    //! Pointee-const flavor — same peel, preserves the caller's const view.
+    var c : Expression const? = e
+    while (c != null && c is ExprRef2Value) {
+        c = (c as ExprRef2Value).subexpr
+    }
+    return c
+}
+
 [macro_function]
 def match_struct(what : TypeDeclPtr; wths : ExprMakeStruct?; access : Expression?; var to : MatchTo) {
     // if its a pointer to ast::Expression or such, we need to 'as' cast first
     if (wths.makeType.isHandle && isExpression(wths.makeType)
             && what.isPointer && what.firstType != null && isExpression(what.firstType)) {
-        // `is` on a null AST pointer panics — guard like the pointer-to-structure path below
+        // Post-typer ExprRef2Value wrappers are invisible (no surface syntax) — peel the source side before the RTTI guard, mirroring qmatch. An explicit ExprRef2Value(...) pattern still matches the wrapper itself. `is` on a null AST pointer panics — both arms guard for null like the pointer-to-structure path below.
+        if (wths.makeType.annotation.name != "ExprRef2Value") {
+            var peeled = qmacro(match_peel_r2v($e(access)))
+            peeled |> force_at(wths.at)
+            var cond_pz = qmacro($e(peeled) != null)
+            cond_pz |> force_at(wths.at)
+            to.conditions |> emplace(cond_pz)
+            return match_as_is(what, wths, wths.makeType, wths.makeType.annotation.name, peeled, to)
+        }
         var cond_nz = qmacro($e(access) != null)
         cond_nz |> force_at(wths.at)
         to.conditions |> emplace(cond_nz)
@@ -390,7 +415,8 @@ def match_expr(what : TypeDeclPtr; wthmt : ExprCall?; access : Expression?; var 
         return false
     }
     assume value = wthmt.arguments[0]
-    if (value._type != null && !is_same_type(what, value._type, RefMatters.no, ConstMatters.no, TemporaryMatters.no)) {
+    if (value._type != null && !is_same_type(what, value._type, RefMatters.no, ConstMatters.no, TemporaryMatters.no)
+            && !(is_string_like(what) && is_string_like(value._type))) {   // das_string == string is a language-level compare
         to.errors |> match_error("mismatching expression type {describe(what)} vs {describe(value._type)}", value.at)
         return false
     }
@@ -460,8 +486,7 @@ def match_or(what : TypeDeclPtr; wth : ExprOp2?; access : Expression?; var to : 
             return false
         }
     }
-    // merge the branch's new captures (toL post-erase holds only those) — the old wholesale
-    // move dropped captures made earlier in the same pattern
+    // merge the branch's new captures (toL post-erase holds only those) — the old wholesale move dropped captures made earlier in the same pattern
     for (k, v in keys(toL.declarations), values(toL.declarations)) {
         to.declarations[k] = v
     }
@@ -474,7 +499,7 @@ def match_or(what : TypeDeclPtr; wth : ExprOp2?; access : Expression?; var to : 
     return true
 }
 
-[macro_function, unused_argument(what)]
+[macro_function]
 def match_tag(what : TypeDeclPtr; wth : Expression?; access : Expression?; var to : MatchTo) {
     var tag = wth as ExprTag
     if (tag.name != "v") {
@@ -487,8 +512,14 @@ def match_tag(what : TypeDeclPtr; wth : Expression?; access : Expression?; var t
             to.errors |> match_error("duplicate variable {tname}", tag.at)
             return false
         }
+        var cap = clone_expression(access)
+        // an Expression-typed capture binds the peeled node (see match_peel_r2v)
+        if (what != null && what.isPointer && what.firstType != null && isExpression(what.firstType)) {
+            cap = qmacro(match_peel_r2v($e(cap)))
+            cap |> force_at(tag.at)
+        }
         unsafe {
-            to.declarations[tname] = clone_expression(access)
+            to.declarations[tname] = cap
         }
         log_m("\tadd variable {tname} as {describe(access)}\n")
         return true
@@ -581,7 +612,7 @@ def match_any(what : TypeDeclPtr; wth : Expression?; access : Expression?; var t
             return false
         }
         log_m("\tadd condition {describe(access)} == {describe(wth)}\n")
-        var ee = unsafe(reinterpret<Expression?> wth)
+        var ee = unsafe(reinterpret<Expression?>(wth))
         var cond = qmacro($e(access) == $e(ee))
         cond |> force_at(wth.at)
         to.conditions |> emplace(cond)
@@ -589,7 +620,7 @@ def match_any(what : TypeDeclPtr; wth : Expression?; access : Expression?; var t
     } elif (wth._type != null && (is_same_type(what, wth._type, RefMatters.no, ConstMatters.no, TemporaryMatters.no) ||
             (is_string_like(what) && is_string_like(wth._type)))) {
         log_m("\tadd condition {describe(access)} == {describe(wth)}\n")
-        var ee = unsafe(reinterpret<Expression?> copy_to_local(wth))
+        var ee = unsafe(reinterpret<Expression?>(copy_to_local(wth)))
         var cond = qmacro($e(access) == $e(ee))
         cond |> force_at(wth.at)
         to.conditions |> emplace(cond)
@@ -635,10 +666,7 @@ class MatchMacro : AstCallMacro {
         return if (length(expr.arguments) != 2)
         assume blk = expr.arguments[1]
         return if (!(blk is ExprMakeBlock))
-        // we mark all if's inside the match to not fold, so that we can fold the match later
-        // Note: must set doNotFold even before blk._type is resolved, otherwise
-        // if(true)/if(false) literal conditions get constant-folded before the
-        // match macro can analyze them as patterns.
+        // we mark all if's inside the match to not fold, so that we can fold the match later Note: must set doNotFold even before blk._type is resolved, otherwise if(true)/if(false) literal conditions get constant-folded before the match macro can analyze them as patterns.
         var eblk = ((blk as ExprMakeBlock)._block as ExprBlock)
         for (ee in eblk.list) {
             if (ee is ExprIfThenElse) {
@@ -690,8 +718,7 @@ class MatchMacro : AstCallMacro {
                         rules |> replaceVarTag("_") <| clone_expression(access)
                     }
                     if (!multi_match && iff == null && empty(to.conditions)) {
-                        // unconditional tail arm (`_` wildcard): splice the body directly — an
-                        // `if (true)` tail defeats all-paths-return analysis and trips STYLE010
+                        // unconditional tail arm (`_` wildcard): splice the body directly — an `if (true)` tail defeats all-paths-return analysis and trips STYLE010
                         iff = nblk
                     } else {
                         var new_iff = new ExprIfThenElse(at = eto.at, cond = join_conditions(to.conditions, eto.at))

@@ -848,6 +848,46 @@ namespace das
         TypeDeclPtr valueType = nullptr;
     };
 
+    // nominal `distinct Foo = int` type entity. ABI-identical to underlyingType (a workhorse type),
+    // but never interconverts with it. NOT a handled type - TypeDecl carries it as tDistinct, and it
+    // erases to the underlying type at the AST->TypeInfo boundary.
+    struct DAS_API DistinctTypeAnnotation : TypeAnnotation {
+        DistinctTypeAnnotation ( const string & n, const TypeDeclPtr & underlying, const string & cpn = string() )
+            : TypeAnnotation(n,cpn), underlyingType(underlying) {}
+        virtual bool rtti_isDistinctTypeAnnotation() const override { return true; }
+        virtual TypeDeclPtr makeValueType() const override { return underlyingType; }
+        virtual bool canMove() const override { return true; }
+        virtual bool canCopy() const override { return true; }
+        virtual bool canClone() const override { return true; }
+        virtual bool isLocal() const override { return true; }
+        virtual bool hasNonTrivialCtor() const override { return false; }
+        virtual bool hasNonTrivialDtor() const override { return false; }
+        virtual bool hasNonTrivialCopy() const override { return false; }
+        virtual bool isPod() const override { return true; }
+        virtual bool isRawPod() const override { return true; }
+        virtual bool isRefType() const override { return false; }
+        virtual size_t getSizeOf() const override { return underlyingType ? size_t(underlyingType->getSizeOf()) : 0; }
+        virtual size_t getAlignOf() const override { return underlyingType ? size_t(underlyingType->getAlignOf()) : 1; }
+        virtual bool hasStringData(das_set<void *> & dep) const override {
+            return underlyingType ? underlyingType->hasStringData(dep) : false;
+        }
+        virtual uint64_t getOwnSemanticHash ( HashBuilder & hb, das_set<Structure *> & dep, das_set<Annotation *> & adep ) const override {
+            hb.updateString(getMangledName());
+            if ( underlyingType ) underlyingType->getOwnSemanticHash(hb, dep, adep);
+            return hb.getHash();
+        }
+        virtual void gc_collect ( gc_root * target, gc_root * from ) override {
+            Annotation::gc_collect(target, from);
+            if ( underlyingType ) underlyingType->gc_collect(target, from);
+        }
+        virtual void visitTypeDecls ( const function<void(TypeDecl *)> & callback ) override {
+            if ( underlyingType ) callback(underlyingType);
+        }
+        TypeDeclPtr underlyingType = nullptr;
+        LineInfo    at;
+        bool        isPrivate = false;
+    };
+
     template <typename TT>
     void addConstant ( Module & mod, const string & name, const TT & value ) {
         VariablePtr pVar = new Variable();

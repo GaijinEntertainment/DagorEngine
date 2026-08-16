@@ -33,6 +33,7 @@ struct CompilerConfig
   const char *singleCompilationShName = nullptr;
   const char *intermediateDir = nullptr;
   const char *logDir = nullptr;
+  const char *crashDumpDir = nullptr;
   const char *outDumpNameConfig = nullptr;
   const char *sha1CacheDir = nullptr;
 
@@ -154,6 +155,8 @@ struct CompilerConfig
   bool usePcToken : 1 = true;
   bool dumpSpirvOnly : 1 = false;
   bool sortGlobalConstsByOffset : 1 = false;
+  bool noConversionWarnings : 1 = false;
+  bool useScalarLayout : 1 = false;
 #elif _CROSS_TARGET_METAL
   bool useIosToken : 1 = false;
   bool useBinaryMsl : 1 = false;

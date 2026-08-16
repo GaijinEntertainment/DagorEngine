@@ -22,10 +22,7 @@ def public macro_verify(expr : bool; prog : ProgramPtr; at : LineInfo; message :
 
 [tag_function_macro(tag="macro_verify_tag")]
 class MacroVerifyMacro : AstFunctionAnnotation {
-    //! This macro convert macro_verify(expr,message,prog,at) to the following code::
-    //!    if !expr
-    //!        macro_error(prog,at,message)
-    //!        return [[ExpressionPtr]]
+    //! Converts ``macro_verify(expr, message, prog, at)`` to equivalent inline code.
     def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
         // if ..
         var res = qmacro_block() {
@@ -49,7 +46,7 @@ class CaptureBlock : AstVisitor {
         let vptr = expr.variable
         if (!(scope |> key_exists(vptr))) {
             unsafe {
-                captured[vptr] = reinterpret<ExprVar?> expr
+                captured[vptr] = reinterpret<ExprVar?>(expr)
             }
         }
     }
@@ -93,9 +90,9 @@ class ColletFinally : AstVisitor {
     def override preVisitExprBlock(blk : ExprBlock?) : void {
         unsafe {
             if (!empty(blk.finalList)) {
-                blocks |> insert(reinterpret<ExprBlock?> blk)
+                blocks |> insert(reinterpret<ExprBlock?>(blk))
             } elif (alwaysFor && blk.blockFlags.forLoop) {
-                blocks |> insert(reinterpret<ExprBlock?> blk)
+                blocks |> insert(reinterpret<ExprBlock?>(blk))
             }
         }
     }
@@ -149,18 +146,13 @@ def public collect_labels(expr : ExpressionPtr) {
 
 [macro_function]
 def public has_sideeffects(expr : Expression?) : bool {
-    //! Conservative side-effect detection. Returns true when the expression has — or
-    //! might have — side effects. Returns false ONLY when provably pure (no function
-    //! calls, no heap allocation, no container mutation).
-    //!
-    //! Intended for macro-time elision of discardable evaluations.
-    //! Callers treat false as a promise; true is the safe default — when in doubt, true.
-    // null / compiler-tagged-pure / variable reads / constant literals — leaf, safe.
+    //! Conservative side-effect detection. Returns true when the expression has — or might have — side effects. Returns false ONLY when provably pure (no function calls, no heap allocation, no container mutation).
     if (expr == null || expr.flags.noSideEffects
             || expr is ExprVar
             || expr is ExprConstInt || expr is ExprConstInt8 || expr is ExprConstInt16
             || expr is ExprConstInt64 || expr is ExprConstUInt || expr is ExprConstUInt8
             || expr is ExprConstUInt16 || expr is ExprConstUInt64 || expr is ExprConstFloat
+            || expr is ExprConstFloat16
             || expr is ExprConstDouble || expr is ExprConstBool || expr is ExprConstString
             || expr is ExprConstPtr || expr is ExprConstRange || expr is ExprConstURange
             || expr is ExprConstRange64 || expr is ExprConstURange64
@@ -216,22 +208,7 @@ def public has_sideeffects(expr : Expression?) : bool {
         }
         return false
     }
-    // Function-call-shaped expressions: ExprCall (regular call) and ExprOp1/ExprOp2/ExprOp3
-    // (operators, which also resolve to a function). Two-layer check:
-    //
-    //   1. Mutation ops (`++`, `--`, `+=`, `-=`, …) are unconditionally unsafe —
-    //      blacklisted up front, regardless of how the resolved builtin happens to be
-    //      flagged. Catches builtins that the C++ side forgot to mark with
-    //      `knownSideEffects`/`unsafeOperation`.
-    //   2. Trust `func.flags` when `func != null` — covers user-defined operator
-    //      overloads (e.g. `struct Foo { def operator +(...) }`), which fall through
-    //      `func_has_sideeffects` as non-builtin → unsafe. Fall back to the op-name
-    //      allowlist only when `func == null` (typer left it unresolved, e.g. after
-    //      partial constant folding). `/` and `%` stay UNSAFE (div-by-zero panic;
-    //      design decision).
-    //
-    // `is`/`as` on handled types is EXACT-rtti (see CLAUDE.md), so each shape needs its
-    // own branch — can't cast ExprOp2 to ExprCallFunc even though the C++ class inherits.
+    // Function-call-shaped expressions: ExprCall (regular call) and ExprOp1/ExprOp2/ExprOp3 (operators, which also resolve to a function). Two-layer check:
     if (expr is ExprOp1) {
         let e1 = expr as ExprOp1
         // func != null → trust func flags (catches user overloads); func == null → fall
@@ -268,8 +245,7 @@ def public has_sideeffects(expr : Expression?) : bool {
 
 [macro_function]
 def private func_has_sideeffects(f : Function?) : bool {
-    //! True when calling `f` may have side effects. Allowlists builtins
-    //! (`flags.builtIn`) without `knownSideEffects` or `unsafeOperation`.
+    //! True when calling `f` may have side effects. Allowlists builtins (`flags.builtIn`) without `knownSideEffects` or `unsafeOperation`.
     return (f == null || !f.flags.builtIn
         || f.flags.knownSideEffects || f.flags.unsafeOperation)
 }
@@ -277,14 +253,12 @@ def private func_has_sideeffects(f : Function?) : bool {
 [macro_function]
 def private is_safe_op1(op : das_string) : bool {
     //! Unary operators that are pure on workhorse types — no overflow trap, no mutation.
-    //! Excludes `++` / `--` (handled by is_mutation_op1).
     return op == "-" || op == "!" || op == "~" || op == "+"
 }
 
 [macro_function]
 def private is_safe_op2(op : das_string) : bool {
-    //! Binary operators that are pure on workhorse types. Excludes `/`, `%` (div-by-zero
-    //! panic — design decision) and all compound-assignment ops (handled by is_mutation_op2).
+    //! Binary operators that are pure on workhorse types. Excludes `/`, `%` (div-by-zero panic — design decision) and all compound-assignment ops (handled by is_mutation_op2).
     return (op == "+" || op == "-" || op == "*"
         || op == "==" || op == "!=" || op == "<" || op == "<=" || op == ">" || op == ">="
         || op == "&" || op == "|" || op == "^" || op == "<<" || op == ">>"
@@ -293,17 +267,13 @@ def private is_safe_op2(op : das_string) : bool {
 
 [macro_function]
 def private is_mutation_op1(op : das_string) : bool {
-    //! Unary operators that mutate their operand. Unconditionally unsafe — bypasses any
-    //! flag check on the resolved builtin (in case the C++ side forgot to mark it).
-    //! `++` / `--` are prefix; `+++` / `---` are the daslang AST op-strings for postfix
-    //! increment/decrement (the trailing-plus / trailing-minus naming).
+    //! Unary operators that mutate their operand. Unconditionally unsafe — bypasses any flag check on the resolved builtin (in case the C++ side forgot to mark it).
     return op == "++" || op == "--" || op == "+++" || op == "---"
 }
 
 [macro_function]
 def private is_mutation_op2(op : das_string) : bool {
-    //! Compound-assignment operators (mutate the left operand). Same unconditional-unsafe
-    //! treatment as is_mutation_op1.
+    //! Compound-assignment operators (mutate the left operand). Same unconditional-unsafe treatment as is_mutation_op1.
     return (op == "+=" || op == "-=" || op == "*=" || op == "/=" || op == "%="
         || op == "&=" || op == "|=" || op == "^="
         || op == "<<=" || op == ">>="

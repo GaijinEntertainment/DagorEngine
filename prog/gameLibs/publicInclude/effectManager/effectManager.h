@@ -161,6 +161,7 @@ public:
   static void onSettingsChanged(bool shadows_enabled, int max_active_shadows);
   static void onSettingsChangedExt();
   static void setMagnification(float magnification);
+  static void loadGlobalConfig(const DataBlock &fx_blk);
 
   void getFxMatrices(dag::Vector<TMatrix, framemem_allocator> &matrices);
   void getDebugInfo(dag::Vector<Point3, framemem_allocator> &positions, dag::Vector<int, framemem_allocator> &elems,

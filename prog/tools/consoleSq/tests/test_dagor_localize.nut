@@ -1,4 +1,4 @@
-// Squirrel module under test: dagor.localize (registered by localization.cpp)
+// Quirrel module under test: dagor.localize (registered by localization.cpp)
 // No localization tables are loaded in csq-dev, so loc() falls back to the
 // provided default or the key. We exercise that documented passthrough plus
 // language metadata getters.

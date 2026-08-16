@@ -228,11 +228,11 @@ TSPEC String FaultReportDump::paramToString(const VkIndexType &value)
 TSPEC String FaultReportDump::paramToString(const ImageViewState &value)
 {
   return String(32,
-    "ImageViewState{ sampleStencil = %u, isRenderTarget = %u, isCubemap = %u, isArray = "
+    "ImageViewState{ sampleStencil = %u, isRenderTarget = %u, isInputAttachment = %u, isCubemap = %u, isArray = "
     "%u, format = %s, mipMapBase = %u, mipMapCount = %u, arrayBase = %u, arrayCount = %u }",
-    asBooleanString(value.sampleStencil), asBooleanString(value.isRenderTarget), asBooleanString(value.isCubemap),
-    asBooleanString(value.isArray), value.getFormat().getNameString(), value.getMipBase(), value.getMipCount(), value.getArrayBase(),
-    value.getArrayCount());
+    asBooleanString(value.sampleStencil), asBooleanString(value.isRenderTarget), asBooleanString(value.isInputAttachment),
+    asBooleanString(value.isCubemap), asBooleanString(value.isArray), value.getFormat().getNameString(), value.getMipBase(),
+    value.getMipCount(), value.getArrayBase(), value.getArrayCount());
 }
 
 TSPEC String FaultReportDump::paramToString(const VulkanImageViewHandle &value) { return String(32, "%u", value.value); }

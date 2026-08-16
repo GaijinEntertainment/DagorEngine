@@ -13,6 +13,7 @@
 #include <quirrel/sqSysInfo/sqSysInfo.h>
 #include <quirrel/yupfile_parse/yupfile_parse.h>
 #include <quirrel/lastInputMonitor/lastInputMonitor.h>
+#include <quirrel/ecsComputed/ecsComputed_api.h>
 #include "main/watchdog.h"
 #include "net/netBindSq.h"
 #include "net/authEvents.h"
@@ -24,6 +25,7 @@
 #include <daRg/dag_events.h>
 #include <daRg/dag_guiScene.h>
 #include <daRg/dag_browser.h>
+#include <daScript/daScript.h>
 #include <daECS/net/msgSink.h>
 #include <ecs/net/dasEvents.h>
 #include <daECS/core/entityManager.h>
@@ -138,6 +140,10 @@ static struct GuiSceneCb : public darg::IGuiSceneCallback
       async_runtime->shutdown();
     sq::cleanup_unreg_native_api(vm);
     bindquirrel::http_client_on_vm_shutdown(vm);
+    // Scene dtor runs elements' onDetach handlers which may use ECS API,
+    // so the VM is unregistered from ECS only here, right before sq_close.
+    shutdown_ecs_sq_script(vm);
+    ecscomputed::shutdown_vm(vm); // clear_vm_entity_systems only removes squirrel ES
   }
 
   virtual void onToggleInteractive(int iflags)
@@ -255,7 +261,7 @@ static void bind_overlay_ui_script_apis(SqModules *moduleMgr, HSQUIRRELVM vm)
   ecs::sq::bind_net(moduleMgr);
   net::bind_danetgame_net(moduleMgr);
   bind_dascript::bind_das_events(moduleMgr);
-  bind_dascript::bind_das(moduleMgr);
+  bind_dascript::bind_das(moduleMgr, das::daScriptEnvironment::getBound());
   darg::bind_browser_behavior(moduleMgr);
   ui::videomode::bind_script(moduleMgr);
   ui::xray_ui_order::bind_script(moduleMgr);
@@ -278,7 +284,7 @@ void rebind_das()
   {
     SqModules *moduleMgr = dargScene->getModuleMgr();
     bind_dascript::bind_das_events(moduleMgr);
-    bind_dascript::bind_das(moduleMgr);
+    bind_dascript::bind_das(moduleMgr, das::daScriptEnvironment::getBound());
   }
 }
 
@@ -326,6 +332,7 @@ void init_ui()
   bindquirrel::apply_compiler_options_from_game_settings(moduleMgr);
 
   ecs_register_sq_binding(moduleMgr, true, true);
+  ecscomputed::bind_module(moduleMgr, /*default_es_tags*/ "ui");
 
   bind_overlay_ui_script_apis(moduleMgr, vm);
 
@@ -386,7 +393,6 @@ void shutdown_ui(bool quit)
 
   bindquirrel::cleanup_dagor_workcycle_module(vm);
   bindquirrel::clear_logerr_interceptors(vm);
-  shutdown_ecs_sq_script(vm);
 #if _TARGET_C1 | _TARGET_C2
 
 #endif
@@ -442,6 +448,9 @@ void update()
       async_runtime->pump();
 
     sqeventbus::process_events(vm);
+
+    // unregister ecs.computed systems whose script handle was collected
+    ecscomputed::sweep();
   }
 }
 

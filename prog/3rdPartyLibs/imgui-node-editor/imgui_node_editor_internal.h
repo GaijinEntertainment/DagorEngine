@@ -459,6 +459,8 @@ struct Link final: Object
     ImU32  m_Color;
     ImU32  m_HighlightColor;
     float  m_Thickness;
+    // MODIFICATION BY GAIJIN: dash and gap length; 0 strokes the link solid as before.
+    float  m_DashSize;
     ImVec2 m_Start;
     ImVec2 m_End;
 
@@ -469,6 +471,7 @@ struct Link final: Object
         , m_EndPin(nullptr)
         , m_Color(IM_COL32_WHITE)
         , m_Thickness(1.0f)
+        , m_DashSize(0.0f)
     {
     }
 
@@ -1303,6 +1306,9 @@ struct EditorContext
 
     bool DoLink(LinkId id, PinId startPinId, PinId endPinId, ImU32 color, float thickness);
 
+    // MODIFICATION BY GAIJIN: consumed and cleared by the next DoLink, see Link::m_DashSize.
+    void SetNextLinkDashSize(float dashSize) { m_NextLinkDashSize = dashSize; }
+
 
     NodeBuilder& GetNodeBuilder() { return m_NodeBuilder; }
     HintBuilder& GetHintBuilder() { return m_HintBuilder; }
@@ -1549,6 +1555,8 @@ private:
 
     bool                m_IsInitialized;
     Settings            m_Settings;
+
+    float               m_NextLinkDashSize = 0.0f; // MODIFICATION BY GAIJIN, see SetNextLinkDashSize
 
     ImDrawList*         m_DrawList;
     int                 m_ExternalChannel;

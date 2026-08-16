@@ -1,5 +1,7 @@
 options gen2
 
+module cpp_common
+
 require common public
 require grep_usage public
 require outline public
@@ -438,14 +440,14 @@ def cpp_write_grep_rule_file(symbol : string; var err_message : string&) : strin
     if (empty(CPP_GREP_RULE_PATH)) {
         let r = create_temp_file_result("das_mcp_grep", ".yml")
         if (r is value) {
-            CPP_GREP_RULE_PATH := unsafe(r.value)
+            CPP_GREP_RULE_PATH = unsafe(r.value)
         } else {
             // Fallback to system tmpdir with a stable name; concurrent server
             // instances may race here but that's strictly better than a hard
             // failure on platforms where create_temp_file misbehaves.
             let td = temp_directory_result()
             let dir = (td is value) ? unsafe(td.value) : "."
-            CPP_GREP_RULE_PATH := path_join(dir, "das_mcp_grep_rule.yml")
+            CPP_GREP_RULE_PATH = path_join(dir, "das_mcp_grep_rule.yml")
         }
     }
     let escaped = cpp_regex_escape(symbol)
@@ -470,7 +472,7 @@ def cpp_write_grep_rule_file(symbol : string; var err_message : string&) : strin
         }
     }
     if (!success) {
-        err_message := "Failed to write ast-grep rule file: {CPP_GREP_RULE_PATH}"
+        err_message = "Failed to write ast-grep rule file: {CPP_GREP_RULE_PATH}"
         return ""
     }
     return CPP_GREP_RULE_PATH
@@ -540,7 +542,7 @@ def cpp_run_scan(search_dirs : array<string>; glob_filter : string; var err_mess
     var entries : array<CppMatch>
     let sg = get_ast_grep_cmd()
     if (empty(sg)) {
-        err_message := "ast-grep not available"
+        err_message = "ast-grep not available"
         return <- entries
     }
     let das_root = get_das_root()
@@ -556,8 +558,9 @@ def cpp_run_scan(search_dirs : array<string>; glob_filter : string; var err_mess
     args |> push_from(dirs_to_scan)
     var raw : string
     let rc = run_and_capture(args, raw, 60.0)
+    raw = strip_ast_grep_banner(raw)
     if (rc != 0 && empty(raw)) {
-        err_message := "sg scan failed (exit {rc})"
+        err_message = "sg scan failed (exit {rc})"
         return <- entries
     }
     if (empty(raw) || raw == "[]") return <- entries
@@ -570,15 +573,15 @@ def cpp_run_scan(search_dirs : array<string>; glob_filter : string; var err_mess
     if (parsed == null) {
         let truncated = length(raw) > 500 ? slice(raw, 0, 500) : raw
         if (rc != 0) {
-            err_message := "sg scan failed (exit {rc}): {truncated}"
+            err_message = "sg scan failed (exit {rc}): {truncated}"
         } else {
-            err_message := "Failed to parse sg scan output: {parse_err}\nRaw: {truncated}"
+            err_message = "Failed to parse sg scan output: {parse_err}\nRaw: {truncated}"
         }
         return <- entries
     }
     if (!(parsed.value is _array)) {
         unsafe { delete parsed; }
-        err_message := "Unexpected sg scan output format"
+        err_message = "Unexpected sg scan output format"
         return <- entries
     }
     unsafe {
@@ -772,8 +775,8 @@ def ensure_cpp_index() {
     var err : string
     var entries <- cpp_run_scan(cpp_default_search_dirs(), "", err)
     if (!empty(err)) {
-        cpp_index_signature := ""  // reset; next call retries the scan
-        cpp_index_error := err
+        cpp_index_signature = "" // reset; next call retries the scan
+        cpp_index_error = err
         return
     }
     for (e in entries) {
@@ -785,8 +788,8 @@ def ensure_cpp_index() {
             cpp_index[e.qualified] |> push(new_idx) // nolint:PERF006
         }
     }
-    cpp_index_signature := sig  // commit on success
-    cpp_index_error := ""        // clear last error
+    cpp_index_signature = sig // commit on success
+    cpp_index_error = ""       // clear last error
 }
 
 // Returns the last error from `ensure_cpp_index`, or "" if the index built

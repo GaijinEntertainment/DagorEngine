@@ -1,10 +1,12 @@
 options gen2
+options persistent_heap
+options gc
 require glfw/glfw_boost
 require opengl/opengl_boost
-require daslib/defer
-require math
+require strings
 
 require daslib/safe_addr
+require live/live_gc
 
 var @in @location v_position : float2
 var @in @location v_color : float3
@@ -22,6 +24,7 @@ def fs_main {
     f_FragColor = float4(f_color, 1.0)
 }
 
+var window : GLFWwindow?
 var program : uint
 var vao : uint
 var vbo : uint
@@ -51,44 +54,73 @@ def create_gl_objects {
 }
 
 [export]
-def main {
+def init() {
     if (glfwInit() == 0) {
         panic("can't init glfw")
     }
-    defer() {
-        glfwTerminate()
-    }
     glfwInitOpenGL(3, 3)
-    var window = glfwCreateWindow(1280, 720, "OpenGL - Hello triangle", null, null)
+    window = glfwCreateWindow(1280, 720, "OpenGL - Hello triangle", null, null)
     if (window == null) {
         panic("can't create window")
     }
-    defer() {
-        glfwDestroyWindow(window)
-    }
     glfwMakeContextCurrent(window)
     create_gl_objects()
-    eval_main_loop() {
-        if (glfwWindowShouldClose(window) != 0) {
-            return false
-        }
-        glfwPollEvents()
-        var display_w, display_h : int
-        glfwGetFramebufferSize(window, display_w, display_h)
-        // render
-        glViewport(0, 0, display_w, display_h)
-        glClearColor(0.2, 0.2, 0.2, 1.0)
-        glClearDepth(1.0lf)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glDepthFunc(GL_LEQUAL)
-        glUseProgram(program)
-        vs_main_bind_uniform(program)
-        fs_main_bind_uniform(program)
-        glBindVertexArray(vao)
-        glDrawArrays(GL_TRIANGLES, 0, 3)
-        // swap buffers
-        glfwMakeContextCurrent(window)
-        glfwSwapBuffers(window)
-        return true
+}
+
+[export]
+def update() {
+    glfwPollEvents()
+    var display_w, display_h : int
+    glfwGetFramebufferSize(window, display_w, display_h)
+    // render
+    glViewport(0, 0, display_w, display_h)
+    glClearColor(0.2, 0.2, 0.2, 1.0)
+    glClearDepth(1.0lf)
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glDepthFunc(GL_LEQUAL)
+    glUseProgram(program)
+    vs_main_bind_uniform(program)
+    fs_main_bind_uniform(program)
+    glBindVertexArray(vao)
+    glDrawArrays(GL_TRIANGLES, 0, 3)
+    // swap buffers
+    glfwMakeContextCurrent(window)
+    glfwSwapBuffers(window)
+}
+
+[export]
+def shutdown() {
+    if (window != null) {
+        glfwDestroyWindow(window)
+        window = null
     }
+    glfwTerminate()
+}
+
+var max_frame_limit = 0
+
+def parse_args() {
+    let args <- get_command_line_arguments()
+    for (i in range(length(args) - 1)) {
+        if (args[i] == "--max-frames") {
+            max_frame_limit = to_int(args[i + 1])
+        }
+    }
+}
+
+// on web the wasm host auto-drives init/update/shutdown per frame and never calls main
+[export]
+def main() {
+    parse_args()
+    init()
+    var frame_count = 0
+    while (glfwWindowShouldClose(window) == 0) {
+        update()
+        maybe_collect_gc()
+        frame_count ++
+        if (max_frame_limit > 0 && frame_count >= max_frame_limit) {
+            break
+        }
+    }
+    shutdown()
 }

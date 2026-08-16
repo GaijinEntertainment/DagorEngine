@@ -302,14 +302,6 @@ VECTORCALL VECMATH_FINLINE vec4f v_norm2_safe(vec4f a, vec4f def)
   return v_sel(v_div(a, len), def, v_is_unsafe_positive_divisor(lenSq));
 }
 
-VECTORCALL VECMATH_FINLINE vec3f v_cross3(vec3f a, vec3f b)
-{
-  // (a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x)
-  vec3f yzxw = v_perm_yzxw(a);
-  vec3f bcad = v_perm_yzxw(b);
-  return v_perm_yzxy(v_nmsub(yzxw, b, v_mul(a, bcad)));
-}
-
 VECTORCALL VECMATH_FINLINE void v_mat44_make_persp_forward(mat44f &dest, float wk, float hk, float zn, float zf)
 {
   float q = zf/(zf-zn);

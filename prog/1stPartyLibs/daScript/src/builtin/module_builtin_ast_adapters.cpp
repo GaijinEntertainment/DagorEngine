@@ -2336,6 +2336,14 @@ namespace das {
         module->inferMacros.push_back(unique_ptr<PassMacro>(newM));
     }
 
+    void addModulePreInferMacro ( Module * module, PassMacroPtr newM, Context * ) {
+        module->preInferMacros.push_back(unique_ptr<PassMacro>(newM));
+    }
+
+    void addModulePostInferMacro ( Module * module, PassMacroPtr newM, Context * ) {
+        module->postInferMacros.push_back(unique_ptr<PassMacro>(newM));
+    }
+
     void addModuleLintMacro ( Module * module, PassMacroPtr newM, Context * ) {
         module->lintMacros.push_back(unique_ptr<PassMacro>(newM));
     }
@@ -2515,6 +2523,8 @@ namespace das {
             context->throw_error_at(line_info, "adapter is required");
         if (!program)
             context->throw_error_at(line_info, "program is required");
+        if (!module)
+            context->throw_error_at(line_info, "module is required");
         program->visitModule(*adapter, module);
     }
 
@@ -2670,6 +2680,12 @@ namespace das {
             SideEffects::modifyExternal, "addModuleInferDirtyMacro")
                 ->args({"module","annotation","context"});
         // lint macro
+        addExtern<DAS_BIND_FUN(addModulePreInferMacro)>(*this, lib,  "add_pre_infer_macro",
+            SideEffects::modifyExternal, "addModulePreInferMacro")
+                ->args({"module","annotation","context"});
+        addExtern<DAS_BIND_FUN(addModulePostInferMacro)>(*this, lib,  "add_post_infer_macro",
+            SideEffects::modifyExternal, "addModulePostInferMacro")
+                ->args({"module","annotation","context"});
         addExtern<DAS_BIND_FUN(addModuleLintMacro)>(*this, lib,  "add_lint_macro",
             SideEffects::modifyExternal, "addModuleLintMacro")
                 ->args({"module","annotation","context"});

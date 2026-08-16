@@ -63,3 +63,35 @@ def fx_scalar(v : float; s : float) : float {
     }
     return acc
 }
+
+// Two folds in one twin. (1) Bool-inversion: `break if (cond)` updates the loop-active mask as
+// `m = m && !(s > 0.9)`; the comparison-negation fold flips it to `m && (s <= 0.9)`, so no
+// `!comparison` residual survives. (2) Mask const-prop: the loop mask is statically `true` for
+// the first unrolled iteration, so that iteration's predicated `acc = (m ? new : acc-init)` folds
+// unconditional and the `float3(0,0,0)` acc-init is consumed (asserted absent in test_flatten_fold).
+[flatten]
+def fx_loop_break(uv : float2; s : float) : float3 {
+    var acc = float3(0.0, 0.0, 0.0)
+    for (_i in range(3)) {
+        acc += float3(length(uv) * s)
+        if (s > 0.9) {
+            break
+        }
+    }
+    return acc
+}
+
+// De Morgan: `break if (compound)` updates the loop mask as `m = m && !((a > 0) && (b < 1))`;
+// the fold pushes the `!` through the `&&` to the leaves → `m && ((a <= 0) || (b >= 1))`,
+// leaving no residual `!`.
+[flatten]
+def fx_demorgan(a, b : float) : float {
+    var acc = 0.0
+    for (_i in range(3)) {
+        acc += a + b
+        if ((a > 0.0) && (b < 1.0)) {
+            break
+        }
+    }
+    return acc
+}

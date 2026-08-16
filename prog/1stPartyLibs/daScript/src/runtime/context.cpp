@@ -4,6 +4,12 @@
 
 #include <stdarg.h>
 
+#ifdef __EMSCRIPTEN__
+// write(2) + _Exit for the allocation-free out-of-memory report below.
+#include <unistd.h>
+#include <stdlib.h>
+#endif
+
 namespace das
 {
     // Context
@@ -73,6 +79,7 @@ namespace das
 
     void Context::setup(int totalVars, uint32_t globalStringHeapSize, CodeOfPolicies policies, AnnotationArgumentList options) {
         verySafeContext = options.getBoolOption("very_safe_context",policies.very_safe_context);
+        maxUnreservedSize = options.getUInt64Option("max_unreserved_size", policies.max_unreserved_size);
         breakOnException |= policies.debugger;
         gcEnabled = options.getBoolOption("gc", false);
         gcLogTime = options.getBoolOption("log_gc_time", policies.log_gc_time);
@@ -280,6 +287,7 @@ namespace das
         : stack(opts.stackSize ? opts.stackSize : ctx.stack.size()) {
         ref_count_magic = TRACK_PTR_CONTEXT;
         verySafeContext = ctx.verySafeContext;
+        maxUnreservedSize = ctx.maxUnreservedSize;
         persistent = ctx.persistent;
         gcEnabled = ctx.gcEnabled;
         code = ctx.code;
@@ -289,6 +297,7 @@ namespace das
         thisHelper = ctx.thisHelper;
         name = "clone of " + ctx.name;
         category.value = opts.category;
+        skipInitShutdownScript = opts.skipInitScript;
         ownStack = (ctx.stack.size() != 0);
         if ( persistent ) {
             heap = make_unique<PersistentHeapAllocator>();
@@ -335,7 +344,8 @@ namespace das
         announceCreation();
         // now, make it good to go
         restart();
-        if ( !failed ) {
+        // a pure-data fork (skipInitScript) never touches globals, so skip the init script entirely
+        if ( !failed && !skipInitShutdownScript ) {
             if ( stack.size() > globalInitStackSize ) {
                 failed |= !runWithCatch([&]() {
                     runInitScript();
@@ -356,6 +366,43 @@ namespace das
         restart();
     }
 
+    Context * Context::acquireForkContext ( uint32_t category_ ) {
+        Context * fork = nullptr;
+        {
+            lock_guard<mutex> guard(forkContextPoolMutex);
+            if ( !forkContextPool.empty() ) {
+                fork = forkContextPool.back();
+                forkContextPool.pop_back();
+            }
+        }
+        if ( fork ) {
+            // reset for reuse — OUTSIDE the pool mutex: the fork is exclusively owned by this thread
+            // after the pop, so resetting it needs no lock, and keeping restartHeaps() (two
+            // MemoryModel::reset() walks) off the critical section unblocks concurrent dispatches.
+            fork->restart();
+            // forkSkipHeapReset: skip the heap reset for pure-compute jobs. Safe because the only
+            // fork-heap allocation in the pooled new_job path is the lambda capture, freed LIFO by
+            // das_delete at job end — so the heap does not grow across reuses. A job that LEAKS onto
+            // the fork heap would accumulate; same pure-data contract as keepForkContexts.
+            if ( !forkSkipHeapReset.load(std::memory_order_relaxed) ) fork->restartHeaps();
+            return fork;
+        }
+        // none pooled: clone a fresh fork (skip the init script for pure-data jobs)
+        CopyOptions opts;
+        opts.category = category_;
+        opts.skipInitScript = forkSkipInitScript.load(std::memory_order_relaxed);
+        return new Context(*this, opts);
+    }
+
+    void Context::releaseForkContext ( Context * forkContext ) {
+        if ( keepForkContexts.load(std::memory_order_relaxed) ) {
+            lock_guard<mutex> guard(forkContextPoolMutex);
+            forkContextPool.push_back(forkContext);
+        } else {
+            delete forkContext;
+        }
+    }
+
     void Context::addGcRoot ( void * ptr, TypeInfo * type ) {
         gcRoots[ptr] = type;
     }
@@ -365,6 +412,12 @@ namespace das
     }
 
     Context::~Context() {
+        // free any pooled job-fork contexts (idle by now — with_job_que has joined). They were
+        // cloned skip-init, so their own destructors skip the shutdown script.
+        for ( auto * fork : forkContextPool ) {
+            delete fork;
+        }
+        forkContextPool.clear();
         on_debug_agent_mutex([&](){
             // unregister
             category.value |= uint32_t(ContextCategory::dead);
@@ -373,8 +426,8 @@ namespace das
                 pAgent->onDestroyContext(this);
             });
         });
-        if ( !failed ) {
-            // shutdown
+        if ( !failed && !skipInitShutdownScript ) {
+            // shutdown (skipped for pure-data forks that never ran the init script)
             runShutdownScript();
         }
         // and free memory
@@ -656,8 +709,11 @@ namespace das
         virtual void onCallAOT ( Prologue *, const char * fileName ) override {
             ssw << fileName << ", AOT";
         }
-        virtual void onCallJIT ( Prologue *, const char * fileName ) override {
+        virtual void onCallJIT ( Prologue * pp, const char * fileName ) override {
             ssw << fileName << ", JIT";
+            if ( pp->functionLine && pp->functionLine->line ) {
+                ssw << " from " << pp->functionLine->describe();
+            }
         }
         virtual void onCallAt ( Prologue *, FuncInfo * info, LineInfo * at ) override {
             ssw << info->name << " from " << at->describe();
@@ -1041,11 +1097,34 @@ namespace das
     }
 
     void Context::throw_out_of_memory ( bool isStringHeap, uint64_t size, const LineInfo * at ) {
+#ifdef __EMSCRIPTEN__
+        // Wasm-only escape: reporting an out-of-memory must not itself allocate.
+        // The normal path (throw_error_at -> throw_fatal_error) assigns
+        // exceptionMessage, a das::string — an allocation, made at the one moment
+        // allocation cannot succeed. A desktop host has swap and an OS that keeps
+        // serving small requests, so it never realistically gets here; wasm has a
+        // hard ceiling, so it does, and the failure surfaces as an opaque trap with
+        // nothing printed. Format into a stack buffer and write(2) straight to the
+        // fd instead: no heap, no stdio buffer, no C++ exception machinery. Exiting
+        // is correct — a panic is fatal in daslang, and there is nothing to unwind
+        // to that would not need the heap we just ran out of.
+        char buf[256];
+        const int n = snprintf(buf, sizeof(buf),
+            "\nout of %s memory: requested %llu bytes\n",
+            isStringHeap ? "string heap" : "heap", (unsigned long long) size);
+        if ( n > 0 ) {
+            const size_t len = size_t(n) < sizeof(buf) ? size_t(n) : sizeof(buf) - 1;
+            ssize_t ignored = write(2, buf, len); (void) ignored;
+        }
+        (void) at;
+        _Exit(1);
+#else
         if ( isStringHeap ) {
             throw_error_at(at, "out of string heap memory, requested %llu bytes, used %llu / limit %llu", (unsigned long long) size, (unsigned long long) stringHeap->bytesAllocated(), (unsigned long long) stringHeap->getLimit());
         } else {
             throw_error_at(at, "out of heap memory, requested %llu bytes, used %llu / limit %llu", (unsigned long long) size, (unsigned long long) heap->bytesAllocated(), (unsigned long long) heap->getLimit());
         }
+#endif
     }
 
     void Context::throw_error_ex ( DAS_FORMAT_STRING_PREFIX const char * message, ... ) {

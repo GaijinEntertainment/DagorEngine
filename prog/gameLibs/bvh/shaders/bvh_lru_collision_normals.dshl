@@ -1,0 +1,60 @@
+include "shader_global.dshl"
+
+// Face normals for the lru collision TLAS: one octahedral normal per triangle,
+// written at BLAS build time, the only moment the shared heap regions are
+// guaranteed to hold the model's geometry.
+
+int bvh_lru_collision_normals_start_index;
+int bvh_lru_collision_normals_base_vertex;
+int bvh_lru_collision_normals_tri_count;
+int bvh_lru_collision_normals_dest_offset;
+
+int bvh_lru_collision_normals_vb_const_no = 0;
+int bvh_lru_collision_normals_ib_const_no = 1;
+int bvh_lru_collision_normals_uav_no = 0;
+
+shader bvh_lru_collision_fill_normals
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+
+  (cs) {
+    start_index@i1 = bvh_lru_collision_normals_start_index;
+    base_vertex@i1 = bvh_lru_collision_normals_base_vertex;
+    tri_count@i1 = bvh_lru_collision_normals_tri_count;
+    dest_offset@i1 = bvh_lru_collision_normals_dest_offset;
+    vertices@buf : register(bvh_lru_collision_normals_vb_const_no) hlsl { ByteAddressBuffer vertices@buf; };
+    indices@buf : register(bvh_lru_collision_normals_ib_const_no) hlsl { ByteAddressBuffer indices@buf; };
+    normals@uav : register(bvh_lru_collision_normals_uav_no) hlsl { RWStructuredBuffer<uint> normals@uav; };
+  }
+
+  hlsl (cs) {
+    #include <bvh_lru_collision_normal_pack.hlsli>
+
+    float3 load_position(uint vertex_index)
+    {
+      // the collision heap stores positions as half4 at stride 8
+      uint2 raw = vertices.Load2(vertex_index * 8);
+      return float3(f16tof32(raw.x), f16tof32(raw.x >> 16), f16tof32(raw.y));
+    }
+
+    [numthreads(64, 1, 1)]
+    void bvh_lru_collision_fill_normals_cs(uint3 dtId : SV_DispatchThreadID)
+    {
+      if (dtId.x >= uint(tri_count))
+        return;
+
+      uint3 tri = indices.Load3((start_index + dtId.x * 3) * 4) + base_vertex;
+
+      float3 p0 = load_position(tri.x);
+      float3 normal = cross(load_position(tri.y) - p0, load_position(tri.z) - p0);
+      float len = length(normal);
+      structuredBufferAt(normals, dest_offset + dtId.x) =
+        bvh_lru_collision_pack_normal(len > 0 ? normal / len : float3(0, 0, 1)); // degenerate triangles are never hit
+    }
+  }
+
+  compile("target_cs", "bvh_lru_collision_fill_normals_cs");
+}

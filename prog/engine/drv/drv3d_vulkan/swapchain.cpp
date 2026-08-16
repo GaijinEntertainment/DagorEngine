@@ -43,7 +43,7 @@ const VkPresentModeKHR bestPresentModeMatch[4][3] = //
     // row for VK_PRESENT_MODE_FIFO_KHR
     {VK_PRESENT_MODE_FIFO_RELAXED_KHR, VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR},
     // row for VK_PRESENT_MODE_FIFO_RELAXED_KHR
-    {VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR}
+    {VK_PRESENT_MODE_FIFO_KHR, VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR}
     //
 };
 
@@ -438,6 +438,8 @@ void Swapchain::clearState()
   destroyOffscreenBuffer();
   wrappedTex->image = nullptr;
   rotateNeeded = false;
+  rotateInApp = false;
+  appRotationAngle = 0;
   queuedRecreate = false;
 }
 
@@ -527,8 +529,8 @@ Swapchain::ObjectUpdateResult Swapchain::updateObject()
 {
   TIME_PROFILE(vulkan_swapchain_update);
 
-  uint32_t fittedWidth = currentMode.extent.width;
-  uint32_t fittedHeight = currentMode.extent.height;
+  uint32_t fittedWidth = currentMode.displayExtent.width;
+  uint32_t fittedHeight = currentMode.displayExtent.height;
   // handle minimized state early to avoid resource recreations
   if (!is_null(currentMode.surfaceAndWindow.first) && !Globals::cfg.bits.headless)
   {
@@ -538,9 +540,9 @@ Swapchain::ObjectUpdateResult Swapchain::updateObject()
         return clamp<uint32_t>(mode_value, cap_min, cap_max);
       return cap_value;
     };
-    fittedWidth = fitExtents(currentMode.extent.width, query.caps.currentExtent.width, query.caps.minImageExtent.width,
+    fittedWidth = fitExtents(currentMode.displayExtent.width, query.caps.currentExtent.width, query.caps.minImageExtent.width,
       query.caps.maxImageExtent.width);
-    fittedHeight = fitExtents(currentMode.extent.height, query.caps.currentExtent.height, query.caps.minImageExtent.height,
+    fittedHeight = fitExtents(currentMode.displayExtent.height, query.caps.currentExtent.height, query.caps.minImageExtent.height,
       query.caps.maxImageExtent.height);
 
     // this can happen if the window was minimized
@@ -564,6 +566,9 @@ Swapchain::ObjectUpdateResult Swapchain::updateObject()
   // no surface - no swapchain, same goes for headless
   if (is_null(currentMode.surfaceAndWindow.first) || Globals::cfg.bits.headless)
   {
+    // we render to offscreen without any modifications
+    // so backbuffer is always at display extents
+    currentMode.backbufferExtent = currentMode.displayExtent;
     destroySwapchainHandle(handle);
     return ObjectUpdateResult::RETRY;
   }
@@ -638,10 +643,24 @@ Swapchain::ObjectUpdateResult Swapchain::updateObject()
     sci.minImageCount = min<uint32_t>(sci.minImageCount, query.caps.maxImageCount);
 
   currentMode.mismatchedExtents =
-    currentMode.extent.width != sci.imageExtent.width || currentMode.extent.height != sci.imageExtent.height;
+    currentMode.displayExtent.width != sci.imageExtent.width || currentMode.displayExtent.height != sci.imageExtent.height;
   if (currentMode.mismatchedExtents)
-    debug("vulkan: swapchain: mode (%u,%u) and surface (%u, %u) extends mismatch, using scaling blit", currentMode.extent.width,
-      currentMode.extent.height, sci.imageExtent.width, sci.imageExtent.height);
+    debug("vulkan: swapchain: mode (%u,%u) and surface (%u, %u) extends mismatch, using scaling blit", currentMode.displayExtent.width,
+      currentMode.displayExtent.height, sci.imageExtent.width, sci.imageExtent.height);
+
+  rotateInApp = false;
+  appRotationAngle = 0;
+  currentMode.backbufferExtent = currentMode.displayExtent;
+  if (rotateNeeded && Globals::cfg.bits.appHandledPreRotation && !currentMode.mismatchedExtents &&
+      !(currentMode.enableSrgb && !currentMode.mutableFormat))
+  {
+    rotateInApp = true;
+    appRotationAngle = surfaceTransformToAngle(sci.preTransform);
+    rotateNeeded = false;
+    debug("vulkan: swapchain: pre-rotation %u handled by app", appRotationAngle);
+    if (appRotationAngle == 90 || appRotationAngle == 270)
+      eastl::swap(currentMode.backbufferExtent.width, currentMode.backbufferExtent.height);
+  }
 
   // swap extents to match device transform
   if ((sci.preTransform & VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR) || (sci.preTransform & VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR))
@@ -707,7 +726,50 @@ Swapchain::ObjectUpdateResult Swapchain::updateObject()
   }
   fillSemaphoresRing();
 
+  applyHdrMetadata();
+
   return ObjectUpdateResult::OK;
+}
+
+void Swapchain::applyHdrMetadata()
+{
+#if VK_EXT_hdr_metadata
+  if (!currentMode.usesHdr || is_null(handle))
+    return;
+
+  if (!Globals::VK::dev.hasExtension<HdrMetadataEXT>())
+  {
+    debug("vulkan: swapchain: HDR active but VK_EXT_hdr_metadata is not present, "
+          "presentation engine gets default/unspecified mastering metadata");
+    return;
+  }
+
+  // Vulkan/Wayland gives no way to read the sink's real HDR capabilities, so we use HDR10 / Rec.2020
+  // (BT.2100) defaults, overridable via the video block for per-display calibration.
+  const DataBlock *videoCfg = ::dgs_get_settings()->getBlockByNameEx("video");
+  const float maxNits = videoCfg->getReal("hdrMaxNits", 1000.0f);
+  const float minNits = videoCfg->getReal("hdrMinNits", 0.0f);
+  const float maxCLL = videoCfg->getReal("hdrMaxContentLightLevel", maxNits);
+  const float maxFALL = videoCfg->getReal("hdrMaxFrameAvgLightLevel", maxNits * 0.25f);
+
+  VkHdrMetadataEXT meta = {};
+  meta.sType = VK_STRUCTURE_TYPE_HDR_METADATA_EXT;
+  meta.pNext = nullptr;
+  // Rec.2020 / BT.2100 primaries and D65 white point (CIE 1931 xy)
+  meta.displayPrimaryRed = {0.708f, 0.292f};
+  meta.displayPrimaryGreen = {0.170f, 0.797f};
+  meta.displayPrimaryBlue = {0.131f, 0.046f};
+  meta.whitePoint = {0.3127f, 0.3290f};
+  meta.maxLuminance = maxNits;
+  meta.minLuminance = minNits;
+  meta.maxContentLightLevel = maxCLL;
+  meta.maxFrameAverageLightLevel = maxFALL;
+
+  VkSwapchainKHR rawHandle = handle;
+  Globals::VK::dev.vkSetHdrMetadataEXT(Globals::VK::dev.get(), 1, &rawHandle, &meta);
+  debug("vulkan: swapchain: set HDR10 metadata: max %.0f nits, min %.4f nits, maxCLL %.0f, maxFALL %.0f", maxNits, minNits, maxCLL,
+    maxFALL);
+#endif
 }
 
 void Swapchain::fillSemaphoresRing()
@@ -783,8 +845,8 @@ void Swapchain::ensureOffscreenBuffer()
   ImageCreateInfo ii;
   ii.type = VK_IMAGE_TYPE_2D;
   ii.mips = 1;
-  ii.size.width = currentMode.extent.width;
-  ii.size.height = currentMode.extent.height;
+  ii.size.width = currentMode.displayExtent.width;
+  ii.size.height = currentMode.displayExtent.height;
   ii.size.depth = 1;
   ii.arrays = 1;
   ii.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
@@ -841,16 +903,16 @@ bool Swapchain::setMode(const SwapchainMode &new_mode)
   else
     G_ASSERT(currentMode.surfaceAndWindow.second == new_mode.surfaceAndWindow.second);
 
-  if (currentMode.extent != new_mode.extent)
+  if (currentMode.displayExtent != new_mode.displayExtent)
   {
-    debug("vulkan: swapchain mode change request: extent [%u, %u] -> [%u, %u]", currentMode.extent.width, currentMode.extent.height,
-      new_mode.extent.width, new_mode.extent.height);
+    debug("vulkan: swapchain mode change request: extent [%u, %u] -> [%u, %u]", currentMode.displayExtent.width,
+      currentMode.displayExtent.height, new_mode.displayExtent.width, new_mode.displayExtent.height);
     hasChanges = true;
     // we are not propragating surface extent change back to engine right away, so vulkan can see extend change early than engine
     // causing two setMode calls, one from vulkan acquire, one from engine
     // one from engine should processed without swapchain recreation if it is fitting properly
-    if (images.size() && new_mode.extent.width == images[0].img->getBaseExtent2D().width &&
-        new_mode.extent.height == images[0].img->getBaseExtent2D().height)
+    if (images.size() && new_mode.displayExtent.width == images[0].img->getBaseExtent2D().width &&
+        new_mode.displayExtent.height == images[0].img->getBaseExtent2D().height)
     {
       extentFittingChange = true;
       hasChanges = false;
@@ -880,6 +942,12 @@ bool Swapchain::setMode(const SwapchainMode &new_mode)
   else if (currentMode.enableSrgb != new_mode.enableSrgb)
   {
     debug("vulkan: swapchain mode change request: enable srgb");
+    hasChanges = true;
+  }
+
+  if (new_mode.canUseHdr && (get_enable_hdr_from_settings() != new_mode.usesHdr))
+  {
+    debug("vulkan: swapchain mode change request: HDR toggle %s", new_mode.usesHdr ? "off" : "on");
     hasChanges = true;
   }
 
@@ -938,8 +1006,8 @@ bool Swapchain::setMode(const SwapchainMode &new_mode)
       VULKAN_LOG_CALL(Globals::VK::inst.vkDestroySurfaceKHR(Globals::VK::inst.get(), oldSurface, nullptr));
   }
 
-  wrappedTex->pars.w = currentMode.extent.width;
-  wrappedTex->pars.h = currentMode.extent.height;
+  wrappedTex->pars.w = currentMode.backbufferExtent.width;
+  wrappedTex->pars.h = currentMode.backbufferExtent.height;
   wrappedTex->pars.flg = TEXCF_RTARGET | currentMode.format.asTexFlags();
   wrappedTex->fmt = FormatStore::fromCreateFlags(wrappedTex->pars.flg);
   wrappedTex->setInitialImageViewState();
@@ -1019,8 +1087,8 @@ void Swapchain::rotateFromOffscreen()
   if ((uint32_t)rotateRenderState == ~0)
     rotateRenderState = d3d::create_render_state(shaders::RenderState());
   d3d::set_render_state(rotateRenderState);
-  float fv[4] = {(float)currentMode.extent.width, (float)currentMode.extent.height, 1.0f / currentMode.extent.width,
-    1.0f / currentMode.extent.height};
+  float fv[4] = {(float)currentMode.displayExtent.width, (float)currentMode.displayExtent.height,
+    1.0f / currentMode.displayExtent.width, 1.0f / currentMode.displayExtent.height};
   d3d::set_const(STAGE_PS, 0, fv, 1);
   d3d::draw(PRIM_TRILIST, 0, 1);
   wrappedRotatedTex->image = nullptr;
@@ -1039,8 +1107,8 @@ void Swapchain::prePresent()
     ImageCreateInfo ii;
     ii.type = VK_IMAGE_TYPE_2D;
     ii.mips = 1;
-    ii.size.width = currentMode.extent.width;
-    ii.size.height = currentMode.extent.height;
+    ii.size.width = currentMode.backbufferExtent.width;
+    ii.size.height = currentMode.backbufferExtent.height;
     ii.size.depth = 1;
     ii.arrays = 1;
     ii.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
@@ -1177,7 +1245,7 @@ Swapchain *SecondarySwapchainStorage::allocate(void *window)
   mode.enableSrgb = false;
   mode.surfaceAndWindow.first = init_window_surface(Globals::VK::inst, window);
   mode.fullscreen = false;
-  mode.extent = get_window_client_rect_extent(window);
+  mode.displayExtent = get_window_client_rect_extent(window);
   mode.surfaceAndWindow.second = window;
   mode.modifySource = "create swapchain for secondary window";
   const bool isCreated = swapchain.setMode(mode);

@@ -97,6 +97,9 @@ private:
   ViewDependentResource<RTarget::Ptr, 2> historyTex;
   ViewDependentResource<RTarget::Ptr, 2> wasDynamicTex;
 
+  IPoint2 historyResolution = IPoint2(0, 0);
+  int historyFmt = 0;
+
   float lodBias;
 
   bool enabled = true;

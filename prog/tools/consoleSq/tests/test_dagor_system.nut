@@ -1,4 +1,4 @@
-// Squirrel module under test: dagor.system (registered by dagorSystem.cpp)
+// Quirrel module under test: dagor.system (registered by dagorSystem.cpp)
 // Skipped APIs: exit (process-terminating), set_app_window_title (UI),
 // message_box (modal UI), get_primary_screen_info (display state).
 

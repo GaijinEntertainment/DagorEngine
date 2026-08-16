@@ -43,10 +43,12 @@ public:
   using SimpleScene::isAliveNodeFast;
   using SimpleScene::prefetchNode;
   using TiledScene::allocate;
+  using TiledScene::beginBulkTransformUpdate;
   using TiledScene::boxCull;
   using TiledScene::destroy;
   using TiledScene::doMaintenance;
   using TiledScene::dumpSceneState;
+  using TiledScene::endBulkTransformUpdate;
   using TiledScene::flushDeferredTransformUpdates;
   using TiledScene::frustumCull;
   using TiledScene::frustumCullOneTile;
@@ -272,6 +274,7 @@ protected:
 
 struct TiledScenePoolInfo
 {
+  static constexpr uint32_t INVALID_POOL = ~uint32_t(0);
   float distSqLOD[RiExtraPool::MAX_LODS];
   uint32_t lodLimits, poolIdx;
   uint16_t boxOccluder, quadOccluder;

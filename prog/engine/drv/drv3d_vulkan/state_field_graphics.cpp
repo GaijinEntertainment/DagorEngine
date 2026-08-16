@@ -912,7 +912,7 @@ void StateFieldGraphicsViewport::set(const RestoreFromFramebuffer &)
 
   data.rect2D.offset.x = 0;
   data.rect2D.offset.y = 0;
-  data.rect2D.extent = Frontend::swapchain.getMode().extent;
+  data.rect2D.extent = Frontend::swapchain.getMode().backbufferExtent;
 
   if (!rt.isBackBufferColor())
   {

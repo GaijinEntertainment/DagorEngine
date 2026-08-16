@@ -258,6 +258,11 @@ bool ECSEditorPlugin::onPluginMenuClick(unsigned id)
 
     return true;
   }
+  else if (id == CM_ECS_EDITOR_SCENE_OUTLINER)
+  {
+    objEd->onClick(id, nullptr);
+    return true;
+  }
 
   return false;
 }

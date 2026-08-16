@@ -42,6 +42,8 @@ struct FSR
     uint32_t outputWidth = 1;
     uint32_t outputHeight = 1;
 
+    bool applyPreRotation = false;
+
     FSR::UpscalingMode mode = FSR::UpscalingMode::Off;
   };
 
@@ -73,6 +75,7 @@ struct FSR
       nearPlane = other.nearPlane;
       farPlane = other.farPlane;
       frameIndex = other.frameIndex;
+      applyPreRotation = other.applyPreRotation;
     }
 
     TextureType *colorTexture = nullptr;
@@ -95,6 +98,7 @@ struct FSR
     float nearPlane = 1;
     float farPlane = 2;
     uint32_t frameIndex = 0;
+    bool applyPreRotation = false;
   };
 
   using UpscalingArgs = UpscalingArgsBase<Texture>;

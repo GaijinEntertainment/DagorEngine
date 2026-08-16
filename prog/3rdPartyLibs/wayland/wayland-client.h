@@ -44,6 +44,8 @@
 #define wl_display_connect     stub_wl_display_connect
 #define wl_display_disconnect  stub_wl_display_disconnect
 #define wl_display_roundtrip   stub_wl_display_roundtrip
+#define wl_display_get_error   stub_wl_display_get_error
+#define wl_display_get_protocol_error stub_wl_display_get_protocol_error
 #include "wayland-client-core.h"
 #undef wl_proxy_marshal_flags
 #undef wl_proxy_get_version
@@ -52,6 +54,8 @@
 #undef wl_display_connect
 #undef wl_display_disconnect
 #undef wl_display_roundtrip
+#undef wl_display_get_error
+#undef wl_display_get_protocol_error
 
 extern struct wl_proxy *(*pwl_proxy_marshal_flags)(struct wl_proxy *proxy, uint32_t opcode, const struct wl_interface *interface,
   uint32_t version, uint32_t flags, ...);
@@ -61,6 +65,8 @@ extern void (*pwl_proxy_destroy)(struct wl_proxy *proxy);
 extern struct wl_display *(*pwl_display_connect)(const char *name);
 extern void (*pwl_display_disconnect)(struct wl_display *display);
 extern int (*pwl_display_roundtrip)(struct wl_display *display);
+extern int (*pwl_display_get_error)(struct wl_display *display);
+extern uint32_t (*pwl_display_get_protocol_error)(struct wl_display *display, const struct wl_interface **interface, uint32_t *id);
 
 #define wl_proxy_marshal_flags pwl_proxy_marshal_flags
 #define wl_proxy_get_version   pwl_proxy_get_version
@@ -69,6 +75,8 @@ extern int (*pwl_display_roundtrip)(struct wl_display *display);
 #define wl_display_connect     pwl_display_connect
 #define wl_display_disconnect  pwl_display_disconnect
 #define wl_display_roundtrip   pwl_display_roundtrip
+#define wl_display_get_error   pwl_display_get_error
+#define wl_display_get_protocol_error pwl_display_get_protocol_error
 
 #include "wayland-client-protocol.h"
 

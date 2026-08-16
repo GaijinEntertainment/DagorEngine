@@ -4,9 +4,9 @@ let calcKnobColor = @(sf) (sf & S_ACTIVE) ? Color(255,255,255)
                   : (sf & S_HOVER)  ? Color(110, 120, 140, 80)
                                     : Color(110, 120, 140, 160)
 
-let barWidth = sh(1)
-let minKnobSizePart = 0.005
-let barColor = Color(40, 40, 40, 160)
+const barWidth = sh(1)
+const minKnobSizePart = 0.005
+const barColor = Color(40, 40, 40, 160)
 let calcBarSize = @(isVertical) isVertical ? [barWidth, flex()] : [flex(), barWidth]
 
 let mkScrollbar = function(scroll_handler, orientation=null, needReservePlace=true) {

@@ -1,13 +1,12 @@
 options gen2
 
 require math
-require strings
 require daslib/linq
 require daslib/linq_boost
 require daslib/linq_fold
 require dastest/testing_boost public
 
-// Theme 8 (audit `benchmarks/sql/linq_fold_chain_audit.md`) — three small specialized fusion arms,
+// Theme 8 (audit `history/linq_fold/linq_fold_chain_audit.md`) — three small specialized fusion arms,
 // each closing one previously-FALLS-OFF chain. Bundled because they are independent and small.
 //
 //   2a — `reverse + distinct_by` on array source (plan_reverse)

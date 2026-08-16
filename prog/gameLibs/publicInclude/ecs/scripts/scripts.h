@@ -15,6 +15,21 @@ extern void shutdown_ecs_sq_script(HSQUIRRELVM vm);
 extern void update_ecs_sq_timers(float dt, float rt_dt);
 extern void start_es_loading(); // prevents calls to es_reset_order during es registrations
 extern void end_es_loading();   // calls es_reset_order
+extern bool is_es_loading();
+
+namespace ecs
+{
+namespace sq
+{
+// Push readonly script representation of a component value on the VM stack;
+// null comp_data pushes null. Complex types (Object, Array, lists, shared
+// objects) are deep-copied into plain quirrel tables/arrays, so the pushed
+// value may safely outlive the component (unlike component refs seen by
+// script ES / SqQuery callbacks)
+void push_comp_val_copy(HSQUIRRELVM vm, const char *comp_name, const void *comp_data, ecs::component_type_t type,
+  ecs::type_index_t type_id);
+} // namespace sq
+} // namespace ecs
 
 typedef void (*SqPushCB)(HSQUIRRELVM vm, const void *raw_data);
 extern void sq_register_native_component(ecs::component_type_t type, SqPushCB cb);

@@ -97,6 +97,20 @@ def sum_escaping() : int {
     return total
 }
 
+// three non-escaping `new`s ALIVE at once in one frame, all read back AFTER the last is allocated.
+// Each must get a distinct stack slot. Regression: the initializer's stack-reuse scope reclaimed the
+// pointee, so a later local clobbered an earlier still-live object (the first read back as garbage).
+def sum_multi_live() : int {
+    var total = 0
+    for (i in range(N)) {
+        var a = new Node(x = i, y = i * 2)
+        var b = new Node(x = i + 1, y = i * 3)
+        var c = new Node(x = i + 2, y = i * 4)
+        total += a.x + a.y + b.x + b.y + c.x + c.y
+    }
+    return total
+}
+
 // plain `new` with field stores -> stack frame -> heap stays EXACTLY flat (zero growth)
 [test]
 def test_stack_plain_new(t : T?) {
@@ -135,6 +149,17 @@ def test_stack_big_struct_stays_on_heap(t : T?) {
     let grew = heap_bytes_allocated() - before
     t |> equal(s, (N - 1) * N / 2)
     t |> success(grew < uint64(40 * (typeinfo sizeof(type<BigNode>))))
+}
+
+// multiple live stack-allocated objects in one frame keep distinct slots: values intact + heap flat
+[test]
+def test_stack_multiple_live_objects(t : T?) {
+    let before = heap_bytes_allocated()
+    let s = sum_multi_live()
+    let grew = heap_bytes_allocated() - before
+    // per i: a.x+a.y=3i, b.x+b.y=4i+1, c.x+c.y=5i+2 -> 12i+3
+    t |> equal(s, 12 * ((N - 1) * N / 2) + 3 * N)
+    t |> equal(grew, uint64(0))
 }
 
 // control: an escaping pointer must stay on the heap and the heap must grow by N nodes

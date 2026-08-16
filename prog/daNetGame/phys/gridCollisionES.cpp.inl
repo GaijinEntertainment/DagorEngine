@@ -42,19 +42,25 @@ bool grid_trace_main_entities(const Point3 &from,
         {
           int gridObjectPhysMatId = collision_physMatId ? *collision_physMatId : PHYSMAT_INVALID;
           bool isHit = false;
-          int outMatId, outNodeId;
           const GeomNodeTree &nodeTree = animchar.getNodeTree();
-          Point3 *pNorm = nullptr;
           if (ray_mat_id != PHYSMAT_INVALID)
           {
+            int outMatId;
             if (gridObjectPhysMatId == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(gridObjectPhysMatId, ray_mat_id))
-              isHit = collres.traceRay(transform, &nodeTree, from, dir, t, pNorm, outMatId, {}, ray_mat_id);
+              isHit = collres.traceRay(transform, &nodeTree, from, dir, t, nullptr /*norm*/, outMatId, {}, ray_mat_id);
           }
           else
-            isHit = collres.traceRay(transform, &nodeTree, from, dir, t, pNorm, outMatId, outNodeId);
+            isHit = collres.traceRay(transform, &nodeTree, from, dir, t);
 
-          if (isHit && net_phys__currentStateVelocity)
-            out_vel = *net_phys__currentStateVelocity;
+          // t narrows on every hit, so the last hit is the closest one: its velocity must replace a
+          // farther entity's even when this entity has none
+          if (isHit)
+          {
+            if (net_phys__currentStateVelocity)
+              out_vel = *net_phys__currentStateVelocity;
+            else
+              out_vel.zero();
+          }
 
           res |= isHit;
         }

@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE010: if (true) should be a bare block
 //
 // Problem: if (true) is always taken and adds unnecessary noise.

@@ -27,6 +27,7 @@ let HUGE_N = 2200_l * 1024_l * 1024_l
 def test_iterate_via_range64_long_length(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     var count = 0_l
     for (_i in range64(0_l, long_length(arr))) {
@@ -40,6 +41,7 @@ def test_iterate_via_range64_long_length(t : T?) {
 def test_iterate_via_long_iter_range(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     var count = 0_l
     for (_i in long_iter_range(arr)) {
@@ -53,6 +55,7 @@ def test_iterate_via_long_iter_range(t : T?) {
 def test_iterate_via_index_read(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     // Write a sentinel at the last index, iterate with int64 counter and
     // assert we read it back via arr[i] indexing (stride math).
@@ -69,6 +72,7 @@ def test_iterate_via_index_read(t : T?) {
 def test_iterate_via_long_enumerate(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     var last_index = -1_l
     var count = 0_l

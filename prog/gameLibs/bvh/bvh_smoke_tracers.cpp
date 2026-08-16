@@ -272,6 +272,12 @@ void get_instances(ContextId context_id, Sbuffer *&instances, Sbuffer *&instance
   }
 }
 
+void collect_blas_addresses(dag::Vector<uint64_t> &addresses)
+{
+  if (billboards.blas)
+    addresses.push_back(billboards.blas.getGPUAddress());
+}
+
 void get_memory_statistics(int &count, int64_t &vb, int64_t &blas)
 {
   count = smokeTracersBvhConnection.lastInstanceCount;

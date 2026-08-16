@@ -84,21 +84,10 @@ public:
 class DagFileAccess : public das::ModuleFileAccess
 {
   das::das_map<das::string, das::string> extraRoots;
-  das::FileAccess *localAccess;
 
 public:
   bool verbose = true;
 
-private:
-  das::FileAccessPtr makeLocalFileAccess()
-  {
-    auto res = das::make_smart<DagFileAccess>(bind_dascript::HotReload::DISABLED);
-    localAccess = res.get();
-    localAccess->addRef();
-    return res;
-  }
-
-public:
   ska::flat_hash_map<eastl::string, int64_t, ska::power_of_two_std_hash<eastl::string>> filesOpened; // in order to reload changed
                                                                                                      // scripts, we would need to store
                                                                                                      // pointers to FsFileInfo in
@@ -106,21 +95,23 @@ public:
   bool storeOpenedFiles = true;
   bool derivedAccess = false;
   DagFileAccess *owner = nullptr;
-  DagFileAccess(const char *pak = nullptr, HotReload allow_hot_reload = HotReload::ENABLED) // -V730 Not all members of a class are
-                                                                                            // initialized inside the constructor.
-                                                                                            // Consider inspecting: localAccess. (@see
-                                                                                            // makeLocalFileAccess)
-    :
-    das::ModuleFileAccess(pak, makeLocalFileAccess()), storeOpenedFiles(allow_hot_reload == HotReload::ENABLED)
+  DagFileAccess(const char *pak, const das::ProgramPtr &program, HotReload allow_hot_reload = HotReload::ENABLED) :
+    das::ModuleFileAccess(pak, program), storeOpenedFiles(allow_hot_reload == HotReload::ENABLED)
   {}
-  DagFileAccess(HotReload allow_hot_reload = HotReload::ENABLED) : storeOpenedFiles(allow_hot_reload == HotReload::ENABLED)
-  {
-    localAccess = nullptr;
-  }
+  DagFileAccess(const char *pak, HotReload allow_hot_reload = HotReload::ENABLED) :
+    DagFileAccess(
+      pak,
+      [&] {
+        das::ModuleGroup libGroup;
+        das::TextWriter logs;
+        return das::compileDaScript(pak, das::make_smart<DagFileAccess>(HotReload::DISABLED), logs, libGroup);
+      }(),
+      allow_hot_reload)
+  {}
+  DagFileAccess(HotReload allow_hot_reload = HotReload::ENABLED) : storeOpenedFiles(allow_hot_reload == HotReload::ENABLED) {}
   DagFileAccess(DagFileAccess *modAccess, HotReload allow_hot_reload = HotReload::ENABLED) :
     storeOpenedFiles(allow_hot_reload == HotReload::ENABLED), owner(modAccess)
   {
-    localAccess = nullptr;
     if (modAccess)
     {
       context = modAccess->context;
@@ -135,8 +126,6 @@ public:
   {
     if (derivedAccess)
       context = nullptr;
-    if (localAccess)
-      localAccess->delRef();
   }
   int64_t getFileMtime(const das::string &fileName) const override
   {

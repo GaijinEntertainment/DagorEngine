@@ -28,7 +28,6 @@ public:
 class ObjectPropertiesEditor : public UtilityObj
 {
 public:
-  ObjectPropertiesEditor();
   void Init();
   void Destroy();
 
@@ -41,10 +40,10 @@ public:
 
 
 protected:
-  RollupPanel *panel;
+  RollupPanel *panel = NULL;
 
-  HWND m_hPanel;
-  Interface *m_pInterface;
+  HWND m_hPanel = NULL;
+  Interface *m_pInterface = NULL;
   Tab<bool> selectedNodes;
 };
 
@@ -70,14 +69,6 @@ void *ObjectPropertiesEditorDesc::Create(BOOL loading) { return &object_properti
 void ObjectPropertiesEditorRedrawViewsCallback::proc(Interface *interface_pointer)
 {
   object_properties_editor.UpdateControls(interface_pointer);
-}
-
-
-ObjectPropertiesEditor::ObjectPropertiesEditor()
-{
-  m_hPanel = NULL;
-  m_pInterface = NULL;
-  panel = NULL;
 }
 
 
@@ -168,7 +159,7 @@ class SelectionChanged : public ENodeCB
 {
 public:
   SelectionChanged(Tab<bool> &selected_nodes) : selectedNodes(selected_nodes), i(0), needUpdate(false) {}
-  ~SelectionChanged() override {}
+  ~SelectionChanged() override = default;
   bool need() { return needUpdate; }
   void resize()
   {

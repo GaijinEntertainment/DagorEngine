@@ -1,4 +1,4 @@
-// Squirrel module under test: dagor.fs.vrom (registered by dagorFS.cpp register_dagor_fs_vrom_module)
+// Quirrel module under test: dagor.fs.vrom (registered by dagorFS.cpp register_dagor_fs_vrom_module)
 
 from "dagor.fs.vrom" import scan_vrom_folder, get_vromfs_dump_version
 

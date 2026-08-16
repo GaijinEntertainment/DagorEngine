@@ -7,6 +7,10 @@
 #include <util/dag_globDef.h>
 #include <stdio.h> // for SNPRINTF
 
+#if _TARGET_ANDROID
+#include <android/android_platform.h>
+#endif
+
 
 static const int UUID_LENGTH = 10;
 static char uuid_strings[4][2 * UUID_LENGTH + 1];
@@ -60,6 +64,15 @@ static void init_uuids()
     file_ptr_t f = ::df_open(path, DF_WRITE | DF_CREATE);
     if (f)
     {
+#if _TARGET_ANDROID
+      const eastl::string androidId = android::platform::getAndroidId();
+      if (!androidId.empty())
+      {
+        ::memset(&binUuid[1 * UUID_LENGTH], 0, UUID_LENGTH);
+        str_hex_to_data_buf(&binUuid[1 * UUID_LENGTH], UUID_LENGTH, androidId.c_str(), nullptr, (int)androidId.length());
+      }
+#endif
+
       if (::df_write(f, binUuid, countof(uuid_strings) * UUID_LENGTH) != countof(uuid_strings) * UUID_LENGTH)
       {
         ::df_close(f);

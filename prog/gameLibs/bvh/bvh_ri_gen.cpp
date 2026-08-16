@@ -491,6 +491,23 @@ void update_ri_gen_instances(ContextId context_id, const dag::Vector<RiGenVisibi
   }
 }
 
+void collect_riex_staged_blas_addresses(ContextId context_id, dag::Vector<uint64_t> &addresses);
+
+// A tree that appears this frame has a BLAS that will only be merged to the TLAS after the build()
+// The context doesn't know about it yet, but it will get referenced in this frame.
+void collect_staged_blas_addresses(ContextId context_id, dag::Vector<uint64_t> &addresses)
+{
+  for (auto &jobFlips : ri_gen_bvh_job)
+    for (int flip = 0; flip < 2; ++flip)
+      for (auto &lodRes : jobFlips[flip].newUniqueTreeBuffers)
+        for (auto &tree : lodRes)
+          for (auto &elem : tree.second.elems)
+            if (elem.second.blas)
+              addresses.push_back(elem.second.blas.getGPUAddress());
+
+  collect_riex_staged_blas_addresses(context_id, addresses);
+}
+
 void tidy_up_rigen_trees(ContextId context_id)
 {
   TIME_PROFILE(tidy_up_rigen_trees);

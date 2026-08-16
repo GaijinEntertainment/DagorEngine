@@ -10,6 +10,8 @@ void (*pwl_proxy_destroy)(struct wl_proxy *proxy);
 struct wl_display *(*pwl_display_connect)(const char *name);
 void (*pwl_display_disconnect)(struct wl_display *display);
 int (*pwl_display_roundtrip)(struct wl_display *display);
+int (*pwl_display_get_error)(struct wl_display *display);
+uint32_t (*pwl_display_get_protocol_error)(struct wl_display *display, const struct wl_interface **interface, uint32_t *id);
 struct wl_proxy *(*pwl_proxy_marshal_flags)(struct wl_proxy *proxy, uint32_t opcode, const struct wl_interface *interface,
   uint32_t version, uint32_t flags, ...);
 
@@ -31,6 +33,8 @@ bool Wayland::loadLib()
   LOAD(wl_display_connect);
   LOAD(wl_display_disconnect);
   LOAD(wl_display_roundtrip);
+  LOAD(wl_display_get_error);
+  LOAD(wl_display_get_protocol_error);
 #undef LOAD
 
   return true;

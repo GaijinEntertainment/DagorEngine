@@ -119,6 +119,7 @@ def base64_decode(inp : array<uint8> | #; var out : array<uint8>) : int {
     return j
 }
 
+[temp_string_result]
 def public base64_encode(_inp : string) {
     //! Encodes a string to its Base64 text representation.
     var res : string

@@ -155,7 +155,9 @@ int BhvProjection::update(UpdateStage /*stage*/, darg::Element *elem, float /*dt
 
       bool inElem = false;
       float minDistance = data.RawGetSlotValue(strings->minDistance, 0.1f);
-      if (distanceToObject > minDistance && sp.z > 0)
+      // clip at the near plane, not at z==0: nearer points are not visible in 3D
+      // and the division can produce unreasonable values
+      if (distanceToObject > minDistance && sp.z > persp.zn)
       {
         if (vrgui::is_inited())
         {
@@ -309,8 +311,13 @@ int BhvProjection::update(UpdateStage /*stage*/, darg::Element *elem, float /*dt
       }
     }
 
-    child->transform->translate = vp;
-    child->transform->scale = Point2(distScale, distScale);
+    // a hidden child is not rendered, so do not store its off-screen projection: the stale value
+    // may survive into the next rebuild, where daRg checks the transform range and reports it
+    if (!child->isHidden())
+    {
+      child->transform->translate = vp;
+      child->transform->scale = Point2(distScale, distScale);
+    }
 
     if (child->isHidden() != wasHidden)
       resultFlags |= R_REBUILD_RENDER_AND_INPUT_LISTS;

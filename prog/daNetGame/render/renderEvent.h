@@ -389,7 +389,7 @@ struct AnimcharRenderAsyncEvent : public ecs::Event
   const GlobalVariableStates *globVarsState;
   const Occlusion *occlusion;
   const Frustum cullingFrustum;
-  const animchar_visbits_t add_vis_bits, check_bits;
+  const animchar_visbits_t add_vis_bits, require_any_vis_bits, reject_if_any_vis_bits;
   const uint8_t filterMask;
   const bool needPrevious;
   const AnimcharRenderAsyncFilter eidFilter;
@@ -400,7 +400,8 @@ struct AnimcharRenderAsyncEvent : public ecs::Event
     const Occlusion *occlusion_,
     const Frustum &frustum_,
     animchar_visbits_t add_vis_bits_,
-    animchar_visbits_t check_bits_,
+    animchar_visbits_t require_any_vis_bits_,
+    animchar_visbits_t reject_if_any_vis_bits_,
     uint8_t filter_mask,
     bool needPrevious_,
     AnimcharRenderAsyncFilter eid_filter,
@@ -411,7 +412,8 @@ struct AnimcharRenderAsyncEvent : public ecs::Event
     occlusion(occlusion_),
     cullingFrustum(frustum_),
     add_vis_bits(add_vis_bits_),
-    check_bits(check_bits_),
+    require_any_vis_bits(require_any_vis_bits_),
+    reject_if_any_vis_bits(reject_if_any_vis_bits_),
     filterMask(filter_mask),
     needPrevious(needPrevious_),
     eidFilter(eid_filter),
@@ -453,6 +455,38 @@ struct ResetAoEvent : public ecs::Event
   } state;
   ECS_BROADCAST_EVENT_DECL(ResetAoEvent)
   ResetAoEvent(IPoint2 ao_resolution, State state) : ECS_EVENT_CONSTRUCTOR(ResetAoEvent), aoResolution(ao_resolution), state(state) {}
+};
+
+struct ResetAoNodes : public ecs::Event
+{
+  bool useGtao = false;
+  int aoW;
+  int aoH;
+  uint32_t creationFlags;
+  ECS_BROADCAST_EVENT_DECL(ResetAoNodes)
+  ResetAoNodes(bool use_gtao, int ao_w, int ao_h, uint32_t creation_flags) :
+    ECS_EVENT_CONSTRUCTOR(ResetAoNodes), useGtao(use_gtao), aoW(ao_w), aoH(ao_h), creationFlags(creation_flags)
+  {}
+};
+
+enum class SSRQuality;
+
+struct SsrNodesConfig
+{
+  int w = 0;
+  int h = 0;
+  uint32_t fmt = 0;
+  int denoiserType = 0;
+  SSRQuality quality = {};
+  bool isFullres = false;
+};
+ECS_DECLARE_RELOCATABLE_TYPE(SsrNodesConfig)
+
+struct ResetSsrNodes : public ecs::Event
+{
+  SsrNodesConfig config;
+  ECS_BROADCAST_EVENT_DECL(ResetSsrNodes)
+  ResetSsrNodes(const SsrNodesConfig &cfg) : ECS_EVENT_CONSTRUCTOR(ResetSsrNodes), config(cfg) {}
 };
 
 struct UpdateStageInfoNeedDistortion : public ecs::Event, public TransformHolder

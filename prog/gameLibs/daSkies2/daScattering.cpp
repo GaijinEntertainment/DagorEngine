@@ -198,9 +198,14 @@ PreparedSkies *create_prepared_skies(const char *base_name, const PreparedSkiesP
     if (skies->multiStageScattering)
     {
       name.printf(0, "%s_skies_frustum_precomputed_shadow", base_name);
+      int shadowTexFmt = TEXFMT_R16F;
+      if ((d3d::get_texformat_usage(shadowTexFmt) & d3d::USAGE_UNORDERED) != d3d::USAGE_UNORDERED)
+      {
+        shadowTexFmt = TEXFMT_R32F;
+      }
       skies->scatteringPrecomputedShadow =
         dag::create_voltex(16 * wMul * scatteringQuality, (skies->panoramic ? 12 : 24) * scatteringQuality, slices,
-          TEXFMT_R16F | TEXCF_UNORDERED | TEXCF_CLEAR_ON_CREATE, 1, name.c_str(), RESTAG_DASKIES2);
+          TEXCF_UNORDERED | TEXCF_CLEAR_ON_CREATE | shadowTexFmt, 1, name.c_str(), RESTAG_DASKIES2);
       if (!skies->scatteringPrecomputedShadow.getVolTex())
       {
         logerr("daScattering: could not create intermediate shadow texture for multiStageScattering, reverting to single-stage");

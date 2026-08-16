@@ -85,28 +85,28 @@ struct AccumulateOutputsFS
     FfxFloat32x3 fUpscaledColor    : SV_TARGET0;
     FfxFloat32x2 fLockStatus        : SV_TARGET1;
 #if FFXM_FSR2_OPTION_APPLY_SHARPENING == 0
-    FfxFloat32x3 fColor             : SV_TARGET2;
+    FfxFloat32x4 fColor             : SV_TARGET2;
 #endif
 #elif !FFXM_SHADER_QUALITY_BALANCED_OR_PERFORMANCE
     FfxFloat32x4 fColorAndWeight    : SV_TARGET0;
     FfxFloat32x2 fLockStatus        : SV_TARGET1;
     FfxFloat32x4 fLumaHistory       : SV_TARGET2;
 #if FFXM_FSR2_OPTION_APPLY_SHARPENING == 0
-    FfxFloat32x3 fColor             : SV_TARGET3;
+    FfxFloat32x4 fColor             : SV_TARGET3;
 #endif
 #else // FFXM_SHADER_QUALITY_BALANCED_OR_PERFORMANCE
     FfxFloat32x3 fUpscaledColor     : SV_TARGET0;
     FfxFloat32 fTemporalReactive    : SV_TARGET1;
     FfxFloat32x2 fLockStatus        : SV_TARGET2;
 #if FFXM_FSR2_OPTION_APPLY_SHARPENING == 0
-    FfxFloat32x3 fColor             : SV_TARGET3;
+    FfxFloat32x4 fColor             : SV_TARGET3;
 #endif
 #endif
 };
 
 AccumulateOutputsFS main(float4 SvPosition : SV_POSITION)
 {
-    uint2 uPixelCoord = uint2(SvPosition.xy);
+    uint2 uPixelCoord = PreRotateFragmentToLogical(uint2(SvPosition.xy));
     AccumulateOutputs result = Accumulate(uPixelCoord);
     AccumulateOutputsFS output = (AccumulateOutputsFS)0;
 #if FFXM_FSR2_OPTION_SHADER_OPT_ULTRA_PERFORMANCE
@@ -120,7 +120,7 @@ AccumulateOutputsFS main(float4 SvPosition : SV_POSITION)
 #endif
     output.fLockStatus = result.fLockStatus;
 #if FFXM_FSR2_OPTION_APPLY_SHARPENING == 0
-    output.fColor = result.fColor;
+    output.fColor = FfxFloat32x4(result.fColor, 1.0);
 #endif
     return output;
 }

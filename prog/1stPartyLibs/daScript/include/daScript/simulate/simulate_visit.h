@@ -129,18 +129,6 @@ namespace das {
     }
 
     template <typename TT>
-    SimNode * SimNode_AtR2V<TT>::visit ( SimVisitor & vis ) {
-        V_BEGIN();
-        V_OP_TT(AtR2V);
-        V_SUB(value);
-        V_SUB(index);
-        V_ARG(stride);
-        V_ARG(offset);
-        V_ARG(range);
-        V_END();
-    }
-
-    template <typename TT>
     SimNode * SimNode_PtrAt<TT>::visit ( SimVisitor & vis ) {
         V_BEGIN();
         V_OP_TT(PtrAt);

@@ -221,7 +221,8 @@ private:
   IdIndexedMapping<AutoResTypeNameId, ska::flat_hash_set<RPsDescKey, RPDescHasher>> rpCacheKeysByAutoResType;
   const char *nodeName = "";
 
-  // Schedule-order position of first Activation event for each resource.
+  // Schedule-order position of the first activation / untracked first use
+  // event for each resource.
   // UINT16_MAX = no activation (may still be initialized from resource type).
   // Persists across compiles: precomputeResourceState snapshots it before recomputing,
   // so the prior value is available for change detection.

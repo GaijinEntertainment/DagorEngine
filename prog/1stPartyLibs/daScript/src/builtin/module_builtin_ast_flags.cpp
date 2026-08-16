@@ -65,7 +65,7 @@ namespace das {
     TypeDeclPtr makeExprAtFlags() {
         auto ft = new TypeDecl(Type::tBitfield);
         ft->alias = "ExprAtFlags";
-        ft->argNames = { "r2v", "r2cr", "write", "no_promotion", "under_clone", "under_deref" };
+        ft->argNames = { "r2v", "r2cr", "write", "no_promotion", "under_clone", "under_deref", "no_bound_check" };
         return ft;
     }
 
@@ -96,7 +96,7 @@ namespace das {
     TypeDeclPtr makeExprCastFlags() {
         auto ft = new TypeDecl(Type::tBitfield);
         ft->alias = "ExprCastFlags";
-        ft->argNames = { "upcastCast", "reinterpretCast" };
+        ft->argNames = { "upcastCast", "reinterpretCast", "fromAddrSugar" };
         return ft;
     }
     TypeDeclPtr makeExprVarFlags() {
@@ -200,11 +200,20 @@ namespace das {
         ft->alias = "MoreFunctionFlags";
         ft->argNames = {
             "macroFunction", "needStringCast", "aotHashDeppendsOnArguments", "lateInit", "requestJit",
-            "unsafeOutsideOfFor", "safeImplicit", "deprecated", "aliasCMRES", "neverAliasCMRES",
+            "unsafeOutsideOfFor", "mustInline", "safeImplicit", "deprecated", "aliasCMRES", "neverAliasCMRES",
             "addressTaken", "propertyFunction", "pinvoke", "jitOnly", "isStaticClassMethod", "requestNoJit",
             "jitContextAndLineInfo", "nodiscard", "captureString", "callCaptureString", "hasStringBuilder",
             "recursive", "isTemplate", "unsafeWhenNotCloneArray", "stub", "lateShutdown", "hasTryRecover",
-            "hasUnsafe", "isConstClassMethod", "isCustomProperty"
+            "hasUnsafe", "isConstClassMethod", "isCustomProperty", "neverInline"
+        };
+        return ft;
+    }
+
+    TypeDeclPtr makeMoreFunctionFlags2() {
+        auto ft = new TypeDecl(Type::tBitfield);
+        ft->alias = "MoreFunctionFlags2";
+        ft->argNames = {
+            "localFunction", "tempStringResult", "mayQueueTempString"
         };
         return ft;
     }
@@ -234,6 +243,13 @@ namespace das {
         ft->alias = "VariableAccessFlags";
         ft->argNames = { "access_extern", "access_get", "access_ref",
             "access_init", "access_pass", "access_fold" };
+        return ft;
+    }
+
+    TypeDeclPtr makeVariableAccessInfoFlags() {
+        auto ft = new TypeDecl(Type::tBitfield);
+        ft->alias = "VariableAccessInfoFlags";
+        ft->argNames = { "access_info_pass_mutable" };
         return ft;
     }
 
@@ -276,9 +292,11 @@ namespace das {
         addAlias(makeExprPrintFlagsFlags());
         addAlias(makeFunctionFlags());
         addAlias(makeMoreFunctionFlags());
+        addAlias(makeMoreFunctionFlags2());
         addAlias(makeFunctionSideEffectFlags());
         addAlias(makeVariableFlags());
         addAlias(makeVariableAccessFlags());
+        addAlias(makeVariableAccessInfoFlags());
         addAlias(makeExprBlockFlags());
         addAlias(makeExprAtFlags());
         addAlias(makeExprMakeLocalFlags());

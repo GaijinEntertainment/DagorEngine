@@ -94,7 +94,7 @@ dafg::NodeHandle makeOpaqueDynamicsNode(MainNodeRenderPass mode)
                              UpdateStageInfoRender::RENDER_MAIN |
                              (wr.hasMotionVectors ? UpdateStageInfoRender::RENDER_MOTION_VECS : 0);
 
-      dynrend::ContextId asyncAnimcharCtx = dynrend::ContextId::INVALID;
+      dynrend::ContextId asyncAnimcharCtx = dynrend::ContextId::Invalid;
       if (async_animchars_main.get() && !debugTriangle)
       {
         camera.jobsMgr->waitAsyncAnimcharMainRender();

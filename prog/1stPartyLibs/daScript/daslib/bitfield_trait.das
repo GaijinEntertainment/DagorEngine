@@ -12,7 +12,6 @@ module bitfield_trait shared private
 require daslib/ast
 require daslib/ast_boost
 require daslib/contracts
-require daslib/strings_boost
 require daslib/templates_boost
 require daslib/macro_boost
 
@@ -24,12 +23,7 @@ def public each(argT) {
 
 [tag_function_macro(tag="each_bitfield_tag")]
 class EachBitfieldMacro : AstFunctionAnnotation {
-    //! This macro converts each(bitfield) to the following code::
-    //!     generator<string>() <|
-    //!         yield field1
-    //!         yield field2
-    //!         ...
-    //!         return false
+    //! This macro converts ``each(bitfield)`` to equivalent inline code.
     def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
         macro_verify(call.arguments[0]._type != null, compiling_program(), call.at, "expecting argument type")
         macro_verify(call.arguments[0]._type.isBitfield, compiling_program(), call.at, "expecting a bitfield type")
@@ -74,12 +68,7 @@ def public each_bit_name(argT) {
 
 [tag_function_macro(tag="each_bit_name_bitfield_tag")]
 class EachBitNameBitfieldMacro : AstFunctionAnnotation {
-    //! This macro converts each(bitfield) to the following code::
-    //!     generator<string>() <|
-    //!         yield "field1"
-    //!         yield "field2"
-    //!         ...
-    //!         return false
+    //! This macro converts ``each(bitfield)`` to equivalent inline code.
     def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
         macro_verify(call.arguments[0]._type != null, compiling_program(), call.at, "expecting argument type")
         macro_verify(call.arguments[0]._type.isBitfield, compiling_program(), call.at, "expecting a bitfield type")

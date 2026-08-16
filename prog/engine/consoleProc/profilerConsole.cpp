@@ -118,6 +118,14 @@ static bool profiler_console_handler(const char *argv[], int argc)
       da_profiler::remove_mode(da_profiler::GPU);
     console::print_d("switched %s", (da_profiler::get_current_mode() & da_profiler::GPU) ? "on" : "off");
   }
+  CONSOLE_CHECK_NAME("profiler", "platform", 1, 2)
+  {
+    if ((argc > 1) ? to_bool(argv[1]) : !(da_profiler::get_current_mode() & da_profiler::PLATFORM_EVENTS))
+      da_profiler::add_mode(da_profiler::EVENTS | da_profiler::PLATFORM_EVENTS);
+    else
+      da_profiler::remove_mode(da_profiler::PLATFORM_EVENTS);
+    console::print_d("switched %s", (da_profiler::get_current_mode() & da_profiler::PLATFORM_EVENTS) ? "on" : "off");
+  }
   CONSOLE_CHECK_NAME("profiler", "enabled", 1, 2)
   {
     if ((argc > 1) ? to_bool(argv[1]) : !(da_profiler::get_current_mode() & da_profiler::EVENTS))

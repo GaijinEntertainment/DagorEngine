@@ -90,6 +90,9 @@ bool rendinst::getRIGenCanopyBBox(const RendInstDesc &desc, const TMatrix &tm, B
     return false;
   }
 
+  if (pool >= rgl->rtData->riRes.size())
+    return false;
+
   const auto &riRes = rgl->rtData->riRes[pool];
   if (!riRes)
   {

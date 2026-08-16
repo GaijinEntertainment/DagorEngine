@@ -110,6 +110,28 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 
 #endif
 
+//=================================================================================================================================
+// ALPHA SAMPLING HOOKS
+//=================================================================================================================================
+
+// Each read of the alpha texture goes through one of these macros, thus an engine can change the sampled
+// alpha (for example to apply a UV cutout) by defining them before it includes these shaders.
+#ifndef OMM_ALPHA_SAMPLE_LEVEL
+#define OMM_ALPHA_SAMPLE_LEVEL(uv) t_alphaTexture.SampleLevel(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), uv, 0)
+#endif
+#ifndef OMM_ALPHA_GATHER_R
+#define OMM_ALPHA_GATHER_R(uv) t_alphaTexture.GatherRed(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), uv, 0)
+#endif
+#ifndef OMM_ALPHA_GATHER_G
+#define OMM_ALPHA_GATHER_G(uv) t_alphaTexture.GatherGreen(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), uv, 0)
+#endif
+#ifndef OMM_ALPHA_GATHER_B
+#define OMM_ALPHA_GATHER_B(uv) t_alphaTexture.GatherBlue(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), uv, 0)
+#endif
+#ifndef OMM_ALPHA_GATHER_A
+#define OMM_ALPHA_GATHER_A(uv) t_alphaTexture.GatherAlpha(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), uv, 0)
+#endif
+
 #define GPU_ASSERT(expr) \
 do  \
 {\

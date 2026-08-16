@@ -153,4 +153,10 @@ inline constexpr int64_t FRAME_GPU_BOUND_THRESHOLD_US = 2 * 1000;
 
 #define TSPEC template <>
 
+// Set to 1 to additionally track a live-set of guarded allocations and enable
+// checkVulkanAllocationGuards() sweeps. It adds a global lock on every host
+// alloc/free, which perturbs thread timing - keep it off when hunting a race and
+// on when you need to bracket a specific operation
+#define VULKAN_GUARDED_ALLOC_REGISTRY 0
+
 } // namespace drv3d_vulkan

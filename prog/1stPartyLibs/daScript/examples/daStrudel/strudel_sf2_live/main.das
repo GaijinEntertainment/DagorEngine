@@ -1,6 +1,7 @@
 options gen2
 options indenting = 4
 options persistent_heap
+options gc
 
 // SF2 SoundFont live demo — lo-fi chill beat with hot-reload support.
 // SF2 data persists across reloads (no re-reading from disk).
@@ -10,12 +11,13 @@ options persistent_heap
 
 require strudel/strudel
 require strudel/strudel_player
-require strudel/strudel_live
+require strudel/strudel_live  // nolint:STYLE030 — load-bearing for strudel player/SF2 state across reloads
 require audio/audio_boost
-require live/audio_live
+require live/audio_live   // nolint:STYLE030 — load-bearing for audio buffer persistence across reloads
 require live/live_commands
 require live/live_api
-require live/live_watch_boost
+require live/live_gc
+require live/live_watch_boost // nolint:STYLE030 — load-bearing for live file-watch side-effects
 require live_host
 require daslib/fio
 require daslib/json
@@ -83,13 +85,13 @@ def cmd_set_volume(input : JsonValue?) : JsonValue? {
     return JV("volume set to {args.volume} (fade {args.time}s)")
 }
 
-[live_command(description="Pause playback")]
+[live_command(description="Pause playback"), unused_argument(input)]
 def cmd_pause(input : JsonValue?) : JsonValue? {
     strudel_set_pause(true)
     return JV("paused")
 }
 
-[live_command(description="Unpause playback")]
+[live_command(description="Unpause playback"), unused_argument(input)]
 def cmd_unpause(input : JsonValue?) : JsonValue? {
     strudel_set_pause(false)
     return JV("unpaused")
@@ -130,19 +132,19 @@ def shutdown() {
     audio_system_finalize(asch.command, asch.next_sid)
 }
 
-// --- standalone mode (daslang.exe) ---
+// --- standalone mode (daslang.exe): the same exported trio, bounded 30-second run ---
 
 [export]
 def main() {
-    let sf2_path = find_sf2()
-    with_audio_system() {
-        if (!empty(sf2_path) && strudel_load_sf2(sf2_path)) {
-            print("Loaded SF2: {sf2_path}\n")
-        }
-        print("strudel SF2 live (standalone) — playing 30 seconds\n")
-        strudel_init(@@strudel_main)
-        sleep(30000u)
-        strudel_shutdown()
+    print("strudel SF2 live (standalone) — playing 30 seconds\n")
+    init()
+    var elapsed = 0u
+    while (!exit_requested() && elapsed < 30000u) {
+        update()
+        maybe_collect_gc()
+        sleep(100u)
+        elapsed += 100u
     }
+    shutdown()
     print("done\n")
 }

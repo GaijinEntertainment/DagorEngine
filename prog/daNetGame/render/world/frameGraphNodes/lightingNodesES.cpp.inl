@@ -41,6 +41,9 @@ dafg::NodeHandle makePrepareLightsNode()
 {
   return dafg::register_node("prepare_lights_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("downsample_depth_node");
+
+    registry.createBlob<OrderingToken>("after_prepare_lights_node_token");
+
     int dynamic_lights_countVarId = get_shader_variable_id("dynamic_lights_count");
     auto hasAnyDynamicLightsHndl = registry.createBlob<bool>("has_any_dynamic_lights").handle();
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();

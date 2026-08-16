@@ -25,7 +25,8 @@ enum class DebugMode
   IntersectionCount,
   Instances,
   NaN,
-  Lod
+  Lod,
+  LruCollision
 };
 
 // Real RT-only memory overhead, computed from the ground up (every GPU resource the BVH context

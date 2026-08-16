@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   authored: 2026-07-27
-  commit: ad01570053e6
+  commit: e72ad1a8c260
 ---
 
 # LinearGrid -- Complete Architecture Reference
@@ -153,7 +153,10 @@ the grid still scans a degenerate in-grid range; the cell-box tests reject it.
 is not put in the grid at all: it goes into `oversizeObjects` as a `LinearGridPosObject`
 (object + cached `wbsph`) and is brute-forced at the start of every query. This keeps
 `maxMainExtension` from being inflated by a handful of huge props, which would otherwise
-widen every query on the map. `maxOversizeRad` bounds the 2D pre-filter used on that list.
+widen every query on the map. The centres and radii are mirrored into three float arrays
+(`oversizeX`/`oversizeZ`/`oversizeRad`, index aligned to `oversizeObjects` and refilled whole on
+insert and erase) plus `oversizeBounds2d`, the union of the expanded footprints: a query tests
+that union first and walks the arrays four at a time only if it overlaps.
 
 ## Leaf trees
 
@@ -287,25 +290,51 @@ The `objects_iterator` concept as consumed by LinearGrid:
 | `checkObjectBounding(...)` | query shape vs object bsphere |
 | `predFunc(obj)` | user callback; returning `true` stops the whole query |
 | `isCapsule()` | ray queries only: extend branch boxes by the ray radius |
+| `bestT` | closest-hit ray queries only: points at the caller's current hit distance |
 
 `checkBoxBoundingInside` and `checkFourObjectsBounding` exist in `gridImpl.h` but are unused
 by LinearGrid (they serve the spatial-hash grid).
 
-All queries are "find first": iteration stops as soon as `predFunc` returns true and the
+Queries are "find first" by default: iteration stops as soon as `predFunc` returns true and the
 object is returned; collectors push into an output array and return `false` to keep going.
 `ObjectType::null()` is the not-found sentinel.
 
+`getClosestRayIterator` is the exception. There `predFunc` traces and updates the caller's own hit
+distance, and the walk reads it back through `bestT` and shortens `ray->len` to match, so every
+later cell, branch box and object test is bounded by the best hit so far. Nothing stops early:
+what bounds the walk is the shrinking ray, and the winning object falls out as the return value
+because the walk attributes each shortening to the object it just tested. `predFunc` therefore
+loses its "stop now" meaning here -- its return value is ignored, and returning `true` neither
+stops nor aborts the walk.
+
+The distance `bestT` points at is an in-out limit, not just an output. A caller that already holds
+a hit passes it in and gets only something nearer, or nothing; the walk starts at that distance
+rather than at the query length, so it prunes from the first cell. A win is scored against the
+caller's previous distance, so no seed value is privileged -- seeding with the query length is the
+"no hit yet" case, not a requirement.
+
+Only that write-back ever shortens the ray. A `predFunc` whose trace misses leaves the distance
+alone, and the bounding prefilter never truncates anything by itself, so with no confirmed hit at
+all the walk degenerates to the plain ray query's visit set -- measured at exact trace parity. For
+"does anything block" the find-first ray query stays the right tool; this one is for when the
+nearest hit itself is needed.
+
+One consequence inside the traversal: the far sibling of a branch is tested only after descending
+the near one, so it sees the shortened ray. The cell walkers themselves enumerate a range fixed at
+construction, so shortening prunes the per cell and per object tests, not the set of cells walked.
+
 Order of work in `foreach`:
 
-1. brute-force `oversizeObjects` with a 2D point-in-rect pre-filter (`fast_pos_check`, query
-   box widened by `maxOversizeRad`);
+1. brute-force `oversizeObjects` behind the union-of-footprints test and the four wide 2D
+   prefilter, each object rejected against its own radius;
 2. iterate main cells in the clamped range; per non-rejected cell, traverse `rootLeaf`, then
    the subgrid if present;
 3. subgrid ranges are intersected against the main cell before descending, because the main
    cell range was widened by `maxMainExtension` and the sub range only by `maxSubExtension`.
 
-`leaf_iterate_intersected` is the shared tree walk, templated on `bbox3f` vs
-`const LinearGridRay *` so box and ray traversal share one function.
+`leaf_iterate_intersected` is the shared tree walk, templated on `bbox3f` vs `LinearGridRay *` so
+box and ray traversal share one function. The ray flavour is a mutable pointer because closest hit
+shortens `ray->len` mid walk.
 
 ### Two cell walkers for rays
 
@@ -318,9 +347,63 @@ Order of work in `foreach`:
   is skipped (`rowIntersectionFound` -> jump `x` to the row end). This trims the corridor down
   to roughly the cells the ray actually crosses.
 
-`shouldUseWooRay()` picks the second only when both the X and Z spans are >= 4 cells, i.e.
-when the rectangle is large enough that per-cell rejection pays for itself. The choice is made
-independently for the main layer and for each subgrid.
+`shouldUseWooRay()` picks the second only when both the X and Z spans are at least
+`configWooMinSide` cells, independently for the main layer and for each subgrid.
+
+Both sides have to be tested, and the reason is not a heuristic. The rectangle is `W*H` cells
+while the corridor the ray really crosses is about `3*max(W, H)` once dilated for overhang, so
+the saving is `min(W, H) / 3`. An axis parallel ray therefore has nothing to reject however long
+it is: rectangle and corridor are the same cells, and the per cell test is pure cost.
+
+`configWooMinSide` is 3, measured rather than assumed. Woo forced on versus off, per forced ray
+length on AM dalniy island, puts the crossover at a span of two to three cells: at span 1 Woo
+loses (+14% at length 30), at span 32 it wins (-10% at length 2048), and the tuned dispatch beats
+either walker used alone (135 msec against 141 for Woo everywhere and 148 for directed
+everywhere).
+
+### What the measurement can actually resolve
+
+Timings come from `prog/tools/miscUtils/riGridBench`, which replays a dumped object set with no
+engine boot. It is offline for a reason: the same harness run in a live session measured a scene the
+level kept changing, and two runs of one binary moved by 13% on average and 60% at worst with a
+single pass per sub test, still 7% and 33% taking the minimum of five. That is coarser than the
+effects worth tuning for.
+
+At its defaults the tool reports nsec per query. How closely repeated invocations agree, and whatever
+threshold that currently supports for calling a row moved, are recorded in the tool CLAUDE.md and only
+there: both are properties of the query set it derives per dump and change when that set does, so
+keeping them here as well only made them stale. That page also records why the
+measurement is a timed window rather than a fixed query count, spread over many short passes and
+several whole sweeps, including two plausible-sounding changes that measured worse.
+
+Byte identical input is not by itself what makes a row trustworthy, and the `spread` column alone is
+not either: it catches interference within a row but says nothing about undersampling, so a row too
+cheap to fill its window can report a perfect 1.00x while being meaningless. Read spread together
+with the query count, and prefer comparing configurations back to back inside one process the way the
+`configWooMinSide` sweep does.
+
+Earlier figures in this document are totals in msec over a fixed 2048 queries, not nsec per query,
+and predate the box sub-tests being sampled at the same rate as the ray ones. Compare them for shape,
+not magnitude.
+
+### Two things not to retry without new evidence
+
+Visiting fewer cells has been tried twice and lost, because the cells it eliminates are the cheap
+ones. A row incremental walk with no divisions in the loop, only adds, was 34-38% slower at
+lengths 1 to 10 because the per query setup (two divisions and a floor before the first row)
+dominates a two row walk. A banded walk that computed each column's run with divisions also lost,
+but only by about as much as the noise floor above, so that one is not settled. Neither beat the
+integer stepping at long lengths: at length 2048 the cost is the leaf descent and object tests
+inside the cells the ray genuinely crosses, not the walk that reaches them. Cell visit count is
+not where ray time goes.
+
+Any walker that dilates by a fixed number of cells is only correct while
+`extension + ray radius < cellSize`, and it is the sub layer that hits this first because its
+cell is `cellSize >> 3`. At the shipped config that means a capsule radius of about 5 m: beyond
+it, one cell of dilation stops covering the overhang and objects are silently missed. Raising the
+dilation does not fix it, the required set stops being a padding of the crossed cells. Both
+existing walkers avoid the problem entirely by enumerating a rectangle already widened by the
+extension.
 
 Cell rectangles for the Woo test are reconstructed arithmetically, not stored:
 `lowestCellBox` is the XZ box of the grid's minimum cell, and cell `n` is
@@ -346,6 +429,15 @@ block of gameparams (`init_ri_extra_grid` in `rendInstGenExtra.cpp`):
 Enlisted and active_matter both ship `cellSize 64` / `maxMainExtension 40` (the value the
 header comment calls the tuned pair).
 
+That pair is measured, not habit (riGridBench on AM dalniy, 1.13M objects). `cellSize 128`
+wins 10-47% in the sparse regimes and halves empty-ground walks, but those rows cost tens of
+nsec while small queries in dense content cost 0.4-80 usec and get 2-9% dearer -- a net loss
+in absolute time wherever players actually stand. A 16x16 subgrid (8 m sub cells at cell 128)
+recovers only part of the dense regression and pays 4x the subgrid arrays with over half the
+sub cells empty; 16x16 at cell 64 (4 m sub cells) loses in every regime. When sweeping the
+cell size, scale `maxMainExtension` with it: capping it at 40 under cell 128 moves objects to
+the oversize list, whose brute-force scan taxes every query on the map.
+
 ## Limits and invariants
 
 - `sizeof(ObjectType) <= 8`, and it must be relocatable; `riGrid.h` declares
@@ -353,6 +445,10 @@ header comment calls the tuned pair).
 - `leaf_id_t` is `uint32_t`; `createLeaf` logs an error and returns `EMPTY_LEAF` when the pool
   is exhausted, so callers must handle a failed leaf allocation.
 - `subGridIdx` is `int16_t`: at most 32767 subgrids, `-1` means none.
+- The subgrid width is compile time, not config: `LINEAR_GRID_SUBGRID_WIDTH` (8 shipped, power of
+  two), so sweeping it means rebuilding. The refill counting sort indexes sub cells with a
+  `uint16_t` whose 0xFFFF sentinel means "stays on the main layer"; a `static_assert` keeps the
+  sub cell count below the sentinel.
 - `leafs.size() == branches.size()` is asserted after every insert.
 - Objects must be erased with the *same* position they were inserted with, otherwise
   `eraseAt` asserts ("Erased twice or wrong old position") and the object leaks into the tree.

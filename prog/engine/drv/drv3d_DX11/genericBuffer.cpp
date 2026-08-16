@@ -359,9 +359,11 @@ bool GenericBuffer::copyTo(Sbuffer *dest, uint32_t dst_ofs_bytes, uint32_t src_o
   GenericBuffer *destvb = (GenericBuffer *)dest;
   if (!destvb->buffer)
     return false;
+  if (size_bytes == 0)
+    return true;
   D3D11_BOX box;
   box.left = src_ofs_bytes;
-  box.right = src_ofs_bytes + (size_bytes == 0 ? bufSize - src_ofs_bytes : size_bytes);
+  box.right = src_ofs_bytes + size_bytes;
   box.top = 0;
   box.bottom = 1;
   box.front = 0;

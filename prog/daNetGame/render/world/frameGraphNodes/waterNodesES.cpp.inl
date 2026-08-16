@@ -370,7 +370,7 @@ eastl::fixed_vector<dafg::NodeHandle, 4, false> makeWaterSSRNode(WaterRenderMode
 
         auto [renderingWidth, renderingHeight] = mainViewResolutionHndl.get();
         downsample_depth::downsamplePS(rtDepthHndl.get(), renderingWidth, renderingHeight, downsampledDepthHndl.get(),
-          nullptr /*close_depth*/, nullptr /*far_normals*/);
+          nullptr /*close_depth*/, nullptr /*normals*/);
       };
     }));
   }

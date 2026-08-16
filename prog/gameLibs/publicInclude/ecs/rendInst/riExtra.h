@@ -28,8 +28,8 @@ struct RiExtraComponent
 };
 
 ECS_DECLARE_RELOCATABLE_TYPE(RiExtraComponent);
-ECS_DECLARE_RELOCATABLE_TYPE(rendinst::ClientRiexPool);
-using ClientRiexPoolList = ecs::List<rendinst::ClientRiexPool>;
+ECS_DECLARE_RELOCATABLE_TYPE(rendinst::ClientRiexPoolId);
+using ClientRiexPoolList = ecs::List<rendinst::ClientRiexPoolId>;
 ECS_DECLARE_RELOCATABLE_TYPE(ClientRiexPoolList);
 
 ECS_BROADCAST_EVENT_TYPE(EventRendinstsLoaded);

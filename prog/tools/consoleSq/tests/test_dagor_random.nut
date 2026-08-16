@@ -1,4 +1,4 @@
-// Squirrel module under test: dagor.random (registered by random.cpp)
+// Quirrel module under test: dagor.random (registered by random.cpp)
 
 from "dagor.random" import rnd, frnd, srnd, rnd_float, rnd_int, rnd_bound, rnd_range,
   set_rnd_seed, get_rnd_seed, gauss_rnd, uint32_hash, uint_noise1D, uint_noise2D, uint_noise3D, DAGOR_RAND_MAX

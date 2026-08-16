@@ -236,6 +236,11 @@ bool ax::NodeEditor::Link(LinkId id, PinId startPinId, PinId endPinId, const ImV
     return s_Editor->DoLink(id, startPinId, endPinId, ImColor(color), thickness);
 }
 
+void ax::NodeEditor::SetNextLinkDashSize(float dashSize)
+{
+    s_Editor->SetNextLinkDashSize(dashSize);
+}
+
 ax::NodeEditor::LinkBezierCurve ax::NodeEditor::GetLinkCurve(LinkId id)
 {
     if (auto* link = s_Editor->FindLink(id); link && link->m_IsLive)

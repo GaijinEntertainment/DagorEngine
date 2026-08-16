@@ -10,6 +10,7 @@
 #include <string_view>
 #include <optional>
 #include <filesystem>
+#include <iterator>
 
 #include <max.h>
 #include <stdmat.h>
@@ -106,8 +107,7 @@ static void get_blk_shader_list_of_category(unsigned depth, const DataBlock *cat
   int category_name_i = categoryBlk->findParam("name");
   if (category_name_i != -1 && depth)
   {
-    const std::wstring category_name = mangled_category_name(depth, strToWide(categoryBlk->getStr(category_name_i)));
-    shader_list.emplace_back(category_name);
+    shader_list.push_back(mangled_category_name(depth, strToWide(categoryBlk->getStr(category_name_i))));
   }
 
   for (int i = 0; i < categoryBlk->blockCount(); ++i)
@@ -116,7 +116,7 @@ static void get_blk_shader_list_of_category(unsigned depth, const DataBlock *cat
     if (!blk)
       continue;
 
-    if (!stricmp(blk->getBlockName(), "shader_category"))
+    if (!_stricmp(blk->getBlockName(), "shader_category"))
     {
       get_blk_shader_list_of_category(depth + 1, blk, shader_list);
       continue;
@@ -185,23 +185,14 @@ static DataBlock::ParamType deserialize_param_type(std::string_view s)
 
 struct ParamInfo
 {
-  DataBlock::ParamType type;
+  DataBlock::ParamType type = DataBlock::ParamType::TYPE_NONE;
   std::wstring name, description, custom_ui, value, def, parent;
-  float soft_min, soft_max;
-  bool is_group;
-  bool def_enabled;
-  bool soft_min_enabled;
-  bool soft_max_enabled;
-
-  ParamInfo() :
-    type(DataBlock::ParamType::TYPE_NONE),
-    soft_min(0),
-    soft_max(0),
-    is_group(false),
-    def_enabled(false),
-    soft_min_enabled(false),
-    soft_max_enabled(false)
-  {}
+  float soft_min = 0;
+  float soft_max = 0;
+  bool is_group = false;
+  bool def_enabled = false;
+  bool soft_min_enabled = false;
+  bool soft_max_enabled = false;
 
   bool isInt() const
   {
@@ -356,10 +347,9 @@ static std::vector<ParamInfo> get_blk_shader_params_of_group(const DataBlock *gr
       int group_name_i = blk->findParam("name");
       if (group_name_i != -1)
         group.name = strToWide(blk->getStr(group_name_i));
-      shader_params.emplace_back(group);
-
       std::vector<ParamInfo> params = get_blk_shader_params_of_group(blk, group.name);
-      shader_params.insert(shader_params.end(), params.begin(), params.end());
+      shader_params.push_back(std::move(group));
+      shader_params.insert(shader_params.end(), std::make_move_iterator(params.begin()), std::make_move_iterator(params.end()));
       continue;
     }
 
@@ -415,7 +405,7 @@ static std::vector<ParamInfo> get_blk_shader_params_of_group(const DataBlock *gr
       param.soft_max_enabled = true;
     }
 
-    shader_params.emplace_back(param);
+    shader_params.push_back(std::move(param));
   }
 
   return shader_params;
@@ -429,26 +419,20 @@ static std::vector<ParamInfo> get_blk_shader_params(const DataBlock *shaderBlk)
 }
 
 
-static ParamInfo get_param_info(const DataBlock *dataBlk, std::wstring_view classname, std::wstring_view param_name)
+static ParamInfo get_param_info(const std::vector<ParamInfo> &shader_params, std::wstring_view classname, std::wstring_view param_name)
 {
-  if (!dataBlk || classname.empty() || param_name.empty())
+  if (classname.empty() || param_name.empty())
     return ParamInfo();
+
+  auto it = std::find_if(shader_params.begin(), shader_params.end(),
+    [&param_name](const ParamInfo &p_i) { return !p_i.is_group && iequal(p_i.name, param_name); });
+  if (it != shader_params.end())
+    return *it;
 
   ParamInfo param;
   param.type = DataBlock::ParamType::TYPE_STRING;
   param.name = param_name;
-
-  const DataBlock *shader_blk = get_blk_shader(dataBlk, classname);
-  if (!shader_blk)
-    return param;
-
-  std::vector<ParamInfo> params = get_blk_shader_params(shader_blk);
-  auto it = std::find_if(params.begin(), params.end(),
-    [&param_name](const ParamInfo &p_i) { return !p_i.is_group && iequal(p_i.name, param_name); });
-  if (it == params.end())
-    return param;
-
-  return *it;
+  return param;
 }
 
 static DataBlock::ParamType guess_blk_type_by_value(const std::wstring &value)
@@ -477,7 +461,8 @@ static DataBlock::ParamType guess_blk_type_by_value(const std::wstring &value)
   return DataBlock::ParamType::TYPE_STRING;
 }
 
-static ParamInfo get_blk_param_info_value(const DataBlock *dataBlk, std::wstring_view line, std::wstring_view classname)
+static ParamInfo get_blk_param_info_value(const std::vector<ParamInfo> &shader_params, std::wstring_view line,
+  std::wstring_view classname)
 {
   ParamInfo res;
 
@@ -502,7 +487,7 @@ static ParamInfo get_blk_param_info_value(const DataBlock *dataBlk, std::wstring
     res.name = tokens[0]; // type stripped
   }
   else // read type from the config
-    res = get_param_info(dataBlk, classname, res.name);
+    res = get_param_info(shader_params, classname, res.name);
 
   // override value
   res.value = value;
@@ -519,6 +504,8 @@ static ParamInfo get_blk_param_info_value(const DataBlock *dataBlk, std::wstring
 
 static std::vector<ParamInfo> get_blk_params(const DataBlock *dataBlk, std::wstring_view _script, std::wstring_view classname)
 {
+  const std::vector<ParamInfo> shader_params = get_blk_shader_params(get_blk_shader(dataBlk, classname));
+
   std::vector<std::wstring> lines = split(simplifyRN(_script), L'\n');
 
   std::vector<ParamInfo> params;
@@ -531,14 +518,14 @@ static std::vector<ParamInfo> get_blk_params(const DataBlock *dataBlk, std::wstr
     if (line.empty())
       continue;
 
-    auto param = get_blk_param_info_value(dataBlk, line, classname);
+    auto param = get_blk_param_info_value(shader_params, line, classname);
     if (param.name.empty())
       continue;
 
     if (param.name == REAL_TWO_SIDED)
       has_real_two_sided = true;
 
-    params.emplace_back(param);
+    params.push_back(std::move(param));
   }
 
   if (!has_real_two_sided)
@@ -547,7 +534,7 @@ static std::vector<ParamInfo> get_blk_params(const DataBlock *dataBlk, std::wstr
     param.name = REAL_TWO_SIDED;
     param.type = DataBlock::ParamType::TYPE_BOOL;
     param.value = L"no";
-    params.emplace_back(param);
+    params.push_back(std::move(param));
   }
 
   return params;
@@ -561,7 +548,7 @@ class NewParameterDialog
 {
 public:
   NewParameterDialog(Dagormat2Dialog *p, std::wstring_view shdr);
-  virtual ~NewParameterDialog();
+  virtual ~NewParameterDialog() = default;
 
   const std::vector<std::wstring> &GetNewParamNames() const { return selected_names; }
 
@@ -582,7 +569,7 @@ class ShaderClassDialog
 {
 public:
   ShaderClassDialog(Dagormat2Dialog *p);
-  virtual ~ShaderClassDialog();
+  virtual ~ShaderClassDialog() = default;
 
   const std::wstring &GetShaderClassName() const { return shader_class_name; }
 
@@ -632,7 +619,7 @@ class WidgetText : public AbstractWidget
 {
 public:
   WidgetText(const ParamInfo &pinfo, Dagormat2Dialog *p);
-  ~WidgetText() override;
+  ~WidgetText() override = default;
 
   INT_PTR WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -666,7 +653,7 @@ class WidgetBool : public AbstractWidget
 {
 public:
   WidgetBool(const ParamInfo &pinfo, Dagormat2Dialog *p);
-  ~WidgetBool() override;
+  ~WidgetBool() override = default;
 
   INT_PTR WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -711,7 +698,7 @@ class WidgetGroup : public AbstractWidget
 {
 public:
   WidgetGroup(const ParamInfo &pinfo, Dagormat2Dialog *p);
-  ~WidgetGroup() override;
+  ~WidgetGroup() override = default;
 
   INT_PTR WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -1169,9 +1156,10 @@ static INT_PTR CALLBACK ParamDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
         if (new_par.DoModal() == IDOK)
         {
           const auto &names = new_par.GetNewParamNames();
+          const std::vector<ParamInfo> shader_params = get_blk_shader_params(get_blk_shader(get_shared_blk(), shader));
           for (const auto &name : names)
           {
-            ParamInfo param = get_param_info(get_shared_blk(), shader, name);
+            ParamInfo param = get_param_info(shader_params, shader, name);
             dlg->theMtl->script += param.name.data();
             dlg->theMtl->script += L"=";
             dlg->theMtl->script += param.value.data();
@@ -1564,7 +1552,7 @@ void Dagormat2Dialog::RestoreParams()
   std::vector<std::wstring> lines = split(script, L'\n');
   for (std::wstring &line : lines)
     if (!line.empty())
-      user_params.emplace_back(get_blk_param_info_value(get_shared_blk(), line, shader_name));
+      user_params.emplace_back(get_blk_param_info_value(all_params, line, shader_name));
 
   // find uncategorized parameters (those that do not have a parent group)
   std::vector<ParamInfo> uncategorized_params;
@@ -2616,7 +2604,7 @@ void DagorMat2::enumerate_parameters(EnumParamCB &cb)
   std::vector<std::wstring> lines = split(s, L'\n');
   for (std::wstring &line : lines)
     if (!line.empty())
-      user_params.emplace_back(get_blk_param_info_value(get_shared_blk(), line, shader_name));
+      user_params.emplace_back(get_blk_param_info_value(all_params, line, shader_name));
 
   // find uncategorized parameters (those that do not have a parent group)
   std::vector<ParamInfo> uncategorized_params;
@@ -2796,8 +2784,6 @@ static INT_PTR CALLBACK NewParameterDialogProc(HWND hWnd, UINT msg, WPARAM wPara
 
 NewParameterDialog::NewParameterDialog(Dagormat2Dialog *p, std::wstring_view shdr) : parent(p), hWnd(NULL), shader(shdr) {}
 
-NewParameterDialog::~NewParameterDialog() {}
-
 int NewParameterDialog::DoModal()
 {
   return ::DialogBoxParam(hInstance, (const TCHAR *)IDD_DAGORPAR_NEW, parent->hParam, NewParameterDialogProc, (LPARAM)this);
@@ -2906,9 +2892,18 @@ std::vector<std::wstring> NewParameterDialog::GetSelectedNames() const
 
   for (int i = 0; i < n; ++i)
   {
-    static wchar_t buf[1024]; // FIXME
-    ListBox_GetText(lb, sel_items[i], buf);
-    selected.emplace_back(buf);
+    // LB_GETTEXT takes no buffer size, so the length has to be asked for up front
+    const int len = ListBox_GetTextLen(lb, sel_items[i]);
+    if (len < 0) // LB_ERR
+      continue;
+
+    std::wstring text(size_t(len) + 1, L'\0');
+    const int copied = ListBox_GetText(lb, sel_items[i], text.data());
+    if (copied < 0) // LB_ERR
+      continue;
+
+    text.resize(copied);
+    selected.push_back(std::move(text));
   }
 
   return selected;
@@ -3000,8 +2995,6 @@ static INT_PTR CALLBACK ShaderClassDialogProc(HWND hWnd, UINT msg, WPARAM wParam
 
 ShaderClassDialog::ShaderClassDialog(Dagormat2Dialog *p) : parent(p), hWnd(NULL) {}
 
-ShaderClassDialog::~ShaderClassDialog() {}
-
 int ShaderClassDialog::DoModal()
 {
   return ::DialogBoxParam(hInstance, (const TCHAR *)IDD_DAGORPAR_SHADER_SELECTOR, parent->hShader, ShaderClassDialogProc,
@@ -3019,7 +3012,7 @@ BOOL ShaderClassDialog::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
 
       HWND hCmb = ::GetDlgItem(hWnd, IDC_SHADER_CLASS_LIST);
 
-      std::vector<std::wstring> shader_list = get_blk_shader_list(get_blk().get());
+      std::vector<std::wstring> shader_list = get_blk_shader_list(get_shared_blk());
       for (auto const &sh : shader_list)
         ComboBox_InsertString(hCmb, -1, sh.data());
 
@@ -3076,7 +3069,7 @@ bool ShaderClassDialog::GetName()
     return false;
   }
 
-  if (s.substr(0, 1) == _T("-"))
+  if (s.starts_with(L'-'))
   {
     TSTR msg;
     msg.printf(_T("\"%s\" category cannot be set as shader class."), TSTR(s.data()));
@@ -3118,8 +3111,6 @@ WidgetText::WidgetText(const ParamInfo &param, Dagormat2Dialog *p) : AbstractWid
 {
   hPanel = p->AppendDialog(param.name.c_str(), IDD_DAGORPAR_TEXT, widget_dlg_proc<WidgetText>, (LPARAM)this);
 }
-
-WidgetText::~WidgetText() {}
 
 INT_PTR WidgetText::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -3237,8 +3228,6 @@ WidgetBool::WidgetBool(const ParamInfo &param, Dagormat2Dialog *p) : AbstractWid
 {
   hPanel = p->AppendDialog(param.name.c_str(), IDD_DAGORPAR_BOOL, widget_dlg_proc<WidgetBool>, (LPARAM)this);
 }
-
-WidgetBool::~WidgetBool() {}
 
 INT_PTR WidgetBool::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -3538,10 +3527,10 @@ void WidgetNumeric::UpdateColorSwatch(float f[4])
     k = 1.f;
 
   AColor c;
-  c.r = clamp(f[0] / k, 0.f, 1.f);
-  c.g = clamp(f[1] / k, 0.f, 1.f);
-  c.b = clamp(f[2] / k, 0.f, 1.f);
-  c.a = clamp(f[3] / k, 0.f, 1.f);
+  c.r = std::clamp(f[0] / k, 0.f, 1.f);
+  c.g = std::clamp(f[1] / k, 0.f, 1.f);
+  c.b = std::clamp(f[2] / k, 0.f, 1.f);
+  c.a = std::clamp(f[3] / k, 0.f, 1.f);
   col->SetAColor(c, FALSE);
 }
 
@@ -3551,8 +3540,6 @@ WidgetGroup::WidgetGroup(const ParamInfo &param, Dagormat2Dialog *p) : AbstractW
 {
   hPanel = p->AppendDialog(param.name.c_str(), IDD_DAGORPAR_GROUP, widget_dlg_proc<WidgetGroup>, (LPARAM)this);
 }
-
-WidgetGroup::~WidgetGroup() {}
 
 INT_PTR WidgetGroup::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -3619,7 +3606,7 @@ std::wstring fix_param_values(std::wstring_view script, std::wstring_view classn
   std::wstring (*fix)(DataBlock::ParamType, std::wstring_view))
 {
   std::wstring buffer;
-  auto params = get_blk_params(get_blk().get(), script, classname);
+  auto params = get_blk_params(get_shared_blk(), script, classname);
   for (auto &param : params)
   {
     buffer += param.name;

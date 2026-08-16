@@ -6,7 +6,6 @@ module log shared
 require daslib/rtti
 require uriparser
 require strings
-require daslib/fio
 require daslib/ansi_colors public
 
 
@@ -85,6 +84,11 @@ def file_info_hr(at : LineInfo; uri_path : bool) {
 
 
 def time_dt_hr(dt : int) : string {
+    return time_dt_hr(int64(dt))
+}
+
+
+def time_dt_hr(dt : int64) : string {
     return build_string() $(str) {
         str |> write("(")
         str |> fmt(":.6f", double(dt) / 1000000.0lf)

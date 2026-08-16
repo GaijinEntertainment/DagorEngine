@@ -56,6 +56,9 @@ public:
 
   virtual void enableRender(bool enable) = 0;
 
+  // Suppress presenting the scene's rendered frame to the screen, unless a modal dialog needs to be shown.
+  virtual void suppressScenePresent(bool suppress) = 0;
+
   // Set the service's scene as the current game scene (with dagor_select_game_scene()).
   virtual void selectAsGameScene() = 0;
 

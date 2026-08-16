@@ -12,11 +12,11 @@ require daslib/json_boost
 require daslib/strings_boost
 require daslib/ansi_colors
 
-require lockfile
 require utils
 require package_runner
 
 let INDEX_REPO = "github.com/borisbat/daspkg-index"
+let INDEX_SLUG = "borisbat/daspkg-index"   // owner/repo for gh commands
 
 struct IndexEntry {
     url : string
@@ -701,6 +701,84 @@ def remove_from_index_json(index_text, name : string) : string {
 
 // ── introduce / withdraw ────────────────────────────────────────────
 
+struct IndexPushTarget {
+    remote : string
+    head_ref : string
+}
+
+// True when `gh api ... --jq .permissions.push` reports write access (exact "true").
+def index_has_push_access(gh_output : string) : bool {
+    return strip(gh_output) == "true"
+}
+
+// Where the change branch is pushed and what head ref the PR opens against.
+// Write access → origin + bare branch; otherwise the user's fork + "<login>:<branch>".
+def index_push_target(can_push : bool; login, branch_name : string) : IndexPushTarget {
+    if (can_push) {
+        return IndexPushTarget(remote = "origin", head_ref = branch_name)
+    }
+    return IndexPushTarget(remote = "fork", head_ref = "{login}:{branch_name}")
+}
+
+// Push the already-committed branch and open a PR against the index repo.
+// Collaborators (push access) push straight to origin; everyone else forks
+// borisbat/daspkg-index, pushes the branch to their fork, and opens a
+// cross-fork PR. Always restores the cache repo to main before returning.
+def private push_and_pr(cache_dir, branch_name, pr_title, pr_body : string) : int {
+    var output : string
+
+    // does the authenticated user have push access to the index repo?
+    var can_push = false
+    if (run_cmd("gh api repos/{INDEX_SLUG} --jq .permissions.push", output) == 0) {
+        can_push = index_has_push_access(output)
+    }
+
+    var login : string
+    if (!can_push) {
+        if (run_cmd("gh api user --jq .login", login) != 0 || empty(strip(login))) {
+            to_log(LOG_ERROR, "Error: no push access to {INDEX_SLUG} and could not determine your GitHub login (run `gh auth login`)\n")
+            run_cmd("git -C \"{cache_dir}\" checkout main", output)
+            return 1
+        }
+        login = strip(login)
+
+        // idempotent: creates <login>/daspkg-index if absent, no-op if it exists
+        if (run_cmd("gh repo fork {INDEX_SLUG} --clone=false", output) != 0) {
+            to_log(LOG_ERROR, "Error: failed to fork {INDEX_SLUG}: {output}\n")
+            run_cmd("git -C \"{cache_dir}\" checkout main", output)
+            return 1
+        }
+
+        // (re)point a `fork` remote at the user's fork
+        run_cmd("git -C \"{cache_dir}\" remote remove fork", output)
+        run_cmd("git -C \"{cache_dir}\" remote add fork https://github.com/{login}/daspkg-index.git", output)
+    }
+
+    let target = index_push_target(can_push, login, branch_name)
+
+    if (run_cmd("git -C \"{cache_dir}\" push --force {target.remote} \"{branch_name}\"", output) != 0) {
+        to_log(LOG_ERROR, "Error: failed to push branch: {output}\n")
+        run_cmd("git -C \"{cache_dir}\" checkout main", output)
+        return 1
+    }
+
+    var rc = 0
+    // pass the body via a file: it carries backticks / embedded newlines that
+    // inline `--body "..."` would mangle under cmd.exe (and break on a stray `"`)
+    let body_file = "{get_das_root()}/_daspkg_pr_body.txt"
+    fwrite(body_file, pr_body)
+    if (run_cmd("gh pr create --repo {INDEX_SLUG} --base main --head \"{target.head_ref}\" --title \"{pr_title}\" --body-file \"{body_file}\"", output) != 0) {
+        to_log(LOG_ERROR, "Error: failed to create PR: {output}\n")
+        rc = 1
+    } else {
+        print("PR created: {strip(output)}\n")
+    }
+    remove(body_file)
+
+    run_cmd("git -C \"{cache_dir}\" checkout main", output)
+    return rc
+}
+
 def cmd_introduce(root, source : string) : int {
     // step 1: determine package directory and URL
     var pkg_dir : string
@@ -785,24 +863,9 @@ def cmd_introduce(root, source : string) : int {
 
     run_cmd("git -C \"{cache_dir}\" add packages.json README.md", output)
     run_cmd("git -C \"{cache_dir}\" commit -m \"Add {manifest.name}\"", output)
-    var exit_code = run_cmd("git -C \"{cache_dir}\" push --force origin \"{branch_name}\"", output)
-    if (exit_code != 0) {
-        to_log(LOG_ERROR, "Error: failed to push branch: {output}\n")
-        run_cmd("git -C \"{cache_dir}\" checkout main", output)
-        return 1
-    }
-
-    var rc = 0
-    exit_code = run_cmd("gh pr create --repo borisbat/daspkg-index --base main --head \"{branch_name}\" --title \"Add package: {manifest.name}\" --body \"Introduce **{manifest.name}** — {manifest.description}\n\nURL: `{pkg_url}`\"", output)
-    if (exit_code != 0) {
-        to_log(LOG_ERROR, "Error: failed to create PR: {output}\n")
-        rc = 1
-    } else {
-        print("PR created: {strip(output)}\n")
-    }
-
-    run_cmd("git -C \"{cache_dir}\" checkout main", output)
-    return rc
+    return push_and_pr(cache_dir, branch_name,
+        "Add package: {manifest.name}",
+        "Introduce **{manifest.name}** — {manifest.description}\n\nURL: `{pkg_url}`")
 }
 
 def cmd_withdraw(root, name : string) : int {
@@ -842,24 +905,9 @@ def cmd_withdraw(root, name : string) : int {
 
     run_cmd("git -C \"{cache_dir}\" add packages.json README.md", output)
     run_cmd("git -C \"{cache_dir}\" commit -m \"Remove {name}\"", output)
-    var exit_code = run_cmd("git -C \"{cache_dir}\" push --force origin \"{branch_name}\"", output)
-    if (exit_code != 0) {
-        to_log(LOG_ERROR, "Error: failed to push branch: {output}\n")
-        run_cmd("git -C \"{cache_dir}\" checkout main", output)
-        return 1
-    }
-
-    var rc = 0
-    exit_code = run_cmd("gh pr create --repo borisbat/daspkg-index --base main --head \"{branch_name}\" --title \"Remove package: {name}\" --body \"Withdraw **{name}** from the package index.\"", output)
-    if (exit_code != 0) {
-        to_log(LOG_ERROR, "Error: failed to create PR: {output}\n")
-        rc = 1
-    } else {
-        print("PR created: {strip(output)}\n")
-    }
-
-    run_cmd("git -C \"{cache_dir}\" checkout main", output)
-    return rc
+    return push_and_pr(cache_dir, branch_name,
+        "Remove package: {name}",
+        "Withdraw **{name}** from the package index.")
 }
 
 // ── update-index ────────────────────────────────────────────────────
@@ -932,9 +980,10 @@ def cmd_update_index(root : string) : int {
                 index[name].latest_version = strip(tag_output)
             }
 
-            // get last commit date
+            // get last commit date; --date=short --format=%cd, NOT %cs — pre-2.25 git
+            // has no %cs and passes unknown placeholders through LITERALLY
             var date_output : string
-            let date_exit = run_cmd("git -C \"{tmp_dir}\" log -1 --format=%cs", date_output)
+            let date_exit = run_cmd("git -C \"{tmp_dir}\" log -1 --date=short --format=%cd", date_output)
             if (date_exit == 0 && !empty(strip(date_output))) {
                 index[name].last_updated = strip(date_output)
             }
@@ -983,23 +1032,9 @@ def cmd_update_index(root : string) : int {
 
     run_cmd("git -C \"{cache_dir}\" add packages.json README.md", output)
     run_cmd("git -C \"{cache_dir}\" commit -m \"Update index metadata\"", output)
-    var exit_code = run_cmd("git -C \"{cache_dir}\" push --force origin \"{branch_name}\"", output)
-    if (exit_code != 0) {
-        to_log(LOG_ERROR, "Error: failed to push branch: {output}\n")
-        run_cmd("git -C \"{cache_dir}\" checkout main", output)
-        return 1
-    }
-
-    var rc = 0
-    exit_code = run_cmd("gh pr create --repo borisbat/daspkg-index --base main --head \"{branch_name}\" --title \"Update index metadata\" --body \"Refreshed metadata for {updated} package(s).\"", output)
-    if (exit_code != 0) {
-        to_log(LOG_ERROR, "Error: failed to create PR: {output}\n")
-        rc = 1
-    } else {
-        print("PR created: {strip(output)}\n")
-    }
-
-    run_cmd("git -C \"{cache_dir}\" checkout main", output)
+    let rc = push_and_pr(cache_dir, branch_name,
+        "Update index metadata",
+        "Refreshed metadata for {updated} package(s).")
     print("Updated {updated} package(s)\n")
     return rc
 }

@@ -16,7 +16,7 @@
 #include "render_state.h"
 #include "driver_state.h"
 #include "streamline_adapter.h"
-#if HAS_GF_AFTERMATH
+#if HAS_AFTERMATH
 #include <GFSDK_Aftermath.h>
 #endif
 #include <dxgi1_6.h>
@@ -321,7 +321,7 @@ DriverDesc g_device_desc = {
   1, 1,            // int mintexw,mintexh;
   16384, 16384,    // int maxtexw,maxtexh;
   1, 16384,        // int mincubesize,maxcubesize;
-  1, 16384,        // int minvolsize,maxvolsize;
+  1, 2048,         // int minvolsize,maxvolsize;
   0,               // int maxtexaspect; ///< 1 means texture should be square, 0 means no limit
   65536,           // int maxtexcoord;
   MAX_RESOURCES,   // int maxsimtex;
@@ -549,7 +549,7 @@ void disable_conditional_render_unsafe()
 
 using namespace drv3d_dx11;
 
-#if HAS_GF_AFTERMATH
+#if HAS_AFTERMATH
 #include <util/dag_hash.h>
 #include <util/dag_simpleString.h>
 static ska::flat_hash_map<uint32_t, SimpleString> aftermath_marker_names_map;
@@ -1699,6 +1699,14 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
     return false;
   }
 
+  // the static desc above lists the FL 11 sizes; a 10.x device refuses anything larger
+  if (featureLevelsSupported < D3D_FEATURE_LEVEL_11_0)
+  {
+    g_device_desc.maxtexw = g_device_desc.maxtexh = 8192;
+    g_device_desc.maxcubesize = 8192;
+    g_device_desc.maxvolsize = 2048;
+  }
+
   if (!validate_feature_level_and_required_features(featureLevelsSupported, blk_dx))
   {
     return false;
@@ -1802,7 +1810,7 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
   g_device_desc.info.driverDate = gpu::get_driver_date(adapterDesc.VendorId, adapterDesc.DeviceId);
   gpu::update_device_attributes(adapterDesc.VendorId, adapterDesc.DeviceId, g_device_desc.info);
 
-#if HAS_GF_AFTERMATH
+#if HAS_AFTERMATH
   if (afterMathEnabled)
     init_aftermath(dx_device);
 #endif
@@ -2290,7 +2298,7 @@ static void close_device(bool is_reset)
   SAFE_RELEASE(dx_device);
 
   DEBUG_CP();
-#if HAS_GF_AFTERMATH
+#if HAS_AFTERMATH
   close_aftermath();
 #endif
 

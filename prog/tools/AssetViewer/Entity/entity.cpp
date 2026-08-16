@@ -835,6 +835,15 @@ public:
     wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_8, EditorCommandIds::ENTITY_CHANGE_LOD_8);
     wndManager.addViewportAccelerator(CM_ENTITY_CHANGE_LOD_9, EditorCommandIds::ENTITY_CHANGE_LOD_9);
 
+    wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_CREATE_NODE, EditorCommandIds::ENTITY_CREATE_NODE);
+
+    wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_COPY_ASSET, EditorCommandIds::ENTITY_COPY_ASSET);
+    wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_PASTE_ASSET, EditorCommandIds::ENTITY_PASTE_ASSET);
+    wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_DUPLICATE_ASSET, EditorCommandIds::ENTITY_DUPLICATE_ASSET);
+
+    wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_MAKE_PARENT, EditorCommandIds::ENTITY_MAKE_PARENT);
+    wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_CLEAR_PARENT, EditorCommandIds::ENTITY_CLEAR_PARENT);
+
     compositeEditorViewport.registerMenuAccelerators();
   }
 
@@ -1460,8 +1469,13 @@ public:
         draw_canopy_preview(canopyParams, canopyBox, canopyTm);
     }
 
-    compositeEditorViewport.renderTransObjects(entity);
+    IGenViewportWnd *wnd = EDITORCORE->getRenderViewport();
+    if (wnd)
+      compositeEditorViewport.renderTransObjects(*wnd, entity);
   }
+
+  void updateImgui() override { compositeEditorViewport.updateImgui(); }
+
   static void drawIKStructure(Tab<Tab<vec3f>> &chains, bool initial)
   {
     E3DCOLOR color(initial ? 128 : 255, initial ? 128 : 255, initial ? 128 : 255, 255);
@@ -2748,7 +2762,7 @@ public:
   {
     if (!inside)
       return false;
-    compositeEditorViewport.handleMouseLBPress(wnd, x, y, entity);
+    compositeEditorViewport.handleMouseLBPress(wnd, x, y, entity, key_modif);
     positionGizmoWrapper.onDragPress(rotX, rotY, wnd, x, y);
     if (!physsimulator::getPhysWorld())
       return false;
@@ -2791,6 +2805,18 @@ public:
     Point3 dir, world;
     wnd->clientToWorld(Point2(x, y), world, dir);
     return physsimulator::shootAtObject(world, dir, ragdollBulletImpulse);
+  }
+
+  bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override
+  {
+    if (!inside)
+      return false;
+    return compositeEditorViewport.handleMouseRBRelease(wnd, x, y, entity, key_modif);
+  }
+
+  bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) override
+  {
+    return compositeEditorViewport.handleMouseDoubleClick(wnd, x, y, entity, key_modif);
   }
 
   // IEntityViewPluginInterface

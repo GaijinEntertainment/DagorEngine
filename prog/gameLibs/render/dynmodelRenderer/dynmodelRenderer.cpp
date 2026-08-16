@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <render/dynmodelRenderer.h>
-#include "lockFreeFixedVector.h"
 
 #include <3d/dag_resPtr.h>
 #include <3d/dag_ringDynBuf.h>
@@ -17,6 +16,7 @@
 #include <EASTL/vector_set.h>
 #include <EASTL/fixed_vector.h>
 #include <generic/dag_tab.h>
+#include <generic/dag_concurrentElementPool.h>
 #include <image/dag_texPixel.h>
 #include <math/dag_geomTree.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -28,6 +28,7 @@
 #include <startup/dag_globalSettings.h>
 #include <util/dag_console.h>
 #include <util/dag_convar.h>
+#include <util/dag_concurrencyCheck.h>
 #include <memory/dag_framemem.h>
 #include <generic/dag_smallTab.h>
 #include <ioSys/dag_dataBlock.h>
@@ -238,30 +239,58 @@ struct ContextGpuData
   TMatrix4 relativeWorldToProjTm;
 };
 
-PerInstanceRenderData::PerInstanceRenderData(const AddedPerInstanceRenderData &o)
-{
-  static_cast<BasePerInstanceRenderData &>(*this) = static_cast<const BasePerInstanceRenderData &>(o);
-  params.assign(o.params.begin(), o.params.end());
-}
-
 AddedPerInstanceRenderData::AddedPerInstanceRenderData(const PerInstanceRenderData &o, dag::Vector<Point4> &extraParams) :
   BasePerInstanceRenderData(o)
 {
-  if (o.params.size() <= inplaceParams.capacity())
+  // Non-empty params are always terminated with an additional data block
+  // so shader backward metadata reads cannot misparse generic params
+  if (o.params.empty() && o.additionalData.empty())
+    return;
+  dag::ConstSpan<Point4> tail = make_span_const(o.additionalData.data(), o.additionalData.size());
+  if (tail.empty())
+    tail = animchar_additional_data::get_null_data();
+  const uint32_t genericCount = eastl::max<uint32_t>(o.params.size(), NUM_GENERIC_PER_INSTANCE_PARAMS);
+  const uint32_t totalCount = genericCount + tail.size();
+  const auto fill = [&](auto &dst) {
+    dst.insert(dst.end(), o.params.begin(), o.params.end());
+    dst.insert(dst.end(), genericCount - o.params.size(), Point4::ZERO);
+    dst.insert(dst.end(), tail.begin(), tail.end());
+  };
+  if (totalCount <= inplaceParams.capacity())
   {
-    inplaceParams.assign(o.params.begin(), o.params.end());
+    fill(inplaceParams);
     params.set(inplaceParams.data(), inplaceParams.size());
   }
   else
   {
-    params.set(extraParams.end(), o.params.size()); // Note: re-alloc/rebase handled by calling code
-    extraParams.insert(extraParams.end(), o.params.begin(), o.params.end());
+    params.set(extraParams.end(), totalCount); // Note: re-alloc/rebase handled by calling code
+    fill(extraParams);
   }
 }
+
+AddedPerInstanceRenderData::AddedPerInstanceRenderData(const BasePerInstanceRenderData &base, dag::ConstSpan<Point4> merged_params,
+  dag::Vector<Point4> &extraParams) :
+  BasePerInstanceRenderData(base)
+{
+  if (merged_params.size() <= inplaceParams.capacity())
+  {
+    inplaceParams.assign(merged_params.begin(), merged_params.end());
+    params.set(inplaceParams.data(), inplaceParams.size());
+  }
+  else
+  {
+    params.set(extraParams.end(), merged_params.size()); // Note: re-alloc/rebase handled by calling code
+    extraParams.insert(extraParams.end(), merged_params.begin(), merged_params.end());
+  }
+}
+
+using ContextPool = dag::ConcurrentElementPool<ContextId, ContextData, 5>;
+static_assert(ContextPool::FIRST_ID == ContextId::MAIN, "ContextId::MAIN must be the pool's first id");
 
 struct ContextData
 {
   eastl::string name;
+  ContextId index = ContextId::Invalid;
 
   Tab<InstanceData> instances;
   Tab<bool> allNodesVisibility; // Faster than eastl::bitvector
@@ -306,10 +335,11 @@ struct ContextData
   };
   eastl::optional<CachedTm> cachedTm;
 
-  ContextData(int idx, const char *name_, int ringBufferSize = 0) : name(name_)
+  ContextData() = default;
+  ContextData(const char *name_, ContextId idx, int ringBufferSize = 0) : name(name_), index(idx)
   {
     perInstanceRenderData.emplace_back();
-    recreateRingBuffer(ringBufferSize ? ringBufferSize : initialRingBufferSize, idx);
+    recreateRingBuffer(ringBufferSize ? ringBufferSize : initialRingBufferSize);
   }
 
   int storePerInstanceRenderData(const dynrend::PerInstanceRenderData &rdata)
@@ -318,16 +348,35 @@ struct ContextData
     const Point4 *oldParamsBase = extraParams.data();
     const auto *oldBase = perInstanceRenderData.data();
     perInstanceRenderData.emplace_back(rdata, extraParams);
-    // Account for possible `perInstanceRenderData/extraParams` reallocations which might invalidate pointers
-    if (DAGOR_UNLIKELY(oldBase != perInstanceRenderData.data()))
+    fixupStoredParamSpans(oldBase, oldParamsBase);
+    return idx;
+  }
+
+  int cloneStoredPerInstanceRenderData(int src_index)
+  {
+    dag::RelocatableFixedVector<Point4, NUM_GENERIC_PER_INSTANCE_PARAMS + 2, true, framemem_allocator> paramsCopy;
+    paramsCopy.assign(perInstanceRenderData[src_index].params.begin(), perInstanceRenderData[src_index].params.end());
+    dynrend::BasePerInstanceRenderData baseCopy = perInstanceRenderData[src_index];
+    int idx = perInstanceRenderData.size();
+    const Point4 *oldParamsBase = extraParams.data();
+    const auto *oldBase = perInstanceRenderData.data();
+    perInstanceRenderData.emplace_back(baseCopy, make_span_const(paramsCopy.data(), paramsCopy.size()), extraParams);
+    fixupStoredParamSpans(oldBase, oldParamsBase);
+    return idx;
+  }
+
+  // Account for possible `perInstanceRenderData/extraParams` reallocations which might invalidate pointers
+  void fixupStoredParamSpans(const dynrend::AddedPerInstanceRenderData *old_base, const Point4 *old_params_base)
+  {
+    if (DAGOR_UNLIKELY(old_base != perInstanceRenderData.data()))
       for (auto &r : perInstanceRenderData)
         if (r.params.size() <= r.inplaceParams.capacity())
           r.params.set(r.inplaceParams.data(), r.params.size());
-    if (DAGOR_UNLIKELY(rdata.params.size() > NUM_GENERIC_PER_INSTANCE_PARAMS && extraParams.data() != oldParamsBase))
+    if (DAGOR_UNLIKELY(perInstanceRenderData.back().params.size() > perInstanceRenderData.back().inplaceParams.capacity() &&
+                       extraParams.data() != old_params_base))
       for (const Point4 *newBase = extraParams.data(); auto &r : perInstanceRenderData)
         if (r.params.size() > r.inplaceParams.capacity())
-          r.params.set(newBase + (r.params.data() - oldParamsBase), r.params.size());
-    return idx;
+          r.params.set(newBase + (r.params.data() - old_params_base), r.params.size());
   }
 
   void clear()
@@ -358,7 +407,7 @@ struct ContextData
     cachedTm.reset();
   }
 
-  void recreateRingBuffer(int new_size_in_vecs, int index)
+  void recreateRingBuffer(int new_size_in_vecs)
   {
     if (ringBuffer)
     {
@@ -374,7 +423,7 @@ struct ContextData
     if (ringBufferSizeInVecs)
     {
       ringBuffer = new RingDynamicSB();
-      String bufName(0, "instance_data_buffer%d_%s", index, name.c_str());
+      String bufName(0, "instance_data_buffer%d_%s", ContextPool::to_index(index), name.c_str());
       ringBuffer->init(ringBufferSizeInVecs, sizeof(vec4f), sizeof(vec4f), SBCF_BIND_SHADER_RES, TEXFMT_A32B32G32R32F, bufName.str());
     }
   }
@@ -386,11 +435,7 @@ Intervals *DipChunk::getIntervals(ContextData &ctx) const
   return perInstanceRenderData.intervals.empty() ? NULL : &perInstanceRenderData.intervals;
 }
 
-// Fixed count to avoid reallocations and possible race with add_animchar() holding ref
-constexpr inline int MAX_DYNMODEL_CONTEXTS = 48;
-
-static LockFreeFixedVector<ContextData, ContextId, MAX_DYNMODEL_CONTEXTS> contexts;
-
+static ContextPool contexts;
 static Tab<const char *> shadersRenderOrder;
 static TMatrix4_vec4 globalPrevViewTm = TMatrix4_vec4::IDENT;
 static TMatrix4_vec4 globalPrevProjTm = TMatrix4_vec4::IDENT;
@@ -414,44 +459,77 @@ static void update_context_gpu_data(const ContextGpuData &data)
   }
 }
 
+bool is_valid_context(ContextId context_id) { return context_id >= ContextId::MAIN; }
+
+static bool is_allocated_context(ContextId context_id)
+{
+  return context_id >= ContextId::MAIN
+#ifndef DAGOR_THREAD_SANITIZER
+         // NOTE: totalElements() can be increased from another thread - reading is not thread-safe
+         // But this check happen for assert only, so it shouldn't fire in release anyway
+         && ContextPool::to_index(context_id) < contexts.totalElements()
+#endif
+    ;
+}
+
+bool is_user_context(ContextId context_id) { return context_id >= ContextId::FIRST_USER_CONTEXT; }
+
+static ContextId create_context_impl(const char *name)
+{
+#ifndef DAGOR_THREAD_SANITIZER
+  G_ASSERT(contexts.totalElements() >= ContextPool::to_index(ContextId::FIRST_USER_CONTEXT));
+#endif
+  for (auto &c : contexts)
+  {
+    if (!c.ringBuffer)
+    {
+      c.name = name;
+      c.recreateRingBuffer(initialRingBufferSize);
+      c.clear();
+      return c.index;
+    }
+  }
+  ContextId id = contexts.allocate();
+  contexts[id] = ContextData{name, id};
+  return id;
+}
+
 ContextId create_context(const char *name)
 {
-  G_ASSERT(contexts.size() >= (int)ContextId::FIRST_USER_CONTEXT);
-  return contexts.emplace_back(name);
+  CONCURRENCY_CHECKER(dynrend);
+  return create_context_impl(name);
 }
 
 
 ContextId get_or_create_context(const char *name)
 {
-  for (int idx = 0, ei = contexts.size(); idx < ei; ++idx)
-  {
-    ContextData &c = contexts.data()[idx];
+  CONCURRENCY_CHECKER(dynrend);
+  for (auto &c : contexts)
     if (c.name == name)
     {
       if (!c.ringBuffer)
-        c.recreateRingBuffer(initialRingBufferSize, idx);
+        c.recreateRingBuffer(initialRingBufferSize);
       c.clear();
-      return (ContextId)idx;
+      return c.index;
     }
-  }
-  return create_context(name);
+  return create_context_impl(name);
 }
 
 ContextId find_context(const char *name)
 {
-  for (int id = 0, ei = contexts.size(); id < ei; ++id)
-    if (contexts.data()[id].name == name)
-      return ContextId(id);
-  return ContextId::INVALID;
+  for (auto &c : dynrend::contexts)
+    if (c.ringBuffer && c.name == name)
+      return c.index;
+  return ContextId::Invalid;
 }
 
 void delete_context(ContextId context_id)
 {
-  G_ASSERT(context_id >= ContextId::FIRST_USER_CONTEXT && (int)context_id < contexts.size());
-  ContextData &ctx = contexts[(int)context_id];
-  ctx.recreateRingBuffer(0, &ctx - contexts.data());
-  while (!contexts.back().ringBuffer)
-    contexts.pop_back();
+  CONCURRENCY_CHECKER(dynrend);
+  G_ASSERT_RETURN(is_user_context(context_id), );
+  ContextData &ctx = contexts[context_id];
+  ctx.recreateRingBuffer(0);
+  ctx.clear();
 }
 
 
@@ -464,8 +542,13 @@ void init()
   initialRingBufferSize = graphicsBlk->getInt("dynrendInitialRingBufferSize", DEFAULT_INITIAL_RING_BUFFER_SIZE);
   initialMainRingBufferSize = graphicsBlk->getInt("dynrendInitialMainRingBufferSize", DEFAULT_INITIAL_MAIN_RING_BUFFER_SIZE);
 
-  contexts.emplace_back("MAIN", initialMainRingBufferSize);
-  contexts.emplace_back("IMMEDIATE");
+  ContextId id = contexts.allocate();
+  G_ASSERT(id == ContextId::MAIN && ContextPool::from_index(0) == ContextId::MAIN);
+  contexts[id] = ContextData{"MAIN", id, initialMainRingBufferSize};
+
+  id = contexts.allocate();
+  G_ASSERT(id == ContextId::IMMEDIATE && ContextPool::from_index(1) == ContextId::IMMEDIATE);
+  contexts[id] = ContextData{"IMMEDIATE", id};
 
   contextGpuDataBuffer =
     dag::buffers::create_one_frame_cb(dag::buffers::cb_struct_reg_count<ContextGpuData>(), "context_gpu_data", RESTAG_DYNMODEL);
@@ -479,8 +562,8 @@ void init()
 
 void close()
 {
-  for (ContextData *ctx = contexts.data(), *ec = ctx + contexts.size(); ctx < ec; ++ctx)
-    ctx->recreateRingBuffer(0, ctx - contexts.data());
+  for (ContextData &ctx : contexts)
+    ctx.recreateRingBuffer(0);
 
   contexts.clear();
 
@@ -489,7 +572,7 @@ void close()
 }
 
 
-bool is_initialized() { return contexts.size(); }
+bool is_initialized() { return contexts.totalElements(); }
 
 
 void set_shaders_forced_render_order(const eastl::vector<eastl::string> &shader_names)
@@ -509,14 +592,16 @@ void set_shaders_forced_render_order(const eastl::vector<eastl::string> &shader_
 
 void set_reduced_render(ContextId context_id, float min_elem_radius, bool render_skinned)
 {
-  ContextData &ctx = contexts[(int)context_id];
+  G_ASSERT_RETURN(is_allocated_context(context_id), );
+  ContextData &ctx = contexts[context_id];
   ctx.minElemRadius = min_elem_radius;
   ctx.renderSkinned = render_skinned;
 }
 
 void set_instance_data_only(ContextId context_id, bool enable)
 {
-  ContextData &ctx = contexts[(int)context_id];
+  G_ASSERT_RETURN(is_allocated_context(context_id), );
+  ContextData &ctx = contexts[context_id];
   ctx.instanceDataOnly = enable;
 }
 
@@ -528,7 +613,7 @@ void add(ContextId context_id, const DynamicRenderableSceneInstance *instance, c
   bool relative_to_camera, const Point3 *custom_camera_offset)
 {
   G_ASSERT(instance);
-  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), , "Uninitialized dynrend context was used");
+  G_ASSERTF_RETURN(is_allocated_context(context_id), , "Uninitialized dynrend context was used");
   G_ASSERT(context_id != ContextId::IMMEDIATE || is_main_thread());
 
   if (optional_initial_nodes && optional_initial_nodes->nodesModelTm.size() == 0) // Uninitialized.
@@ -549,7 +634,7 @@ void add(ContextId context_id, const DynamicRenderableSceneInstance *instance, c
 
   TIME_PROFILE(dynrend_add);
 
-  ContextData &ctx = contexts[(int)context_id];
+  ContextData &ctx = contexts[context_id];
 
 #if DAGOR_DBGLEVEL > 0
   if (check_shader_names)
@@ -706,8 +791,7 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
   int indexToAlternativePerInstanceRenderData = instance_data.indexToPerInstanceRenderData;
   if (!nodesWithAlternativeSetOfIntervals.empty())
   {
-    dynrend::PerInstanceRenderData perInstanceRenderDataCopy(*perInstanceRenderData); // Explicit copy to avoid dealing with reallocs
-    indexToAlternativePerInstanceRenderData = ctx.storePerInstanceRenderData(perInstanceRenderDataCopy);
+    indexToAlternativePerInstanceRenderData = ctx.cloneStoredPerInstanceRenderData(instance_data.indexToPerInstanceRenderData);
     perInstanceRenderData = &ctx.perInstanceRenderData[instance_data.indexToPerInstanceRenderData]; // Restore pointer to _main_
                                                                                                     // perInstanceRenderData.
 
@@ -1060,10 +1144,10 @@ public:
 
 void prepare_render_begin(ContextId context_id, const TMatrix4 &view, const TMatrix4 &proj)
 {
-  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), , "Uninitialized dynrend context was used");
+  G_ASSERTF_RETURN(is_allocated_context(context_id), , "Uninitialized dynrend context was used");
   G_ASSERT(context_id != ContextId::IMMEDIATE || is_main_thread());
 
-  ContextData &ctx = contexts[(int)context_id];
+  ContextData &ctx = contexts[context_id];
 
   {
     TMatrix4 relativeViewTm = view;
@@ -1081,10 +1165,11 @@ void prepare_render_begin(ContextId context_id, const TMatrix4 &view, const TMat
 void prepare_render_instances(ContextId context_id, const TMatrix4 &view, const TMatrix4 &proj, int &instanceToChunkOffset,
   const Point3 &offset_to_origin, TexStreamingContext texCtx, dynrend::InstanceContextData *instanceContextData)
 {
+  G_ASSERT_RETURN(is_allocated_context(context_id), );
   TIME_PROFILE(dynrend_prepare_render_instances);
 
   // Instances to chunks.
-  ContextData &ctx = contexts[(int)context_id];
+  ContextData &ctx = contexts[context_id];
 
   if (instanceToChunkOffset <= 0)
   {
@@ -1092,7 +1177,7 @@ void prepare_render_instances(ContextId context_id, const TMatrix4 &view, const 
 
     if (instanceContextData)
     {
-      instanceContextData->contextId = ContextId(-1);
+      instanceContextData->contextId = ContextId::Invalid;
       instanceContextData->nodeOffsetRenderData = -1;
     }
     instanceToChunkOffset = 0;
@@ -1121,7 +1206,8 @@ void prepare_render_instances(ContextId context_id, const TMatrix4 &view, const 
 
 void prepare_render_sort(ContextId context_id)
 {
-  ContextData &ctx = contexts[(int)context_id];
+  G_ASSERT_RETURN(is_allocated_context(context_id), );
+  ContextData &ctx = contexts[context_id];
 
   FRAMEMEM_REGION;
   eastl::array<SmallTab<int, framemem_allocator>, ShaderMesh::Stage::STG_COUNT> dipChunksOrderByStage;
@@ -1244,7 +1330,8 @@ void prepare_render_sort(ContextId context_id)
 
 bool prepare_render_finalize(ContextId context_id)
 {
-  ContextData &ctx = contexts[(int)context_id];
+  G_ASSERT_RETURN(is_allocated_context(context_id), false);
+  ContextData &ctx = contexts[context_id];
   if (ctx.renderDataBuffer.empty())
   {
     ctx.clear();
@@ -1264,7 +1351,7 @@ bool prepare_render_finalize(ContextId context_id)
   const int sizeOfAllChunks = ctx.renderDataBuffer.vec_size();
   if (sizeOfAllChunks > ctx.ringBufferSizeInVecs)
   {
-    ctx.recreateRingBuffer(3 * sizeOfAllChunks, (int)context_id);
+    ctx.recreateRingBuffer(3 * sizeOfAllChunks);
     debug("dynrend: '%s' ring buffer size = %dK", ctx.name.c_str(), (ctx.ringBufferSizeInVecs * sizeof(vec4f)) >> 10);
   }
 
@@ -1272,7 +1359,7 @@ bool prepare_render_finalize(ContextId context_id)
   {
     if (ctx.prevDiscardOnFrame == ::dagor_frame_no())
     {
-      ctx.recreateRingBuffer(3 * ctx.ringBufferSizeInVecs, (int)context_id);
+      ctx.recreateRingBuffer(3 * ctx.ringBufferSizeInVecs);
       debug("dynrend: '%s' ring buffer size = %dK", ctx.name.c_str(), (ctx.ringBufferSizeInVecs * sizeof(vec4f)) >> 10);
     }
     ctx.prevDiscardOnFrame = dagor_frame_no();
@@ -1319,6 +1406,7 @@ bool prepare_render_finalize(ContextId context_id)
 void prepare_render(ContextId context_id, const TMatrix4 &view, const TMatrix4 &proj, const Point3 &offset_to_origin,
   TexStreamingContext texCtx, dynrend::InstanceContextData *instanceContextData)
 {
+  G_ASSERT_RETURN(is_allocated_context(context_id), );
   TIME_PROFILE(dynrend_prepare_render);
 
   prepare_render_begin(context_id, view, proj);
@@ -1367,7 +1455,8 @@ static void set_override(shaders::OverrideStateId id, shaders::OverrideStateId &
 
 void update_reprojection_data(ContextId contextId)
 {
-  ContextData &ctx = contexts[(int)contextId];
+  G_ASSERT_RETURN(is_allocated_context(contextId), );
+  ContextData &ctx = contexts[contextId];
   if (!ctx.renderSkinned)
     return;
   update_context_gpu_data(ctx.gpuData);
@@ -1377,10 +1466,10 @@ bool set_instance_data_buffer(unsigned stage, ContextId contextId, int node_offs
 {
   G_ASSERT(is_main_thread());
 
-  if ((int)contextId < 0)
+  if (!is_valid_context(contextId))
     return false;
 
-  ContextData &ctx = contexts[(int)contextId];
+  ContextData &ctx = contexts[contextId];
   if (!ctx.renderSkinned)
     return false;
 
@@ -1402,10 +1491,10 @@ const Point4 *get_per_instance_render_data(ContextId contextId, int indexToPerIn
 {
   G_ASSERT(is_main_thread());
 
-  if ((int)contextId < 0)
+  if (!is_valid_context(contextId))
     return nullptr;
 
-  ContextData &ctx = contexts[(int)contextId];
+  ContextData &ctx = contexts[contextId];
 
   return ctx.perInstanceRenderData[indexToPerInstanceRenderData].params.data();
 }
@@ -1647,9 +1736,9 @@ static void render_stage(ContextData &ctx, ShaderMesh::Stage shader_mesh_stage)
 void render(ContextId context_id, ShaderMesh::Stage shader_mesh_stage)
 {
   G_ASSERT(is_main_thread());
-  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), , "Uninitialized dynrend context was used");
+  G_ASSERTF_RETURN(is_allocated_context(context_id), , "Uninitialized dynrend context was used");
 
-  ContextData &ctx = contexts[(int)context_id];
+  ContextData &ctx = contexts[context_id];
   if (ctx.dipChunksByStage[shader_mesh_stage].empty())
     return;
 
@@ -1661,9 +1750,9 @@ void render(ContextId context_id, ShaderMesh::Stage shader_mesh_stage)
 
 void clear(ContextId context_id)
 {
-  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), , "Uninitialized dynrend context was used");
+  G_ASSERTF_RETURN(is_allocated_context(context_id), , "Uninitialized dynrend context was used");
 
-  ContextData &ctx = contexts[(int)context_id];
+  ContextData &ctx = contexts[context_id];
   if (dynrendLog.get() && ::dagor_frame_no() % 100 == 0 && !ctx.instances.empty())
     debug("%d     clear %s", ::dagor_frame_no(), ctx.name.c_str());
   ctx.clear();
@@ -1672,8 +1761,8 @@ void clear(ContextId context_id)
 
 void clear_all_contexts()
 {
-  for (ContextData *ctx = contexts.data(), *ec = ctx + contexts.size(); ctx < ec; ++ctx)
-    ctx->clear();
+  for (ContextData &ctx : contexts)
+    ctx.clear();
 }
 
 
@@ -1697,8 +1786,8 @@ void set_local_offset_hint(const Point3 &hint) { localOffsetHint = hint; }
 void set_context_view_proj(ContextId context_id, const TMatrix4 &view, const TMatrix4 &proj, const TMatrix4 &prev_view,
   const TMatrix4 &prev_proj)
 {
-  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), , "Uninitialized dynrend context was used");
-  ContextData &ctx = contexts[(int)context_id];
+  G_ASSERTF_RETURN(is_allocated_context(context_id), , "Uninitialized dynrend context was used");
+  ContextData &ctx = contexts[context_id];
 
   ctx.cachedTm.emplace(ContextData::CachedTm{view, proj, prev_view, prev_proj});
 }
@@ -1717,7 +1806,8 @@ void verify_is_empty(ContextId context_id)
   static bool verifyDynrendContexts = ::dgs_get_settings()->getBlockByNameEx("debug")->getBool("verifyDynrendContexts", false);
   if (verifyDynrendContexts)
   {
-    ContextData &ctx = contexts[(int)context_id];
+    G_ASSERT_RETURN(is_allocated_context(context_id), );
+    ContextData &ctx = contexts[context_id];
     G_ASSERTF(ctx.instances.empty(), "dynrend: context '%s' is already in use", ctx.name.c_str());
     G_UNUSED(ctx);
   }
@@ -1811,7 +1901,8 @@ void reset_statistics() { memset(&statistics, 0, sizeof(statistics)); }
 
 void iterate_instances(dynrend::ContextId context_id, InstanceIterator iter, void *user_data)
 {
-  ContextData &ctx = contexts[(int)context_id];
+  G_ASSERT_RETURN(is_allocated_context(context_id), );
+  ContextData &ctx = contexts[context_id];
   for (auto &instanceData : ctx.instances)
   {
     auto &instance = *instanceData.instance;
@@ -2122,9 +2213,9 @@ void add_animchar(ContextId context_id, uint32_t start_stage, uint32_t end_stage
   uint8_t render_mask, RenderPriority priority, const GlobalVariableStates *gvars_state, TexStreamingContext texCtx,
   eastl::vector<int, framemem_allocator> *output_offsets)
 {
-  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), , "Uninitialized dynrend context was used");
+  G_ASSERTF_RETURN(is_allocated_context(context_id), , "Uninitialized dynrend context was used");
 
-  ContextData &ctx = contexts[(int)context_id];
+  ContextData &ctx = contexts[context_id];
 
   TMatrix4 viewTm, projTm, prevViewTm, prevProjTm;
   if (ctx.cachedTm.has_value())
@@ -2168,11 +2259,11 @@ void add_animchar(ContextId context_id, uint32_t start_stage, uint32_t end_stage
 
 void merge_context(ContextId dst_id, ContextId src_id)
 {
-  G_ASSERTF_RETURN((int)dst_id >= 0 && (int)dst_id < contexts.size(), , "Invalid dst context in merge_context");
-  G_ASSERTF_RETURN((int)src_id >= 0 && (int)src_id < contexts.size(), , "Invalid src context in merge_context");
+  G_ASSERTF_RETURN(is_allocated_context(dst_id), , "Invalid dst context in merge_context");
+  G_ASSERTF_RETURN(is_allocated_context(src_id), , "Invalid src context in merge_context");
 
-  ContextData &dst = contexts[(int)dst_id];
-  ContextData &src = contexts[(int)src_id];
+  ContextData &dst = contexts[dst_id];
+  ContextData &src = contexts[src_id];
 
   if (src.renderDataBuffer.empty())
   {
@@ -2226,9 +2317,10 @@ void merge_context(ContextId dst_id, ContextId src_id)
 
 bool context_has_data(ContextId context_id)
 {
-  if ((int)context_id < 0 || (int)context_id >= contexts.size())
+  if (!is_valid_context(context_id))
     return false;
-  const ContextData &ctx = contexts[(int)context_id];
+  G_ASSERT_RETURN(is_allocated_context(context_id), false);
+  const ContextData &ctx = contexts[context_id];
   if (ctx.instanceDataOnly && ctx.renderDataBuffer.vec_size() > 0)
     return true;
   for (const auto &stage : ctx.dipChunksByStage)
@@ -2240,22 +2332,23 @@ bool context_has_data(ContextId context_id)
 
 D3DRESID get_context_buffer_id(ContextId context_id)
 {
-  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), BAD_D3DRESID, "Uninitialized dynrend context was used");
-  const ContextData &ctx = contexts[(int)context_id];
+  G_ASSERTF_RETURN(is_allocated_context(context_id), BAD_D3DRESID, "Uninitialized dynrend context was used");
+  const ContextData &ctx = contexts[context_id];
   return ctx.ringBuffer ? ctx.ringBuffer->getBufId() : BAD_D3DRESID;
 }
 
 
 int get_context_buffer_pos(ContextId context_id)
 {
-  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), 0, "Uninitialized dynrend context was used");
-  return contexts[(int)context_id].ringBufferPos;
+  G_ASSERTF_RETURN(is_allocated_context(context_id), 0, "Uninitialized dynrend context was used");
+  return contexts[context_id].ringBufferPos;
 }
 
 
 void iterate_dips(dynrend::ContextId context_id, DipsIterator iter)
 {
-  ContextData &ctx = contexts[(int)context_id];
+  G_ASSERT_RETURN(is_allocated_context(context_id), );
+  ContextData &ctx = contexts[context_id];
   for (int stageNo = 0; stageNo < ShaderMesh::Stage::STG_COUNT; stageNo++)
   {
     auto &dipChunks = ctx.dipChunksByStage[stageNo];
@@ -2281,8 +2374,12 @@ bool prepare_render_current(ContextId context_id)
     // whether any draw call survives filtering. If all elements are culled, dipChunksByStage
     // stays empty but renderDataBuffer holds orphaned bytes. Clear them now so the next
     // batch does not inherit a stale non-zero vec_size() that corrupts chunk offsets.
-    if ((int)context_id >= 0 && (int)context_id < contexts.size())
-      contexts[(int)context_id].renderDataBuffer.clear();
+    if (is_valid_context(context_id))
+    {
+      G_ASSERT_RETURN(is_allocated_context(context_id), false);
+
+      contexts[context_id].renderDataBuffer.clear();
+    }
     return false;
   }
   // Always read d3d state here -- this runs on the main thread where the frame
@@ -2302,9 +2399,9 @@ bool prepare_render_current(ContextId context_id)
 void render_all_stages(ContextId context_id)
 {
   G_ASSERT(is_main_thread());
-  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), , "Uninitialized dynrend context was used");
+  G_ASSERTF_RETURN(is_allocated_context(context_id), , "Uninitialized dynrend context was used");
 
-  ContextData &ctx = contexts[(int)context_id];
+  ContextData &ctx = contexts[context_id];
   bool hasAnyStage = false;
   for (int stg = 0; stg < ShaderMesh::STG_COUNT; stg++)
     if (!ctx.dipChunksByStage[stg].empty())

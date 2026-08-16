@@ -11,7 +11,7 @@ if ! $(_ISPC_COMPILER) { # ISPC compilation is not supported for other platforms
   rule GatherISPCObjs { return ; }
   return ;
 }
-if ! [ GLOB $(_ISPC_COMPILER:D) : * ] {
+if ! [ GLOB $(_ISPC_COMPILER[1]:D) : $(_ISPC_COMPILER[1]:D=) ] {
   rule CompileISPC { Exit FATAL\: \"$(_ISPC_COMPILER)\" not found!  Please, update DEVTOOLS (required for $(2)) ; }
   rule GatherISPCObjs { return ; }
   return ;

@@ -165,6 +165,13 @@ struct SimulationData
   eastl::string shader;
 };
 
+enum class SimulationDevice
+{
+  AUTO,
+  CPU,
+  GPU
+};
+
 struct RenderDesc
 {
   eastl::string tag;
@@ -249,6 +256,7 @@ struct SystemDesc
   int renderSortDepth = 0; // for manual composite sorting
   eastl::vector<SystemDesc> subsystems;
   int gameResId = -1;
+  uint8_t statGroup = 0u;
 };
 
 struct SimLodGenParams
@@ -271,7 +279,8 @@ void after_reset_device(ContextId cid);
 
 void register_cpu_override_shader(ContextId cid, const eastl::string &name, cpu_exec_cb_t cb);
 
-SystemId register_system(ContextId cid, const SystemDesc &desc, const eastl::string &name);
+SystemId register_system(ContextId cid, const SystemDesc &desc, const eastl::string &name,
+  SimulationDevice sim_device = SimulationDevice::AUTO);
 SystemId get_dummy_system_id(ContextId cid);
 void release_system(ContextId cid, SystemId sid);
 void release_all_systems(ContextId cid);
@@ -451,9 +460,12 @@ struct Config
   bool debug_page_allocs = false;
   bool use_seperate_highres_atest_rtag = false;
 
+  eastl::string gpu_res_suffix; // Unique suffix to be added to resource names to avoid collision between different contexts.
+
   static constexpr int emission_max_limit = 65535;
 
   static const int max_render_tags = 16;
+  static const int max_stat_groups = 8;
   static const int max_system_depth = 8;
   static const int max_simulation_lods = 8;
   static const int max_culling_states = 32;
@@ -504,7 +516,7 @@ struct Stats
   int cpuElemProcessed;
   int gpuElemProcessed;
   int visibleTriangles;
-  int renderedTriangles;
+  eastl::array<int, Config::max_stat_groups> renderedTriangles;
 
   int renderDrawCalls;
   int renderSwitchBuffers;
@@ -519,6 +531,7 @@ struct Stats
   int totalInstances;
   int activeInstances;
   int renderInstances;
+  int totalParticles;
 
   int gpuTransferCount;
   int gpuTransferSize;

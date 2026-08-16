@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // PERF025: string(...) inside string interpolation is redundant.
 //
 // Problem:
@@ -30,7 +31,7 @@ options gen2
 // annotation is "das_string"). It is not exercised here to keep the fixture free of
 // a daslib/ast require — `"{string(fn.name)}"` was verified separately. See the rst.
 
-expect 31208:8
+expect 31208:9
 
 require daslib/perf_lint
 require strings

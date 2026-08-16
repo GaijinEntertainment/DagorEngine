@@ -61,30 +61,30 @@ def private _push_node(var st : ParseState; var n : Fts5Node) : int {
     return idx
 }
 
-def private _is_space(cp : uint) : bool {
-    return cp == 0x20u || cp == 0x09u || cp == 0x0Au || cp == 0x0Du
+def private _is_space(cp : int) : bool {
+    return cp == 0x20 || cp == 0x09 || cp == 0x0A || cp == 0x0D
 }
 
 def private _skip_ws(var st : ParseState) {
     let n = length(st.src)
-    while (st.pos < n && _is_space(st.src[st.pos])) {
+    while (st.pos < n && _is_space(int(st.src[st.pos]))) {
         st.pos++
     }
 }
 
-def private _peek(var st : ParseState) : uint {
-    if (st.pos >= length(st.src)) return 0u
-    return st.src[st.pos]
+def private _peek(st : ParseState) : int {
+    if (st.pos >= length(st.src)) return 0
+    return int(st.src[st.pos])
 }
 
-def private _is_word_cp(cp : uint) : bool {
-    return utf32_is_word_char(cp)
+def private _is_word_cp(cp : int) : bool {
+    return utf32_is_word_char(uint(cp))
 }
 
 def private _consume_name(var st : ParseState) : string {
     var bytes : array<uint8>
     let n = length(st.src)
-    while (st.pos < n && _is_word_cp(st.src[st.pos])) {
+    while (st.pos < n && _is_word_cp(int(st.src[st.pos]))) {
         bytes |> utf8_encode(utf32_to_lower(st.src[st.pos]))
         st.pos++
     }
@@ -103,7 +103,7 @@ def private _peek_keyword(var st : ParseState; kw : string) : bool {
     }
     // Boundary: kw must be followed by non-word char or EOF.
     let after = st.pos + m
-    return !(after < n && _is_word_cp(st.src[after]))
+    return !(after < n && _is_word_cp(int(st.src[after])))
 }
 
 def private _consume_keyword(var st : ParseState; kw : string) {
@@ -125,11 +125,11 @@ def private _parse_phrase(var st : ParseState) : int {
     while (st.pos < len) {
         _skip_ws(st)
         if (st.pos >= len) break
-        let cp = st.src[st.pos]
-        if (cp == uint('"')) {
+        let cp = int(st.src[st.pos])
+        if (cp == '"') {
             st.pos++
             // optional trailing *
-            if (st.pos < len && st.src[st.pos] == uint('*')) {
+            if (st.pos < len && int(st.src[st.pos]) == '*') {
                 n.is_prefix = true
                 st.pos++
             }
@@ -145,11 +145,11 @@ def private _parse_phrase(var st : ParseState) : int {
     return -1
 }
 
-def private _parse_near(var st : ParseState) : int {
+def private _parse_near(var st : ParseState) : int {   // nolint:STYLE038 - one linear NEAR() production; the arms share the parse cursor
     // Caller verified next is "NEAR" keyword. Consume it.
     _consume_keyword(st, "NEAR")
     _skip_ws(st)
-    if (_peek(st) != uint('(')) {
+    if (_peek(st) != '(') {
         _set_err(st, "expected '(' after NEAR")
         return -1
     }
@@ -160,21 +160,21 @@ def private _parse_near(var st : ParseState) : int {
     while (st.pos < len) {
         _skip_ws(st)
         let cp = _peek(st)
-        if (cp == uint(')')) {
+        if (cp == ')') {
             st.pos++
             closed_paren = true
             break
         }
-        if (cp == uint(',')) {
+        if (cp == ',') {
             st.pos++
             _skip_ws(st)
             // parse k as integer
             var k = 0
             var any_digit = false
             while (st.pos < len) {
-                let dc = st.src[st.pos]
-                if (dc < uint('0') || dc > uint('9')) break
-                k = k * 10 + int(dc - uint('0'))
+                let dc = int(st.src[st.pos])
+                if (!is_number(dc)) break
+                k = k * 10 + dc - '0'
                 any_digit = true
                 st.pos++
             }
@@ -184,7 +184,7 @@ def private _parse_near(var st : ParseState) : int {
             }
             n.near_k = k
             _skip_ws(st)
-            if (_peek(st) != uint(')')) {
+            if (_peek(st) != ')') {
                 _set_err(st, "expected ')' after NEAR distance")
                 return -1
             }
@@ -192,13 +192,13 @@ def private _parse_near(var st : ParseState) : int {
             closed_paren = true
             break
         }
-        if (cp == uint('"')) {
+        if (cp == '"') {
             // FTS5 NEAR can take phrases too — flatten by taking the words.
             st.pos++
             var closed_quote = false
             while (st.pos < len) {
                 _skip_ws(st)
-                if (_peek(st) == uint('"')) {
+                if (_peek(st) == '"') {
                     st.pos++
                     closed_quote = true
                     break
@@ -222,7 +222,7 @@ def private _parse_near(var st : ParseState) : int {
         n.words |> push(_consume_name(st))
     }
     if (!closed_paren) {
-        _set_err(st, "unterminated NEAR — expected ')'")
+        _set_err(st, "unterminated NEAR - expected ')'")
         return -1
     }
     if (length(n.words) < 2) {
@@ -235,7 +235,7 @@ def private _parse_near(var st : ParseState) : int {
 def private _parse_term(var st : ParseState) : int {
     var n = Fts5Node(kind = Fts5NodeKind.Term)
     n.words |> push(_consume_name(st))
-    if (st.pos < length(st.src) && st.src[st.pos] == uint('*')) {
+    if (st.pos < length(st.src) && int(st.src[st.pos]) == '*') {
         n.is_prefix = true
         st.pos++
     }
@@ -244,7 +244,7 @@ def private _parse_term(var st : ParseState) : int {
 
 def private _parse_col_filter_inner(var st : ParseState; var columns : array<string>) : int {
     _skip_ws(st)
-    if (_peek(st) != uint(':')) {
+    if (_peek(st) != ':') {
         _set_err(st, "expected ':' after column name")
         return -1
     }
@@ -263,13 +263,13 @@ def private _parse_unary(var st : ParseState) : int {
         _set_err(st, "unexpected end of query")
         return -1
     }
-    let cp = st.src[st.pos]
+    let cp = int(st.src[st.pos])
     // Parenthesized subexpr
-    if (cp == uint('(')) {
+    if (cp == '(') {
         st.pos++
         let inner = _parse_or_expr(st)
         _skip_ws(st)
-        if (_peek(st) != uint(')')) {
+        if (_peek(st) != ')') {
             _set_err(st, "expected ')'")
             return -1
         }
@@ -277,15 +277,15 @@ def private _parse_unary(var st : ParseState) : int {
         return inner
     }
     // Quoted phrase
-    if (cp == uint('"')) return _parse_phrase(st)
+    if (cp == '"') return _parse_phrase(st)
     // Column-set filter: { col1 col2 ... } : expr
-    if (cp == uint('{')) {
+    if (cp == '{') {
         st.pos++
         var cols : array<string>
         while (st.pos < len) {
             _skip_ws(st)
             let pcp = _peek(st)
-            if (pcp == uint('}')) {
+            if (pcp == '}') {
                 st.pos++
                 break
             }
@@ -307,7 +307,7 @@ def private _parse_unary(var st : ParseState) : int {
     let save = st.pos
     let name = _consume_name(st)
     // If immediately followed by ':' (no whitespace), treat as col-filter.
-    if (_peek(st) == uint(':')) {
+    if (_peek(st) == ':') {
         var cols : array<string>
         cols |> push(name)
         return _parse_col_filter_inner(st, cols)
@@ -321,7 +321,7 @@ def private _at_expr_terminator(var st : ParseState) : bool {
     _skip_ws(st)
     if (st.pos >= length(st.src)) return true
     let cp = _peek(st)
-    return cp == uint(')') || cp == uint('}') || cp == uint(',')
+    return cp == ')' || cp == '}' || cp == ','
 }
 
 def private _parse_and_expr(var st : ParseState) : int {
@@ -381,7 +381,7 @@ def public try_compile_text_match(query : string) : Result<Fts5Query; string> {
     if (!empty(st.err)) return err(st.err, type<Fts5Query>)
     _skip_ws(st)
     if (st.pos < length(st.src)) return err("trailing input at position {st.pos}", type<Fts5Query>)
-    var q <- Fts5Query(nodes <- st.nodes, root = root_idx) // nolint:LINT003
+    var q <- Fts5Query(nodes <- st.nodes, root = root_idx) // nolint:LINT003,LINT019 - move_ok consumes q, so it must stay var; LINT003 fires only in downstream compiles
     return move_ok(q, type<string>)
 }
 

@@ -57,6 +57,18 @@ namespace das {
     __forceinline float dot3(vec4f a, vec4f b){return v_extract_x(v_dot3_x(a, b));}
     __forceinline float dot4(vec4f a, vec4f b){return v_extract_x(v_dot4_x(a, b));}
 
+    // horizontal reduce of a float vector to a scalar. hmin/hmax NaN behavior follows
+    // the underlying SIMD min/max (not daslang scalar min/max), so don't feed them NaN.
+    __forceinline float hmin2(vec4f a){return v_extract_x(v_min(a, v_rot_1(a)));}
+    __forceinline float hmin3(vec4f a){return v_extract_x(v_hmin3(a));}
+    __forceinline float hmin4(vec4f a){return v_extract_x(v_hmin(a));}
+    __forceinline float hmax2(vec4f a){return v_extract_x(v_max(a, v_rot_1(a)));}
+    __forceinline float hmax3(vec4f a){return v_extract_x(v_hmax3(a));}
+    __forceinline float hmax4(vec4f a){return v_extract_x(v_hmax(a));}
+    __forceinline float hadd2(vec4f a){return v_extract_x(v_add_x(a, v_rot_1(a)));}
+    __forceinline float hadd3(vec4f a){return v_extract_x(v_hadd3_x(a));}
+    __forceinline float hadd4(vec4f a){return v_extract_x(v_hadd4_x(a));}
+
     __forceinline vec4f normalize2(vec4f a){return v_norm2(a); }
     __forceinline vec4f normalize3(vec4f a){return v_norm3(a); }
     __forceinline vec4f normalize4(vec4f a){return v_norm4(a); }
@@ -67,6 +79,26 @@ namespace das {
     __forceinline vec4f cross3(vec4f a, vec4f b){vec4f v = v_cross3(a,b); return v;}
 
     __forceinline vec4f lerp_vec_float(vec4f a, vec4f b, float t) { return v_madd(v_sub(b, a), v_splats(t), a); }
+
+    __forceinline float step_float(float edge, float x) { return x < edge ? 0.0f : 1.0f; }
+    __forceinline float smoothstep_float(float e0, float e1, float x) {
+        float t = (x - e0) / (e1 - e0);
+        t = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
+        return t * t * (3.0f - 2.0f * t);
+    }
+    __forceinline vec4f step_vec(vec4f edge, vec4f x) {
+        // GLSL: step(edge,x) = x<edge ? 0 : 1 (so x==edge yields 1). v_sel(a,b,mask) = mask?b:a.
+        return v_sel(v_splats(1.0f), v_zero(), v_cmp_lt(x, edge));
+    }
+    __forceinline vec4f smoothstep_vec(vec4f e0, vec4f e1, vec4f x) {
+        vec4f t = v_saturate(v_div(v_sub(x, e0), v_sub(e1, e0)));
+        return v_mul(v_mul(t, t), v_madd(v_splats(-2.0f), t, v_splats(3.0f)));
+    }
+
+    __forceinline float radians_float(float deg) { return deg * (3.14159265358979323846f / 180.0f); }
+    __forceinline float degrees_float(float rad) { return rad * (180.0f / 3.14159265358979323846f); }
+    __forceinline vec4f radians_vec(vec4f deg) { return v_mul(deg, v_splats(3.14159265358979323846f / 180.0f)); }
+    __forceinline vec4f degrees_vec(vec4f rad) { return v_mul(rad, v_splats(180.0f / 3.14159265358979323846f)); }
 
 #if defined(__GNUC__) || defined(__clang__)
 #if !defined(__clang__)

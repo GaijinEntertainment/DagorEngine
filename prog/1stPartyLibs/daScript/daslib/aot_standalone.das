@@ -10,7 +10,6 @@ require daslib/strings_boost
 require daslib/ast_boost
 require daslib/templates_boost
 require daslib/functional
-require daslib/algorithm
 
 require daslib/ast_print_flags
 require daslib/aot_constants
@@ -31,7 +30,7 @@ def aotFunctionName(str : string) {
     return replace(str, "`", "__")
 }
 
-def getInitSemanticHash(ctx : Context) {
+def getInitSemanticHash(_ctx : Context) {
     /*
     const uint64_t fnv_prime = 1099511628211ul;
     uint64_t hash = globalsSize ^ sharedSize;
@@ -221,7 +220,6 @@ class StandaloneContextGen : CppAot {
         cross_platform = cp;
         prologue = program._options |> find_arg("aot_prologue") ?as tBool ?? false;
         solidContext = program.policies.solid_context || (program._options |> find_arg("solid_context") ?as tBool ?? false);
-        helper.helper.rtti = program._options  |> find_arg("rtti") ?as tBool ?? false;
         helper.cross_platform = cp;
     }
 
@@ -309,8 +307,7 @@ def GetFunctionInfo(pfun : Function?, info : string) {
     }
 }
 
-def addFunctionInfo(disableInit : bool; rtti : bool, fnn : array<Function?>, var helper : AotDebugInfoHelper?) {
-    helper.helper.rtti = rtti;
+def addFunctionInfo(fnn : array<Function?>; var helper : AotDebugInfoHelper?) {
     var lookupFunctionTable : array<tuple<Function?, FuncInfo?>>
     lookupFunctionTable |> reserve(length(fnn))
     for (pfun in fnn) {
@@ -349,10 +346,7 @@ def genStandaloneSrc(var program : ProgramPtr;
                 program |> visit_module(adapter, program.getThisModule);
             }
 
-            initFunctions = addFunctionInfo(program._options |> find_arg("no_init") ?as tBool ?? program.policies.no_init,
-                                            program._options |> find_arg("rtti") ?as tBool ?? program.policies.rtti,
-                                            collectProgramUsedFunctions(program, false, false),
-                                            gen.helper);
+            initFunctions = addFunctionInfo(collectProgramUsedFunctions(program, false, false), gen.helper);
             write(tw, gen.str());
             unsafe {
                 delete gen.collector
@@ -360,6 +354,8 @@ def genStandaloneSrc(var program : ProgramPtr;
             }
         }
     }
+    // Fail-closed (#3065): never assemble standalone C++ from a partial emit -- abort if a macro/codegen exception was recorded during the visits above.
+    fail_on_aot_emit_error(program)
 
     write(source, "namespace {program.thisNamespace} \{\n");
     write(source, "{ctx_generated}");
@@ -444,7 +440,7 @@ def public runStandaloneVisitor(var program : ProgramPtr, modules : array<string
     }
 }
 
-[export]
+[export, unused_argument(paranoid_validation)]
 def public standalone_aot(input : string; output_dir : string; cross_platform : bool, paranoid_validation : bool; cop : CodeOfPolicies) {
     //! Compiles a daslang file and generates standalone AOT C++ code in the given output directory.
     let file_name = input |> split_by_chars("/\\") |> back()

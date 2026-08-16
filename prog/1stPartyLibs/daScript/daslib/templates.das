@@ -19,11 +19,7 @@ require daslib/ast_boost
 
 [call_macro(name="decltype")]
 class DecltypeMacro : AstCallMacro {
-    //! This macro returns ast::TypeDecl for the corresponding expression. For example::
-    //!
-    //!     let x = 1
-    //!     let y <- decltype(x) // [[TypeDecl() baseType==Type tInt, flags=TypeDeclFlags constant | TypeDeclFlags ref]]
-    //!
+    //! This macro returns ``ast::TypeDecl`` for the corresponding expression.
     remove_ref = false
     def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
         if (expr.arguments |> length != 1) {
@@ -54,16 +50,6 @@ class DecltypeNoRefMacro : DecltypeMacro {
 [function_macro(name="template")]
 class TemplateMacro : AstFunctionAnnotation {
     //! This macro is used to remove unused (template) arguments from the instantiation of the generic function.
-    //! When [template(x)] is specified, the argument x is removed from the function call, but the type of the instance remains.
-    //! The call where the function is instanciated is adjusted as well.
-    //! For example::
-    //!
-    //!     [template (a), sideeffects]
-    //!     def boo ( x : int; a : auto(TT) )   // when boo(1,type<int>)
-    //!         return "{x}_{typeinfo typename(type<TT>)}"
-    //!     ...
-    //!     boo(1,type<int>) // will be replaced with boo(1). instace will print "1_int"
-    //!
     def override transform(var expr : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
         if (expr.func == null) {
             compiling_program() |> macro_error(expr.at, "expecting inferred function")
@@ -75,7 +61,7 @@ class TemplateMacro : AstFunctionAnnotation {
         if (taidx == -1) return expr
         var ffunc = expr.func
         // new call
-        var newcall = unsafe(reinterpret<ExprCallFunc?> clone_expression(expr))
+        var newcall = unsafe(reinterpret<ExprCallFunc?>(clone_expression(expr)))
         // new func
         var fclone = clone_function(ffunc)
         fclone.fromGeneric = ffunc

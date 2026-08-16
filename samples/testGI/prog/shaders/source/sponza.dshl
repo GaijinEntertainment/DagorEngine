@@ -57,7 +57,7 @@ shader sponza, simple_aces
   }
   if (scene_mode == voxelize_sdf)
   {
-    if (supports_sh_6_1 == on)
+    if (supports_barycentrics == on)
     {
       hlsl {
         #define RASTERIZE_PRIMS 1
@@ -255,7 +255,7 @@ shader sponza, simple_aces
       }
     ##endif
   }
-  if (scene_mode == voxelize_sdf && supports_sh_6_1 == on)
+  if (scene_mode == voxelize_sdf && supports_barycentrics == on)
   {
     compile("ps_6_1", "main_ps_simple_aces");
   } else

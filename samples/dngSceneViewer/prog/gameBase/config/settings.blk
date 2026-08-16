@@ -4,6 +4,7 @@ circuit:t="internal"
 disableRemoteNetServices:b=yes
 
 graphics{
+  max_bindump_shadervars:i=8192
   anisotropy:i = 4
   spotShadowBias:p4 = -0.00006, -0.1, 0.001, 0.005 // z, slope z, shader z, shader slope z
   dafx:t="cpu"

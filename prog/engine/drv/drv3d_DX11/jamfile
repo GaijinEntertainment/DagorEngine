@@ -53,11 +53,12 @@ if $(Platform) in windows &&
   CPPopt += -DHAS_AMD_DX_EXT ;
 }
 
+local AftermathSdkDir = $(_DEVTOOL)/aftermath-$(AftermathSdkVer) ;
 if $(Platform) in windows &&
    $(PlatformArch) in x86 x86_64 &&
-   [ GLOB $(Root)/prog/3rdPartyLibs/aftermath : * ] {
-  AddIncludes += $(Root)/prog/3rdPartyLibs/aftermath/2025.5.0.251114/include ;
-  CPPopt += -DHAS_GF_AFTERMATH ;
+   [ GLOB $(AftermathSdkDir) : * ] {
+  AddIncludes += $(AftermathSdkDir)/include ;
+  CPPopt += -DHAS_AFTERMATH ;
 }
 
 if $(Platform) in windows && $(PlatformArch) in x86 x86_64 {

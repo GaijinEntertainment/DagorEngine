@@ -79,7 +79,7 @@ def test_handled(t : T?) {
 }
 
 [export]
-def test_fancy_container(var a : array<FancyClass>) {
+def test_fancy_container(a : array<FancyClass>) {
     feint("a = {a}\n")
 }
 
@@ -88,10 +88,10 @@ def test_fancy(t : T?) {
     t |> equal(fc0.value, 13)
     var fc = FancyClass(1, 2)
     t |> equal(fc.value, 3)
-    using() <| $(var f : FancyClass) {
+    using() $(var f : FancyClass) {
         t |> equal(f.value, 13)
     }
-    using(1, 3) <| $(var f : FancyClass) {
+    using(1, 3) $(var f : FancyClass) {
         t |> equal(f.value, 4)
     }
     // otherwise we leak hidden std::string inside fancy class
@@ -101,11 +101,32 @@ def test_fancy(t : T?) {
 
 def test_nc_alias(t : T?) {
     var lookingAt = new TestObjectFoo
-    var lookPos = lookingAt.lookAt ?? float3()
+    let lookPos = lookingAt.lookAt ?? float3()
     t |> equal(lookPos, float3())
     unsafe {
         delete lookingAt
     }
+}
+
+def is_valid_eid(e : EntityId) : bool {
+    return !!e
+}
+
+def test_handle_to_bool(t : T?) {
+    // The const-folder used to collapse !!x -> x for a builtIn operator! that is a type-changing
+    // conversion (operator!(EntityId):bool), dropping the to-bool and leaving the raw handle where
+    // a bool was required: wrong value in every tier, and invalid i1<-i32 IR under -jit.
+    let valid = EntityId(0)
+    let invalid = make_invalid_id()
+    t |> success(!invalid)              // single ! : "is invalid" -> true
+    t |> success(!(!valid))             // !!valid : "is valid" -> true ; wrong fold -> EntityId(0) -> false
+    t |> success(!!valid)
+    t |> success(!(!!invalid))          // !!invalid -> false, so !(..) -> true
+    t |> success(is_valid_eid(valid))   // bool-returning function : exercises the return boundary
+    t |> success(!is_valid_eid(invalid))
+    var hit = 0
+    if (!!valid) { hit = 1 }            // branch boundary
+    t |> equal(hit, 1)
 }
 
 [test]
@@ -114,4 +135,5 @@ def test_handle(t : T?) {
     test_handled(t)
     test_fancy(t)
     test_nc_alias(t)
+    test_handle_to_bool(t)
 }

@@ -36,7 +36,7 @@ def sort_unique(var a : array<auto(TT)>) {
     sort(a)
     var b <- unique(a)
     delete a
-    a <- b
+    a <- b   // nolint:PERF030,LINT019 - `delete a` above releases the old contents; fires only in downstream instantiations
 }
 
 def reverse(var a : array<auto>) {

@@ -76,10 +76,10 @@ function licenseWnd() {
     children = [
       @() {rendObj = ROBJ_TEXT text = licenseTxtFname fontSize = hdpx(30) color = Color(220,200, 150) hplace = ALIGN_LEFT}
       {
-        size = [sw(50), flex()]
+        size = const [sw(50), flex()]
         children = makeVertScroll({
            rendObj = ROBJ_TEXTAREA
-           size = [flex(), SIZE_TO_CONTENT]
+           size = const [flex(), SIZE_TO_CONTENT]
            behavior = Behaviors.TextArea
            text
            tagsTable

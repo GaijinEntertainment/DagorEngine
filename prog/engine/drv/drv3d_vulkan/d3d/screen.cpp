@@ -99,7 +99,7 @@ float d3d::get_screen_aspect_ratio() { return Globals::window.settings.aspect; }
 
 void d3d::get_screen_size(int &w, int &h)
 {
-  VkExtent2D extent = Frontend::swapchain.getMode().extent;
+  VkExtent2D extent = Frontend::swapchain.getMode().displayExtent;
 
   w = extent.width;
   h = extent.height;
@@ -126,9 +126,9 @@ Swapchain *ensure_swapchain_for_window(void *hwnd)
 
   const auto extent = get_window_client_rect_extent(hwnd);
   auto mode = swapchain->getMode();
-  if (mode.extent.width != extent.width || mode.extent.height != extent.height)
+  if (mode.displayExtent.width != extent.width || mode.displayExtent.height != extent.height)
   {
-    mode.extent = extent;
+    mode.displayExtent = extent;
     swapchain->setMode(mode);
   }
   return swapchain;

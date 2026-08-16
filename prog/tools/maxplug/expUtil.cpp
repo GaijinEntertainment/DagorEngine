@@ -151,10 +151,10 @@ public:
   void warningMessage(const TCHAR *msg, const TCHAR *title = NULL);
 
 private:
-  void exportObjectsAsDagsInternal(const TCHAR *folder, INode &node);
+  void exportObjectsAsDagsInternal(const fs::path &folder, INode &node);
   void exportObjectsAsDags();
-  void exportLayerAsDag(const TCHAR *folder, ILayer &layer);
-  void exportLayersAsDagsInternal(const TCHAR *folder, ILayer &layer);
+  void exportLayerAsDag(const fs::path &folder, ILayer &layer);
+  void exportLayersAsDagsInternal(const fs::path &folder, ILayer &layer);
   void exportLayersAsDags();
 
   ToolTipExtender tooltipExtender;
@@ -541,9 +541,9 @@ BOOL ExpUtil::export_other_dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
 
         case IDC_SET_DAGORPATH:
         {
-          static TCHAR dir[MAX_PATH];
+          TCHAR dir[MAX_PATH] = {};
 
-          _tcscpy(dir, dagor_path.c_str());
+          _tcsncpy_s(dir, _countof(dir), dagor_path.c_str(), _TRUNCATE);
 
           ip->ChooseDirectory(hw, GetString(IDS_CHOOSE_DAGOR_PATH), dir);
           if (dir[0])
@@ -3497,7 +3497,7 @@ void ExportENCB::getNoteTrackKeys(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &
         if ((util.expflg & EXP_ARNG) && (key->time < util.astart || key->time > util.aend))
           continue;
         AnimKeyLabel label;
-        label.name = strdup(wideToStr(key->note).c_str());
+        label.name = _strdup(wideToStr(key->note).c_str());
         label.time = key->time;
         noteTrackKeys.Append(1, &label, 32);
       }
@@ -4045,8 +4045,10 @@ void ExpUtil::export_anim_v2()
   explog(_T (" %d nodes\r\n"), cb.node.Count());
   explog(_T ("Success!\r\n"));
 }
-static bool FolderOpenDialog(TCHAR *path, HWND)
+static bool FolderOpenDialog(fs::path &path, HWND)
 {
+  path.clear();
+
   IFileDialog *pfd;
   HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
   if (!SUCCEEDED(hr))
@@ -4082,18 +4084,18 @@ static bool FolderOpenDialog(TCHAR *path, HWND)
   }
 
   PWSTR pszFilePath = NULL;
-  hr = psiResult->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+  psiResult->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
   if (pszFilePath)
   {
-    _tcscpy(path, pszFilePath);
+    path = pszFilePath;
     CoTaskMemFree(pszFilePath);
   }
   psiResult->Release();
   pfd->Release();
-  return SUCCEEDED(hr);
+  return !path.empty();
 }
 
-void ExpUtil::exportObjectsAsDagsInternal(const TCHAR *folder, INode &node)
+void ExpUtil::exportObjectsAsDagsInternal(const fs::path &folder, INode &node)
 {
   const int childrenCount = node.NumberOfChildren();
   for (int i = 0; i < childrenCount; ++i)
@@ -4118,7 +4120,7 @@ void ExpUtil::exportObjectsAsDagsInternal(const TCHAR *folder, INode &node)
       // Use the node as origin instead of the scene.
       cb.useIdentityTransformForNode = childNode;
 
-      fs::path path = fs::path(folder) / childNode->GetName();
+      fs::path path = folder / childNode->GetName();
       path += L".dag";
 
       explog(_T("Exporting node \"%s\" to file \"%s\"\r\n"), childNode->GetName(), path.c_str());
@@ -4141,8 +4143,7 @@ void ExpUtil::exportObjectsAsDags()
 {
   DagorLogWindowAutoShower logWindowAutoShower(/*clear_log = */ true);
 
-  const int PATH_MAX = 512;
-  TCHAR folder[PATH_MAX];
+  fs::path folder;
   if (!FolderOpenDialog(folder, hExpDag))
     return;
 
@@ -4157,7 +4158,7 @@ void ExpUtil::exportObjectsAsDags()
   exportObjectsAsDagsInternal(folder, *rootNode);
 }
 
-void ExpUtil::exportLayerAsDag(const TCHAR *folder, ILayer &layer)
+void ExpUtil::exportLayerAsDag(const fs::path &folder, ILayer &layer)
 {
   // "sel" only affects the layers we work with, so do not use it when processing the nodes.
   const int oldExpSel = util.expflg & EXP_SEL;
@@ -4177,7 +4178,7 @@ void ExpUtil::exportLayerAsDag(const TCHAR *folder, ILayer &layer)
 
     if (cb.node.Count() > 0)
     {
-      fs::path path = fs::path(folder) / layer.GetName().data();
+      fs::path path = folder / layer.GetName().data();
       path += L".dag";
 
       explog(_T("Exporting layer \"%s\" to file \"%s\"\r\n"), layer.GetName().data(), path.c_str());
@@ -4198,7 +4199,7 @@ void ExpUtil::exportLayerAsDag(const TCHAR *folder, ILayer &layer)
   util.expflg |= oldExpSel;
 }
 
-void ExpUtil::exportLayersAsDagsInternal(const TCHAR *folder, ILayer &layer)
+void ExpUtil::exportLayersAsDagsInternal(const fs::path &folder, ILayer &layer)
 {
   const bool matchesVisibilityFilter = (util.expflg & EXP_HID) != 0 || !layer.IsHidden(false);
 
@@ -4220,8 +4221,7 @@ void ExpUtil::exportLayersAsDags()
 {
   DagorLogWindowAutoShower logWindowAutoShower(/*clear_log = */ true);
 
-  const int PATH_MAX = 512;
-  TCHAR folder[PATH_MAX];
+  fs::path folder;
   if (!FolderOpenDialog(folder, hExpDag))
     return;
 
@@ -4285,7 +4285,7 @@ public:
   int keyNum;
 
   CameraNodeEnumerator(Interface *_ip) : ip(_ip), keyNum(0) {}
-  ~CameraNodeEnumerator() override {}
+  ~CameraNodeEnumerator() override = default;
 
   int proc(INode *node) override
   {
@@ -4440,9 +4440,9 @@ public:
             krec.fov = 1.0 / tan(cam[i].camera->GetFOV(nk->time) / 2);
             debug("krec.fov=%.3f (%.3f deg)", krec.fov, cam[i].camera->GetFOV(nk->time) * 180 / PI);
 
-            if (strnicmp(wnote.c_str(), "follow", 6) == 0)
+            if (_strnicmp(wnote.c_str(), "follow", 6) == 0)
               krec.wFollow = 1.0;
-            else if (strnicmp(wnote.c_str(), "still", 5) == 0)
+            else if (_strnicmp(wnote.c_str(), "still", 5) == 0)
               krec.wFollow = 0.0;
 
             idx++;
@@ -4733,7 +4733,7 @@ void ExpUtil::export_instances()
       continue;
 
     std::string name = wideToStr(cb.node[nodeNo]->GetName());
-    if (!strnicmp(name.c_str(), "GroundPlane", strlen("GroundPlane")))
+    if (!_strnicmp(name.c_str(), "GroundPlane", strlen("GroundPlane")))
       continue;
 
     while (name.length() > 0 && isdigit((unsigned char)name[name.length() - 1]))

@@ -338,6 +338,11 @@ public:
   void aliasSync(Resource *lobj, VkPipelineStageFlags stage);
 
 private:
+#if DAGOR_DBGLEVEL > 0
+  bool checkWriteCompletedForRelaxedFrameEndSync(LogicAddress laddr);
+#else
+  bool checkWriteCompletedForRelaxedFrameEndSync(LogicAddress) { return true; }
+#endif
   void workItemEndSync(size_t gpu_work_id);
   void addImageAccessImpl(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area, bool nrp_attachment, bool discard);
 

@@ -92,7 +92,7 @@ def describe(prog : smart_ptr<Program>) {
 
 [generic]
 def get_mangled_name(decl : ExprBlock?) {
-    return get_mangled_name(unsafe(reinterpret<ExprBlock?> decl))
+    return get_mangled_name(unsafe(reinterpret<ExprBlock?>(decl)))
 }
 
 [macro_interface]
@@ -109,11 +109,7 @@ class AstFunctionAnnotation {
     def abstract isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool
     def abstract isSpecialized : bool
     def abstract appendToMangledName(func : FunctionPtr; decl : AnnotationDeclaration; var mangledName : das_string) : void
-    //! Returns true if this annotation's ``apply`` should also run on generic
-    //! function templates at parse time. Default is false. Annotations that
-    //! perform purely structural rewrites (no type information needed) override
-    //! this to ``true`` so the rewrite happens once on the template and every
-    //! instantiation inherits it. See ``[class_method]`` for an example.
+    //! Returns true if this annotation's ``apply`` should also run on generic function templates at parse time. Default is false. Annotations that perform purely structural rewrites (no type information needed) override this to ``true`` so the rewrite happens once on the template and every instantiation inherits it. See ``[class_method]`` for an example.
     def abstract isAppliedToGeneric : bool
 }
 
@@ -566,6 +562,9 @@ class AstVisitor {
 // const int 16
     def abstract preVisitExprConstInt16(expr : ExprConstInt16?) : void
     def abstract visitExprConstInt16(expr : ExprConstInt16?) : ExpressionPtr
+// const float 16
+    def abstract preVisitExprConstFloat16(expr : ExprConstFloat16?) : void
+    def abstract visitExprConstFloat16(expr : ExprConstFloat16?) : ExpressionPtr
 // const int 64
     def abstract preVisitExprConstInt64(expr : ExprConstInt64?) : void
     def abstract visitExprConstInt64(expr : ExprConstInt64?) : ExpressionPtr
@@ -950,6 +949,18 @@ def add_new_infer_macro(name : string; var someClassPtr) {
 def add_new_dirty_infer_macro(name : string; var someClassPtr) {
     var ann = make_pass_macro(name, someClassPtr)
     this_module() |> add_dirty_infer_macro(ann)
+}
+
+[macro_function]
+def add_new_pre_infer_macro(name : string; var someClassPtr) {
+    var ann = make_pass_macro(name, someClassPtr)
+    this_module() |> add_pre_infer_macro(ann)
+}
+
+[macro_function]
+def add_new_post_infer_macro(name : string; var someClassPtr) {
+    var ann = make_pass_macro(name, someClassPtr)
+    this_module() |> add_post_infer_macro(ann)
 }
 
 [macro_function]

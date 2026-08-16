@@ -1,4 +1,4 @@
-// Squirrel module under test: dagor.perf (registered by sqratDagorDebug.cpp)
+// Quirrel module under test: dagor.perf (registered by sqratDagorDebug.cpp)
 
 from "dagor.perf" import get_avg_cpu_only_cycle_time_usec, reset_summed_cpu_only_cycle_time //disable: -see-other
 

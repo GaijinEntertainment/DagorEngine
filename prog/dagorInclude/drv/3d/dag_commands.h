@@ -695,6 +695,8 @@ enum class Drv3dCommand
   // Release pipeline statistics query. par1: void ** - query pointer, after this call the query pointer is nullptr
   PIPELINE_STATS_RELEASE_QUERY,
 
+  GET_SWAPCHAIN_PRE_ROTATION,
+
   USER = 1000,
 };
 

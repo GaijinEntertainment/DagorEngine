@@ -1,0 +1,38 @@
+int pre_rotation_enabled = 0;
+interval pre_rotation_enabled: no < 1, yes;
+assume_if_not_assumed pre_rotation_enabled = no;
+
+float4 pre_rotation = (1, 0, 0, 1);
+
+macro USE_PRE_ROTATION(code)
+  if (pre_rotation_enabled == yes)
+  {
+    (code) { pre_rotation@f4 = pre_rotation; }
+    hlsl(code) {
+      float2 apply_pre_rotation(float2 ndc_pos)
+      {
+        return ndc_pos.x * pre_rotation.xy + ndc_pos.y * pre_rotation.zw;
+      }
+      float2 apply_pre_rotation_uv(float2 uv)
+      {
+        float2 c = uv - 0.5;
+        return 0.5 + float2(c.x * pre_rotation.x - c.y * pre_rotation.z, c.y * pre_rotation.w - c.x * pre_rotation.y);
+      }
+      float2 apply_inverse_pre_rotation_uv(float2 uv)
+      {
+        float2 c = uv - 0.5;
+        return 0.5 + float2(c.x * pre_rotation.x - c.y * pre_rotation.y, c.y * pre_rotation.w - c.x * pre_rotation.z);
+      }
+      bool pre_rotation_swaps_extents() { return pre_rotation.x == 0; }
+    }
+  }
+  else
+  {
+    hlsl(code) {
+      float2 apply_pre_rotation(float2 ndc_pos) { return ndc_pos; }
+      float2 apply_pre_rotation_uv(float2 uv) { return uv; }
+      float2 apply_inverse_pre_rotation_uv(float2 uv) { return uv; }
+      bool pre_rotation_swaps_extents() { return false; }
+    }
+  }
+endmacro

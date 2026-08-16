@@ -74,6 +74,9 @@ enum
   PID_DECAL_MATERIAL_LAST = PID_DECAL_MATERIAL_FIRST + decal_material_max_count,
   PID_DECAL_MATERIAL_SAVE,
 
+  PID_ASSET_AUTO_INST_SEED,
+  PID_OVERRIDE_AUTO_INST_SEED,
+  PID_AUTO_INST_SEED,
   PID_GENERATE_PERINST_SEED,
   PID_GENERATE_EQUAL_PERINST_SEED,
   PID_PERINST_SEED,
@@ -84,6 +87,12 @@ enum
 
   PID_SPLIT_RECURSIVE = PID_ENTITY_FILTER_FIRST + 300,
 };
+
+static const char *auto_inst_seed_tooltip =
+  "The per-instance seed of the sub-entities is a hash of the composit position, so moving a composit reseeds all of them.\n"
+  "Turn it off and the object gets a per-inst seed of its own instead: a huge composit becomes movable, but its per-instance\n"
+  "variation stops following the position. The seed is generated once; change the per-inst seed below to reshuffle.\n"
+  "Turning this back on does not take that seed away, since it is yours to keep; clear it to follow the position again.";
 
 G_STATIC_ASSERT(LandscapeEntityObject::Props::PT_count == 7);
 static const char *place_types_full[] = {
@@ -124,9 +133,9 @@ LandscapeEntityObject::~LandscapeEntityObject() { destroy_it(entity); }
 
 void LandscapeEntityObject::renderBox()
 {
-  if (EditLayerProps::layerProps[getEditLayerIdx()].hide)
+  if (EditLayerProps::layerProps[getEditLayerIdx()].isLayerOrTypeHidden())
     return;
-  if (EditLayerProps::layerProps[getEditLayerIdx()].lock)
+  if (EditLayerProps::layerProps[getEditLayerIdx()].isLayerOrTypeLocked())
     return;
 
   if (!entity || isSelected())
@@ -194,7 +203,7 @@ void LandscapeEntityObject::renderBox()
 
 bool LandscapeEntityObject::isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const
 {
-  if (EditLayerProps::layerProps[getEditLayerIdx()].hide)
+  if (EditLayerProps::layerProps[getEditLayerIdx()].isLayerOrTypeHidden())
     return false;
   if (!entity)
   {
@@ -271,7 +280,7 @@ bool LandscapeEntityObject::isSelectedByRectangle(IGenViewportWnd *vp, const EcR
 }
 bool LandscapeEntityObject::isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const
 {
-  if (EditLayerProps::layerProps[getEditLayerIdx()].hide)
+  if (EditLayerProps::layerProps[getEditLayerIdx()].isLayerOrTypeHidden())
     return false;
   if (!entity)
   {
@@ -417,6 +426,18 @@ void LandscapeEntityObject::fillProps(PropPanel::ContainerPropertyControl &panel
     fillMaterialProps(panel);
 
     PropPanel::ContainerPropertyControl *seedGrp = getObjEditor()->createPanelGroup(RenderableEditableObject::PID_SEED_GROUP);
+
+    // only a composit derives a per-instance seed from its own position, so nothing else has one to keep
+    if (ICompositObj *ico = entity ? entity->queryInterface<ICompositObj>() : nullptr)
+    {
+      seedGrp->createCheckBox(PID_ASSET_AUTO_INST_SEED, "Asset auto-reseed enabled", ico->getCompositAutoInstSeed(), false);
+      seedGrp->createCheckBox(PID_OVERRIDE_AUTO_INST_SEED, "Override asset auto-reseed", props.overrideAutoInstSeed);
+      seedGrp->createCheckBox(PID_AUTO_INST_SEED, "Auto-reseed enabled override", props.autoInstSeed, props.overrideAutoInstSeed);
+      seedGrp->setTooltipId(PID_ASSET_AUTO_INST_SEED, auto_inst_seed_tooltip);
+      seedGrp->setTooltipId(PID_OVERRIDE_AUTO_INST_SEED, auto_inst_seed_tooltip);
+      seedGrp->setTooltipId(PID_AUTO_INST_SEED, auto_inst_seed_tooltip);
+      seedGrp->createIndent();
+    }
 
     seedGrp->createStatic(0, "Generate per-inst seed:");
     seedGrp->createButton(PID_GENERATE_PERINST_SEED, "Individual");
@@ -651,8 +672,10 @@ void LandscapeEntityObject::changeAssset(ObjectEditor &object_editor, dag::Const
     if (p)
     {
       object_editor.getUndoSystem()->put(new UndoEntityNamePropsChange(p));
+      object_editor.getUndoSystem()->put(new UndoPerInstSeedChange(p));
       p->props.entityName = asset;
       p->propsChanged();
+      p->generatePinnedPerInstSeed(); // the new asset may be the one asking for a pinned seed
       on_object_entity_name_changed(*p);
     }
   }
@@ -837,6 +860,35 @@ void LandscapeEntityObject::onPPChange(int pid, bool edit_finished, PropPanel::C
     if (LandscapeEntityObject *p = RTTI_cast<LandscapeEntityObject>(objects[0]))
       p->setPerInstSeed(panel.getInt(pid));
   }
+  else if (pid == PID_OVERRIDE_AUTO_INST_SEED || pid == PID_AUTO_INST_SEED)
+  {
+    const bool val = panel.getBool(pid);
+    getObjEditor()->getUndoSystem()->begin();
+    for (RenderableEditableObject *obj : objects)
+    {
+      LandscapeEntityObject *p = RTTI_cast<LandscapeEntityObject>(obj);
+      // The panel is built from the first object, so one click reaches the whole selection. Only a composit
+      // acts on these; an unresolved asset may be one elsewhere, and save() drops the pair if it is not.
+      if (!p || (p->entity && !p->entity->queryInterface<ICompositObj>()))
+      {
+        continue;
+      }
+      bool &prop = pid == PID_OVERRIDE_AUTO_INST_SEED ? p->props.overrideAutoInstSeed : p->props.autoInstSeed;
+      if (prop == val)
+      {
+        continue;
+      }
+      getObjEditor()->getUndoSystem()->put(new UndoPropsChange(p));
+      getObjEditor()->getUndoSystem()->put(new UndoPerInstSeedChange(p));
+      prop = val;
+      p->generatePinnedPerInstSeed();
+    }
+    getObjEditor()->getUndoSystem()->accept("Change props");
+
+    DAGORED2->invalidateViewportCache();
+    // the override value follows the override in and out of being editable, and a generated seed shows up
+    getObjEditor()->invalidateObjectProps();
+  }
   else if (pid >= PID_DECAL_MATERIAL_FIRST && pid <= PID_DECAL_MATERIAL_LAST)
   {
     int materialEntryIndex = pid - PID_DECAL_MATERIAL_FIRST;
@@ -957,6 +1009,14 @@ void LandscapeEntityObject::save(DataBlock &blk)
   blk.setInt("place_type", props.placeType);
   if (props.overridePlaceTypeForComposit)
     blk.setBool("force_cmp_place_type", props.overridePlaceTypeForComposit);
+  // only a composit reads these, and the two checkboxes reach a whole selection. Like seedSupported below,
+  // an entity that will not resolve on this machine keeps what it was loaded with.
+  const bool autoInstSeedSupported = !entity || entity->queryInterface<ICompositObj>() != nullptr;
+  if (props.overrideAutoInstSeed && autoInstSeedSupported)
+  {
+    blk.setBool("override_auto_inst_seed", props.overrideAutoInstSeed);
+    blk.setBool("auto_inst_seed", props.autoInstSeed);
+  }
 
   blk.setTm("tm", matrix);
 
@@ -1013,6 +1073,8 @@ void LandscapeEntityObject::load(const DataBlock &blk)
     props.placeType = props.PT_coll;
   props.placeType = blk.getInt("place_type", props.placeType);
   props.overridePlaceTypeForComposit = blk.getBool("force_cmp_place_type", false);
+  props.overrideAutoInstSeed = blk.getBool("override_auto_inst_seed", false);
+  props.autoInstSeed = blk.getBool("auto_inst_seed", true);
   TMatrix _tm = blk.getTm("tm", TMatrix::IDENT);
   if (check_nan(_tm))
   {
@@ -1065,6 +1127,49 @@ void LandscapeEntityObject::setRndSeed(int seed)
   IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>();
   if (irsh)
     irsh->setSeed(rndSeed);
+}
+
+// Marks the object as mouse driven, so its composit can batch the per-move bookkeeping only the final
+// position needs. Kept here rather than on the entity alone: setProps() rebuilds that entity.
+void LandscapeEntityObject::setInteractiveMove(bool on)
+{
+  interactiveMove = on;
+  if (!entity)
+    return;
+
+  if (ICompositObj *ico = entity->queryInterface<ICompositObj>())
+    ico->setCompositInteractiveMove(on);
+}
+
+// An explicit per-instance seed is what autoInstSeed:b=no asks for: see getSubEntInstSeed(). Only a newly
+// placed or cloned object gets one, never load(): giving an object already in a level a seed it never had
+// would rewrite the level just by opening it. The caller puts an UndoPerInstSeedChange when it edits an
+// object that already exists.
+void LandscapeEntityObject::generatePinnedPerInstSeed()
+{
+  // the two override props reach a whole selection, which can hold objects whose asset is not a composit
+  ICompositObj *ico = entity ? entity->queryInterface<ICompositObj>() : nullptr;
+  if (!ico)
+  {
+    return;
+  }
+  // forceInstSeed0 throws an explicit seed away, so a seed here would only be written into the level for
+  // nothing - and it overrules the object override, which cannot make the pool keep one
+  if (!ico->canCompositUseInstSeed())
+  {
+    return;
+  }
+  const bool autoSeed = props.overrideAutoInstSeed ? props.autoInstSeed : ico->getCompositAutoInstSeed();
+  if (autoSeed || perInstSeed)
+  {
+    return;
+  }
+  int seed = 0;
+  while (!seed)
+  {
+    seed = grnd();
+  }
+  setPerInstSeed(seed);
 }
 
 void LandscapeEntityObject::setPerInstSeed(int seed)
@@ -1123,6 +1228,8 @@ void LandscapeEntityObject::resetCollisionIgnored()
   }
 }
 
+// The one place a moved object re-places its entity: setPos() and setMatrix() route through this virtual,
+// so they must not re-place it themselves - that placed the whole composit twice per gizmo move.
 void LandscapeEntityObject::setWtm(const TMatrix &wtm)
 {
   RenderableEditableObject::setWtm(wtm);
@@ -1143,10 +1250,39 @@ void LandscapeEntityObject::setGizmoTranformMode(bool enable)
   gizmoEnabled = enable;
 }
 
+// Held for a whole drag rather than flipped inside setPosOnCollision(), which would assign the subtype
+// over the entire composit sub-entity tree twice per mouse move. Deliberately not part of
+// setGizmoTranformMode(): loading uses that to suppress placement, before the real subtype is assigned.
+void LandscapeEntityObject::setHiddenFromPlacementTrace(bool hide)
+{
+  if (!entity || (subtypeBeforeTraceHide >= 0) == hide)
+    return;
+  if (hide)
+  {
+    subtypeBeforeTraceHide = entity->getSubtype();
+    entity->setSubtype(IObjEntity::ST_NOT_COLLIDABLE);
+  }
+  else
+  {
+    entity->setSubtype(subtypeBeforeTraceHide);
+    subtypeBeforeTraceHide = -1;
+  }
+}
+
 void LandscapeEntityObject::onRemove(ObjectEditor *) { destroy_it(entity); }
 void LandscapeEntityObject::onAdd(ObjectEditor *objEditor)
 {
-  propsChanged();
+  // An object placed from a sample, cloned or imported arrives here fully configured, and rebuilding its
+  // entity regenerated the whole composit a second time. Every other path adds an object whose entity does
+  // not exist yet, including a re-add after undo, because onRemove() destroys it.
+  if (entity)
+  {
+    objectPropsChanged();
+  }
+  else
+  {
+    propsChanged();
+  }
 
   if (name.empty())
   {
@@ -1157,8 +1293,13 @@ void LandscapeEntityObject::onAdd(ObjectEditor *objEditor)
 
 void LandscapeEntityObject::setPosOnCollision(Point3 pos, bool setup_ri_collision)
 {
-  int stype = entity->getSubtype();
-  entity->setSubtype(entity->ST_NOT_COLLIDABLE);
+  // Setting the subtype assigns it over the whole composit sub-entity tree, so skip it when the entity
+  // already carries it: a gizmo drag and the placement preview hold it for their duration, and a root
+  // that is ST_NOT_COLLIDABLE always has a subtree that is too (createSubEnt seeds children with it).
+  const int stype = entity->getSubtype();
+  const bool hideFromTrace = stype != IObjEntity::ST_NOT_COLLIDABLE;
+  if (hideFromTrace)
+    entity->setSubtype(IObjEntity::ST_NOT_COLLIDABLE);
 
   TMatrix etm = matrix;
   if (props.placeType == props.PT_collNorm)
@@ -1224,25 +1365,22 @@ void LandscapeEntityObject::setPosOnCollision(Point3 pos, bool setup_ri_collisio
   }
 
   etm.setcol(3, pos);
-  entity->setSubtype(stype);
+  if (hideFromTrace)
+    entity->setSubtype(stype);
   entity->setTm(etm);
-}
-
-bool LandscapeEntityObject::setPos(const Point3 &p)
-{
-  if (!RenderableEditableObject::setPos(p))
-    return false;
-
-  if (entity)
-    updateEntityPosition(true);
-
-  return true;
 }
 
 void LandscapeEntityObject::setPlaceOnCollision(bool place_on_rendinst)
 {
-  if (!props.overridePlaceTypeForComposit)
-    props.placeType = place_on_rendinst ? props.PT_riColl : default_place_type;
+  // The create-entity mouse handler calls this every move and then re-places via setWtm anyway,
+  // so only re-apply here when the place mode actually changes; otherwise the full composit
+  // re-placement runs twice per move.
+  if (props.overridePlaceTypeForComposit)
+    return;
+  const int new_place_type = place_on_rendinst ? props.PT_riColl : default_place_type;
+  if (props.placeType == new_place_type)
+    return;
+  props.placeType = new_place_type;
   setWtm(matrix);
 }
 void LandscapeEntityObject::objectPropsChanged()
@@ -1302,7 +1440,10 @@ void LandscapeEntityObject::propsChanged(bool prevent_gen)
       irsh->setPerInstanceSeed(perInstSeed);
     }
     if (ICompositObj *ico = entity->queryInterface<ICompositObj>())
+    {
       ico->setCompositPlaceTypeOverride(props.overridePlaceTypeForComposit ? props.placeType : -1);
+      ico->setCompositInteractiveMove(interactiveMove);
+    }
 
     IEntityCollisionState *ecs = entity->queryInterface<IEntityCollisionState>();
     if (ecs)
@@ -1327,10 +1468,13 @@ LandscapeEntityObject *LandscapeEntityObject::clone()
 
   Props pr = obj->getProps();
   pr.placeType = props.placeType;
+  pr.overrideAutoInstSeed = props.overrideAutoInstSeed;
+  pr.autoInstSeed = props.autoInstSeed;
   obj->setProps(pr);
 
   TMatrix tm = getWtm();
   obj->setWtm(tm);
+  obj->generatePinnedPerInstSeed();
 
   return obj;
 }

@@ -380,13 +380,13 @@ bool HeightmapPhysHandler::traceray(const Point3 &p, const Point3 &dir, real &t,
   rayBox += end;
   if (!(worldBox & rayBox))
     return false;
-  if (!v_test_segment_box_intersection(v_ldu(&p.x), v_ld(&end.x), vecbox))
+  if (!v_test_segment_box_intersection(v_ldu_p3_safe(&p.x), v_ld(&end.x), vecbox))
     return false;
   return trace_ray_midpoint_heightmap(*this, p, dir, t, normal, cull);
 }
 bool HeightmapPhysHandler::rayhitNormalized(const Point3 &p, const Point3 &normDir, real t) const
 {
-  vec3f pt = v_ldu(&p.x), end = v_madd(v_ldu(&normDir.x), v_splats(t), pt);
+  vec3f pt = v_ldu_p3_safe(&p.x), end = v_madd(v_ldu_p3_safe(&normDir.x), v_splats(t), pt);
   bbox3f rayBox;
   rayBox.bmin = v_min(end, pt);
   rayBox.bmax = v_max(end, pt);
@@ -404,7 +404,7 @@ bool HeightmapPhysHandler::rayUnderHeightmapNormalized(const Point3 &p, const Po
   rayBox += end;
   if (!(worldBox & rayBox))
     return false;
-  if (!v_test_segment_box_intersection(v_ldu(&p.x), v_ld(&end.x), vecbox))
+  if (!v_test_segment_box_intersection(v_ldu_p3_safe(&p.x), v_ld(&end.x), vecbox))
     return false;
   return ray_under_heightmap(*this, p, normDir, t);
 }

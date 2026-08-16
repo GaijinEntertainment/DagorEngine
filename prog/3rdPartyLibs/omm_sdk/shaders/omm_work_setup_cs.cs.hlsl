@@ -33,7 +33,44 @@ void main(uint3 tid : SV_DispatchThreadID)
 	const uint primitiveIndex		= tid.x;
 
 	const TexCoords texCoords		= FetchTexCoords(t_indexBuffer, t_texCoordBuffer, primitiveIndex);
+
+	const float2 tp0 = texCoords.p0 * g_GlobalConstants.TexSize;
+	const float2 tp1 = texCoords.p1 * g_GlobalConstants.TexSize;
+	const float2 tp2 = texCoords.p2 * g_GlobalConstants.TexSize;
+
+	// Enormous or non-finite UVs hang the gpu
+	{
+		const float2 aabbExtent = max(max(tp0, tp1), tp2) - min(min(tp0, tp1), tp2);
+		const float aabbArea = aabbExtent.x * aabbExtent.y;
+		// min/max drop a lone NaN, so test the vertices explicitly; the
+		// inverted comparison also catches inf.
+		if (any(isnan(tp0)) || any(isnan(tp1)) || any(isnan(tp2)) ||
+			!(aabbArea <= g_GlobalConstants.TexSize.x * g_GlobalConstants.TexSize.y * 256.f))
+		{
+			OMM_SUBRESOURCE_STORE(TempOmmIndexBuffer, 4 * primitiveIndex, (int)SpecialIndex::FullyUnknownOpaque);
+			return;
+		}
+	}
+
 	const uint subdivisionLevel		= GetSubdivisionLevel(texCoords);
+
+	// The compute rasterizer gives one thread the whole texel aabb of a micro-triangle, clamped to the
+	// viewport, and a sliver with no interior scans each row in full. Reject the triangle here, where the
+	// special index keeps the any-hit shader for it: OC1_2 has no unknown micro-triangle state, thus a
+	// fallback in the rasterizer could only store a definite state.
+	{
+		const float2 rasterAreaStart	= -g_GlobalConstants.ViewportOffset;
+		const float2 rasterAreaEnd		= g_GlobalConstants.ViewportSize - g_GlobalConstants.ViewportOffset;
+		const float2 scanExtent			= clamp(max(max(tp0, tp1), tp2), rasterAreaStart, rasterAreaEnd) -
+										  clamp(min(min(tp0, tp1), tp2), rasterAreaStart, rasterAreaEnd);
+		// Each micro-triangle covers about its share of the macro aabb.
+		const float texelsPerMicroTriangle = scanExtent.x * scanExtent.y / float(GetNumMicroTriangles(subdivisionLevel));
+		if (texelsPerMicroTriangle > float(1u << 20u))
+		{
+			OMM_SUBRESOURCE_STORE(TempOmmIndexBuffer, 4 * primitiveIndex, (int)SpecialIndex::FullyUnknownOpaque);
+			return;
+		}
+	}
 
 	uint hashTableEntryIndex;
 	hashTable::Result result		= FindOrInsertOMMEntry(texCoords, subdivisionLevel, hashTableEntryIndex);

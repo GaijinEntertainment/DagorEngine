@@ -5,14 +5,18 @@ include_optional "rt/rt_underwater_fade.dshl"
 buffer bvh_meta;
 buffer bvh_per_instance_data;
 buffer bvh_particle_data;
+buffer bvh_lru_collision_face_normals;
+buffer bvh_lru_collision_normals_index;
 
 tlas bvh_main;
 tlas bvh_terrain;
 tlas bvh_particles;
+tlas bvh_lru_collision;
 
 int bvh_main_valid;
 int bvh_terrain_valid;
 int bvh_particles_valid;
+int bvh_lru_collision_valid;
 
 int bvh_meta_count = 0;
 
@@ -335,6 +339,7 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
     static const uint bvhMaterialMonochrome = 7;
     static const uint bvhMaterialSmokeTracer = 8;
 
+    static const uint bvhMaterialDynrend = 1 << 14;
     static const uint bvhMaterialAnimcharDecals = 1 << 15;
     static const uint bvhMaterialAlphaTest = 1 << 16;
     static const uint bvhMaterialPainted = 1 << 17;
@@ -441,6 +446,10 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
     bool has_animchar_decals(uint material)
     {
       return material & bvhMaterialAnimcharDecals;
+    }
+    bool is_dynrend(uint material)
+    {
+      return material & bvhMaterialDynrend;
     }
     bool is_alpha_in_red(uint material)
     {
@@ -1448,6 +1457,47 @@ endmacro
 macro USE_BVH(stage, need_textures, need_normal, need_color, cull_back_face, handle_translucent, first_hit, terrain_has_normal, gen_face_normal)
   USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face, handle_translucent, first_hit, terrain_has_normal, gen_face_normal)
   USE_PARTICLE_BVH(stage)
+endmacro
+
+macro INIT_BVH_LRU_COLLISION_NORMALS(stage)
+  (stage) {
+    bvh_lru_collision_face_normals@buf = bvh_lru_collision_face_normals hlsl {
+      StructuredBuffer<uint> bvh_lru_collision_face_normals@buf;
+    };
+    bvh_lru_collision_normals_index@buf = bvh_lru_collision_normals_index hlsl {
+      StructuredBuffer<uint> bvh_lru_collision_normals_index@buf;
+    };
+  }
+endmacro
+
+// The lru collision TLAS has no mesh meta: the instance id is the collision model
+// type, and this per-triangle pool is the only hit attribute. The stored normal is
+// the geometric face normal in object space. Bind through bvh::bind_resources
+// after the build that updated the module and before tracing, like every bvh
+// resource: the table buffer is replaced on growth.
+macro USE_BVH_LRU_COLLISION_NORMALS(stage)
+  hlsl(stage) {
+    #include <bvh_lru_collision_normal_pack.hlsli>
+
+    float3 bvh_lru_collision_object_normal(uint instance_id, uint primitive_index)
+    {
+      uint offset = structuredBufferAt(bvh_lru_collision_normals_index, instance_id);
+      // a stale table can hold the no-region sentinel for a model rebuilt in the
+      // same update: degrade to a fixed normal, never an out-of-range pool read
+      if (offset == ~0u)
+        return float3(0, 0, 1);
+      return bvh_lru_collision_unpack_normal(structuredBufferAt(bvh_lru_collision_face_normals, offset + primitive_index));
+    }
+
+    // world_to_object: CommittedWorldToObject3x4() of the hit; the transposed-inverse
+    // form keeps the normal correct under non-uniform instance scale. Oriented toward
+    // the ray origin, per the single-sheet contract.
+    float3 bvh_lru_collision_hit_normal(uint instance_id, uint primitive_index, float3x4 world_to_object, float3 ray_dir)
+    {
+      float3 normal = normalize(mul(bvh_lru_collision_object_normal(instance_id, primitive_index), (float3x3)world_to_object));
+      return dot(normal, ray_dir) > 0 ? -normal : normal;
+    }
+  }
 endmacro
 
 macro USE_BVH_FX_RENDER(stage)

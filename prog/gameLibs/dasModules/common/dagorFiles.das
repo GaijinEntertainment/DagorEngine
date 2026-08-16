@@ -44,7 +44,7 @@ struct df_header
 
 def df_load(f : DagFile const?; buf : auto(BufType) -const)
   var dfh : df_header
-  let r1 = _builtin_df_read(f, dfh, typeinfo sizeof(type<df_header>))
+  let r1 = df_read(f, dfh)
   if r1 < 0
     return false
   if dfh.magic != df_magic

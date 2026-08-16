@@ -32,14 +32,14 @@ public:
 
     if (map.size() >= IDX_GRAY)
     {
-      G_ASSERTF(map.size() < IDX_GRAY, "failed to add %08X,%08X, too many ranges created: %d", from, to, map.size());
+      G_ASSERTF(map.size() < IDX_GRAY, "failed to add color range %08X,%08X, too many ranges created: %d", from.u, to.u, map.size());
       return IDX_GRAY;
     }
 
     int idx = append_items(map, 1);
     map[idx].from = from;
     map[idx].to = to;
-    debug("add %08X,%08X as %d", from, to, idx);
+    debug("add color range %08X,%08X as %d", from.u, to.u, idx);
     return idx;
   }
 

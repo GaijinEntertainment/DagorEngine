@@ -6,35 +6,23 @@
 #include "cfg.h"
 #include "common.h"
 
-CfgReader::CfgReader() {}
-
 CfgReader::CfgReader(const std::wstring &name) : filename(name) {}
-
-CfgReader::~CfgReader() {}
 
 StringVector *CfgReader::GetSectionNames()
 {
-  static const int MAX_BUF_FOR_SEC_NAMES = 8192;
-  static TCHAR buff[MAX_BUF_FOR_SEC_NAMES];
   section_names.clear();
 
-  int size = MaxSDK::Util::GetPrivateProfileSectionNames(buff, MAX_BUF_FOR_SEC_NAMES, filename.c_str());
+  MaxSDK::Array<MCHAR> buf;
+  const DWORD size = MaxSDK::Util::GetPrivateProfileSectionNames(buf, filename.c_str());
+  const MCHAR *names = buf.asArrayPtr();
 
-  std::wstring section;
-  for (int i = 0; i < size; i++)
+  // one run of null-terminated names
+  for (DWORD i = 0; i < size;)
   {
-    if (buff[i] != '\0')
-    {
-      section += buff[i];
-    }
-    else
-    {
-      if (!section.empty())
-      {
-        section_names.push_back(section);
-      }
-      section.erase();
-    }
+    const size_t len = wcslen(names + i);
+    if (len)
+      section_names.emplace_back(names + i, len);
+    i += DWORD(len) + 1;
   }
 
   return &section_names;
@@ -42,11 +30,11 @@ StringVector *CfgReader::GetSectionNames()
 
 std::wstring CfgReader::GetKeyValue(const std::wstring &key, const std::wstring &sec)
 {
-  static TCHAR buff[MAX_CFG_DATA];
-  // get the info from the .ini file
-  MaxSDK::Util::GetPrivateProfileString(sec.c_str(), key.c_str(), _T(""), buff, 255, filename.c_str());
+  MaxSDK::Array<MCHAR> buf;
+  if (!MaxSDK::Util::GetPrivateProfileString(sec.c_str(), key.c_str(), _T(""), buf, filename.c_str()))
+    return std::wstring();
 
-  return std::wstring(buff);
+  return std::wstring(buf.asArrayPtr());
 }
 
 
@@ -58,10 +46,6 @@ bool CfgReader::WriteKeyVal(const std::wstring &key, const std::wstring &sec, co
 
 
 CfgShader::CfgShader(const std::wstring &name) : CfgReader(name) {}
-
-CfgShader::~CfgShader() {}
-
-void CfgShader::GetCfgFilename(const TCHAR *cfg, TCHAR *filename) { _tcscpy_s(filename, MAX_PATH, get_cfg_filename(cfg).c_str()); }
 
 StringVector *CfgShader::GetShaderNames()
 {

@@ -146,7 +146,7 @@ CompositeEditorTreeDataNode *CompositeEditorTreeData::getTreeDataNodeByDataBlock
   return nullptr;
 }
 
-CompositeEditorTreeDataNode *CompositeEditorTreeData::getTreeDataNodeParent(CompositeEditorTreeDataNode &searchFor,
+CompositeEditorTreeDataNode *CompositeEditorTreeData::getTreeDataNodeParent(const CompositeEditorTreeDataNode &searchFor,
   CompositeEditorTreeDataNode &searchIn, int &nodeIndex)
 {
   for (int i = 0; i < searchIn.nodes.size(); ++i)

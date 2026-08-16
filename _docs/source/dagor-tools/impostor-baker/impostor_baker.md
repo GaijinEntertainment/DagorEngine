@@ -139,6 +139,9 @@ The options are:
   - **`disabled`**: never generate or modify these files;
   - **`dont_replace`**: generate `.folder.blk` if it doesn't exist;
   - **`replace`** (default value): always generate or replace existing.
+- `voxelOnly`: bake only voxel impostors.
+- `flatOnly`: bake only flat impostors.
+- `force_rebake`: rebake assets even if they weren't changed.
 
 If the assets or packs options are set, only those assets will be generated.
 Otherwise all supported assets (rendinst which have an `impostor{}` block). If
@@ -355,6 +358,115 @@ The default values can be found in:
      enabled:b=       // default = no
    }
    ```
+
+## How to Enable the Voxel Impostor Generation of an Asset
+
+First of all, the asset has to be of type `rendinst`, otherwise the tool will
+just skip it.
+
+Add a `voxel_impostor{}` block to the content of the virtual asset. The `voxel_impostor{}`
+block **must be directly inside of the `contents{}` block**, not inside of a
+third block.
+
+**Example:**
+
+```blk
+virtual_res_blk{
+  find:t="^(.*)\.lod00\.dag$"
+  className:t="rendInst"
+  contents{
+    lod { range:r=50; }
+    lod { range:r=100; }
+    voxel_impostor{
+      lodToBake:i=1
+      maxLayers:i=3
+    }
+    //...
+  }
+}
+```
+
+Any of the parameters inside the `voxel_impostor{}` block can be left out to use the
+values from `application.blk`, or the default ones. The block can also be empty.
+
+The tool will generate voxel slices of the model and save them to
+`(asset_name)_voxCache.bin` file in `impostors` folder. This data will then
+be used when building the asset to generate voxel mips and LODs.
+
+- `enabled:b`: usually omitted because default value is `yes`, set to `no` to
+  disable voxel LODs, usually for testing.
+- `voxelSize:r`: size of a single voxel, if zero or negative (like the default value of `-1`)
+  it will be computed automatically.
+- `minVoxelSize:r`: minimum voxel size when computing it automatically.
+- `triangleThreshold:r`: percent of triangles that need to be about pixel
+  size to switch to voxels. It's used to compute `voxelSize`. Default is `70`.
+- `minMapSize:i`: minimum size of voxel map. Voxels are stored in 4x4x4 blocks,
+  so there's no reason to set this lower than `4`, which is the default value.
+  Increase it if small objects loose their shape when baked to voxels.
+- `maxMapSize:i`: maximum size of voxel map, limits memory used for voxels.
+  Default is `256`.
+- `lodToBake:i`: LOD number to bake voxels from, starts at zero. Default is `0`.
+- `maxLayers:i`: maximum number of layers to store surface data like albedo
+  and normals, increase if the object has complex shape and coloring which
+  is lost when baked to voxels. Default is `2`.
+- `adjustMeshLodRanges:b`: adjust ranges of mesh LODs, so that they switch
+  to next one, and eventually to voxels when many triangles become too small.
+  Default is `yes`.
+
+## How to Enable Voxel Impostors in a New Game
+
+Optionally add `assets{voxel_impostor{}}` block to the `application.blk`
+
+- `targetResolution:r`: typical resolution used to compute voxel size and
+  LOD ranges automatically. Increase if voxel impostors look too blocky,
+  decrease to make voxels use less memory. Default is `1080`.
+- `targetFov:r`: typical field of view (degrees), used together with
+  `targetResolution`. Default is `70`.
+- `enabled:b`: when set to `yes`, voxel impostors will be generated for all
+  supported asset types, even if `voxel_impostor{}` block is missing. Default is `no`.
+- Project-wide default values for parameters of the `contents{voxel_impostor{}}`
+  block can be specified here as well. If left out, the built-in default values are used.
+
+**Example**
+
+```blk
+voxel_impostor{
+  targetResolution:r=2000
+  targetFov:r=70
+  minMapSize:i=8
+}
+```
+
+## Shader Support for Voxel Impostors
+
+To bake voxels, a shader must support `rendinst_render_pass_impostor_voxel`
+and output correct data for the impostor baker. Use `voxel_baking.dshl`
+to provide the output.
+
+Currently these shaders can be baked:
+
+- `rendinst_simple`
+- `rendinst_simple_painted`
+- `rendinst_perlin_layered`
+- `rendinst_mask_layered`
+- `rendinst_layered`
+- `rendinst_blend_diffuse_decal`
+- `rendinst_modulate2x_diffuse_decal`
+
+Currently baked voxels store:
+
+- albedo
+- normal
+- monochrome coloring multiplier (for painted objects)
+- palette index
+- palette row
+- smoothness / roughness
+- metalness
+- reflectance
+- translucency
+
+There's no transparency support, but the voxels are dithered in 3D to
+represent partial coverage, especially for smaller voxel mips.
 
 ## How to Use ImpostorNormalMip for Smoothness Hack
 

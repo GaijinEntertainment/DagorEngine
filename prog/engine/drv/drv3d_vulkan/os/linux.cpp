@@ -15,6 +15,23 @@ using namespace drv3d_vulkan;
 
 void drv3d_vulkan::get_video_modes_list(Tab<String> &list) { linux_GUI::get_video_mode_list(list); }
 
+bool drv3d_vulkan::get_monitors_list(Tab<String> &monitors)
+{
+  linux_GUI::get_monitors(monitors);
+  return monitors.size() > 0;
+}
+
+bool drv3d_vulkan::get_monitor_info(const char *monitor_name, String *friendly_name, int *monitor_index)
+{
+  return linux_GUI::get_monitor_info(monitor_name, friendly_name, monitor_index);
+}
+
+bool drv3d_vulkan::get_resolutions_from_monitor(const char *monitor_name, Tab<String> &resolutions)
+{
+  linux_GUI::get_resolutions_from_monitor(monitor_name, resolutions);
+  return resolutions.size() > 0;
+}
+
 bool drv3d_vulkan::validate_vulkan_signature(void *file)
 {
   G_UNREFERENCED(file);
@@ -159,6 +176,10 @@ void drv3d_vulkan::WindowState::closeWindow()
 void drv3d_vulkan::os_restore_display_mode() {}
 
 void drv3d_vulkan::os_set_display_mode(int, int) {}
+
+void drv3d_vulkan::os_present_window_lock() { linux_GUI::lock_window(linux_GUI::get_main_window_ptr_handle()); }
+
+void drv3d_vulkan::os_present_window_unlock() { linux_GUI::unlock_window(linux_GUI::get_main_window_ptr_handle()); }
 
 eastl::string drv3d_vulkan::os_get_additional_ext_requirements(VulkanPhysicalDeviceHandle, const dag::Vector<VkExtensionProperties> &)
 {

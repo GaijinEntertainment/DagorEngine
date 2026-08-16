@@ -8,7 +8,8 @@ void preprocess_visible_animchars_in_frustum(
   const UpdateStageInfoBeforeRender &stg,
   const Frustum &frustum,
   const vec3f &eye_pos,
-  AnimcharVisbits custom_flag_to_add);
+  AnimcharVisbits custom_flag_to_add,
+  float lod_dist_mul);
 
 void animchar_render_single_opaque(ecs::EntityId eid, const UpdateStageInfoRender &stg);
 // The given animchar will be rendered to reactive mask in the current frame

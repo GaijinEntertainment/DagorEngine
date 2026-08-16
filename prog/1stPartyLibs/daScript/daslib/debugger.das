@@ -2,6 +2,7 @@ options gen2
 options indenting = 4
 options remove_unused_symbols = false
 options no_aot = true
+options no_global_variables = false
 options strict_smart_pointers = true
 
 module debugger shared public
@@ -36,11 +37,17 @@ class DapiDebugAgent {
     @do_not_delete thisAgent : DebugAgent ?
 }
 
+// GC root for every installed agent: the C++ DebugAgentAdapter holds a raw classPtr the das GC
+// can't see, so an unrooted agent is collected and the adapter reads freed memory (the
+// 2026-07-19 serving crash). Base-typed — the gc walker traces class objects by runtime type.
+var private @ignore_heap_usage g_installed_agents : array<DapiDebugAgent?>
+
 def install_new_debug_agent(var agentPtr; category : string) {
     static_if (typeinfo is_class(*agentPtr)) {
         let agentInfo = class_info(*agentPtr)
         var inscope agentAdapter <- make_debug_agent(agentPtr, agentInfo)
         agentPtr.thisAgent = unsafe(reinterpret<DebugAgent?>(agentAdapter))
+        g_installed_agents |> push(unsafe(reinterpret<DapiDebugAgent?>(agentPtr)))
         install_debug_agent(agentAdapter, category)
         this_context().name := "debug agent {category}"
     } else {
@@ -53,6 +60,7 @@ def install_new_thread_local_debug_agent(var agentPtr) {
         let agentInfo = class_info(*agentPtr)
         var inscope agentAdapter <- make_debug_agent(agentPtr, agentInfo)
         agentPtr.thisAgent = unsafe(reinterpret<DebugAgent?>(agentAdapter))
+        g_installed_agents |> push(unsafe(reinterpret<DapiDebugAgent?>(agentPtr)))
         install_debug_agent_thread_local(agentAdapter)
         this_context().name := "thread local debug agent"
     } else {
@@ -61,12 +69,6 @@ def install_new_thread_local_debug_agent(var agentPtr) {
 }
 
 // das::Array. should we bind C++ structure?
-//
-// IMPORTANT: keep this struct byte-compatible with C++ `das::Array` in
-// include/daScript/misc/arraytype.h. The `_pad_after_flags` field mirrors
-// the explicit pad added to the C++ struct to make Table::keys land at the
-// same offset on every ABI (clang/Itanium 32-bit would otherwise reuse base
-// trailing padding and put keys 4 bytes earlier than MSVC).
 struct DapiArray {
     data : void?
     size : uint64
@@ -189,6 +191,29 @@ class DapiDataWalker {
     def abstract URange(var value : urange&) : void
     def abstract Range64(var value : range64&) : void
     def abstract URange64(var value : urange64&) : void
+    def abstract Float16(var value : float16&) : void
+    def abstract Half2(var value : half2&) : void
+    def abstract Half3(var value : half3&) : void
+    def abstract Half4(var value : half4&) : void
+    def abstract Half8(var value : half8&) : void
+    def abstract Short2(var value : short2&) : void
+    def abstract Short3(var value : short3&) : void
+    def abstract Short4(var value : short4&) : void
+    def abstract Short8(var value : short8&) : void
+    def abstract UShort2(var value : ushort2&) : void
+    def abstract UShort3(var value : ushort3&) : void
+    def abstract UShort4(var value : ushort4&) : void
+    def abstract UShort8(var value : ushort8&) : void
+    def abstract Byte2(var value : byte2&) : void
+    def abstract Byte3(var value : byte3&) : void
+    def abstract Byte4(var value : byte4&) : void
+    def abstract Byte8(var value : byte8&) : void
+    def abstract Byte16(var value : byte16&) : void
+    def abstract UByte2(var value : ubyte2&) : void
+    def abstract UByte3(var value : ubyte3&) : void
+    def abstract UByte4(var value : ubyte4&) : void
+    def abstract UByte8(var value : ubyte8&) : void
+    def abstract UByte16(var value : ubyte16&) : void
     def abstract WalkBlock(var value : DapiBlock) : void
     def abstract WalkFunction(var value : DapiFunc) : void
     def abstract WalkEnumeration(var value : int&; ei : EnumInfo) : void

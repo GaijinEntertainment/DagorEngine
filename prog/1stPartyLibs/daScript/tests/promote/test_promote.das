@@ -30,11 +30,11 @@ def returns_float() : float {
 def test_var_init_local(t : T?) {
     let i8 : int8 = -42
     let i16 : int16 = 30000
-    let i64 : int64 = 1
+    let i64 : int64 = 1  // nolint:LINT021 - promotion fixture narrows on purpose
     let u8 : uint8 = 250
     let u16 : uint16 = 60000
     let u : uint = 0xDEADBEEF
-    let u64 : uint64 = 0xFFFFFFFF
+    let u64 : uint64 = 0xFFFFFFFF  // nolint:LINT021 - promotion fixture narrows on purpose
     let f : float = 100
     let d : double = 100
     let bf8 : bitfield8 = 255

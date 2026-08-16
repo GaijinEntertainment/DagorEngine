@@ -41,14 +41,14 @@ macro READ_WORLD_SDF_MATH_USE(code)
     {
       // 9 is hardcoded currently. TODO: support array size in preshader for such checks.
       ##assert(clip < 9, "[%s:%.f] Out of bounds: Buffer 'world_sdf_lt' has size 9, but access to (%.f)", file, ln, clip);
-      return world_sdf_lt[clip];
+      return world_sdf_lt[min(clip, uint(MAX_WORLD_SDF_CLIPS))];
     }
     #define sample_world_sdf_to_tc_add(clip) _sample_world_sdf_to_tc_add(clip, _FILE_, __LINE__)
     float4 _sample_world_sdf_to_tc_add(uint clip, int file, int ln)
     {
       // 9 is hardcoded currently. TODO: support array size in preshader for such checks.
       ##assert(clip < 9, "[%s:%.f] Out of bounds: Buffer 'world_sdf_to_tc_add' has size 9, but access to (%.f)", file, ln, clip);
-      return world_sdf_to_tc_add[clip];
+      return world_sdf_to_tc_add[min(clip, uint(MAX_WORLD_SDF_CLIPS))];
     }
 
     // Some logic have been moved to hlsl to allow use in NBS

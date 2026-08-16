@@ -72,6 +72,7 @@ typedef struct Fsr2Constants {
     float                       deltaTime;
     float                       dynamicResChangeFactor;
     float                       viewSpaceToMetersFactor;
+    int32_t                     preRotation;
 } Fsr2Constants;
 
 struct FfxmFsr2ContextDescription;

@@ -10238,7 +10238,5127 @@ vec4f fastcall64_15_1_63 ( void * fn, vec4f * args ) {
     return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14) );
 }
 
-#define MAX_WRAPPER_ARGUMENTS  16
+vec4f fastcall64_16_0_0 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_1 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_2 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_3 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_4 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_5 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_6 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_7 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_8 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_9 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_10 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_11 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_12 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_13 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_14 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_15 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_16 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_17 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_18 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_19 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_20 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_21 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_22 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_23 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_24 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_25 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_26 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_27 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_28 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_29 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_30 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_31 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_32 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_33 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_34 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_35 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_36 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_37 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_38 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_39 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_40 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_41 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_42 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_43 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_44 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_45 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_46 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_47 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_48 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_49 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_50 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_51 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_52 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_53 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_54 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_55 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_56 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_57 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_58 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_59 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_60 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_61 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_62 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_0_63 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) ) );
+}
+
+vec4f fastcall64_16_1_0 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_1 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_2 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_3 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_4 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_5 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_6 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_7 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_8 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_9 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_10 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_11 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_12 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_13 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_14 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_15 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_16 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_17 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_18 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_19 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_20 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_21 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_22 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_23 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_24 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_25 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_26 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_27 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_28 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_29 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_30 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_31 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_32 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_33 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_34 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_35 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_36 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_37 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_38 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_39 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_40 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_41 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_42 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_43 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_44 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_45 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_46 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_47 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_48 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_49 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_50 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_51 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_52 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_53 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_54 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_55 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_56 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_57 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_58 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_59 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_60 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_61 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_62 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_16_1_63 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15) );
+}
+
+vec4f fastcall64_17_0_0 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_1 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_2 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_3 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_4 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_5 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_6 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_7 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_8 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_9 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_10 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_11 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_12 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_13 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_14 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_15 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_16 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_17 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_18 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_19 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_20 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_21 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_22 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_23 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_24 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_25 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_26 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_27 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_28 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_29 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_30 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_31 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_32 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_33 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_34 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_35 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_36 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_37 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_38 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_39 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_40 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_41 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_42 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_43 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_44 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_45 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_46 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_47 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_48 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_49 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_50 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_51 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_52 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_53 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_54 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_55 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_56 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_57 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_58 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_59 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_60 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_61 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_62 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_0_63 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) ) );
+}
+
+vec4f fastcall64_17_1_0 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_1 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_2 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_3 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_4 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_5 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_6 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_7 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_8 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_9 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_10 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_11 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_12 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_13 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_14 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_15 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_16 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_17 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_18 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_19 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_20 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_21 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_22 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_23 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_24 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_25 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_26 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_27 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_28 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_29 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_30 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_31 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_32 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_33 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_34 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_35 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_36 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_37 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_38 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_39 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_40 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_41 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_42 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_43 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_44 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_45 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_46 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_47 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_48 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_49 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_50 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_51 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_52 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_53 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_54 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_55 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_56 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_57 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_58 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_59 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_60 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_61 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_62 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_17_1_63 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16) );
+}
+
+vec4f fastcall64_18_0_0 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_1 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_2 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_3 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_4 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_5 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_6 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_7 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_8 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_9 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_10 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_11 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_12 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_13 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_14 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_15 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_16 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_17 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_18 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_19 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_20 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_21 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_22 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_23 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_24 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_25 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_26 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_27 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_28 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_29 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_30 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_31 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_32 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_33 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_34 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_35 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_36 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_37 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_38 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_39 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_40 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_41 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_42 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_43 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_44 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_45 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_46 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_47 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_48 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_49 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_50 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_51 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_52 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_53 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_54 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_55 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_56 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_57 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_58 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_59 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_60 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_61 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_62 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_0_63 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) ) );
+}
+
+vec4f fastcall64_18_1_0 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_1 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_2 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_3 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_4 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_5 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_6 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_7 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_8 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_9 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_10 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_11 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_12 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_13 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_14 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_15 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_16 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_17 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_18 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_19 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_20 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_21 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_22 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_23 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_24 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_25 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_26 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_27 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_28 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_29 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_30 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_31 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_32 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_33 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_34 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_35 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_36 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_37 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_38 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_39 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_40 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_41 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_42 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_43 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_44 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_45 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_46 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_47 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_48 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_49 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_50 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_51 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_52 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_53 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_54 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_55 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_56 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_57 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_58 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_59 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_60 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_61 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_62 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_18_1_63 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17) );
+}
+
+vec4f fastcall64_19_0_0 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_1 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_2 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_3 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_4 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_5 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_6 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_7 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_8 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_9 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_10 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_11 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_12 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_13 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_14 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_15 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_16 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_17 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_18 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_19 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_20 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_21 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_22 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_23 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_24 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_25 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_26 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_27 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_28 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_29 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_30 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_31 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_32 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_33 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_34 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_35 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_36 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_37 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_38 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_39 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_40 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_41 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_42 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_43 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_44 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_45 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_46 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_47 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_48 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_49 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_50 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_51 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_52 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_53 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_54 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_55 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_56 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_57 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_58 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_59 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_60 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_61 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_62 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_0_63 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) ) );
+}
+
+vec4f fastcall64_19_1_0 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_1 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_2 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_3 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_4 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_5 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_6 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_7 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_8 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_9 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_10 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_11 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_12 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_13 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_14 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_15 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_16 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_17 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_18 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_19 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_20 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_21 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_22 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_23 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_24 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_25 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_26 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_27 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_28 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_29 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_30 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_31 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_32 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_33 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_34 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_35 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_36 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_37 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_38 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_39 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_40 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_41 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_42 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_43 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_44 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_45 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_46 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_47 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_48 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_49 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_50 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_51 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_52 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_53 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_54 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_55 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_56 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_57 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_58 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_59 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_60 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_61 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_62 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_19_1_63 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18) );
+}
+
+vec4f fastcall64_20_0_0 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_1 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_2 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_3 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_4 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_5 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_6 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_7 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_8 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_9 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_10 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_11 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_12 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_13 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_14 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_15 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_16 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_17 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_18 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_19 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_20 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_21 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_22 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_23 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_24 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_25 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_26 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_27 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_28 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_29 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_30 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_31 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_32 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_33 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_34 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_35 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_36 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_37 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_38 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_39 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_40 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_41 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_42 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_43 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_44 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_45 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_46 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_47 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_48 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_49 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_50 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_51 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_52 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_53 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_54 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_55 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_56 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_57 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_58 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_59 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_60 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_61 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_62 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_0_63 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) ) );
+}
+
+vec4f fastcall64_20_1_0 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_1 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_2 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_3 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_4 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_5 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_6 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_7 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_8 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_9 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_10 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_11 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_12 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_13 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_14 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_15 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_16 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_17 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_18 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_19 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_20 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_21 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_22 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_23 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_24 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_25 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_26 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_27 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_28 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_29 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_30 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_31 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_32 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_33 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_34 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_35 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_36 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_37 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_38 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_39 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_40 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_41 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_42 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_43 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_44 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_45 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_46 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_47 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_48 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_49 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_50 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_51 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_52 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_53 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_54 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_55 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_56 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_57 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_58 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_59 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_60 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_61 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_62 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_20_1_63 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19) );
+}
+
+vec4f fastcall64_21_0_0 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_1 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_2 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_3 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_4 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_5 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_6 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_7 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_8 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_9 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_10 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_11 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_12 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_13 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_14 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_15 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_16 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_17 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_18 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_19 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_20 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_21 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_22 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_23 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_24 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_25 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_26 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_27 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_28 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_29 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_30 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_31 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_32 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_33 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_34 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_35 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_36 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_37 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_38 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_39 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_40 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_41 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_42 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_43 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_44 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_45 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_46 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_47 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_48 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_49 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_50 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_51 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_52 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_53 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_54 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_55 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_56 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_57 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_58 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_59 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_60 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_61 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_62 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_0_63 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) ) );
+}
+
+vec4f fastcall64_21_1_0 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_1 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_2 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_3 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_4 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_5 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_6 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_7 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_8 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_9 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_10 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_11 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_12 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_13 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_14 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_15 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_16 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_17 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_18 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_19 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_20 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_21 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_22 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_23 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_24 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_25 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_26 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_27 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_28 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_29 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_30 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_31 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_32 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_33 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_34 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_35 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_36 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_37 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_38 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_39 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_40 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_41 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_42 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_43 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_44 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_45 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_46 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_47 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_48 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_49 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_50 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_51 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_52 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_53 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_54 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_55 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_56 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_57 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_58 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_59 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_60 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_61 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_62 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_21_1_63 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20) );
+}
+
+vec4f fastcall64_22_0_0 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_1 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_2 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_3 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_4 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_5 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_6 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_7 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_8 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_9 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_10 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_11 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_12 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_13 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_14 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_15 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_16 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_17 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_18 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_19 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_20 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_21 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_22 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_23 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_24 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_25 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_26 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_27 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_28 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_29 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_30 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_31 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_32 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_33 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_34 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_35 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_36 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_37 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_38 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_39 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_40 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_41 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_42 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_43 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_44 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_45 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_46 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_47 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_48 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_49 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_50 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_51 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_52 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_53 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_54 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_55 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_56 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_57 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_58 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_59 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_60 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_61 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_62 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_0_63 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) ) );
+}
+
+vec4f fastcall64_22_1_0 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_1 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_2 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_3 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_4 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_5 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_6 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_7 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_8 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_9 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_10 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_11 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_12 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_13 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_14 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_15 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_16 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_17 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_18 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_19 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_20 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_21 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_22 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_23 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_24 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_25 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_26 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_27 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_28 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_29 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_30 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_31 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_32 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_33 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_34 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_35 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_36 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_37 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_38 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_39 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_40 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_41 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_42 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_43 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_44 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_45 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_46 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_47 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_48 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_49 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_50 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_51 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_52 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_53 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_54 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_55 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_56 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_57 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_58 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_59 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_60 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_61 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_62 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_22_1_63 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21) );
+}
+
+vec4f fastcall64_23_0_0 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_1 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_2 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_3 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_4 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_5 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_6 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_7 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_8 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_9 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_10 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_11 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_12 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_13 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_14 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_15 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_16 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_17 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_18 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_19 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_20 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_21 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_22 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_23 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_24 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_25 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_26 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_27 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_28 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_29 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_30 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_31 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_32 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_33 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_34 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_35 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_36 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_37 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_38 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_39 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_40 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_41 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_42 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_43 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_44 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_45 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_46 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_47 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_48 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_49 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_50 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_51 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_52 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_53 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_54 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_55 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_56 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_57 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_58 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_59 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_60 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_61 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_62 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_0_63 ( void * fn, vec4f * args ) {
+    using call_kind = int64_t ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return Rx ( call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) ) );
+}
+
+vec4f fastcall64_23_1_0 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_1 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_2 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_3 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_4 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_5 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_6 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_7 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_8 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_9 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_10 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_11 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_12 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_13 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_14 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_15 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_16 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_17 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_18 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_19 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_20 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_21 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_22 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_23 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_24 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_25 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_26 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_27 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_28 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_29 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_30 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_31 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AX(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_32 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_33 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_34 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_35 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_36 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_37 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_38 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_39 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_40 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_41 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_42 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_43 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_44 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_45 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_46 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_47 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,int64_t,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AX(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_48 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_49 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_50 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_51 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_52 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_53 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_54 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_55 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,int64_t,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AX(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_56 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_57 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_58 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_59 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,int64_t,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AX(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_60 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_61 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,int64_t,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AX(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_62 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( int64_t,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AX(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+vec4f fastcall64_23_1_63 ( void * fn, vec4f * args ) {
+    using call_kind = vec4f ( * ) ( double,double,double,double,double,double,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,int64_t );
+    return call_kind(fn) ( AD(0),AD(1),AD(2),AD(3),AD(4),AD(5),AX(6),AX(7),AX(8),AX(9),AX(10),AX(11),AX(12),AX(13),AX(14),AX(15),AX(16),AX(17),AX(18),AX(19),AX(20),AX(21),AX(22) );
+}
+
+#define MAX_WRAPPER_ARGUMENTS  24
 
 FastCallWrapper fastcall64_table [] = {
     &fastcall64_0_0_0,&fastcall64_0_0_1,&fastcall64_0_0_2,&fastcall64_0_0_3,&fastcall64_0_0_4,&fastcall64_0_0_5,&fastcall64_0_0_6,&fastcall64_0_0_7,&fastcall64_0_0_8,&fastcall64_0_0_9,&fastcall64_0_0_10,&fastcall64_0_0_11,&fastcall64_0_0_12,&fastcall64_0_0_13,&fastcall64_0_0_14,&fastcall64_0_0_15,&fastcall64_0_0_16,&fastcall64_0_0_17,&fastcall64_0_0_18,&fastcall64_0_0_19,&fastcall64_0_0_20,&fastcall64_0_0_21,&fastcall64_0_0_22,&fastcall64_0_0_23,&fastcall64_0_0_24,&fastcall64_0_0_25,&fastcall64_0_0_26,&fastcall64_0_0_27,&fastcall64_0_0_28,&fastcall64_0_0_29,&fastcall64_0_0_30,&fastcall64_0_0_31,&fastcall64_0_0_32,&fastcall64_0_0_33,&fastcall64_0_0_34,&fastcall64_0_0_35,&fastcall64_0_0_36,&fastcall64_0_0_37,&fastcall64_0_0_38,&fastcall64_0_0_39,&fastcall64_0_0_40,&fastcall64_0_0_41,&fastcall64_0_0_42,&fastcall64_0_0_43,&fastcall64_0_0_44,&fastcall64_0_0_45,&fastcall64_0_0_46,&fastcall64_0_0_47,&fastcall64_0_0_48,&fastcall64_0_0_49,&fastcall64_0_0_50,&fastcall64_0_0_51,&fastcall64_0_0_52,&fastcall64_0_0_53,&fastcall64_0_0_54,&fastcall64_0_0_55,&fastcall64_0_0_56,&fastcall64_0_0_57,&fastcall64_0_0_58,&fastcall64_0_0_59,&fastcall64_0_0_60,&fastcall64_0_0_61,&fastcall64_0_0_62,&fastcall64_0_0_63,
@@ -10273,5 +15393,21 @@ FastCallWrapper fastcall64_table [] = {
     &fastcall64_14_1_0,&fastcall64_14_1_1,&fastcall64_14_1_2,&fastcall64_14_1_3,&fastcall64_14_1_4,&fastcall64_14_1_5,&fastcall64_14_1_6,&fastcall64_14_1_7,&fastcall64_14_1_8,&fastcall64_14_1_9,&fastcall64_14_1_10,&fastcall64_14_1_11,&fastcall64_14_1_12,&fastcall64_14_1_13,&fastcall64_14_1_14,&fastcall64_14_1_15,&fastcall64_14_1_16,&fastcall64_14_1_17,&fastcall64_14_1_18,&fastcall64_14_1_19,&fastcall64_14_1_20,&fastcall64_14_1_21,&fastcall64_14_1_22,&fastcall64_14_1_23,&fastcall64_14_1_24,&fastcall64_14_1_25,&fastcall64_14_1_26,&fastcall64_14_1_27,&fastcall64_14_1_28,&fastcall64_14_1_29,&fastcall64_14_1_30,&fastcall64_14_1_31,&fastcall64_14_1_32,&fastcall64_14_1_33,&fastcall64_14_1_34,&fastcall64_14_1_35,&fastcall64_14_1_36,&fastcall64_14_1_37,&fastcall64_14_1_38,&fastcall64_14_1_39,&fastcall64_14_1_40,&fastcall64_14_1_41,&fastcall64_14_1_42,&fastcall64_14_1_43,&fastcall64_14_1_44,&fastcall64_14_1_45,&fastcall64_14_1_46,&fastcall64_14_1_47,&fastcall64_14_1_48,&fastcall64_14_1_49,&fastcall64_14_1_50,&fastcall64_14_1_51,&fastcall64_14_1_52,&fastcall64_14_1_53,&fastcall64_14_1_54,&fastcall64_14_1_55,&fastcall64_14_1_56,&fastcall64_14_1_57,&fastcall64_14_1_58,&fastcall64_14_1_59,&fastcall64_14_1_60,&fastcall64_14_1_61,&fastcall64_14_1_62,&fastcall64_14_1_63,
     &fastcall64_15_0_0,&fastcall64_15_0_1,&fastcall64_15_0_2,&fastcall64_15_0_3,&fastcall64_15_0_4,&fastcall64_15_0_5,&fastcall64_15_0_6,&fastcall64_15_0_7,&fastcall64_15_0_8,&fastcall64_15_0_9,&fastcall64_15_0_10,&fastcall64_15_0_11,&fastcall64_15_0_12,&fastcall64_15_0_13,&fastcall64_15_0_14,&fastcall64_15_0_15,&fastcall64_15_0_16,&fastcall64_15_0_17,&fastcall64_15_0_18,&fastcall64_15_0_19,&fastcall64_15_0_20,&fastcall64_15_0_21,&fastcall64_15_0_22,&fastcall64_15_0_23,&fastcall64_15_0_24,&fastcall64_15_0_25,&fastcall64_15_0_26,&fastcall64_15_0_27,&fastcall64_15_0_28,&fastcall64_15_0_29,&fastcall64_15_0_30,&fastcall64_15_0_31,&fastcall64_15_0_32,&fastcall64_15_0_33,&fastcall64_15_0_34,&fastcall64_15_0_35,&fastcall64_15_0_36,&fastcall64_15_0_37,&fastcall64_15_0_38,&fastcall64_15_0_39,&fastcall64_15_0_40,&fastcall64_15_0_41,&fastcall64_15_0_42,&fastcall64_15_0_43,&fastcall64_15_0_44,&fastcall64_15_0_45,&fastcall64_15_0_46,&fastcall64_15_0_47,&fastcall64_15_0_48,&fastcall64_15_0_49,&fastcall64_15_0_50,&fastcall64_15_0_51,&fastcall64_15_0_52,&fastcall64_15_0_53,&fastcall64_15_0_54,&fastcall64_15_0_55,&fastcall64_15_0_56,&fastcall64_15_0_57,&fastcall64_15_0_58,&fastcall64_15_0_59,&fastcall64_15_0_60,&fastcall64_15_0_61,&fastcall64_15_0_62,&fastcall64_15_0_63,
     &fastcall64_15_1_0,&fastcall64_15_1_1,&fastcall64_15_1_2,&fastcall64_15_1_3,&fastcall64_15_1_4,&fastcall64_15_1_5,&fastcall64_15_1_6,&fastcall64_15_1_7,&fastcall64_15_1_8,&fastcall64_15_1_9,&fastcall64_15_1_10,&fastcall64_15_1_11,&fastcall64_15_1_12,&fastcall64_15_1_13,&fastcall64_15_1_14,&fastcall64_15_1_15,&fastcall64_15_1_16,&fastcall64_15_1_17,&fastcall64_15_1_18,&fastcall64_15_1_19,&fastcall64_15_1_20,&fastcall64_15_1_21,&fastcall64_15_1_22,&fastcall64_15_1_23,&fastcall64_15_1_24,&fastcall64_15_1_25,&fastcall64_15_1_26,&fastcall64_15_1_27,&fastcall64_15_1_28,&fastcall64_15_1_29,&fastcall64_15_1_30,&fastcall64_15_1_31,&fastcall64_15_1_32,&fastcall64_15_1_33,&fastcall64_15_1_34,&fastcall64_15_1_35,&fastcall64_15_1_36,&fastcall64_15_1_37,&fastcall64_15_1_38,&fastcall64_15_1_39,&fastcall64_15_1_40,&fastcall64_15_1_41,&fastcall64_15_1_42,&fastcall64_15_1_43,&fastcall64_15_1_44,&fastcall64_15_1_45,&fastcall64_15_1_46,&fastcall64_15_1_47,&fastcall64_15_1_48,&fastcall64_15_1_49,&fastcall64_15_1_50,&fastcall64_15_1_51,&fastcall64_15_1_52,&fastcall64_15_1_53,&fastcall64_15_1_54,&fastcall64_15_1_55,&fastcall64_15_1_56,&fastcall64_15_1_57,&fastcall64_15_1_58,&fastcall64_15_1_59,&fastcall64_15_1_60,&fastcall64_15_1_61,&fastcall64_15_1_62,&fastcall64_15_1_63,
+    &fastcall64_16_0_0,&fastcall64_16_0_1,&fastcall64_16_0_2,&fastcall64_16_0_3,&fastcall64_16_0_4,&fastcall64_16_0_5,&fastcall64_16_0_6,&fastcall64_16_0_7,&fastcall64_16_0_8,&fastcall64_16_0_9,&fastcall64_16_0_10,&fastcall64_16_0_11,&fastcall64_16_0_12,&fastcall64_16_0_13,&fastcall64_16_0_14,&fastcall64_16_0_15,&fastcall64_16_0_16,&fastcall64_16_0_17,&fastcall64_16_0_18,&fastcall64_16_0_19,&fastcall64_16_0_20,&fastcall64_16_0_21,&fastcall64_16_0_22,&fastcall64_16_0_23,&fastcall64_16_0_24,&fastcall64_16_0_25,&fastcall64_16_0_26,&fastcall64_16_0_27,&fastcall64_16_0_28,&fastcall64_16_0_29,&fastcall64_16_0_30,&fastcall64_16_0_31,&fastcall64_16_0_32,&fastcall64_16_0_33,&fastcall64_16_0_34,&fastcall64_16_0_35,&fastcall64_16_0_36,&fastcall64_16_0_37,&fastcall64_16_0_38,&fastcall64_16_0_39,&fastcall64_16_0_40,&fastcall64_16_0_41,&fastcall64_16_0_42,&fastcall64_16_0_43,&fastcall64_16_0_44,&fastcall64_16_0_45,&fastcall64_16_0_46,&fastcall64_16_0_47,&fastcall64_16_0_48,&fastcall64_16_0_49,&fastcall64_16_0_50,&fastcall64_16_0_51,&fastcall64_16_0_52,&fastcall64_16_0_53,&fastcall64_16_0_54,&fastcall64_16_0_55,&fastcall64_16_0_56,&fastcall64_16_0_57,&fastcall64_16_0_58,&fastcall64_16_0_59,&fastcall64_16_0_60,&fastcall64_16_0_61,&fastcall64_16_0_62,&fastcall64_16_0_63,
+    &fastcall64_16_1_0,&fastcall64_16_1_1,&fastcall64_16_1_2,&fastcall64_16_1_3,&fastcall64_16_1_4,&fastcall64_16_1_5,&fastcall64_16_1_6,&fastcall64_16_1_7,&fastcall64_16_1_8,&fastcall64_16_1_9,&fastcall64_16_1_10,&fastcall64_16_1_11,&fastcall64_16_1_12,&fastcall64_16_1_13,&fastcall64_16_1_14,&fastcall64_16_1_15,&fastcall64_16_1_16,&fastcall64_16_1_17,&fastcall64_16_1_18,&fastcall64_16_1_19,&fastcall64_16_1_20,&fastcall64_16_1_21,&fastcall64_16_1_22,&fastcall64_16_1_23,&fastcall64_16_1_24,&fastcall64_16_1_25,&fastcall64_16_1_26,&fastcall64_16_1_27,&fastcall64_16_1_28,&fastcall64_16_1_29,&fastcall64_16_1_30,&fastcall64_16_1_31,&fastcall64_16_1_32,&fastcall64_16_1_33,&fastcall64_16_1_34,&fastcall64_16_1_35,&fastcall64_16_1_36,&fastcall64_16_1_37,&fastcall64_16_1_38,&fastcall64_16_1_39,&fastcall64_16_1_40,&fastcall64_16_1_41,&fastcall64_16_1_42,&fastcall64_16_1_43,&fastcall64_16_1_44,&fastcall64_16_1_45,&fastcall64_16_1_46,&fastcall64_16_1_47,&fastcall64_16_1_48,&fastcall64_16_1_49,&fastcall64_16_1_50,&fastcall64_16_1_51,&fastcall64_16_1_52,&fastcall64_16_1_53,&fastcall64_16_1_54,&fastcall64_16_1_55,&fastcall64_16_1_56,&fastcall64_16_1_57,&fastcall64_16_1_58,&fastcall64_16_1_59,&fastcall64_16_1_60,&fastcall64_16_1_61,&fastcall64_16_1_62,&fastcall64_16_1_63,
+    &fastcall64_17_0_0,&fastcall64_17_0_1,&fastcall64_17_0_2,&fastcall64_17_0_3,&fastcall64_17_0_4,&fastcall64_17_0_5,&fastcall64_17_0_6,&fastcall64_17_0_7,&fastcall64_17_0_8,&fastcall64_17_0_9,&fastcall64_17_0_10,&fastcall64_17_0_11,&fastcall64_17_0_12,&fastcall64_17_0_13,&fastcall64_17_0_14,&fastcall64_17_0_15,&fastcall64_17_0_16,&fastcall64_17_0_17,&fastcall64_17_0_18,&fastcall64_17_0_19,&fastcall64_17_0_20,&fastcall64_17_0_21,&fastcall64_17_0_22,&fastcall64_17_0_23,&fastcall64_17_0_24,&fastcall64_17_0_25,&fastcall64_17_0_26,&fastcall64_17_0_27,&fastcall64_17_0_28,&fastcall64_17_0_29,&fastcall64_17_0_30,&fastcall64_17_0_31,&fastcall64_17_0_32,&fastcall64_17_0_33,&fastcall64_17_0_34,&fastcall64_17_0_35,&fastcall64_17_0_36,&fastcall64_17_0_37,&fastcall64_17_0_38,&fastcall64_17_0_39,&fastcall64_17_0_40,&fastcall64_17_0_41,&fastcall64_17_0_42,&fastcall64_17_0_43,&fastcall64_17_0_44,&fastcall64_17_0_45,&fastcall64_17_0_46,&fastcall64_17_0_47,&fastcall64_17_0_48,&fastcall64_17_0_49,&fastcall64_17_0_50,&fastcall64_17_0_51,&fastcall64_17_0_52,&fastcall64_17_0_53,&fastcall64_17_0_54,&fastcall64_17_0_55,&fastcall64_17_0_56,&fastcall64_17_0_57,&fastcall64_17_0_58,&fastcall64_17_0_59,&fastcall64_17_0_60,&fastcall64_17_0_61,&fastcall64_17_0_62,&fastcall64_17_0_63,
+    &fastcall64_17_1_0,&fastcall64_17_1_1,&fastcall64_17_1_2,&fastcall64_17_1_3,&fastcall64_17_1_4,&fastcall64_17_1_5,&fastcall64_17_1_6,&fastcall64_17_1_7,&fastcall64_17_1_8,&fastcall64_17_1_9,&fastcall64_17_1_10,&fastcall64_17_1_11,&fastcall64_17_1_12,&fastcall64_17_1_13,&fastcall64_17_1_14,&fastcall64_17_1_15,&fastcall64_17_1_16,&fastcall64_17_1_17,&fastcall64_17_1_18,&fastcall64_17_1_19,&fastcall64_17_1_20,&fastcall64_17_1_21,&fastcall64_17_1_22,&fastcall64_17_1_23,&fastcall64_17_1_24,&fastcall64_17_1_25,&fastcall64_17_1_26,&fastcall64_17_1_27,&fastcall64_17_1_28,&fastcall64_17_1_29,&fastcall64_17_1_30,&fastcall64_17_1_31,&fastcall64_17_1_32,&fastcall64_17_1_33,&fastcall64_17_1_34,&fastcall64_17_1_35,&fastcall64_17_1_36,&fastcall64_17_1_37,&fastcall64_17_1_38,&fastcall64_17_1_39,&fastcall64_17_1_40,&fastcall64_17_1_41,&fastcall64_17_1_42,&fastcall64_17_1_43,&fastcall64_17_1_44,&fastcall64_17_1_45,&fastcall64_17_1_46,&fastcall64_17_1_47,&fastcall64_17_1_48,&fastcall64_17_1_49,&fastcall64_17_1_50,&fastcall64_17_1_51,&fastcall64_17_1_52,&fastcall64_17_1_53,&fastcall64_17_1_54,&fastcall64_17_1_55,&fastcall64_17_1_56,&fastcall64_17_1_57,&fastcall64_17_1_58,&fastcall64_17_1_59,&fastcall64_17_1_60,&fastcall64_17_1_61,&fastcall64_17_1_62,&fastcall64_17_1_63,
+    &fastcall64_18_0_0,&fastcall64_18_0_1,&fastcall64_18_0_2,&fastcall64_18_0_3,&fastcall64_18_0_4,&fastcall64_18_0_5,&fastcall64_18_0_6,&fastcall64_18_0_7,&fastcall64_18_0_8,&fastcall64_18_0_9,&fastcall64_18_0_10,&fastcall64_18_0_11,&fastcall64_18_0_12,&fastcall64_18_0_13,&fastcall64_18_0_14,&fastcall64_18_0_15,&fastcall64_18_0_16,&fastcall64_18_0_17,&fastcall64_18_0_18,&fastcall64_18_0_19,&fastcall64_18_0_20,&fastcall64_18_0_21,&fastcall64_18_0_22,&fastcall64_18_0_23,&fastcall64_18_0_24,&fastcall64_18_0_25,&fastcall64_18_0_26,&fastcall64_18_0_27,&fastcall64_18_0_28,&fastcall64_18_0_29,&fastcall64_18_0_30,&fastcall64_18_0_31,&fastcall64_18_0_32,&fastcall64_18_0_33,&fastcall64_18_0_34,&fastcall64_18_0_35,&fastcall64_18_0_36,&fastcall64_18_0_37,&fastcall64_18_0_38,&fastcall64_18_0_39,&fastcall64_18_0_40,&fastcall64_18_0_41,&fastcall64_18_0_42,&fastcall64_18_0_43,&fastcall64_18_0_44,&fastcall64_18_0_45,&fastcall64_18_0_46,&fastcall64_18_0_47,&fastcall64_18_0_48,&fastcall64_18_0_49,&fastcall64_18_0_50,&fastcall64_18_0_51,&fastcall64_18_0_52,&fastcall64_18_0_53,&fastcall64_18_0_54,&fastcall64_18_0_55,&fastcall64_18_0_56,&fastcall64_18_0_57,&fastcall64_18_0_58,&fastcall64_18_0_59,&fastcall64_18_0_60,&fastcall64_18_0_61,&fastcall64_18_0_62,&fastcall64_18_0_63,
+    &fastcall64_18_1_0,&fastcall64_18_1_1,&fastcall64_18_1_2,&fastcall64_18_1_3,&fastcall64_18_1_4,&fastcall64_18_1_5,&fastcall64_18_1_6,&fastcall64_18_1_7,&fastcall64_18_1_8,&fastcall64_18_1_9,&fastcall64_18_1_10,&fastcall64_18_1_11,&fastcall64_18_1_12,&fastcall64_18_1_13,&fastcall64_18_1_14,&fastcall64_18_1_15,&fastcall64_18_1_16,&fastcall64_18_1_17,&fastcall64_18_1_18,&fastcall64_18_1_19,&fastcall64_18_1_20,&fastcall64_18_1_21,&fastcall64_18_1_22,&fastcall64_18_1_23,&fastcall64_18_1_24,&fastcall64_18_1_25,&fastcall64_18_1_26,&fastcall64_18_1_27,&fastcall64_18_1_28,&fastcall64_18_1_29,&fastcall64_18_1_30,&fastcall64_18_1_31,&fastcall64_18_1_32,&fastcall64_18_1_33,&fastcall64_18_1_34,&fastcall64_18_1_35,&fastcall64_18_1_36,&fastcall64_18_1_37,&fastcall64_18_1_38,&fastcall64_18_1_39,&fastcall64_18_1_40,&fastcall64_18_1_41,&fastcall64_18_1_42,&fastcall64_18_1_43,&fastcall64_18_1_44,&fastcall64_18_1_45,&fastcall64_18_1_46,&fastcall64_18_1_47,&fastcall64_18_1_48,&fastcall64_18_1_49,&fastcall64_18_1_50,&fastcall64_18_1_51,&fastcall64_18_1_52,&fastcall64_18_1_53,&fastcall64_18_1_54,&fastcall64_18_1_55,&fastcall64_18_1_56,&fastcall64_18_1_57,&fastcall64_18_1_58,&fastcall64_18_1_59,&fastcall64_18_1_60,&fastcall64_18_1_61,&fastcall64_18_1_62,&fastcall64_18_1_63,
+    &fastcall64_19_0_0,&fastcall64_19_0_1,&fastcall64_19_0_2,&fastcall64_19_0_3,&fastcall64_19_0_4,&fastcall64_19_0_5,&fastcall64_19_0_6,&fastcall64_19_0_7,&fastcall64_19_0_8,&fastcall64_19_0_9,&fastcall64_19_0_10,&fastcall64_19_0_11,&fastcall64_19_0_12,&fastcall64_19_0_13,&fastcall64_19_0_14,&fastcall64_19_0_15,&fastcall64_19_0_16,&fastcall64_19_0_17,&fastcall64_19_0_18,&fastcall64_19_0_19,&fastcall64_19_0_20,&fastcall64_19_0_21,&fastcall64_19_0_22,&fastcall64_19_0_23,&fastcall64_19_0_24,&fastcall64_19_0_25,&fastcall64_19_0_26,&fastcall64_19_0_27,&fastcall64_19_0_28,&fastcall64_19_0_29,&fastcall64_19_0_30,&fastcall64_19_0_31,&fastcall64_19_0_32,&fastcall64_19_0_33,&fastcall64_19_0_34,&fastcall64_19_0_35,&fastcall64_19_0_36,&fastcall64_19_0_37,&fastcall64_19_0_38,&fastcall64_19_0_39,&fastcall64_19_0_40,&fastcall64_19_0_41,&fastcall64_19_0_42,&fastcall64_19_0_43,&fastcall64_19_0_44,&fastcall64_19_0_45,&fastcall64_19_0_46,&fastcall64_19_0_47,&fastcall64_19_0_48,&fastcall64_19_0_49,&fastcall64_19_0_50,&fastcall64_19_0_51,&fastcall64_19_0_52,&fastcall64_19_0_53,&fastcall64_19_0_54,&fastcall64_19_0_55,&fastcall64_19_0_56,&fastcall64_19_0_57,&fastcall64_19_0_58,&fastcall64_19_0_59,&fastcall64_19_0_60,&fastcall64_19_0_61,&fastcall64_19_0_62,&fastcall64_19_0_63,
+    &fastcall64_19_1_0,&fastcall64_19_1_1,&fastcall64_19_1_2,&fastcall64_19_1_3,&fastcall64_19_1_4,&fastcall64_19_1_5,&fastcall64_19_1_6,&fastcall64_19_1_7,&fastcall64_19_1_8,&fastcall64_19_1_9,&fastcall64_19_1_10,&fastcall64_19_1_11,&fastcall64_19_1_12,&fastcall64_19_1_13,&fastcall64_19_1_14,&fastcall64_19_1_15,&fastcall64_19_1_16,&fastcall64_19_1_17,&fastcall64_19_1_18,&fastcall64_19_1_19,&fastcall64_19_1_20,&fastcall64_19_1_21,&fastcall64_19_1_22,&fastcall64_19_1_23,&fastcall64_19_1_24,&fastcall64_19_1_25,&fastcall64_19_1_26,&fastcall64_19_1_27,&fastcall64_19_1_28,&fastcall64_19_1_29,&fastcall64_19_1_30,&fastcall64_19_1_31,&fastcall64_19_1_32,&fastcall64_19_1_33,&fastcall64_19_1_34,&fastcall64_19_1_35,&fastcall64_19_1_36,&fastcall64_19_1_37,&fastcall64_19_1_38,&fastcall64_19_1_39,&fastcall64_19_1_40,&fastcall64_19_1_41,&fastcall64_19_1_42,&fastcall64_19_1_43,&fastcall64_19_1_44,&fastcall64_19_1_45,&fastcall64_19_1_46,&fastcall64_19_1_47,&fastcall64_19_1_48,&fastcall64_19_1_49,&fastcall64_19_1_50,&fastcall64_19_1_51,&fastcall64_19_1_52,&fastcall64_19_1_53,&fastcall64_19_1_54,&fastcall64_19_1_55,&fastcall64_19_1_56,&fastcall64_19_1_57,&fastcall64_19_1_58,&fastcall64_19_1_59,&fastcall64_19_1_60,&fastcall64_19_1_61,&fastcall64_19_1_62,&fastcall64_19_1_63,
+    &fastcall64_20_0_0,&fastcall64_20_0_1,&fastcall64_20_0_2,&fastcall64_20_0_3,&fastcall64_20_0_4,&fastcall64_20_0_5,&fastcall64_20_0_6,&fastcall64_20_0_7,&fastcall64_20_0_8,&fastcall64_20_0_9,&fastcall64_20_0_10,&fastcall64_20_0_11,&fastcall64_20_0_12,&fastcall64_20_0_13,&fastcall64_20_0_14,&fastcall64_20_0_15,&fastcall64_20_0_16,&fastcall64_20_0_17,&fastcall64_20_0_18,&fastcall64_20_0_19,&fastcall64_20_0_20,&fastcall64_20_0_21,&fastcall64_20_0_22,&fastcall64_20_0_23,&fastcall64_20_0_24,&fastcall64_20_0_25,&fastcall64_20_0_26,&fastcall64_20_0_27,&fastcall64_20_0_28,&fastcall64_20_0_29,&fastcall64_20_0_30,&fastcall64_20_0_31,&fastcall64_20_0_32,&fastcall64_20_0_33,&fastcall64_20_0_34,&fastcall64_20_0_35,&fastcall64_20_0_36,&fastcall64_20_0_37,&fastcall64_20_0_38,&fastcall64_20_0_39,&fastcall64_20_0_40,&fastcall64_20_0_41,&fastcall64_20_0_42,&fastcall64_20_0_43,&fastcall64_20_0_44,&fastcall64_20_0_45,&fastcall64_20_0_46,&fastcall64_20_0_47,&fastcall64_20_0_48,&fastcall64_20_0_49,&fastcall64_20_0_50,&fastcall64_20_0_51,&fastcall64_20_0_52,&fastcall64_20_0_53,&fastcall64_20_0_54,&fastcall64_20_0_55,&fastcall64_20_0_56,&fastcall64_20_0_57,&fastcall64_20_0_58,&fastcall64_20_0_59,&fastcall64_20_0_60,&fastcall64_20_0_61,&fastcall64_20_0_62,&fastcall64_20_0_63,
+    &fastcall64_20_1_0,&fastcall64_20_1_1,&fastcall64_20_1_2,&fastcall64_20_1_3,&fastcall64_20_1_4,&fastcall64_20_1_5,&fastcall64_20_1_6,&fastcall64_20_1_7,&fastcall64_20_1_8,&fastcall64_20_1_9,&fastcall64_20_1_10,&fastcall64_20_1_11,&fastcall64_20_1_12,&fastcall64_20_1_13,&fastcall64_20_1_14,&fastcall64_20_1_15,&fastcall64_20_1_16,&fastcall64_20_1_17,&fastcall64_20_1_18,&fastcall64_20_1_19,&fastcall64_20_1_20,&fastcall64_20_1_21,&fastcall64_20_1_22,&fastcall64_20_1_23,&fastcall64_20_1_24,&fastcall64_20_1_25,&fastcall64_20_1_26,&fastcall64_20_1_27,&fastcall64_20_1_28,&fastcall64_20_1_29,&fastcall64_20_1_30,&fastcall64_20_1_31,&fastcall64_20_1_32,&fastcall64_20_1_33,&fastcall64_20_1_34,&fastcall64_20_1_35,&fastcall64_20_1_36,&fastcall64_20_1_37,&fastcall64_20_1_38,&fastcall64_20_1_39,&fastcall64_20_1_40,&fastcall64_20_1_41,&fastcall64_20_1_42,&fastcall64_20_1_43,&fastcall64_20_1_44,&fastcall64_20_1_45,&fastcall64_20_1_46,&fastcall64_20_1_47,&fastcall64_20_1_48,&fastcall64_20_1_49,&fastcall64_20_1_50,&fastcall64_20_1_51,&fastcall64_20_1_52,&fastcall64_20_1_53,&fastcall64_20_1_54,&fastcall64_20_1_55,&fastcall64_20_1_56,&fastcall64_20_1_57,&fastcall64_20_1_58,&fastcall64_20_1_59,&fastcall64_20_1_60,&fastcall64_20_1_61,&fastcall64_20_1_62,&fastcall64_20_1_63,
+    &fastcall64_21_0_0,&fastcall64_21_0_1,&fastcall64_21_0_2,&fastcall64_21_0_3,&fastcall64_21_0_4,&fastcall64_21_0_5,&fastcall64_21_0_6,&fastcall64_21_0_7,&fastcall64_21_0_8,&fastcall64_21_0_9,&fastcall64_21_0_10,&fastcall64_21_0_11,&fastcall64_21_0_12,&fastcall64_21_0_13,&fastcall64_21_0_14,&fastcall64_21_0_15,&fastcall64_21_0_16,&fastcall64_21_0_17,&fastcall64_21_0_18,&fastcall64_21_0_19,&fastcall64_21_0_20,&fastcall64_21_0_21,&fastcall64_21_0_22,&fastcall64_21_0_23,&fastcall64_21_0_24,&fastcall64_21_0_25,&fastcall64_21_0_26,&fastcall64_21_0_27,&fastcall64_21_0_28,&fastcall64_21_0_29,&fastcall64_21_0_30,&fastcall64_21_0_31,&fastcall64_21_0_32,&fastcall64_21_0_33,&fastcall64_21_0_34,&fastcall64_21_0_35,&fastcall64_21_0_36,&fastcall64_21_0_37,&fastcall64_21_0_38,&fastcall64_21_0_39,&fastcall64_21_0_40,&fastcall64_21_0_41,&fastcall64_21_0_42,&fastcall64_21_0_43,&fastcall64_21_0_44,&fastcall64_21_0_45,&fastcall64_21_0_46,&fastcall64_21_0_47,&fastcall64_21_0_48,&fastcall64_21_0_49,&fastcall64_21_0_50,&fastcall64_21_0_51,&fastcall64_21_0_52,&fastcall64_21_0_53,&fastcall64_21_0_54,&fastcall64_21_0_55,&fastcall64_21_0_56,&fastcall64_21_0_57,&fastcall64_21_0_58,&fastcall64_21_0_59,&fastcall64_21_0_60,&fastcall64_21_0_61,&fastcall64_21_0_62,&fastcall64_21_0_63,
+    &fastcall64_21_1_0,&fastcall64_21_1_1,&fastcall64_21_1_2,&fastcall64_21_1_3,&fastcall64_21_1_4,&fastcall64_21_1_5,&fastcall64_21_1_6,&fastcall64_21_1_7,&fastcall64_21_1_8,&fastcall64_21_1_9,&fastcall64_21_1_10,&fastcall64_21_1_11,&fastcall64_21_1_12,&fastcall64_21_1_13,&fastcall64_21_1_14,&fastcall64_21_1_15,&fastcall64_21_1_16,&fastcall64_21_1_17,&fastcall64_21_1_18,&fastcall64_21_1_19,&fastcall64_21_1_20,&fastcall64_21_1_21,&fastcall64_21_1_22,&fastcall64_21_1_23,&fastcall64_21_1_24,&fastcall64_21_1_25,&fastcall64_21_1_26,&fastcall64_21_1_27,&fastcall64_21_1_28,&fastcall64_21_1_29,&fastcall64_21_1_30,&fastcall64_21_1_31,&fastcall64_21_1_32,&fastcall64_21_1_33,&fastcall64_21_1_34,&fastcall64_21_1_35,&fastcall64_21_1_36,&fastcall64_21_1_37,&fastcall64_21_1_38,&fastcall64_21_1_39,&fastcall64_21_1_40,&fastcall64_21_1_41,&fastcall64_21_1_42,&fastcall64_21_1_43,&fastcall64_21_1_44,&fastcall64_21_1_45,&fastcall64_21_1_46,&fastcall64_21_1_47,&fastcall64_21_1_48,&fastcall64_21_1_49,&fastcall64_21_1_50,&fastcall64_21_1_51,&fastcall64_21_1_52,&fastcall64_21_1_53,&fastcall64_21_1_54,&fastcall64_21_1_55,&fastcall64_21_1_56,&fastcall64_21_1_57,&fastcall64_21_1_58,&fastcall64_21_1_59,&fastcall64_21_1_60,&fastcall64_21_1_61,&fastcall64_21_1_62,&fastcall64_21_1_63,
+    &fastcall64_22_0_0,&fastcall64_22_0_1,&fastcall64_22_0_2,&fastcall64_22_0_3,&fastcall64_22_0_4,&fastcall64_22_0_5,&fastcall64_22_0_6,&fastcall64_22_0_7,&fastcall64_22_0_8,&fastcall64_22_0_9,&fastcall64_22_0_10,&fastcall64_22_0_11,&fastcall64_22_0_12,&fastcall64_22_0_13,&fastcall64_22_0_14,&fastcall64_22_0_15,&fastcall64_22_0_16,&fastcall64_22_0_17,&fastcall64_22_0_18,&fastcall64_22_0_19,&fastcall64_22_0_20,&fastcall64_22_0_21,&fastcall64_22_0_22,&fastcall64_22_0_23,&fastcall64_22_0_24,&fastcall64_22_0_25,&fastcall64_22_0_26,&fastcall64_22_0_27,&fastcall64_22_0_28,&fastcall64_22_0_29,&fastcall64_22_0_30,&fastcall64_22_0_31,&fastcall64_22_0_32,&fastcall64_22_0_33,&fastcall64_22_0_34,&fastcall64_22_0_35,&fastcall64_22_0_36,&fastcall64_22_0_37,&fastcall64_22_0_38,&fastcall64_22_0_39,&fastcall64_22_0_40,&fastcall64_22_0_41,&fastcall64_22_0_42,&fastcall64_22_0_43,&fastcall64_22_0_44,&fastcall64_22_0_45,&fastcall64_22_0_46,&fastcall64_22_0_47,&fastcall64_22_0_48,&fastcall64_22_0_49,&fastcall64_22_0_50,&fastcall64_22_0_51,&fastcall64_22_0_52,&fastcall64_22_0_53,&fastcall64_22_0_54,&fastcall64_22_0_55,&fastcall64_22_0_56,&fastcall64_22_0_57,&fastcall64_22_0_58,&fastcall64_22_0_59,&fastcall64_22_0_60,&fastcall64_22_0_61,&fastcall64_22_0_62,&fastcall64_22_0_63,
+    &fastcall64_22_1_0,&fastcall64_22_1_1,&fastcall64_22_1_2,&fastcall64_22_1_3,&fastcall64_22_1_4,&fastcall64_22_1_5,&fastcall64_22_1_6,&fastcall64_22_1_7,&fastcall64_22_1_8,&fastcall64_22_1_9,&fastcall64_22_1_10,&fastcall64_22_1_11,&fastcall64_22_1_12,&fastcall64_22_1_13,&fastcall64_22_1_14,&fastcall64_22_1_15,&fastcall64_22_1_16,&fastcall64_22_1_17,&fastcall64_22_1_18,&fastcall64_22_1_19,&fastcall64_22_1_20,&fastcall64_22_1_21,&fastcall64_22_1_22,&fastcall64_22_1_23,&fastcall64_22_1_24,&fastcall64_22_1_25,&fastcall64_22_1_26,&fastcall64_22_1_27,&fastcall64_22_1_28,&fastcall64_22_1_29,&fastcall64_22_1_30,&fastcall64_22_1_31,&fastcall64_22_1_32,&fastcall64_22_1_33,&fastcall64_22_1_34,&fastcall64_22_1_35,&fastcall64_22_1_36,&fastcall64_22_1_37,&fastcall64_22_1_38,&fastcall64_22_1_39,&fastcall64_22_1_40,&fastcall64_22_1_41,&fastcall64_22_1_42,&fastcall64_22_1_43,&fastcall64_22_1_44,&fastcall64_22_1_45,&fastcall64_22_1_46,&fastcall64_22_1_47,&fastcall64_22_1_48,&fastcall64_22_1_49,&fastcall64_22_1_50,&fastcall64_22_1_51,&fastcall64_22_1_52,&fastcall64_22_1_53,&fastcall64_22_1_54,&fastcall64_22_1_55,&fastcall64_22_1_56,&fastcall64_22_1_57,&fastcall64_22_1_58,&fastcall64_22_1_59,&fastcall64_22_1_60,&fastcall64_22_1_61,&fastcall64_22_1_62,&fastcall64_22_1_63,
+    &fastcall64_23_0_0,&fastcall64_23_0_1,&fastcall64_23_0_2,&fastcall64_23_0_3,&fastcall64_23_0_4,&fastcall64_23_0_5,&fastcall64_23_0_6,&fastcall64_23_0_7,&fastcall64_23_0_8,&fastcall64_23_0_9,&fastcall64_23_0_10,&fastcall64_23_0_11,&fastcall64_23_0_12,&fastcall64_23_0_13,&fastcall64_23_0_14,&fastcall64_23_0_15,&fastcall64_23_0_16,&fastcall64_23_0_17,&fastcall64_23_0_18,&fastcall64_23_0_19,&fastcall64_23_0_20,&fastcall64_23_0_21,&fastcall64_23_0_22,&fastcall64_23_0_23,&fastcall64_23_0_24,&fastcall64_23_0_25,&fastcall64_23_0_26,&fastcall64_23_0_27,&fastcall64_23_0_28,&fastcall64_23_0_29,&fastcall64_23_0_30,&fastcall64_23_0_31,&fastcall64_23_0_32,&fastcall64_23_0_33,&fastcall64_23_0_34,&fastcall64_23_0_35,&fastcall64_23_0_36,&fastcall64_23_0_37,&fastcall64_23_0_38,&fastcall64_23_0_39,&fastcall64_23_0_40,&fastcall64_23_0_41,&fastcall64_23_0_42,&fastcall64_23_0_43,&fastcall64_23_0_44,&fastcall64_23_0_45,&fastcall64_23_0_46,&fastcall64_23_0_47,&fastcall64_23_0_48,&fastcall64_23_0_49,&fastcall64_23_0_50,&fastcall64_23_0_51,&fastcall64_23_0_52,&fastcall64_23_0_53,&fastcall64_23_0_54,&fastcall64_23_0_55,&fastcall64_23_0_56,&fastcall64_23_0_57,&fastcall64_23_0_58,&fastcall64_23_0_59,&fastcall64_23_0_60,&fastcall64_23_0_61,&fastcall64_23_0_62,&fastcall64_23_0_63,
+    &fastcall64_23_1_0,&fastcall64_23_1_1,&fastcall64_23_1_2,&fastcall64_23_1_3,&fastcall64_23_1_4,&fastcall64_23_1_5,&fastcall64_23_1_6,&fastcall64_23_1_7,&fastcall64_23_1_8,&fastcall64_23_1_9,&fastcall64_23_1_10,&fastcall64_23_1_11,&fastcall64_23_1_12,&fastcall64_23_1_13,&fastcall64_23_1_14,&fastcall64_23_1_15,&fastcall64_23_1_16,&fastcall64_23_1_17,&fastcall64_23_1_18,&fastcall64_23_1_19,&fastcall64_23_1_20,&fastcall64_23_1_21,&fastcall64_23_1_22,&fastcall64_23_1_23,&fastcall64_23_1_24,&fastcall64_23_1_25,&fastcall64_23_1_26,&fastcall64_23_1_27,&fastcall64_23_1_28,&fastcall64_23_1_29,&fastcall64_23_1_30,&fastcall64_23_1_31,&fastcall64_23_1_32,&fastcall64_23_1_33,&fastcall64_23_1_34,&fastcall64_23_1_35,&fastcall64_23_1_36,&fastcall64_23_1_37,&fastcall64_23_1_38,&fastcall64_23_1_39,&fastcall64_23_1_40,&fastcall64_23_1_41,&fastcall64_23_1_42,&fastcall64_23_1_43,&fastcall64_23_1_44,&fastcall64_23_1_45,&fastcall64_23_1_46,&fastcall64_23_1_47,&fastcall64_23_1_48,&fastcall64_23_1_49,&fastcall64_23_1_50,&fastcall64_23_1_51,&fastcall64_23_1_52,&fastcall64_23_1_53,&fastcall64_23_1_54,&fastcall64_23_1_55,&fastcall64_23_1_56,&fastcall64_23_1_57,&fastcall64_23_1_58,&fastcall64_23_1_59,&fastcall64_23_1_60,&fastcall64_23_1_61,&fastcall64_23_1_62,&fastcall64_23_1_63,
 };
 

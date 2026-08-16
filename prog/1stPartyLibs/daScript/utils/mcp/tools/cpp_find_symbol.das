@@ -1,5 +1,7 @@
 options gen2
 
+module cpp_find_symbol
+
 require cpp_common public
 require daslib/strings_boost public
 require strings public

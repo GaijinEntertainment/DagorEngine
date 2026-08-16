@@ -121,6 +121,7 @@ namespace das {
         __forceinline bool isEnum() const;
         __forceinline bool isEnumT() const;
         __forceinline bool isHandle() const;
+        __forceinline bool isDistinct() const;
         __forceinline bool isStructure() const;
         bool isClass() const;
         __forceinline bool isFunction() const;
@@ -215,6 +216,7 @@ namespace das {
         int getVectorDim() const;
         bool canInitWithZero() const;
         static Type getVectorType ( Type baseType, int dim );
+        static bool hasVectorType ( Type baseType, int dim );   // non-asserting probe for getVectorType
         static Type getRangeType ( Type baseType, int dim );
         static int getMaskFieldIndex ( char ch );
         static bool isSequencialMask ( const vector<uint8_t> & fields );
@@ -308,7 +310,7 @@ namespace das {
         TypeDeclPtr option2 = nullptr;
     };
 
-    void findMatchingOptions ( const TypeDeclPtr & type, vector<MatchingOptionError> & matching );
+    DAS_API void findMatchingOptions ( const TypeDeclPtr & type, vector<MatchingOptionError> & matching );
 
     template <typename TT> struct ToBasicType {
         enum { type = Type::none };
@@ -378,6 +380,29 @@ namespace das {
     template<> struct ToBasicType<uint3>        { enum { type = Type::tUInt3 }; };
     template<> struct ToBasicType<uint4>        { enum { type = Type::tUInt4 }; };
     template<> struct ToBasicType<double>       { enum { type = Type::tDouble }; };
+    template<> struct ToBasicType<float16_t>    { enum { type = Type::tFloat16 }; };
+    template<> struct ToBasicType<half2>        { enum { type = Type::tHalf2 }; };
+    template<> struct ToBasicType<half3>        { enum { type = Type::tHalf3 }; };
+    template<> struct ToBasicType<half4>        { enum { type = Type::tHalf4 }; };
+    template<> struct ToBasicType<half8>        { enum { type = Type::tHalf8 }; };
+    template<> struct ToBasicType<short2>       { enum { type = Type::tShort2 }; };
+    template<> struct ToBasicType<short3>       { enum { type = Type::tShort3 }; };
+    template<> struct ToBasicType<short4>       { enum { type = Type::tShort4 }; };
+    template<> struct ToBasicType<short8>       { enum { type = Type::tShort8 }; };
+    template<> struct ToBasicType<ushort2>      { enum { type = Type::tUShort2 }; };
+    template<> struct ToBasicType<ushort3>      { enum { type = Type::tUShort3 }; };
+    template<> struct ToBasicType<ushort4>      { enum { type = Type::tUShort4 }; };
+    template<> struct ToBasicType<ushort8>      { enum { type = Type::tUShort8 }; };
+    template<> struct ToBasicType<byte2>        { enum { type = Type::tByte2 }; };
+    template<> struct ToBasicType<byte3>        { enum { type = Type::tByte3 }; };
+    template<> struct ToBasicType<byte4>        { enum { type = Type::tByte4 }; };
+    template<> struct ToBasicType<byte8>        { enum { type = Type::tByte8 }; };
+    template<> struct ToBasicType<byte16>       { enum { type = Type::tByte16 }; };
+    template<> struct ToBasicType<ubyte2>       { enum { type = Type::tUByte2 }; };
+    template<> struct ToBasicType<ubyte3>       { enum { type = Type::tUByte3 }; };
+    template<> struct ToBasicType<ubyte4>       { enum { type = Type::tUByte4 }; };
+    template<> struct ToBasicType<ubyte8>       { enum { type = Type::tUByte8 }; };
+    template<> struct ToBasicType<ubyte16>      { enum { type = Type::tUByte16 }; };
     template<> struct ToBasicType<range>        { enum { type = Type::tRange }; };
     template<> struct ToBasicType<urange>       { enum { type = Type::tURange }; };
     template<> struct ToBasicType<range64>      { enum { type = Type::tRange64 }; };
@@ -764,10 +789,12 @@ namespace das {
 
     das::TypeDeclPtr DAS_API makeHandleType(const das::ModuleLibrary & library, const char * typeName);
 
-    bool splitTypeName ( const string & name, string & moduleName, string & funcName );
+    das::TypeDeclPtr DAS_API makeDistinctType(const das::ModuleLibrary & library, const char * typeName);
 
-    bool isCircularType ( const TypeDeclPtr & type );
-    bool hasImplicit ( const TypeDeclPtr & type );
+    DAS_API bool splitTypeName ( const string & name, string & moduleName, string & funcName );
+
+    DAS_API bool isCircularType ( const TypeDeclPtr & type );
+    DAS_API bool hasImplicit ( const TypeDeclPtr & type );
     bool isMatchingArgumentType ( const TypeDeclPtr & argType, const TypeDeclPtr & passType );
 
     enum class CpptSubstitureRef { no, yes };
@@ -784,6 +811,8 @@ namespace das {
                            ChooseSmartPtr chooseSmartPtr = ChooseSmartPtr::no);
 
     class DAS_API MangledNameParser {
+    public:
+        virtual ~MangledNameParser () = default;
     protected:
         virtual void error ( const string &, const char * );
         string parseAnyName ( const char * & ch, bool allowModule );
@@ -830,6 +859,10 @@ namespace das {
 
     __forceinline bool TypeDecl::isHandle() const {
         return baseType==Type::tHandle;
+    }
+
+    __forceinline bool TypeDecl::isDistinct() const {
+        return baseType==Type::tDistinct;
     }
 
     __forceinline bool TypeDecl::isStructure() const {

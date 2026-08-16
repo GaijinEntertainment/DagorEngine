@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE022: bitfield compound-bit-set/clear → field-assign
 //
 // Problem: `foo |= BfT.m` and `foo &= ~BfT.m` are the mask-arithmetic forms

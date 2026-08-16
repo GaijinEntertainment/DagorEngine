@@ -49,17 +49,7 @@ class InterfaceMacro : AstStructureAnnotation {
 
 [structure_macro(name="implements")]
 class ImplementsMacro : AstStructureAnnotation {
-    //! Generates interface bindings for a struct. Creates a proxy class that delegates
-    //! interface method calls to the struct's own methods, and adds a ``get`InterfaceName``
-    //! method that lazily constructs the proxy. Applied via ``[implements(InterfaceName)]``.
-    //!
-    //! If the interface inherits from a parent interface (``class IChild : IParent``),
-    //! ancestor getters are generated automatically so that ``is``/``as``/``?as`` work
-    //! with all ancestor interfaces.
-    //!
-    //! At ``finish`` time, verifies that all abstract interface methods are implemented.
-    //! Methods with default bodies in the interface class are optional — the proxy
-    //! inherits them via class hierarchy.
+    //! Generates interface bindings for a struct. Creates a proxy class that delegates interface method calls to the struct's own methods, and adds a ``get`InterfaceName`` method that lazily constructs the proxy. Applied via ``[implements(InterfaceName)]``.
     def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
         if (length(args) != 1) {
             errors := "implements macro takes exactly one argument"
@@ -111,11 +101,10 @@ class ImplementsMacro : AstStructureAnnotation {
             return self.$f(iface_var_name)
         }
         add_function(st._module, fn_get_i)
-        // if all interface methods are const, also generate a const getter
-        // that uses interior mutability to lazily cache the proxy
+        // if all interface methods are const, also generate a const getter that uses interior mutability to lazily cache the proxy
         if (is_const_interface(parent)) {
             var fn_get_i_const = qmacro_method(iface_get_name_func, st) $(self : $t(st) ==const) : $t(iface_ptr) {
-                var pS = unsafe(reinterpret<$t(st)? -const>(addr(self)))
+                var pS = unsafe(addr<$t(st)? -const>(self))
                 if (pS.$f(iface_var_name) == null) {
                     pS.$f(iface_var_name) = new <$t(cls)>(pS)
                 }
@@ -142,19 +131,13 @@ class ImplementsMacro : AstStructureAnnotation {
             qmacro_type(type<function<(var self : $t(st)) : $t(iface_ptr)>>),
             qmacro(@@ < (var self : $t(st)) : $t(iface_ptr) > $i(iface_get_name_func))
         )
-        // ── Ancestor getters (interface inheritance) ──────────────
-        // If the interface extends a parent interface (IChild : IParent),
-        // generate `get`IParent` fields so that `ptr is IParent`,
-        // `ptr as IParent`, and `ptr ?as IParent` work transparently.
-        // The ancestor getter delegates to the direct getter — the upcast
-        // from IChild? to IParent? is implicit via class inheritance.
+        // ── Ancestor getters (interface inheritance) ────────────── If the interface extends a parent interface (IChild : IParent), generate `get`IParent` fields so that `ptr is IParent`, `ptr as IParent`, and `ptr ?as IParent` work transparently.
         var cur_ancestor = parent.parent
         while (cur_ancestor != null) {
             if (is_interface_struct(cur_ancestor)) {
                 let anc_name = string(cur_ancestor.name)
                 let anc_get_name = "get`{anc_name}"
-                // Skip if this getter already exists (diamond inheritance,
-                // or a separate [implements] annotation already generated it)
+                // Skip if this getter already exists (diamond inheritance, or a separate [implements] annotation already generated it)
                 var already_exists = false
                 for (efld in st.fields) {
                     if (efld.name == anc_get_name) {
@@ -163,14 +146,12 @@ class ImplementsMacro : AstStructureAnnotation {
                     }
                 }
                 if (!already_exists) {
-                    // Look up ancestor via find_unique_structure for proper
-                    // type reification — $t() requires a properly resolved struct.
+                    // Look up ancestor via find_unique_structure for proper type reification — $t() requires a properly resolved struct.
                     var anc_struct <- compiling_program() |> find_unique_structure(anc_name)
                     if (anc_struct != null) {
                         let anc_get_func = "{st.name}`{anc_get_name}"
                         var anc_ptr = qmacro_type(type<$t(anc_struct)?>)
                         // Getter delegates to the direct getter. The IChild? → IParent?
-                        // upcast is automatic via class inheritance.
                         var fn_anc = qmacro_method(anc_get_func, st) $(var self : $t(st)) : $t(anc_ptr) {
                             return $c(iface_get_name_func)(self)
                         }
@@ -223,9 +204,7 @@ class ImplementsMacro : AstStructureAnnotation {
                             }
                             ret_type  = clone_type(cm._type.firstType)
                         } else {
-                            // Default method being overridden — cm._type is autoinfer,
-                            // so we look up the interface's actual method function to
-                            // get arg types and return type.
+                            // Default method being overridden — cm._type is autoinfer, so we look up the interface's actual method function to get arg types and return type.
                             let iface_func_name = "{iface_name}`{method_name}"
                             var ifn = find_unique_function(parent._module, iface_func_name, true)
                             if (ifn == null) {
@@ -259,11 +238,7 @@ class ImplementsMacro : AstStructureAnnotation {
         return true
     }
 
-    // ── Completeness check ─────────────────────────────────────
-    // Runs after type inference to verify the implementing struct
-    // provides all abstract interface methods.  Methods with default
-    // implementations (non-null init in the interface class) are
-    // optional — the proxy inherits the default via class hierarchy.
+    // ── Completeness check ───────────────────────────────────── Runs after type inference to verify the implementing struct provides all abstract interface methods.  Methods with default implementations (non-null init in the interface class) are optional — the proxy inherits the default via class hierarchy.
     def override finish(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
         // Parse interface name (same logic as apply)
         var iface_name : string
@@ -280,8 +255,7 @@ class ImplementsMacro : AstStructureAnnotation {
         let missing = build_string() $(var w) {
             for (ifld in iface.fields) {
                 let ifld_name = string(ifld.name)
-                // Skip compiler-generated fields, non-function fields, and
-                // methods with a default implementation (init != null).
+                // Skip compiler-generated fields, non-function fields, and methods with a default implementation (init != null).
                 if (ifld_name == "__rtti" || ifld_name == "__finalize"
                         || !ifld._type.isFunction
                         || ifld.init != null) continue
@@ -310,8 +284,7 @@ class ImplementsMacro : AstStructureAnnotation {
 // Helper: check whether all methods of an [interface] class have const self.
 // This is used to decide whether to generate a const getter.
 def private is_const_interface(st : Structure?) : bool {
-    //! Returns ``true`` when every function field in the given [interface] struct
-    //! has a const ``self`` parameter (i.e. all methods are const).
+    //! Returns ``true`` when every function field in the given [interface] struct has a const ``self`` parameter (i.e. all methods are const).
     if (st == null) return false
     for (fld in st.fields) {
         let fn = string(fld.name)
@@ -336,85 +309,33 @@ def private is_interface_struct(st : Structure?) : bool {
     return false
 }
 
-// ────────────────────────────────────────────────────────────────────
-// Variant macro: InterfaceAsIs
-//
-// This macro intercepts the `is`, `as`, and `?as` operators during
-// type inference.  When the compiler encounters one of these operators,
-// it calls every registered variant macro in order.  The first one to
-// return a non-default ExpressionPtr "claims" the expression — the
-// compiler replaces the original AST node with the returned one.
-//
-// Resolution order (three-tier):
-//   1. Variant macros  (this class — first non-default return wins)
-//   2. Generic operator functions  (def operator is/as Name)
-//   3. Built-in variant type handling
-//
-// Each visitor method follows the same structure:
-//   1. TYPE GUARD — verify that the expression is relevant
-//      (pointer to a struct, target name is an [interface])
-//   2. FIELD LOOKUP — check if the struct has a `get`IFoo` field,
-//      which ImplementsMacro generates for each [implements(IFoo)]
-//   3. CODE GENERATION — produce a replacement expression via qmacro
-//
-// Returning `default<ExpressionPtr>` means "I don't handle this" —
-// the compiler moves on to the next variant macro or resolution tier.
-// ────────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────── Variant macro: InterfaceAsIs
 
 [variant_macro(name="InterfaceAsIs")]
 class InterfaceAsIs : AstVariantMacro {
-    //! Variant macro that enables ``is``, ``as``, and ``?as`` operators for
-    //! interface types declared with ``[interface]`` / ``[implements]``.
-    //!
-    //! * ``ptr is IFoo``  — compile-time check (``true`` when the struct implements ``IFoo``)
-    //! * ``ptr as IFoo``  — obtains the interface proxy via the generated getter
-    //! * ``ptr ?as IFoo`` — null-safe version: returns ``null`` when the pointer is null
+    //! Variant macro that enables ``is``, ``as``, and ``?as`` operators for interface types declared with ``[interface]`` / ``[implements]``.
 
-    // ── is ──────────────────────────────────────────────────────────
-    // Intercepts `expr is Name`.  If the struct implements the named
-    // interface, this produces the compile-time constant `true`;
-    // otherwise `false`.  Zero runtime cost — the result is baked in.
-    //
-    // Example:  w is IDrawable  →  true   (Widget implements IDrawable)
-    //           w is IResizable →  false  (if Widget doesn't implement it)
+    // ── is ────────────────────────────────────────────────────────── Intercepts `expr is Name`.  If the struct implements the named interface, this produces the compile-time constant `true`;
     def override visitExprIsVariant(prog : ProgramPtr; mod : Module?; expr : ExprIsVariant?) : ExpressionPtr {
-        // ── Type guard ──
-        // expr.value is the left-hand side (e.g. `w` in `w is IDrawable`).
-        // We only handle pointers to user structs.  Anything else (int,
-        // float, handled types, etc.) is declined immediately.
+        // ── Type guard ── expr.value is the left-hand side (e.g. `w` in `w is IDrawable`).
         assume vtype = expr.value._type
         if (!(vtype.isPointer && vtype.firstType != null && vtype.firstType.isStructure)) return null
         // expr.name is the right-hand side — the interface name (e.g. "IDrawable").
-        // Convert from das_string to string for API compatibility, then look up
-        // the struct by name in the compiling program.  If it doesn't exist or
-        // isn't annotated with [interface], we decline.
         let iname = string(expr.name)
         var tgt = prog |> find_unique_structure(iname)
         if (tgt == null || !is_interface_struct(tgt)) return null
-        // ── Field lookup ──
-        // ImplementsMacro adds a field named `get`IFoo` (a function pointer
-        // to the getter) for each [implements(IFoo)].  If the field exists,
-        // the struct implements the interface.
+        // ── Field lookup ── ImplementsMacro adds a field named `get`IFoo` (a function pointer to the getter) for each [implements(IFoo)].  If the field exists, the struct implements the interface.
         let getter_field = "get`{iname}"
         var st = vtype.firstType.structType
         for (fld in st.fields) {
-            // ── Code generation ──
-            // Replace `expr is IFoo` with the literal `true`.
+            // ── Code generation ── Replace `expr is IFoo` with the literal `true`.
             if (fld.name == getter_field) return <- quote(true)
         }
         // The struct is valid but doesn't implement this interface → false.
         return <- quote(false)
     }
 
-    // ── as ──────────────────────────────────────────────────────────
-    // Intercepts `expr as Name`.  Generates a call to the getter
-    // function that ImplementsMacro created, returning the interface
-    // proxy pointer.
-    //
-    // Example:  w as IDrawable  →  Widget`get`IDrawable(*w)
-    //
-    // The getter lazily constructs the proxy on first call and caches
-    // it, so repeated `as` calls are cheap (just a null check + return).
+    // ── as ────────────────────────────────────────────────────────── Intercepts `expr as Name`.  Generates a call to the getter function that ImplementsMacro created, returning the interface proxy pointer.
     def override visitExprAsVariant(prog : ProgramPtr; mod : Module?; expr : ExprAsVariant?) : ExpressionPtr {
         // ── Type guard (same as visitExprIsVariant) ──
         assume vtype = expr.value._type
@@ -427,29 +348,17 @@ class InterfaceAsIs : AstVariantMacro {
         var st = vtype.firstType.structType
         for (fld in st.fields) {
             if (fld.name == getter_field) {
-                // ── Code generation ──
-                // Build the getter function name: "Widget`get`IDrawable"
+                // ── Code generation ── Build the getter function name: "Widget`get`IDrawable"
                 let func_name = "{st.name}`get`{iname}"
-                // $c(func_name) — call a function by its string name
-                // *$e(expr.value) — dereference the pointer to pass by ref
-                // Result: Widget`get`IDrawable(*w) → returns IDrawable?
+                // $c(func_name) — call a function by its string name *$e(expr.value) — dereference the pointer to pass by ref Result: Widget`get`IDrawable(*w) → returns IDrawable?
                 return <- qmacro($c(func_name)(*$e(expr.value)))
             }
         }
-        // Struct doesn't implement this interface — decline so the
-        // compiler can report a proper error via the next resolution tier.
+        // Struct doesn't implement this interface — decline so the compiler can report a proper error via the next resolution tier.
         return null
     }
 
-    // ── ?as ─────────────────────────────────────────────────────────
-    // Intercepts `expr ?as Name`.  Like `as`, but wraps the getter
-    // call in a null check so that a null pointer returns null instead
-    // of crashing.
-    //
-    // Example:  w ?as IDrawable
-    //       →   w != null ? Widget`get`IDrawable(*w) : null
-    //
-    // This is the safe version for use when the pointer may be null.
+    // ── ?as ───────────────────────────────────────────────────────── Intercepts `expr ?as Name`.  Like `as`, but wraps the getter call in a null check so that a null pointer returns null instead of crashing.
     def override visitExprSafeAsVariant(prog : ProgramPtr; mod : Module?; expr : ExprSafeAsVariant?) : ExpressionPtr {
         // ── Type guard (same pattern) ──
         assume vtype = expr.value._type
@@ -465,7 +374,6 @@ class InterfaceAsIs : AstVariantMacro {
                 // ── Code generation ──
                 let func_name = "{st.name}`get`{iname}"
                 // Ternary: null check → getter call, or null.
-                // Each $e(expr.value) splice clones independently via apply_template.
                 return <- qmacro($e(expr.value) != null ? $c(func_name)(*$e(expr.value)) : null)
             }
         }

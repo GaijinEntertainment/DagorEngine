@@ -1,4 +1,5 @@
 import "math" as math
+from "types" import String, Integer, Float, Bool, Array, Table, Function, Class
 
 let log = require("%sqstd/log.nut")().log
 
@@ -70,14 +71,13 @@ function typeBitsToStringFirst(x): string {
 let def_params_names = ["a", "b", "c", "d", "e"].extend(array(10).map(@(_, i) $"var_{i+5}"))
 
 function defaultValueStr(v): string {
-  let t = type(v)
-  if (t == "string") {
+  if (v instanceof String) {
     let esc = v.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
     return $"\"{esc}\""
   }
-  if (t == "integer" || t == "float" || t == "bool") return v.tostring()
-  if (t == "array") return "[]"
-  if (t == "table") return "{}"
+  if (v instanceof Integer || v instanceof Float || v instanceof Bool) return v.tostring()
+  if (v instanceof Array) return "[]"
+  if (v instanceof Table) return "{}"
   return "null"
 }
 
@@ -166,9 +166,9 @@ function mkStubStr(val, name=null, indent=0, verbose = false, manualModInfo=null
   let mkStubSt = callee()
   if (["string", "float", "integer", "bool"].contains(typ))
     return name == null ? val.tostring() : $"{indentStr}{name} = {val.tostring()}"
-  if (typ=="function")
+  if (val instanceof Function)
     return  $"{indentStr}{mkFunStubStr(val, name, indent, verbose, manualModInfo)}"
-  if (typ=="table"){
+  if (val instanceof Table){
     let res = [name!=null ? $"{indentStr}{name} = \{" : $"{indentStr}\{"]
     let sorted = topairs(val)
     foreach(pair in sorted){
@@ -178,7 +178,7 @@ function mkStubStr(val, name=null, indent=0, verbose = false, manualModInfo=null
     res.append($"{indentStr}\}")
     return "\n".join(res)
   }
-  if (typ=="class"){
+  if (val instanceof Class){
     let res = [name==null ? $"{indentStr}class\{" : $"{indentStr}{name} = class\{"]
     let sorted = topairs(val)
     foreach(pair in sorted){
@@ -188,7 +188,7 @@ function mkStubStr(val, name=null, indent=0, verbose = false, manualModInfo=null
     res.append($"{indentStr}\}")
     return "\n".join(res)
   }
-  if (typ == "array") {
+  if (val instanceof Array) {
     if (name=="argv")//hack for bad dagor.system api
       return $"{indentStr}argv = []"
     return name == null

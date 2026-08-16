@@ -108,6 +108,7 @@ struct ResourceRequestAnnotation final : das::ManagedStructureAnnotation<dafg::R
     addField<DAS_BIND_MANAGED_FIELD(usage)>("usage");
     addField<DAS_BIND_MANAGED_FIELD(slotRequest)>("slotRequest");
     addField<DAS_BIND_MANAGED_FIELD(optional)>("optional");
+    addField<DAS_BIND_MANAGED_FIELD(usageDeclared)>("usageDeclared");
   }
 };
 

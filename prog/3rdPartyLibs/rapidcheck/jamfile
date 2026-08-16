@@ -1,0 +1,22 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/rapidcheck ;
+StrictCompile = no ;
+Rtti = yes ; # rapidcheck's type-erased Any/ShowType use typeid; engine default is -fno-rtti
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/rapidcheck.lib ;
+
+AddIncludes = $(Root)/prog/3rdPartyLibs/rapidcheck/include ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+local AllSrcFolder_CPP =
+  src
+  src/detail
+  src/gen
+  src/gen/detail
+;
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp : Sources ;
+
+include $(Root)/prog/_jBuild/build.jam ;

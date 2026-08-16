@@ -3,6 +3,9 @@
 #include "global_state.h"
 #include <platform.h>
 
+#if _TARGET_PC_WIN
+#pragma comment(lib, "dxguid.lib")
+#endif
 
 namespace drv3d_dx12::debug
 {

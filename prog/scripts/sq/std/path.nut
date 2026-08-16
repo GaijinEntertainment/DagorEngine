@@ -1,4 +1,5 @@
 from "string" import split_by_chars, regexp
+from "types" import String, Array
 /**
  * Normalize file path slashes to be unix-like forward slashes.
  * Condenses repeat slashes to a single slash and removes and trailing slashes.
@@ -133,8 +134,8 @@ function fileName(path) {
  *   join("/", "/")              > "/"
  */
 function _join(basePath, other) {
-  assert(type(basePath) == "string")
-  assert(type(other) == "string")
+  assert(basePath instanceof String)
+  assert(other instanceof String)
   if (basePath == "")
     return other
   else if (other == "" || other == "/")
@@ -166,7 +167,7 @@ function joinArray(pathArray): string {
 function join(...) {
   local path = ""
   foreach (pathSegment in vargv) {
-    if (type(pathSegment) == "array") {
+    if (pathSegment instanceof Array) {
       path = _join(path,joinArray(pathSegment))
     }
     else {
@@ -189,7 +190,7 @@ function join(...) {
 function splitToArray(path): array {
   if (path == "")
     return []
-  assert(type(path)=="string", @() $"path type is not string ({type(path)})")
+  assert(path instanceof String, @() $"path type is not string ({type(path)})")
   let segments = split_by_chars(path, "/")
   if (path[0] == '/')
     segments.insert(0, "/")

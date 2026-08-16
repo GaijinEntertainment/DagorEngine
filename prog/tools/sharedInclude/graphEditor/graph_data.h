@@ -103,6 +103,10 @@ struct GraphData
     bool isInput = true;                         // derived: role != PinRole::Out
     bool singleConnect = false;
     bool hidden = true;
+    // Section divider, not a real pin: a `subgraph separator` node placed inside a subgraph shows up
+    // on the parent subgraph node as one of these. Renders as a labelled rule across the node and is
+    // never connectable, so every consumer must skip it (validation, hit-testing, compile).
+    bool separator = false;
     // Per-instance pin data, populated from the saved pin's `data{}` block.
     // For regular nodes this overlaps with the descriptor's pin data sub-block in
     // base_nodes.blk; for shader_editor sub-graph nodes (mask_from_index etc.)
@@ -150,6 +154,7 @@ struct GraphData
     int pinA = 0;
     int elemB = 0;
     int pinB = 0;
+    bool muted = false; // authored "switch this connection off" bit
   };
 
   // Display data (consumed by GraphPanel).

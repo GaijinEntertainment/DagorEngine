@@ -1,7 +1,8 @@
 from "%darg/ui_imports.nut" import *
 from "dagor.workcycle" import defer
+from "types" import Array
 
-let cursorC = Color(180,180,180,180)
+const cursorC = Color(180,180,180,180)
 
 function mkButton(desc, onClick) {
   let buttonGrp = ElemGroup()
@@ -28,7 +29,7 @@ function mkButton(desc, onClick) {
         : Color(120,120,120,120)
 
       size = SIZE_TO_CONTENT
-      margin = [sh(0.5), sh(1)]
+      margin = const [sh(0.5), sh(1)]
       watch = stateFlags
 
       children = {
@@ -45,7 +46,7 @@ function mkButton(desc, onClick) {
 
 let cursor = Cursor({
   rendObj = ROBJ_VECTOR_CANVAS
-  size = [sh(2), sh(2)]
+  size = const [sh(2), sh(2)]
   commands = [
     [VECTOR_WIDTH, hdpx(1)],
     [VECTOR_FILL_COLOR, cursorC],
@@ -73,10 +74,10 @@ const maskKeys = ""
 
 let BgOverlay = freeze({
   rendObj = ROBJ_SOLID
-  size = [sw(100), sh(100)]
+  size = const [sw(100), sh(100)]
   color = Color(0, 0, 0, 200)
   behavior = Behaviors.Button
-  transform = {}
+  transform = true
   cursor
   stopMouse = true
   animations = [
@@ -247,7 +248,7 @@ function showMsgbox(params) {
           conHover?()
         }
         local behavior = desc?.customStyle?.behavior ?? desc?.behavior
-        behavior = behavior == null ? [] : type(behavior) == "array" ? clone behavior : [behavior]
+        behavior = behavior == null ? [] : behavior instanceof Array ? clone behavior : [behavior]
         behavior.append(Behaviors.Button)
         let customStyle = (desc?.customStyle ?? {}).__merge({
           onHover

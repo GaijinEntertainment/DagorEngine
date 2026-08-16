@@ -18,9 +18,10 @@
 
 int OutlineRenderer::simple_outline_colorVarId = -1;
 int OutlineRenderer::simple_outline_color_rtVarId = -1;
+int OutlineRenderer::simple_outline_widthVarId = -1;
 int OutlineRenderer::global_frame_block_id = -1;
 int OutlineRenderer::rendinst_scene_block_id = -1;
-const E3DCOLOR OutlineRenderer::outline_color = E3DCOLOR(255, 255, 0);
+const E3DCOLOR OutlineRenderer::default_outline_color = E3DCOLOR(255, 255, 0);
 
 OutlineRenderer::~OutlineRenderer()
 {
@@ -43,10 +44,9 @@ void OutlineRenderer::init()
 
   simple_outline_colorVarId = get_shader_variable_id("simple_outline_color", true);
   simple_outline_color_rtVarId = get_shader_variable_id("simple_outline_color_rt", true);
+  simple_outline_widthVarId = get_shader_variable_id("simple_outline_width", true);
   global_frame_block_id = ShaderGlobal::getBlockId("global_frame");
   rendinst_scene_block_id = ShaderGlobal::getBlockId("rendinst_scene");
-
-  ShaderGlobal::set_float4(simple_outline_colorVarId, outline_color);
 }
 
 void OutlineRenderer::initResolution(int width_, int height_)
@@ -57,10 +57,13 @@ void OutlineRenderer::initResolution(int width_, int height_)
   colorRt.close();
   colorRt.set(d3d::create_tex(NULL, width, height, TEXCF_RTARGET | TEXFMT_DEFAULT, 1, "simple_outline_color_rt"),
     "simple_outline_color_rt");
+
+  depthRt.close();
+  depthRt.set(d3d::create_tex(NULL, width, height, TEXFMT_DEPTH16 | TEXCF_RTARGET, 1));
 }
 
 void OutlineRenderer::render(IGenViewportWnd &wnd, const RIElementsCache &riElements,
-  dag::ConstSpan<DynamicRenderableSceneInstance *> dynmodelElements)
+  dag::ConstSpan<DynamicRenderableSceneInstance *> dynmodelElements, const E3DCOLOR outlineColor, int outlineWidth)
 {
   TIME_D3D_PROFILE(render_outline_elements);
 
@@ -70,14 +73,17 @@ void OutlineRenderer::render(IGenViewportWnd &wnd, const RIElementsCache &riElem
   if (!isInited())
     init();
 
+  ShaderGlobal::set_float4(simple_outline_colorVarId, outlineColor);
+  ShaderGlobal::set_float(simple_outline_widthVarId, (float)outlineWidth);
+
   if (width != viewportWidth || height != viewportHeight)
     initResolution(viewportWidth, viewportHeight);
 
   Driver3dRenderTarget prevRT;
   d3d::get_render_target(prevRT);
 
-  d3d::set_render_target({}, DepthAccess::RW, {{colorRt.getTex2D(), 0, 0}});
-  d3d::clearview(CLEAR_TARGET, 0, 1, 0);
+  d3d::set_render_target({depthRt.getTex2D(), 0, 0}, DepthAccess::RW, {{colorRt.getTex2D(), 0, 0}});
+  d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER, 0, 0.0f, 0);
 
   const int lastFrameBlockId = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
   ShaderGlobal::setBlock(global_frame_block_id, ShaderGlobal::LAYER_FRAME);

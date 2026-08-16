@@ -127,8 +127,10 @@ enum : int
 
 #if DAFX_STAT
   INST_RENDERABLE_TRIS,
+  INST_STAT_GROUP,
 #else
   INST_RENDERABLE_TRIS = -1,
+  INST_STAT_GROUP = -1,
 #endif
 
 #if DAGOR_DBGLEVEL > 0
@@ -215,7 +217,8 @@ using InstanceStream = eastl::tuple_vector<InstanceId, // INST_RID
 
 #if DAFX_STAT
   ,
-  unsigned int // INST_RENDERABLE_TRIS
+  unsigned int, // INST_RENDERABLE_TRIS
+  uint8_t       // INST_STAT_GROUP
 #endif
 
 #if DAGOR_DBGLEVEL > 0

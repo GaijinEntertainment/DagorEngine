@@ -24,7 +24,9 @@ macro USE_BUFFER_UNPACK_HELPERS(code)
   {
     float2 unpack_ao_emission(float buffer2_red)
     {
-      return saturate(float2(buffer2_red, buffer2_red - (128.f / 255.f)) * (255.f / 127.f));
+      // we can't use 127.f / 255.f as barrier between emission and ao due to clipmap compresiion which can shift resulting value
+      // so we get false-positive emission from areas with high ao
+      return saturate(float2(buffer2_red, buffer2_red - 0.6f) * 2.5f);
     }
   }
 endmacro

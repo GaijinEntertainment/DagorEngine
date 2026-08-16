@@ -8,6 +8,7 @@ int4 world_sdf_raster_sz_coord;
 float4 world_sdf_cull_update_lt;
 float4 world_sdf_cull_update_rb;
 int world_sdf_update_mip;
+int4 world_sdf_update_mip_coord_lt;
 
 macro WSDF_COORD_UPDATE(code)
   (code) {
@@ -23,9 +24,14 @@ macro WSDF_COORD_UPDATE(code)
     world_sdf_raster_lt_coord@i4 = world_sdf_raster_lt_coord;
     world_sdf_raster_sz_coord@i4 = world_sdf_raster_sz_coord;
     world_sdf_update_mip@i1 = world_sdf_update_mip;
+    world_sdf_update_mip_coord_lt@i4 = world_sdf_update_mip_coord_lt;
     world_sdf_res_np2@i4 = world_sdf_res_np2;
   }
   hlsl(code) {
+    // world_sdf_update_mip_coord_lt is the coord_lt entry of the mip being
+    // updated. Update dispatches must use it instead of sample_world_sdf_coord_lt:
+    // the cbuffer is uploaded once per frame, after the update dispatches ran,
+    // so during the update it still holds the previous clip layout.
     #define sample_world_sdf_coord_lt(clip) _sample_world_sdf_coord_lt(clip, _FILE_, __LINE__)
     int4 _sample_world_sdf_coord_lt(uint clip, int file, int ln)
     {
@@ -46,9 +52,8 @@ macro WSDF_COORD_UPDATE(code)
       return uint3(world_coord)%uint3(world_sdf_res.xxy);
     }
     int3 world_sdf_get_lt_coord(uint mip) {return sample_world_sdf_coord_lt(mip).xyz;}
-    int3 world_sdf_coord_from_target_coord(uint mip, uint3 wrapped)
+    int3 world_sdf_coord_from_lt_target_coord(int3 lt, uint3 wrapped)
     {
-      int3 lt = sample_world_sdf_coord_lt(mip).xyz;
       #if WORLD_SDF_ALLOW_NON_POW2
       return lt + int3(uint3(int3(wrapped) - lt.xyz + world_sdf_res_np2.zzw)%uint3(world_sdf_res_np2.xxy));
       #endif

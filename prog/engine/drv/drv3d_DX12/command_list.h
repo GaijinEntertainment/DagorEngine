@@ -575,7 +575,7 @@ protected:
   {
     switch (format)
     {
-        // most formats have only one laer
+        // most formats have only one layer
       default: return 1;
       // depth stencil formats have each a plane for depth and stencil
       case DXGI_FORMAT_R32G8X24_TYPELESS:
@@ -1125,7 +1125,7 @@ public:
   }
 };
 
-#if DX12_VALIDATA_COPY_COMMAND_LIST
+#if DX12_VALIDATE_COPY_COMMAND_LIST
 template <typename T> //
 using CopyCommandList = CopyCommandListParameterValidation<T>;
 #else
@@ -1562,7 +1562,7 @@ public:
   // It validates the following properties of the inputs:
   // - If aligned_buffer_offset is multiples of 8
   // - When buffer is not null then buffer is a buffer resource
-  // - When buffer is not null then aligned_buffer_offset + 8 is withing the size of buffer
+  // - When buffer is not null then aligned_buffer_offset + 8 is within the size of buffer
   void setPredication(ID3D12Resource *buffer, UINT64 aligned_buffer_offset, D3D12_PREDICATION_OP operation)
   {
 #define DX12_VALIDATION_CONTEXT "setPredication"

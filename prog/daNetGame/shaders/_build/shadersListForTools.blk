@@ -2,6 +2,7 @@
   file:t = "tex_view.dshl"
   file:t = "infinite_grid.dshl"
   file:t = "simple_outline.dshl"
+  file:t = "simple_tint.dshl"
   file:t = "debug_fx.dshl"
   file:t = "spline_solid.dshl"
   file:t = "../apply_wireframe.dshl"

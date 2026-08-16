@@ -3,6 +3,7 @@
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_expressions.h"
 #include "daScript/ast/ast_gc_report.h"
+#include "daScript/misc/env_cfg.h"
 
 #include <algorithm>
 #include <stdlib.h>
@@ -113,7 +114,7 @@ namespace das {
             [](const pair<const string, FileBucket>* a, const pair<const string, FileBucket>* b){
                 return a->second.total.total > b->second.total.total;
             });
-        out << "=== AST gc histogram: " << (label ? label : "") << " — " << root.gc_count << " nodes ===\n";
+        out << "=== AST gc histogram: " << (label ? label : "") << " - " << root.gc_count << " nodes ===\n";
         for ( auto fp : files ) {
             if ( fp->second.total.total < minCount ) continue;
             out << "  " << fp->first << "  " << fp->second.total.total << "  ";
@@ -137,13 +138,9 @@ namespace das {
     // ---- per-stage delta ----
 
     bool gcStageReportEnabled () {
-#if defined(_WIN32) || defined(__linux__) || defined(__APPLE__)
         static int cached = -1;
-        if ( cached < 0 ) cached = getenv("DAS_GC_STAGE_REPORT") ? 1 : 0;
+        if ( cached < 0 ) cached = get_dasenv_gc_stage_report() ? 1 : 0;
         return cached != 0;
-#else
-        return false;   // consoles have no environment variables
-#endif
     }
 
     // signed per-(file,line) delta: cur - prev. n[] can go negative when a stage reclaims.
@@ -216,7 +213,7 @@ namespace das {
         });
         if ( deltas.empty() ) {
             out << "=== gc delta @ " << unit << " : " << (stage ? stage : "")
-                << " — no net change (" << root.gc_count << " nodes) ===\n";
+                << " - no net change (" << root.gc_count << " nodes) ===\n";
             prev = std::move(cur);
             return;
         }

@@ -39,7 +39,7 @@ def write_compact_func_signature(var w : StringBuilderWriter; func) {
     }
 }
 
-def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : string = ""; section : string = ""; compact : bool = false) {
+def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : string = ""; section : string = ""; compact : bool = false) { // nolint:STYLE037 — one arm per API section kind
     write(writer, "Module: {mod.name}\n")
     var funcs : array<string>
     var generics : array<string>
@@ -312,7 +312,7 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
 
 def private try_list_module_api(name : string; preamble : string; filter : string; section : string; compact : bool; project : string) : TryResult {
     let stub_path = make_temp_das_file()
-    let stub = "require {name}\n[export]\ndef main\n    pass\n"
+    let stub = "options gen2\nrequire {name}\n[export]\ndef main \{\n    pass\n\}\n"
     var write_ok = false
     fopen(stub_path, "w") $(f) {
         if (f != null) {

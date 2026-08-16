@@ -367,7 +367,10 @@ void ShaderVariableInfo::resolve()
   {
     if (data)
     {
-      if (!IShaderBindumpReloadListener::staticInitDone) // no sense in trying to resolve, shader dump is not loaded
+      // no sense in trying to resolve if shader dump is not loaded
+      if (!IShaderBindumpReloadListener::staticInitDone)
+        return;
+      if (!shGlobalData().backing->getDump())
         return;
       const int vid = VariableMap::getVariableId(data);
       if (vid >= 0)

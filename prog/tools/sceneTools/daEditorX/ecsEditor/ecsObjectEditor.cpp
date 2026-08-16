@@ -501,7 +501,7 @@ void ECSObjectEditor::registerViewportAccelerators(IWndManager &wndManager)
   wndManager.addViewportAccelerator(CM_ECS_EDITOR_TOGGLE_FREE_TRANSFORM, EditorCommandIds::ECS_EDITOR_TOGGLE_FREE_TRANSFORM);
   wndManager.addViewportAccelerator(CM_ECS_EDITOR_SET_PARENT, EditorCommandIds::ECS_EDITOR_SET_PARENT);
   wndManager.addViewportAccelerator(CM_ECS_EDITOR_CLEAR_PARENT, EditorCommandIds::ECS_EDITOR_CLEAR_PARENT);
-  wndManager.addViewportAccelerator(CM_ECS_EDITOR_SCENE_OUTLINER, EditorCommandIds::ECS_EDITOR_SCENE_OUTLINER);
+  wndManager.addAccelerator(CM_ECS_EDITOR_SCENE_OUTLINER, EditorCommandIds::ECS_EDITOR_SCENE_OUTLINER);
 }
 
 void ECSObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)

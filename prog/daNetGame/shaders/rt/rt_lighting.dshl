@@ -20,6 +20,7 @@ include "rtr_probes_use.dshl"
 include "grass_generate_inc.dshl"
 include "skinning_inc2.dshl"
 include "underwater_fog.dshl"
+include "envi_cover_inc.dshl"
 
 int bvh_paint_details_tex_slot;
 
@@ -28,6 +29,11 @@ interval rtr_shadow: off < 1, on;
 
 int glass_rtr_shadow = 1;
 interval glass_rtr_shadow: off < 1, on;
+
+int envi_cover_rt = 0;
+interval envi_cover_rt: off < 1, on;
+
+texture noise_128_tex_hash;
 
 int rtr_use_csm = 0;
 
@@ -243,6 +249,11 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
   USE_PERLIN_LAYERED(stage)
   DETAIL_WEIGHTS_BLENDING(stage)
   WETNESS_FOR_SPEC_BRDF(stage)
+  if (!fast_mode && envi_cover_rt == on)
+  {
+    INIT_ENVI_COVER_RT(stage)
+    USE_ENVI_COVER_RT(stage)
+  }
   USE_LANDSCAPE_TC_TO_WORLD(stage)
   DYNMODEL_SHARED_DECL_IMMEDIATE_BASE(stage)
   hlsl(stage)
@@ -507,6 +518,30 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
       bool isFoliage;
     };
 
+    ##if !fast_mode && envi_cover_rt == on
+    void apply_rt_envi_cover(float3 worldPos, HitInfo hitInfo, inout SurfaceParams sp)
+    {
+      uint materialType = get_material_type(hitInfo.material);
+      if (hitInfo.isEmissive || hitInfo.isGrass || sp.isWater ||
+          materialType == bvhMaterialTerrain || materialType == bvhMaterialLandclass ||
+          is_dynrend(hitInfo.material))
+        return;
+
+      float enviInfluence = 0;
+      EnviSnowParams enviParams = fillEnviSnowParams();
+      BRANCH
+      if (calculate_envi_cover_influence(worldPos, sp.normal, enviParams, enviInfluence))
+        return;
+
+
+      half translucencyDummy = 0;
+      uint materialDummy = SHADING_NORMAL;
+      lerp_envi_cover(worldPos, sp.normal, 0, enviInfluence,
+        enviParams, sp.albedo, sp.reflectance, sp.smoothness, translucencyDummy, materialDummy);
+      sp.metalness = lerp(sp.metalness, 0, half(enviInfluence));
+    }
+    ##endif
+
     SurfaceParams calc_surface_params(inout HitInfo hitInfo, half3 surfaceToCamera, float w)
     {
       float3 worldPos = hitInfo.position + bvh_origin;
@@ -701,6 +736,10 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
 
       apply_env_wetness(worldPos, sp.normal, surfaceToCamera, SHADING_NORMAL, false, sp.albedo, sp.smoothness, sp.normal, sp.reflectance);
 
+      ##if !fast_mode && envi_cover_rt == on
+        apply_rt_envi_cover(worldPos, hitInfo, sp);
+      ##endif
+
       return sp;
     }
   }
@@ -718,6 +757,13 @@ macro INIT_RT_LIGHTING(stage, use_cockpit_lights, use_sampler_for_cloud_shadows,
   {
     hlsl(stage) {
       #define RT_USE_DAGI 1
+    }
+  }
+  else
+  {
+    hlsl(stage) {
+      // make PTGI shadows cheaper
+      #define FASTEST_STATIC_SHADOW_PCF 1
     }
   }
 
@@ -741,7 +787,15 @@ macro INIT_RT_LIGHTING(stage, use_cockpit_lights, use_sampler_for_cloud_shadows,
     }
 
     INIT_CSM_SHADOW(stage)
-    BASE_USE_CSM_SHADOW_DEF_NUM_DEFAULT(stage)
+    if (use_dagi)
+    {
+      BASE_USE_CSM_SHADOW_DEF_NUM_DEFAULT(stage)
+    }
+    else
+    {
+      // make PTGI shadows cheaper
+      BASE_USE_CSM_SHADOW_DEF_NUM(stage, get_csm_shadow_simple)
+    }
 
     hlsl(stage) {
       #define RT_USE_CSM_SHADOW 1
@@ -850,7 +904,6 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
       half3 toSun = (half3)-from_sun_direction.xyz;
       half NoL = dot(normalh, toSun);
       half NdotV = dot(normalh, surface.surfaceToCamera);
-      half3 reflectionVec = 2 * NdotV * normalh - surface.surfaceToCamera;
       half NoV = abs(NdotV) + 1e-5h;
 
       float3 worldPos = surface.position + bvh_origin;
@@ -879,29 +932,33 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
       float3 ambient = calc_environment_ambient_unoccluded_lighting(worldPos, normalh, linearRoughness, surface.surfaceToCamera, w);
       litPixel += ambient * diffuseColor;
 
-      float3 enviBRDF = EnvBRDFApprox(specularColor, linearRoughness, NoV);
-      float indoorProbeWeight; // 0 = fully inside, 1 = fully outside
-      float3 specularComponent = calc_environment_specular_reflection(worldPos, normalh, linearRoughness, surface.surfaceToCamera, length(surface.position), luminance(ambient), indoorProbeWeight);
+      float3 specularReflection = 0;
+      #if RT_USE_DAGI
+        float3 enviBRDF = EnvBRDFApprox(specularColor, linearRoughness, NoV);
+        float indoorProbeWeight; // 0 = fully inside, 1 = fully outside
+        float3 specularComponent = calc_environment_specular_reflection(worldPos, normalh, linearRoughness, surface.surfaceToCamera, length(surface.position), luminance(ambient), indoorProbeWeight);
 
-      // Specular hack to avoid excessive sky glow
-      // Increase multiplier when we have indoor probes
-      // Metallic objects don't get lit diffusely, so we can allow them to be brighter
-      half hackLerpS = indoorProbeWeight * (1-surface.metalness);
-      half MIN_ENVI_SSR = lerp(0.25, 0.1, hackLerpS);
-      half enviSSR = MIN_ENVI_SSR + shadow * (1 - MIN_ENVI_SSR);
-      half specularAOcclusion = lerp(0.5, 0.1, hackLerpS);
-      enviSSR *= specularAOcclusion;
-      specularComponent *= enviSSR;
+        // Specular hack to avoid excessive sky glow
+        // Increase multiplier when we have indoor probes
+        // Metallic objects don't get lit diffusely, so we can allow them to be brighter
+        half hackLerpS = indoorProbeWeight * (1-surface.metalness);
+        half MIN_ENVI_SSR = lerp(0.25, 0.1, hackLerpS);
+        half enviSSR = MIN_ENVI_SSR + shadow * (1 - MIN_ENVI_SSR);
+        half specularAOcclusion = lerp(0.5, 0.1, hackLerpS);
+        enviSSR *= specularAOcclusion;
+
+        specularReflection = specularComponent * enviSSR * enviBRDF;
+      #endif
 
       if (surface.isWater)
       {
         float Fc = pow5(1.- NoV);
         half fresnelView = Fc+0.02*(1-Fc);
-        litPixel = litPixel*(1-fresnelView) + specularComponent*enviBRDF;
+        litPixel = litPixel*(1-fresnelView) + specularReflection;
       }
       else
       {
-        litPixel += specularComponent * enviBRDF;
+        litPixel += specularReflection;
       }
 
       return litPixel;

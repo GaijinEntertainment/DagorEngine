@@ -2,6 +2,7 @@
 
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_visitor.h"
+#include "daScript/ast/ast_handle.h"
 #include "daScript/misc/das_common.h"
 #include "daScript/daScriptModule.h"
 #include "daScript/misc/handle_registry.h"
@@ -119,34 +120,26 @@ namespace das {
         if ( info->type != Type::tHandle ) {
             return nullptr;
         }
-        intptr_t ann = (intptr_t) (info->annotation_or_name);
-        if ( ann & 1 ) {
-            auto bound = daScriptEnvironment::getBound();
-            DAS_VERIFYF(bound && bound->modules,"missing bound environment");
-            // we add ~ at the beginning of the name for padding
-            // if name is allocated by the compiler, it does not guarantee that it is aligned
-            // we check if there is a ~ at the beginning of the name, and if it is - we skip it
-            // that way we can accept both aligned and unaligned names
-            auto cvtbuf = (char *) ann;
-            if ( cvtbuf[0]=='~' ) cvtbuf++;
-            string moduleName, annName;
-            splitTypeName(cvtbuf, moduleName, annName);
-            TypeAnnotation * resolve = nullptr;
-            for ( auto pm = bound->modules; pm!=nullptr; pm=pm->next ) {
-                if ( pm->name == moduleName ) {
-                    if ( auto annT = pm->findAnnotation(annName) ) {
-                        resolve = (TypeAnnotation *) annT;
-                    }
-                    break;
-                }
+        return (TypeAnnotation *) resolveAnnotation(info->annotation_info);
+    }
+
+    Annotation * Module::resolveAnnotation ( const AnnotationInfo * info ) {
+        if ( !info ) return nullptr;
+        if ( info->resolved ) return info->resolved;
+        auto bound = daScriptEnvironment::getBound();
+        DAS_VERIFYF(bound && bound->modules,"missing bound environment");
+        Annotation * resolve = nullptr;
+        for ( auto pm = bound->modules; pm!=nullptr; pm=pm->next ) {
+            if ( pm->name == info->module_name ) {
+                resolve = pm->findAnnotation(info->name);
+                break;
             }
-            if ( bound->g_resolve_annotations ) {
-                info->annotation_or_name = resolve;
-            }
-            return resolve;
-        } else {
-            return info->annotation_or_name;
         }
+        // only cache successful lookups - a miss may be a not-yet-registered module
+        if ( resolve && bound->g_resolve_annotations ) {
+            info->resolved = resolve;
+        }
+        return resolve;
     }
 
     atomic<int> g_envTotal(0);
@@ -298,16 +291,29 @@ namespace das {
         return nullptr;
     }
 
-    Module * Module::requireEx ( const string & name, bool allowPromoted, const string & expectedFileName ) {
+    Module * Module::requireEx ( const string & name, bool allowPromoted, const string & requireName, const string & expectedFileName ) {
         if ( !daScriptEnvironment::getBound() ) return nullptr;
         for ( auto m = daScriptEnvironment::getBound()->modules; m != nullptr; m = m->next ) {
             if ( allowPromoted || !m->promoted ) {
                 if ( m->name == name ) {
-                    // We key by module name only.
-                    // If someone required daslib/fio earlier (fio is shared),
-                    // and now we write require fio it will be found, although
-                    // it's an error.
-                    if ( m->promoted && !expectedFileName.empty() && m->fileName != expectedFileName ) {
+                    // A shared module is identity-matched by the canonical require
+                    // string it was promoted with, NOT by a directory-relative file
+                    // path. This lets `require component_macro` resolve the promoted
+                    // module from any directory, while a mis-qualified require -- bare
+                    // `require fio` for a module promoted as `daslib/fio` -- still fails.
+                    // An empty stored identity (older serialized data, extra-dependency
+                    // promotion) falls back to name-only matching.
+                    // A mis-qualified require -- bare `require fio` for a module promoted as
+                    // `daslib/fio` -- still fails. But the same file is legitimately spelled several
+                    // ways (mount prefix, `/` vs `.`: `%daslib/strings_boost`, `daslib/strings_boost`,
+                    // `daslib.strings_boost`), so when the require resolves to the file this module was
+                    // built from it is the same module whatever the spelling. Rejecting it there
+                    // compiles a second instance, and code compiled against the first one cannot then
+                    // see the second one's functions (error[30341] "module X is not visible directly
+                    // from Y").
+                    if ( m->promoted && !requireName.empty() && !m->promotedRequire.empty()
+                            && m->promotedRequire != requireName
+                            && !(!expectedFileName.empty() && m->fileName==expectedFileName) ) {
                         continue;
                     }
                     return m;
@@ -362,13 +368,14 @@ namespace das {
         isPublic = true;
     }
 
-    void Module::promoteToBuiltin(const FileAccessPtr & access) {
+    void Module::promoteToBuiltin(const FileAccessPtr & access, const string & requireName) {
         DAS_ASSERTF(!builtIn, "failed to promote. already builtin");
         next = daScriptEnvironment::getBound()->modules;
         daScriptEnvironment::getBound()->modules = this;
         builtIn = true;
         promoted = true;
         promotedAccess = access;
+        promotedRequire = requireName;
     }
 
     Module::~Module() {
@@ -741,7 +748,7 @@ namespace das {
         return it != callThis.end() ? &it->second : nullptr;
     }
 
-    static bool appendBuiltinModuleContent ( Module * target, ProgramPtr program, const string & modName ) {
+    DAS_API bool appendBuiltinModuleContent ( Module * target, ProgramPtr program, const string & modName ) {
         if ( !program ) {
             DAS_FATAL_ERROR("builtin module did not parse %s\n", modName.c_str());
             return false;
@@ -793,6 +800,8 @@ namespace das {
         for (auto & m : ptm->macros) target->macros.push_back(std::move(m));
         for (auto & m : ptm->inferMacros) target->inferMacros.push_back(std::move(m));
         for (auto & m : ptm->optimizationMacros) target->optimizationMacros.push_back(std::move(m));
+        for (auto & m : ptm->preInferMacros) target->preInferMacros.push_back(std::move(m));
+        for (auto & m : ptm->postInferMacros) target->postInferMacros.push_back(std::move(m));
         for (auto & m : ptm->lintMacros) target->lintMacros.push_back(std::move(m));
         for (auto & m : ptm->globalLintMacros) target->globalLintMacros.push_back(std::move(m));
         for ( auto & rm : ptm->readMacros ) {
@@ -809,20 +818,6 @@ namespace das {
         }
         SubstituteBuiltinModuleRefs( program, program->thisModule.get(), target );
         return true;
-    }
-
-    bool Module::compileBuiltinModule ( const string & modName, const unsigned char * const str, unsigned int str_len ) {
-        TextWriter issues;
-        auto access = make_smart<FileAccess>();
-        auto fileInfo = make_unique<TextFileInfo>((char *) str, uint32_t(str_len), false);
-        access->setFileInfo(modName, das::move(fileInfo));
-        ModuleGroup dummyLibGroup;
-        auto program = parseDaScript(modName, "", access, issues, dummyLibGroup, true);
-        ownFileInfo = access->letGoOfFileInfo(modName);
-        DAS_ASSERTF(ownFileInfo,"something went wrong and FileInfo for builtin module can not be obtained");
-        auto result = appendBuiltinModuleContent(this, program, modName);
-        program->thisModule->module_gc_root->gc_dump_to_thread_root();
-        return result;
     }
 
     bool isValidBuiltinName ( const string & name, bool canPunkt ) {
@@ -1222,6 +1217,26 @@ namespace das {
             }
             DAS_FATAL_ERROR("makeHandleType(%s) failed, duplicate annotation\n", name.c_str());
             return nullptr;
+        }
+        return t;
+    }
+
+    TypeDeclPtr ModuleLibrary::makeDistinctType ( const string & name ) const {
+        auto handles = findAnnotation(name,nullptr);
+        if ( handles.size()!=1 ) {
+            DAS_FATAL_ERROR("makeDistinctType(%s) failed, %s annotation\n", name.c_str(),
+                handles.size()==0 ? "missing" : "duplicate");
+            return nullptr;
+        }
+        if ( !handles.back()->rtti_isDistinctTypeAnnotation() ) {
+            DAS_FATAL_ERROR("makeDistinctType(%s) failed, not a distinct type\n", name.c_str());
+            return nullptr;
+        }
+        auto dann = static_cast<DistinctTypeAnnotation *>(handles.back());
+        auto t = new TypeDecl(Type::tDistinct);
+        t->annotation = dann;
+        if ( dann->underlyingType ) {
+            t->firstType = new TypeDecl(*dann->underlyingType);
         }
         return t;
     }

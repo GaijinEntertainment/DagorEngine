@@ -57,6 +57,7 @@ Sources =
   backend/nodeStateDeltas.cpp
   backend/passColoring.cpp
   backend/nodeScheduler.cpp
+  backend/resourceScheduling/resourceLifetimes.cpp
   backend/resourceScheduling/barrierScheduler.cpp
   backend/resourceScheduling/resourceScheduler.cpp
   backend/resourceScheduling/resourceAllocator.cpp

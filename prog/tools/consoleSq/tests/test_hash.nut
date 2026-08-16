@@ -1,4 +1,4 @@
-// Squirrel module under test: hash (registered by hash.cpp)
+// Quirrel module under test: hash (registered by hash.cpp)
 
 from "hash" import md5, sha1, sha256, sha3_256, crc32, crc32_int, create_guid
 

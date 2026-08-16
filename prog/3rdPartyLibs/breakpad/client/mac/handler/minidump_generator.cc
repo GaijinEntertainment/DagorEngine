@@ -125,60 +125,32 @@ void MinidumpGenerator::GatherSystemInformation() {
   if (os_major_version_)
     return;
 
-  // This code extracts the version and build information from the OS
-  CFStringRef vers_path =
-    CFSTR("/System/Library/CoreServices/SystemVersion.plist");
-  CFURLRef sys_vers =
-    CFURLCreateWithFileSystemPath(NULL,
-                                  vers_path,
-                                  kCFURLPOSIXPathStyle,
-                                  false);
-  CFDataRef data = CFURLCreateData(NULL, sys_vers, kCFStringEncodingUTF8, false);
+  // Local modification: upstream reads SystemVersion.plist through the deprecated
+  // CFURLCreateDataAndPropertiesFromResource; sysctl reports the same values without it.
 
-  if (!data) {
-    CFRelease(sys_vers);
-    return;
-  }
-
-  CFPropertyListRef list = CFPropertyListCreateWithData(NULL,
-                                                        data,
-                                                        kCFPropertyListImmutable,
-                                                        NULL,
-                                                        NULL);
-  if (!list) {
-    CFRelease(sys_vers);
-    CFRelease(data);
-    return;
-  }
-
-  if (CFGetTypeID(list) == CFDictionaryGetTypeID())
-  {
-    CFDictionaryRef dict = static_cast<CFDictionaryRef>(list);
-
-    CFStringRef build_version = static_cast<CFStringRef>
-      (CFDictionaryGetValue(dict, CFSTR("ProductBuildVersion")));
-    CFStringRef product_version = static_cast<CFStringRef>
-      (CFDictionaryGetValue(dict, CFSTR("ProductVersion")));
-    string build_str = ConvertToString(build_version);
-    string product_str = ConvertToString(product_version);
-
-    strlcpy(build_string_, build_str.c_str(), sizeof(build_string_));
-
-    // Parse the string that looks like "10.4.8"
-    os_major_version_ = IntegerValueAtIndex(product_str, 0);
-    os_minor_version_ = IntegerValueAtIndex(product_str, 1);
-    os_build_number_ = IntegerValueAtIndex(product_str, 2);
-  }
+  // kern.osversion is the build, e.g. "25A354". It predates kern.osproductversion, so it is read
+  // first and kept on its own: the build alone still identifies the release.
+  char sysctl_build[32] = {0}; // wider than build_string_, so a long build truncates below
+  size_t len = sizeof(sysctl_build) - 1;
+  if (sysctlbyname("kern.osversion", sysctl_build, &len, NULL, 0) == 0)
+    strlcpy(build_string_, sysctl_build, sizeof(build_string_));
   else
-  {
-    fprintf(stderr, "Could not read system versions\n");
     strlcpy(build_string_, "unknown", sizeof(build_string_));
-    os_major_version_ = -1;
+
+  // kern.osproductversion needs 10.13.4, below every deployment target used here. If it is ever
+  // missing, zeroes keep the failure visible and let a later generator retry.
+  char product_version[32] = {0};
+  len = sizeof(product_version) - 1;
+  if (sysctlbyname("kern.osproductversion", product_version, &len, NULL, 0) != 0) {
+    fprintf(stderr, "Could not read system versions\n");
+    return;
   }
 
-  CFRelease(list);
-  CFRelease(sys_vers);
-  CFRelease(data);
+  // Parse the string that looks like "10.4.8"; the last component may be absent, e.g. "15.3"
+  string product_str(product_version);
+  os_major_version_ = IntegerValueAtIndex(product_str, 0);
+  os_minor_version_ = IntegerValueAtIndex(product_str, 1);
+  os_build_number_ = IntegerValueAtIndex(product_str, 2);
 }
 
 void MinidumpGenerator::SetTaskContext(breakpad_ucontext_t *task_context) {

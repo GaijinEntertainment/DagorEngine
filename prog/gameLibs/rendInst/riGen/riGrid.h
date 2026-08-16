@@ -84,4 +84,22 @@ VECTORCALL RiGridObject rigrid_find_in_transformed_box_by_bounding(const RiGrid 
   const RiGridObjPred &pred);
 VECTORCALL RiGridObject rigrid_find_ray_intersections(const RiGrid &grid_holder, const Point3 &from, const Point3 &dir, float len,
   const RiGridObjPred &pred);
+// Closest hit. best_t points at the caller's current hit distance: pred traces and updates it, the
+// grid shortens the ray to match and skips whatever can no longer be closer. Returns the winner.
+// An in-out limit, so a caller holding a hit passes it in and gets only something nearer, or null;
+// pass len for "no hit yet". pred's return value is ignored here, it cannot abort the walk.
+// Only that write-back shortens the ray: a pred whose trace misses leaves best_t alone and strips
+// nothing, so the bounding prefilter can never truncate the ray by itself. For "does anything
+// block" use rigrid_find_ray_intersections above instead - there pred confirms and returns true to
+// stop at the first hit; this query is for when the nearest hit itself is needed.
+VECTORCALL RiGridObject rigrid_find_closest_ray_intersection(const RiGrid &grid_holder, const Point3 &from, const Point3 &dir,
+  float len, const float *best_t, const RiGridObjPred &pred);
 void rigrid_debug_pos(const RiGrid &grid_holder, const Point3 &pos);
+
+namespace rigrid_dump
+{
+struct GridConfig;
+}
+// Reads the live riExtraGrid config, so a dump records what it was actually built with instead of
+// re-deriving it from gameparams and risking a different set of defaults.
+void rigrid_get_dump_config(rigrid_dump::GridConfig &out);

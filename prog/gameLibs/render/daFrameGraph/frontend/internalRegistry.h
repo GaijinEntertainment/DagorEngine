@@ -37,6 +37,7 @@ struct ResourceRequest
   ResourceUsage usage;
   bool slotRequest{false};
   bool optional{false};
+  bool usageDeclared{false};
   ResourceSubtypeTag subtypeTag{ResourceSubtypeTag::Unknown};
 };
 
@@ -245,9 +246,9 @@ struct NodeData
   priority_t priority = PRIO_DEFAULT;
   eastl::optional<multiplexing::Mode> multiplexingMode;
   SideEffects sideEffect = SideEffects::Internal;
-  // For debug purposes only
-  bool enabled = true;
+  bool enabled = true; // For debug purposes only
   bool allowAsyncPipelines = false;
+  bool hasCustomExecution = false;
 
   eastl::optional<IndexSource> indexSource;
   eastl::optional<NodeStateRequirements> stateRequirements;

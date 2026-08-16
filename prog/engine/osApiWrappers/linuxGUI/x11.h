@@ -92,6 +92,8 @@ struct X11
 {
 #include "muxInterface.inc.h"
 
+  static constexpr uintptr_t MOUSE_WHEEL_SCALE_TO_DAGOR = 100;
+
   struct GammaInfo
   {
     RRCrtc crtc;
@@ -192,6 +194,19 @@ struct X11
 
   void cacheWindowFrameExtents();
   void cacheWindowMaximizedState();
+
+  // Finds a connected output by its XRandR name. A null/empty monitorName selects the primary output,
+  // or the first connected output when no primary is set. Returns the index into screen->outputs, or -1 if
+  // not found. On success outEnumIndex (when provided) receives the zero-based index among connected outputs.
+  int findConnectedOutput(XRRScreenResources *screen, const char *monitorName, int *outEnumIndex = nullptr);
+
+  // Resolves the output used for fullscreen sizing/placement: the output force-selected via the "video/monitor"
+  // setting when it is set and found, otherwise primaryOutput. out_is_forced (when provided) reports whether the
+  // selection was forced by the setting.
+  RROutput resolveTargetOutput(XRRScreenResources *screen, bool *out_is_forced = nullptr);
+
+  // Ensures that the window position will be within the bounds of an existing monitor.
+  void snapWindowPositionToOutput(int &x, int &y, int width, int height, bool maximized);
 
   const XWindowAttributes &getWindowAttrib(Window w, bool translated);
 

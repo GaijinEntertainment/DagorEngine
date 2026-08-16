@@ -79,6 +79,7 @@
         FfxFloat32    fDeltaTime;
         FfxFloat32    fDynamicResChangeFactor;
         FfxFloat32    fViewSpaceToMetersFactor;
+        FfxInt32      iPreRotation;
     };
 
 #define FFXM_FSR2_CONSTANT_BUFFER_1_SIZE (sizeof(cbFSR2) / 4)  // Number of 32-bit values. This must be kept in sync with the cbFSR2 size.
@@ -97,6 +98,41 @@ FfxInt32x2 MaxRenderSize()
 FfxInt32x2 DisplaySize()
 {
     return iDisplaySize;
+}
+
+FfxInt32 PreRotation() { return iPreRotation; }
+
+FfxInt32x2 PreRotationNativeSize()
+{
+    return (iPreRotation == 90 || iPreRotation == 270) ? iDisplaySize.yx : iDisplaySize;
+}
+
+FfxUInt32x2 PreRotateHistoryPx(FfxUInt32x2 p)
+{
+    FfxInt32x2 d = iDisplaySize;
+    FfxInt32x2 l = FfxInt32x2(p);
+    if (iPreRotation == 90)  return FfxUInt32x2(d.y - 1 - l.y, l.x);
+    if (iPreRotation == 180) return FfxUInt32x2(d.x - 1 - l.x, d.y - 1 - l.y);
+    if (iPreRotation == 270) return FfxUInt32x2(l.y, d.x - 1 - l.x);
+    return p;
+}
+
+FfxFloat32x2 PreRotateHistoryUV(FfxFloat32x2 uv)
+{
+    if (iPreRotation == 90)  return FfxFloat32x2(1.0f - uv.y, uv.x);
+    if (iPreRotation == 180) return FfxFloat32x2(1.0f - uv.x, 1.0f - uv.y);
+    if (iPreRotation == 270) return FfxFloat32x2(uv.y, 1.0f - uv.x);
+    return uv;
+}
+
+FfxUInt32x2 PreRotateFragmentToLogical(FfxUInt32x2 p)
+{
+    FfxInt32x2 d = iDisplaySize;
+    FfxInt32x2 n = FfxInt32x2(p);
+    if (iPreRotation == 90)  return FfxUInt32x2(n.y, d.y - 1 - n.x);
+    if (iPreRotation == 180) return FfxUInt32x2(d.x - 1 - n.x, d.y - 1 - n.y);
+    if (iPreRotation == 270) return FfxUInt32x2(d.x - 1 - n.y, n.x);
+    return p;
 }
 
 FfxInt32x2 InputColorResourceDimensions()
@@ -652,11 +688,11 @@ void GatherInputMotionVectorRGQuad(FfxFloat32x2 fUV,
 #if defined(FSR2_BIND_SRV_INTERNAL_UPSCALED)
 FFXM_MIN16_F4 LoadHistory(FfxUInt32x2 iPxHistory)
 {
-    return r_internal_upscaled_color[iPxHistory];
+    return r_internal_upscaled_color[PreRotateHistoryPx(iPxHistory)];
 }
 FFXM_MIN16_F4 SampleUpscaledHistory(FfxFloat32x2 fUV)
 {
-    return r_internal_upscaled_color.SampleLevel(s_LinearClamp, fUV, 0);
+    return r_internal_upscaled_color.SampleLevel(s_LinearClamp, PreRotateHistoryUV(fUV), 0);
 }
 /*
    col00 (-1,1) *------* col10 (0,-1)
@@ -670,13 +706,24 @@ void GatherHistoryColorRGBQuad(FfxFloat32x2 fUV,
     FFXM_PARAMETER_INOUT FFXM_MIN16_F4 col01,
     FFXM_PARAMETER_INOUT FFXM_MIN16_F4 col11)
 {
-    FFXM_MIN16_F4 rrrr = r_internal_upscaled_color.GatherRed(s_PointClamp, fUV);
-    FFXM_MIN16_F4 gggg = r_internal_upscaled_color.GatherGreen(s_PointClamp, fUV);
-    FFXM_MIN16_F4 bbbb = r_internal_upscaled_color.GatherBlue(s_PointClamp, fUV);
-    col01 = FFXM_MIN16_F4(rrrr.x, gggg.x, bbbb.x, 0.0f);
-    col11 = FFXM_MIN16_F4(rrrr.y, gggg.y, bbbb.y, 0.0f);
-    col10 = FFXM_MIN16_F4(rrrr.z, gggg.z, bbbb.z, 0.0f);
-    col00 = FFXM_MIN16_F4(rrrr.w, gggg.w, bbbb.w, 0.0f);
+    FfxFloat32x2 fUVr = PreRotateHistoryUV(fUV);
+    FFXM_MIN16_F4 rrrr = r_internal_upscaled_color.GatherRed(s_PointClamp, fUVr);
+    FFXM_MIN16_F4 gggg = r_internal_upscaled_color.GatherGreen(s_PointClamp, fUVr);
+    FFXM_MIN16_F4 bbbb = r_internal_upscaled_color.GatherBlue(s_PointClamp, fUVr);
+    FfxInt32x4 m;
+    if (PreRotation() == 90)       m = FfxInt32x4(3, 0, 1, 2);
+    else if (PreRotation() == 180) m = FfxInt32x4(1, 0, 3, 2);
+    else if (PreRotation() == 270) m = FfxInt32x4(1, 2, 3, 0);
+    else                           m = FfxInt32x4(0, 1, 2, 3);
+    FFXM_MIN16_F4 q0 = FFXM_MIN16_F4(rrrr.x, gggg.x, bbbb.x, 0.0f);
+    FFXM_MIN16_F4 q1 = FFXM_MIN16_F4(rrrr.y, gggg.y, bbbb.y, 0.0f);
+    FFXM_MIN16_F4 q2 = FFXM_MIN16_F4(rrrr.z, gggg.z, bbbb.z, 0.0f);
+    FFXM_MIN16_F4 q3 = FFXM_MIN16_F4(rrrr.w, gggg.w, bbbb.w, 0.0f);
+    FFXM_MIN16_F4 qq[4] = { q0, q1, q2, q3 };
+    col01 = qq[m.x];
+    col11 = qq[m.y];
+    col10 = qq[m.z];
+    col00 = qq[m.w];
 }
 #endif
 
@@ -690,7 +737,7 @@ void StoreLumaHistory(FfxUInt32x2 iPxPos, FfxFloat32x4 fLumaHistory)
 #if defined(FSR2_BIND_SRV_LUMA_HISTORY)
 FFXM_MIN16_F4 SampleLumaHistory(FfxFloat32x2 fUV)
 {
-    return r_luma_history.SampleLevel(s_LinearClamp, fUV, 0);
+    return r_luma_history.SampleLevel(s_LinearClamp, PreRotateHistoryUV(fUV), 0);
 }
 #endif
 
@@ -729,7 +776,7 @@ void StoreUpscaledOutput(FfxUInt32x2 iPxPos, FfxFloat32x3 fColor)
 #if defined(FSR2_BIND_SRV_LOCK_STATUS)
 FfxFloat32x2 LoadLockStatus(FfxUInt32x2 iPxPos)
 {
-    return r_lock_status[iPxPos];
+    return r_lock_status[PreRotateHistoryPx(iPxPos)];
 }
 #endif
 
@@ -805,7 +852,7 @@ FfxFloat32 SampleDepthClip(FfxFloat32x2 fUV)
 #if defined(FSR2_BIND_SRV_LOCK_STATUS)
 FFXM_MIN16_F2 SampleLockStatus(FfxFloat32x2 fUV)
 {
-    FFXM_MIN16_F2 fLockStatus = r_lock_status.SampleLevel(s_LinearClamp, fUV, 0);
+    FFXM_MIN16_F2 fLockStatus = r_lock_status.SampleLevel(s_LinearClamp, PreRotateHistoryUV(fUV), 0);
     return fLockStatus;
 }
 #endif
@@ -969,7 +1016,7 @@ FfxFloat32 SampleUpsampleMaximumBias(FfxFloat32x2 uv)
 #if defined(FSR2_BIND_SRV_TEMPORAL_REACTIVE)
 FfxFloat32 SampleTemporalReactive(FfxFloat32x2 fUV)
 {
-    return r_internal_temporal_reactive.SampleLevel(s_LinearClamp, fUV, 0);
+    return r_internal_temporal_reactive.SampleLevel(s_LinearClamp, PreRotateHistoryUV(fUV), 0);
 }
 #endif
 

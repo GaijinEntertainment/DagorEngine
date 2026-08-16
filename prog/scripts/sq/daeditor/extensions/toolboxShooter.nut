@@ -83,7 +83,7 @@ function groupsContent() {
   childs.append(toolboxStyles.rowDiv)
   return {
     flow = FLOW_VERTICAL
-    pos = [hdpx(16), 0]
+    pos = const [hdpx(16), 0]
     gap = hdpx(5)
     watch = [groupsList]
     children = childs

@@ -350,8 +350,10 @@ shader clouds2_taa_cs, clouds2_taa_cs_has_empty, clouds2_taa_cs_no_empty
     {
       if (any((int2)dtid >= res))
         return;
+      float2 texcoord = dtid*invres.xy + invres.zw;
+      DISCARD_IF_INVALID_VIEW_AREA_CS(texcoord);
       float taaWeight;
-      texture2DAt(target0, dtid) = clouds_taa(taaWeight, dtid.xy, dtid*invres.xy + invres.zw);
+      texture2DAt(target0, dtid) = clouds_taa(taaWeight, dtid.xy, texcoord);
       texture2DAt(target1, dtid) = taaWeight;
     }
   }

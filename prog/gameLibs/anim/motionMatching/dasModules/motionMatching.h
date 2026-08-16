@@ -7,6 +7,7 @@
 #include <dasModules/dasManagedTab.h>
 #include <dasModules/aotAnimchar.h>
 #include <anim/dag_animPostBlendCtrl.h>
+#include <anim/footLockerIKCtrl.h>
 #include "../animation/animationDataBase.h"
 #include "../animation/animationSampling.h"
 #include "../animation/motionMatchingController.h"

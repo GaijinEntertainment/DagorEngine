@@ -19,6 +19,7 @@ add_test(
         -DDASLANG=$<TARGET_FILE:daslang>
         -DSRC_DAS=${CMAKE_CURRENT_SOURCE_DIR}/_uses_sqlite.das
         -DSQLITE_MOD=${_sqlite_mod_path}
+        "-DRUNTIME_DLLS=$<TARGET_FILE:libDaScriptDyn_runtime>$<SEMICOLON>$<TARGET_FILE:libDaScriptDyn>"
         -DWORKDIR=${CMAKE_CURRENT_BINARY_DIR}/wk
         -P ${CMAKE_CURRENT_SOURCE_DIR}/run_layouts.cmake
 )

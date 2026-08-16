@@ -57,7 +57,7 @@ def test_type_mismatch(t : T?) {
         }
         // t |> equal( ok, false)
         let f123 = cmp |> get("pos", float3(13))
-        t |> equal("1, 2, 3", "{f123}")
+        t |> equal("1{VEC_SEP}2{VEC_SEP}3", "{f123}")
     }
     commit()
 }

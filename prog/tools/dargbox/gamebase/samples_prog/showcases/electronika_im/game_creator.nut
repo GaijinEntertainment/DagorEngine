@@ -7,6 +7,7 @@ from "iostream" import blob
 from "gamelib.sound" import PcmSound, play_sound
 from "eventbus" import eventbus_subscribe
 from "datetime" import date
+from "types" import Integer
 
 function makeSound(pitch, duration_s, tilt, volume) {
   const SAMPLE_RATE = 11025
@@ -101,7 +102,7 @@ function mkPicCtors(width, aspect, baseImgPath, skinPath="") {
     })
   }
   let mkFont = function(name) {
-    let size = type(name) == "integer" ? [6000/1296.0*2, 10000/852.0*2].map(sz) : [8, 10000/852.0*2].map(sz)
+    let size = name instanceof Integer ? [6000/1296.0*2, 10000/852.0*2].map(sz) : [8, 10000/852.0*2].map(sz)
     return {
       rendObj = ROBJ_IMAGE
       keepAspect = KEEP_ASPECT_FIT

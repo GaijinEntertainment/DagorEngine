@@ -40,6 +40,7 @@ void sleep_msec(int msec);
 uint64_t global_timestamp();
 uint32_t time_since_launch_msec();
 uint64_t gpu_frequency();
+uint32_t gpu_current_clock_mhz();
 uint32_t get_current_process_id();
 uint32_t get_logical_cores();
 uint64_t get_current_thread_id();

@@ -126,7 +126,8 @@ static inline void *dagmem_memalign_base(size_t alignment, size_t sz)
     return p;
   return dagmem_mark_aligned_chunk((void *)((uintptr_t(p) + alignment - 1) & alignment_m), p);
 #else
-  size_t raw_size = sz + alignment - MALLOC_MIN_ALIGNMENT + sizeof(MsRtlAllocatorAlignedChunkHdr);
+  size_t reserve = alignment > MALLOC_MIN_ALIGNMENT ? alignment : MALLOC_MIN_ALIGNMENT;
+  size_t raw_size = sz + reserve - MALLOC_MIN_ALIGNMENT + sizeof(MsRtlAllocatorAlignedChunkHdr);
   void *p = _malloc_base(raw_size);
   if (!p)
     return nullptr;

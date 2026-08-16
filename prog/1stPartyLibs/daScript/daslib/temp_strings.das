@@ -18,9 +18,9 @@ def public build_temp_string(bldr : block<(var writer : StringBuilderWriter) : v
     //! Intern strings are not deleted.
     var str = build_string(bldr)
     unsafe {
-        cb |> invoke(reinterpret<string#> str)
+        cb |> invoke(reinterpret<string#>(str))
         if (!is_intern_strings()) {
-            delete_string(reinterpret<string&> str)
+            delete_string(reinterpret<string&>(str))
         }
     }
 }
@@ -30,9 +30,9 @@ def public temp_string(str : string; cb : block<(res : string#) : void>) {
     //! Pass string to the callback and delete it after the callback is called.
     //! Accept only strings with substitutions (string builder). Intern strings are not deleted.
     unsafe {
-        cb |> invoke(reinterpret<string#> str)
+        cb |> invoke(reinterpret<string#>(str))
         if (!is_intern_strings()) {
-            delete_string(reinterpret<string&> str)
+            delete_string(reinterpret<string&>(str))
         }
     }
 }
@@ -53,9 +53,9 @@ def public temp_string(arr : array<uint8>; cb : block<(res : string#) : void>) {
     //! Delete the string after the callback is called. Intern strings are not deleted.
     var str = string(arr)
     unsafe {
-        cb |> invoke(reinterpret<string#> str)
+        cb |> invoke(reinterpret<string#>(str))
         if (!is_intern_strings()) {
-            delete_string(reinterpret<string&> str)
+            delete_string(reinterpret<string&>(str))
         }
     }
 }

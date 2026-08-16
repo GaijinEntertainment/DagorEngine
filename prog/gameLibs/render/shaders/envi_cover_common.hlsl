@@ -1,3 +1,7 @@
+#ifndef ENVI_COVER_INTENSITY_MIP
+  #define ENVI_COVER_INTENSITY_MIP 0
+#endif
+
 struct EnviSnowParams
 {
   float lowest_intensity;
@@ -20,6 +24,12 @@ bool getDepthNormalFactor(float3 worldPos, EnviSnowParams enviParams, float3 nor
 
   #if IS_SNOW_COVER_COMPATIBILITY
     float depthDist = 1;
+  #elif ENVI_COVER_DEPTH_ABOVE_SIMPLIFIED
+    half vignetteEffect = 0;
+    float finalDepth = get_depth_above_fast(worldPos, vignetteEffect);
+    finalDepth = clamp(finalDepth, worldPos.y - envi_cover_y_clamp_from_pos, worldPos.y + envi_cover_y_clamp_from_pos);
+    float depthDist = worldPos.y + 1 - finalDepth;
+    depthDist = lerp(depthDist, 1.0, vignetteEffect);
   #else
     float vignetteEffect = 0;
     float2 lerpFactor;
@@ -48,7 +58,7 @@ bool getDepthNormalFactor(float3 worldPos, EnviSnowParams enviParams, float3 nor
     // do manually clamp because the shared sampler can be with the different addressing
     tc = saturate(tc);
     // sample an intensity with the shared or own sampler
-    float intensity = max(envi_cover_intensity_map.SampleLevel(intensity_map_linear_sampler_state, tc, 0).r, enviParams.lowest_intensity);
+    float intensity = max(envi_cover_intensity_map.SampleLevel(intensity_map_linear_sampler_state, tc, ENVI_COVER_INTENSITY_MIP).r, enviParams.lowest_intensity);
   #else
     float intensity = enviParams.lowest_intensity;
   #endif

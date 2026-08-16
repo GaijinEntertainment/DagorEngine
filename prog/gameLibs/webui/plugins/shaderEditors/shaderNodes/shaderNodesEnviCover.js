@@ -23,6 +23,8 @@ var gbuffer_type_dict =
   "sss_profile":"uint",
   "isLandscape":"bool",
   "isHeroCockpit":"bool",
+  "dynamicMask":"bool",
+  "enviCoverOverwrite":"bool",
 }
 
 var gbuffer_type_no_uint_dict =

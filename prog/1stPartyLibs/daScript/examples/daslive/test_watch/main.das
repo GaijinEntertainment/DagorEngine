@@ -1,7 +1,9 @@
 options gen2
+options persistent_heap
+options gc
 
-require daslib/fio
-require live/live_watch
+require live/live_gc
+require live/live_watch   // nolint:STYLE030 — load-bearing for file-watch agent install in live mode
 require live_host
 
 // Test the file watcher agent by creating a temp file, registering it
@@ -62,6 +64,7 @@ def main() {
     init()
     while (!exit_requested()) {
         update()
+        maybe_collect_gc()
     }
     shutdown()
 }

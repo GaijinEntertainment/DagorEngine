@@ -335,22 +335,26 @@ void BaseEsDesc::resolveUnresolvedOutOfLine(ecs::EntityManager *mgr)
 {
   if (!mgr)
     return;
-  resolved = true;
+  bool allResolved = true;
   for (uint32_t c = 0, e = dataCompCount(); c != e; ++c)
   {
     uint32_t a = argIndices[c];
-    if (stride[a]) // already resolved
+    if (interlocked_acquire_load(stride[a])) // already resolved; pairs with the release store below
       continue;
     ecs::type_index_t tpidx = mgr->getComponentTypes().findType(components[c].type);
     if (tpidx == ecs::INVALID_COMPONENT_TYPE_INDEX) // this could happen here, if and only if data is optional
     {
-      resolved = false;
+      allResolved = false;
       continue;
     }
     ecs::ComponentType tpInfo = mgr->getComponentTypes().getTypeInfo(tpidx);
     flags[a] |= (tpInfo.flags & (ecs::COMPONENT_TYPE_BOXED | ecs::COMPONENT_TYPE_CREATE_ON_TEMPL_INSTANTIATE)) ? BOXED_SRC : 0;
-    stride[a] = tpInfo.size;
+    // release marks the component resolved for concurrent resolvers: a racing thread that observes
+    // nonzero stride via the acquire above is guaranteed to also see flags[a]
+    interlocked_release_store(stride[a], tpInfo.size);
   }
+  // release-publish only after all strides/flags are written (paired with acquire in isResolved)
+  interlocked_release_store(resolved, allResolved ? 1 : 0);
 }
 
 void make_string_outer_ns(das::string &typeName)
@@ -2084,6 +2088,9 @@ static void es_run(const char *name, const das::Block &block, const das::LineInf
   if (esData.useManager)
     allArgs[has_info ? 1 : 0] = das::cast<ecs::EntityManager *>::from(&qv.manager());
 
+  // must precede the stride[] reads below; todo: this can also be removed by re-registering es if fully resolved
+  esData.ensureResolved(context.mgr);
+
   uint16_t *__restrict stride = esData.stride.get();
   uint8_t *__restrict flags = esData.flags.get();
   const uint8_t combinedFlags = esData.combinedFlags;
@@ -2100,8 +2107,6 @@ static void es_run(const char *name, const das::Block &block, const das::LineInf
 
   if (combinedFlags & HAS_OPTIONAL)
     memcpy(_args, esData.def.get(), nAttr * sizeof(vec4f));
-
-  esData.resolveUnresolved(context.mgr); // todo:this can also be removed by re-registering es if fully resolved
 
 #if DAECS_EXTENSIVE_CHECKS
   const ecs::component_index_t *cindices = qv.manager().queryComponents(qv.getQueryId());
@@ -2734,7 +2739,7 @@ static bool aotEsRunBlock(das::TextWriter &ss, EsQueryDesc *desc, const bind_das
   if (esType == EsType::FindQuery)
     // ss << "if (ecs::QueryCbResult::Stop == (ecs::QueryCbResult)";//should be
     body << "if ((bool)"; // should be
-  body << "block(\n";
+  body << "dagor_es_callable(block)(\n";
 
   for (auto &arg : block->arguments)
   {
@@ -2877,6 +2882,19 @@ static bool aotEsRunBlock(das::TextWriter &ss, EsQueryDesc *desc, const bind_das
     ss << (esType == EsType::FindQuery ? " == ::ecs::QueryCbResult::Stop;\n" : ";\n");
   }
   ss << "}\n\n";
+  if (esType != EsType::ES)
+  {
+    // aot_cpp dedups aotPrefix by name, so a sibling call site (e.g. an inlined clone) never
+    // gets aotSkipMakeBlock set and passes a das_make_block carrying the annotation data itself
+    ss << "template<typename BT>\n__forceinline " << (hasReturn ? "bool " : "void ") << fnName << " ( ";
+    if (esType == EsType::SingleEidQuery)
+      ss << "ecs::EntityId eid, ";
+    ss << "const BT & block, das::Context * __restrict __context, das::LineInfoArg * __restrict __line )\n{\n";
+    ss << "\t" << (hasReturn ? "return " : "") << fnName << "(";
+    if (esType == EsType::SingleEidQuery)
+      ss << "eid, ";
+    ss << "block.annotationData, block, __context, __line);\n}\n\n";
+  }
   return true;
 }
 

@@ -1,5 +1,6 @@
 from "%darg/ui_imports.nut" import *
 import "style.nut" as style
+from "types" import Array
 
 let {makeVertScroll} = require("scrollbar.nut")
 let {mkButton} = require("button.nut")
@@ -10,11 +11,11 @@ let {addModalWindow, removeModalWindow} = require("modalWindows.nut")
 let fa = require("%darg/helpers/fontawesome.map.nut")
 
 const SELECT_UID = "SELECT"
-let hvrCl = Color(0,0,0)
-let nrmClr = Color(180,180,180)
+const hvrCl = Color(0,0,0)
+const nrmClr = Color(180,180,180)
 
 let mkSelect = kwarg(function(options, selected, title = "SELECT", label = null, viewOpt = @(v) v.tostring(), multiselect=null, size=null){
-  multiselect = multiselect ?? (type(selected.get())=="array")
+  multiselect = multiselect ?? (selected.get() instanceof Array)
   let filterOptionsStr = Watched("")
   options = ("value" in options) ? options : Watched(options)
   let scrollHandler = ScrollHandler()
@@ -49,7 +50,7 @@ let mkSelect = kwarg(function(options, selected, title = "SELECT", label = null,
       children = @() {
         behavior = [Behaviors.Marquee]
         scrollOnHover = true
-        padding = [hdpx(2), hdpx(8)]
+        padding = const [hdpx(2), hdpx(8)]
         children = dtext(name, {color = sf & S_HOVER ? hvrCl : (selected.get() == opt ? Color(255,255,255) : nrmClr)})
         rendObj = ROBJ_BOX
         fillColor = sf & S_HOVER
@@ -69,7 +70,7 @@ let mkSelect = kwarg(function(options, selected, title = "SELECT", label = null,
     children = opts.map(mkSelectOptionBtn)
   }
 
-  let filterTextInput = mkTextInput(filterOptionsStr, {placeholder = "Enter text to filter list", size = [sw(30), SIZE_TO_CONTENT]})
+  let filterTextInput = mkTextInput(filterOptionsStr, {placeholder = "Enter text to filter list", size = const [sw(30), SIZE_TO_CONTENT]})
 
   let optionsContainer = @() {
     watch = filteredOptions
@@ -84,7 +85,7 @@ let mkSelect = kwarg(function(options, selected, title = "SELECT", label = null,
 
   function optionsSelectWindow() {
     return  {
-      size = [sw(90), sh(90)]
+      size = const [sw(90), sh(90)]
       hplace = ALIGN_CENTER
       vplace = ALIGN_CENTER
       color = Color(0,0,0,120)
@@ -126,7 +127,7 @@ let mkSelect = kwarg(function(options, selected, title = "SELECT", label = null,
     watch = selected
     flow = FLOW_HORIZONTAL
     valign = ALIGN_CENTER
-    size = [flex(), SIZE_TO_CONTENT]
+    size = const [flex(), SIZE_TO_CONTENT]
     children = [
       label ? dtext(label, {color = style.LABEL_TXT}) : null
       {size = [flex(), 0]}

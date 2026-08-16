@@ -29,9 +29,11 @@ namespace das {
     __forceinline double time_sub ( Time a, Time b ) { return difftime(a.time, b.time); }
 
     static inline int64_t cast_int64(Time t) { return int64_t(t.time); }
+    static inline Time cast_clock(int64_t t) { return Time(t); }
     DAS_API Time builtin_clock();
     DAS_API char * iso8601_now ( Context * context, LineInfoArg * at );
+    DAS_API char * format_time ( Time t, const char * fmt, Context * context, LineInfoArg * at );
     DAS_API Time builtin_mktime(int year, int month, int mday, int hour, int min, int sec);
     DAS_API void builtin_sleep ( uint32_t msec );
-    DAS_API void builtin_exit ( int32_t ec );
+    DAS_API void builtin_exit ( int32_t ec, Context * context, LineInfoArg * at );
 }

@@ -254,18 +254,16 @@ namespace das {
 
         static string getFieldName(VarInfo * vi) {
             string name = vi->name ? vi->name : "";
-            if (vi->annotation_arguments) {
-                auto aa = (AnnotationArguments *)vi->annotation_arguments;
-                for (auto & arg : *aa) {
-                    if (arg.name == "rename") {
-                        if (arg.type == Type::tString) {
-                            name = arg.sValue;
-                        } else if (arg.type == Type::tBool && !name.empty() && name[0] == '_') {
-                            // @rename _field — strip leading underscore
-                            name = name.substr(1);
-                        }
-                        break;
+            for (uint32_t ai = 0, ais = vi->annotation_argument_count; ai != ais; ++ai) {
+                const auto & arg = vi->annotation_arguments[ai];
+                if (strcmp(arg.name, "rename") == 0) {
+                    if (arg.type == Type::tString) {
+                        name = arg.sValue;
+                    } else if (arg.type == Type::tBool && !name.empty() && name[0] == '_') {
+                        // @rename _field — strip leading underscore
+                        name = name.substr(1);
                     }
+                    break;
                 }
             }
             return name;
@@ -362,6 +360,34 @@ namespace das {
                 case Type::tFloat2: return scanVecF(dst, 2);
                 case Type::tFloat3: return scanVecF(dst, 3);
                 case Type::tFloat4: return scanVecF(dst, 4);
+                case Type::tFloat16: {
+                    double v;
+                    if (!readDouble(v)) return false;
+                    *(float16_t*)dst = float16_t(float(v));
+                    return true;
+                }
+                case Type::tHalf2:  return scanVecH(dst, 2);
+                case Type::tHalf3:  return scanVecH(dst, 3);
+                case Type::tHalf4:  return scanVecH(dst, 4);
+                case Type::tHalf8:  return scanVecH(dst, 8);
+                case Type::tShort2: return scanVec<int16_t>(dst, 2);
+                case Type::tShort3: return scanVec<int16_t>(dst, 3);
+                case Type::tShort4: return scanVec<int16_t>(dst, 4);
+                case Type::tShort8: return scanVec<int16_t>(dst, 8);
+                case Type::tUShort2: return scanVec<uint16_t>(dst, 2);
+                case Type::tUShort3: return scanVec<uint16_t>(dst, 3);
+                case Type::tUShort4: return scanVec<uint16_t>(dst, 4);
+                case Type::tUShort8: return scanVec<uint16_t>(dst, 8);
+                case Type::tByte2:  return scanVec<int8_t>(dst, 2);
+                case Type::tByte3:  return scanVec<int8_t>(dst, 3);
+                case Type::tByte4:  return scanVec<int8_t>(dst, 4);
+                case Type::tByte8:  return scanVec<int8_t>(dst, 8);
+                case Type::tByte16: return scanVec<int8_t>(dst, 16);
+                case Type::tUByte2:  return scanVec<uint8_t>(dst, 2);
+                case Type::tUByte3:  return scanVec<uint8_t>(dst, 3);
+                case Type::tUByte4:  return scanVec<uint8_t>(dst, 4);
+                case Type::tUByte8:  return scanVec<uint8_t>(dst, 8);
+                case Type::tUByte16: return scanVec<uint8_t>(dst, 16);
                 case Type::tRange:    return scanRange<int32_t>(dst);
                 case Type::tURange:   return scanRange<uint32_t>(dst);
                 case Type::tRange64:  return scanRange<int64_t>(dst);
@@ -814,6 +840,9 @@ namespace das {
             skipWS();
             T * vals = (T*)dst;
             if (peek() == '{') {
+                // object form names lanes x/y/z/w only — >4-lane vectors are
+                // array-only (matches the printer; anything else parses lossy)
+                if (count > 4) return false;
                 // object form: zero-init then fill by field name
                 cur++;
                 for (int i = 0; i < count; i++) vals[i] = T(0);
@@ -845,6 +874,7 @@ namespace das {
             skipWS();
             float * vals = (float*)dst;
             if (peek() == '{') {
+                if (count > 4) return false;
                 cur++;
                 for (int i = 0; i < count; i++) vals[i] = 0.f;
                 if (expect('}')) return true;
@@ -866,6 +896,37 @@ namespace das {
                 double v;
                 if (!readDouble(v)) return false;
                 vals[i] = float(v);
+            }
+            return expect(']');
+        }
+
+        // half vectors — scanVecF shape, narrowing each lane to fp16
+        bool scanVecH(char * dst, int count) {
+            skipWS();
+            float16_t * vals = (float16_t*)dst;
+            if (peek() == '{') {
+                if (count > 4) return false;
+                cur++;
+                for (int i = 0; i < count; i++) vals[i].bits = 0;
+                if (expect('}')) return true;
+                while (true) {
+                    string key;
+                    if (!readString(key)) return false;
+                    if (!expect(':')) return false;
+                    double v;
+                    if (!readDouble(v)) return false;
+                    int idx = vecFieldIndex(key);
+                    if (idx >= 0 && idx < count) vals[idx] = float16_t(float(v));
+                    if (!expect(',')) break;
+                }
+                return expect('}');
+            }
+            if (!expect('[')) return false;
+            for (int i = 0; i < count; i++) {
+                if (i > 0 && !expect(',')) return false;
+                double v;
+                if (!readDouble(v)) return false;
+                vals[i] = float16_t(float(v));
             }
             return expect(']');
         }

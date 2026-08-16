@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE026: nested `unsafe { ... }` block
 //
 // Problem: `unsafe { ... unsafe { ... } ... }` — the outer block already
@@ -23,7 +24,7 @@ options gen2
 // via `preVisitExprUnsafe` / `visitExprUnsafe`. Any second push (depth > 0
 // at entry) is a nested block.
 
-expect 31209:2
+expect 31209:3
 
 require daslib/style_lint
 

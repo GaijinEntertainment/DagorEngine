@@ -1,4 +1,5 @@
 from "debug" import format_call_stack_string
+from "types" import String
 
 const ASSERT_MSG = "provided value should be Monad"
 /*
@@ -18,7 +19,7 @@ checkInterface(Foo, [{name = "get", params = ["v"]}])
 function checkInterface(klass, methods): bool {
   let failedMethods = []
   foreach (method in methods){
-    if (type(method) == "string") {
+    if (method instanceof String) {
       if (method not in klass)
         failedMethods.append([method, "not presented"])
     }

@@ -15,6 +15,8 @@
 #include <sceneRay/dag_sceneRay.h>
 #include <scene/dag_physMat.h>
 #include <osApiWrappers/dag_cpuFeatures.h>
+#include <osApiWrappers/dag_atomic.h>
+#include <osApiWrappers/dag_miscApi.h>
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_finally.h>
 #include <debug/dag_debug.h>
@@ -22,6 +24,73 @@
 #include <daBVH/dag_swBLAS_soa4Validate.h>
 #include "collisionTraceOOL.h"
 #include <EASTL/bitvector.h>
+#include "collisionGameResInternal.h"
+
+// Largest singular value, used where column lengths under-bound shear. Rounded a few ULPs
+// upward so every consumer may treat it as an upper bound; the shear-class persisted stamp
+// adds its own 1.0002f margin on top.
+float mat33_spectral_norm(mat44f_cref m_in)
+{
+  // The eigenvalue terms are fourth powers of the scale; normalize by the max element so a large
+  // FINITE transform cannot overflow them into the non-finite arm and under-report as 1. The
+  // reciprocal must stay a normal float: past 2^126 FTZ flushes 1/s to zero (the norm would
+  // silently read 0), and a subnormal s (outside the engine FTZ contract) overflows 1/s to Inf.
+  const vec4f absMax3 = v_max(v_abs(m_in.col0), v_max(v_abs(m_in.col1), v_abs(m_in.col2)));
+  const float s = v_extract_x(v_hmax3(absMax3));
+  if (DAGOR_UNLIKELY(!(s >= FLT_MIN && s <= 1.f / FLT_MIN)))
+  {
+#if DAGOR_DBGLEVEL > 0
+    if (s != 0.f)
+      LOGERR_ONCE("collision: non-finite or degenerate-scale node tm in spectral norm; trace-side determinant gates hide such nodes");
+#endif
+    // FLT_MAX, not 1: the pair-query outer transforms have NO determinant gate, and a huge
+    // finite stretch reported as 1 would let the whole-pair sphere cull reject real geometry.
+    return s == 0.f ? 0.f : FLT_MAX;
+  }
+  // Divide, not multiply-by-reciprocal: 1/1e38 is subnormal and FTZ flushes it to zero, which
+  // would zero every column and report norm 0 for a huge FINITE stretch.
+  const vec4f vS = v_splats(s);
+  mat44f m;
+  m.col0 = v_div(m_in.col0, vS);
+  m.col1 = v_div(m_in.col1, vS);
+  m.col2 = v_div(m_in.col2, vS);
+  const float b00 = v_extract_x(v_dot3_x(m.col0, m.col0)), b11 = v_extract_x(v_dot3_x(m.col1, m.col1));
+  const float b22 = v_extract_x(v_dot3_x(m.col2, m.col2)), b01 = v_extract_x(v_dot3_x(m.col0, m.col1));
+  const float b02 = v_extract_x(v_dot3_x(m.col0, m.col2)), b12 = v_extract_x(v_dot3_x(m.col1, m.col2));
+  const float q = (b00 + b11 + b22) / 3.f;
+  const float p2 = sqr(b00 - q) + sqr(b11 - q) + sqr(b22 - q) + 2.f * (sqr(b01) + sqr(b02) + sqr(b12));
+  // Upward so consumers may treat the result as an upper bound; 2e-6 budgets Gram rounding
+  // plus the near-isotropic trig path's cancellation.
+  const float upward = 1.000002f;
+  // The cutoff is scale-relative so tiny transforms remain conservative.
+  if (p2 <= 1e-14f * q * q)
+    return s * sqrtf(max(q, 0.f)) * upward;
+  const float p = sqrtf(p2 / 6.f);
+  const float c00 = (b00 - q) / p, c11 = (b11 - q) / p, c22 = (b22 - q) / p;
+  const float c01 = b01 / p, c02 = b02 / p, c12 = b12 / p;
+  const float halfDet = 0.5f * (c00 * (c11 * c22 - c12 * c12) - c01 * (c01 * c22 - c12 * c02) + c02 * (c01 * c12 - c11 * c02));
+  const float phi = acosf(clamp(halfDet, -1.f, 1.f)) / 3.f;
+  return s * sqrtf(max(q + 2.f * p * cosf(phi), 0.f)) * upward;
+}
+
+// Shared ownership/freshness gate for updates and dispatch.
+bool check_instance_owned_and_fresh(const CollisionResource *res, const CollisionResourceInstance &instance, const char *site)
+{
+  // The layout generation catches what the count cannot: sortNodesList permutes indices in place,
+  // so a pre-sort instance would serve the previous occupant's pose for every node.
+  const bool ok = instance.getResource() == res && instance.nodeCount() == (int)res->getAllNodes().size() &&
+                  instance.nodeLayoutGeneration() == res->nodeLayoutGeneration();
+  G_ASSERTF(ok,
+    "%s: CollisionResourceInstance is foreign or stale (res %p vs %p, %d nodes vs %d, layout gen %u vs %u): instances must be "
+    "(re)created after all post-load node mutation",
+    site, instance.getResource(), res, instance.nodeCount(), (int)res->getAllNodes().size(), instance.nodeLayoutGeneration(),
+    res->nodeLayoutGeneration());
+  if (DAGOR_UNLIKELY(!ok))
+    LOGERR_ONCE("%s: CollisionResource %p used with a foreign/stale instance (res %p, %d nodes vs %d, layout gen %u vs %u)", site, res,
+      instance.getResource(), instance.nodeCount(), (int)res->getAllNodes().size(), instance.nodeLayoutGeneration(),
+      res->nodeLayoutGeneration());
+  return ok;
+}
 
 // #define VERIFY_TRACE_RESULTS 1 // May affect performance
 
@@ -213,18 +282,24 @@ static bool walkNodeTrisInLocalBox(const CollisionResource &res, const uint8_t *
   return false;
 }
 
+
 void CollisionResource::bakeNodeTransform(int node_id)
 {
   // Single-node variant of the bake block in collapseAndOptimize (collisionGameResLoad.cpp): transforms vertices, transforms convex
   // planes via inverse-transpose, rebuilds bbox/bsphere from the transformed vertices, flips triangle winding when the TM is mirrored
-  // (det<0), and normalizes transform metadata (tm/flags/cachedMaxTmScale). Capsule/box/sphere primitives store auxiliary shape data
+  // (det<0), and normalizes transform metadata (default T / flags). Capsule/box/sphere primitives store auxiliary shape data
   // outside vertices/indices, so they are out of scope for this helper.
   CollisionNode *n = getNode(node_id);
   if (!n)
     return;
   if (n->type != COLLISION_NODE_TYPE_MESH && n->type != COLLISION_NODE_TYPE_CONVEX)
     return;
-  if ((n->flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) == CollisionNode::IDENT || !n->hasGeometry())
+  if ((defaultInstance.poseMeta[n->nodeIndex].flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) == CollisionNode::IDENT ||
+      !n->hasGeometry())
+    return;
+  // a singular live pose stays hidden (untraceable): inverting it would feed invalid convex
+  // planes and the identity restamp below would revive the node as traceable
+  if (!defaultInstance.poseMeta[n->nodeIndex].isTraceable())
     return;
 
   // A grid-resident node is always IDENT, so the early-out above already excluded it. Decode the
@@ -258,8 +333,9 @@ void CollisionResource::bakeNodeTransform(int node_id)
     n->indicesCount = (uint32_t)faceIdx.size();
   }
 
+  // sanitize the w lanes: the full 4x4 inverse for the plane transform below needs them defined
   mat44f nodeTm;
-  v_mat44_make_from_43cu(nodeTm, n->tm[0]);
+  v_mat44_make_from_43cu(nodeTm, defaultInstance.nodeTm[n->nodeIndex].array);
   bbox3f box;
   v_bbox3_init_empty(box);
   for (Point3_vec4 *v = nodeVerts, *ve = v + vCount; v != ve; ++v)
@@ -274,7 +350,8 @@ void CollisionResource::bakeNodeTransform(int node_id)
 
   // Flip winding BEFORE re-chunking when the TM is mirrored: the chunk bakes the triangle structure
   // into its BVH, so the indices must carry the final winding when the chunk is built.
-  if (n->tm.det() < 0.f)
+  const float tmDet = v_extract_x(v_dot3_x(nodeTm.col0, v_cross3(nodeTm.col1, nodeTm.col2)));
+  if (tmDet < 0.f)
     for (uint32_t i = 0, e = (uint32_t)faceIdx.size(); i + 2 < e; i += 3)
       eastl::swap(nodeIdx[i + 0], nodeIdx[i + 2]);
 
@@ -306,10 +383,8 @@ void CollisionResource::bakeNodeTransform(int node_id)
   v_stu_p3(&n->boundingSphere.c.x, vSphereC);
   n->boundingSphere.r = v_extract_x(v_sqrt_x(sphereRad2));
 
-  n->tm = TMatrix::IDENT;
   n->flags =
     (n->flags & ~(CollisionNode::TRANSLATE | CollisionNode::ORTHOUNIFORM)) | CollisionNode::IDENT | CollisionNode::ORTHONORMALIZED;
-  n->cachedMaxTmScale = 1.f;
   {
     mat44f identTm;
     v_mat44_ident(identTm);
@@ -326,7 +401,8 @@ void CollisionResource::bakeMirroredNodes()
   for (int ni = 0, ne = (int)allNodesList.size(); ni < ne; ++ni)
   {
     const CollisionNode &n = allNodesList[ni];
-    if ((n.type == COLLISION_NODE_TYPE_MESH || n.type == COLLISION_NODE_TYPE_CONVEX) && n.tm.det() < 0.f)
+    const TMatrix &t = defaultInstance.nodeTm[ni];
+    if ((n.type == COLLISION_NODE_TYPE_MESH || n.type == COLLISION_NODE_TYPE_CONVEX) && t.det() < 0.f)
     {
       bakeNodeTransform(ni);
       baked = true;
@@ -396,10 +472,10 @@ CollisionNode *CollisionResource::getNodeByName(const char *name) { return getNo
 
 const CollisionNode *CollisionResource::getNodeByName(const char *name) const { return getNode(getNodeIndexByName(name)); }
 
-template <CollisionResource::IterationMode trace_mode, CollisionResource::CollisionTraceType trace_type, typename filter_t,
-  typename callback_t>
-__forceinline bool CollisionResource::forEachIntersectedNode(mat44f tm, const GeomNodeTree *geom_node_tree, vec3f from, vec3f dir,
-  float len, bool calc_normal, float bsphere_scale, uint8_t behavior_filter, const filter_t &filter, const callback_t &callback,
+template <CollisionResource::IterationMode trace_mode, CollisionResource::CollisionTraceType trace_type, bool pose_may_refresh,
+  typename pose_t, typename filter_t, typename callback_t>
+__forceinline bool CollisionResource::forEachIntersectedNode(mat44f tm, const pose_t &instance, vec3f from, vec3f dir, float len,
+  bool calc_normal, float bsphere_scale, uint8_t behavior_filter, const filter_t &filter, const callback_t &callback,
   TraceCollisionResourceStats *out_stats, bool force_no_cull) const
 {
   CollisionTrace in{
@@ -410,18 +486,28 @@ __forceinline bool CollisionResource::forEachIntersectedNode(mat44f tm, const Ge
   };
 
   dag::Span<CollisionTrace> traces(&in, 1);
-  return forEachIntersectedNode<trace_mode, trace_type, true /*is_single_ray*/>(tm, geom_node_tree, traces, calc_normal, bsphere_scale,
-    behavior_filter, filter, callback, out_stats, force_no_cull);
+  return forEachIntersectedNode<trace_mode, trace_type, true /*is_single_ray*/, pose_may_refresh>(tm, instance, traces, calc_normal,
+    bsphere_scale, behavior_filter, filter, callback, out_stats, force_no_cull);
 }
+
 
 // Heavy all-in-one node iterator, calculations unused by caller and deadcode will be automatically stripped by compiler
 template <CollisionResource::IterationMode trace_mode, CollisionResource::CollisionTraceType trace_type, bool is_single_ray,
-  typename filter_t, typename callback_t>
-__forceinline bool CollisionResource::forEachIntersectedNode(mat44f original_tm, const GeomNodeTree *geom_node_tree,
+  bool pose_may_refresh, typename pose_t, typename filter_t, typename callback_t>
+__forceinline bool CollisionResource::forEachIntersectedNode(mat44f original_tm, const pose_t &instance,
   dag::Span<CollisionTrace> traces, bool calc_normal, float bsphere_scale, uint8_t behavior_filter, const filter_t &filter,
   const callback_t &callback, TraceCollisionResourceStats *out_stats, bool force_no_cull) const
 {
   TIME_PROFILE_DEV(collres_trace);
+  // A tree-backed temp view never refreshes (bind meta, no rootBBox); tree-less legacy calls
+  // read the default instance, and owned-matrix forms are mutator-maintained.
+  if constexpr (pose_may_refresh)
+  {
+    if (DAGOR_UNLIKELY(instance.getTree() != nullptr))
+      instance.refreshIfStale(original_tm);
+  }
+  else
+    G_ASSERT(instance.getTree() == nullptr || instance.isMetaAliased());
 
   // Move instance_tm to zero for better precision
   // Line below needed to bypass 32-bit compiler bug when original instance tm passed by constant pointer
@@ -438,16 +524,65 @@ __forceinline bool CollisionResource::forEachIntersectedNode(mat44f original_tm,
 
   vec4f maxScaleSq = v_mat44_max_scale43_sq(tm);
   vec3f xyzScaleSq = v_mat44_scale43_sq(tm);
+  // 0.025 * sqrt(3) of absolute error max
+  const float eps = eastl::min(0.008f, 0.025f / getBoundingSphereRad());
+  // Scaled tm requires more complicated norm calculation code and additional T conversion from world to local basis and back
+  vec3f otmMask = v_and(v_cmp_gt(xyzScaleSq, v_splats(1.f - eps)), v_cmp_lt(xyzScaleSq, v_splats(1.f + eps)));
+  // Pairwise orthogonality too: a unit-column SHEAR passes any length-only band, would keep the
+  // under-scaled sphere reject AND take the transpose-inverse branch below.
+  const float d01 = fabsf(v_extract_x(v_dot3_x(tm.col0, tm.col1)));
+  const float d02 = fabsf(v_extract_x(v_dot3_x(tm.col0, tm.col2)));
+  const float d12 = fabsf(v_extract_x(v_dot3_x(tm.col1, tm.col2)));
+  bool bIsOrthonormalizedTm = v_check_xyz_all_true(otmMask) && d01 < eps && d02 < eps && d12 < eps; // .w of scale43_sq is 0, not a
+                                                                                                    // scale
+  // Column lengths under-bound a sheared instance tm: widen the sphere-reject scale by the
+  // spectral norm for the non-orthonormal class (exact for uniform scale, conservative for shear).
+  if (DAGOR_UNLIKELY(!bIsOrthonormalizedTm))
+    maxScaleSq = v_max(maxScaleSq, v_splats(sqr(mat33_spectral_norm(tm))));
+  else
+  {
+    // The accepted class still admits dots/length slack up to eps: Gershgorin over the tolerance
+    // volume (sigma^2 <= max_i(len_i^2 + sum_j |g_ij|)) keeps the sphere rejects covering.
+    alignas(16) float ls[4];
+    v_st(ls, xyzScaleSq);
+    const float g = max(ls[0] + d01 + d02, max(ls[1] + d01 + d12, ls[2] + d02 + d12));
+    maxScaleSq = v_max(maxScaleSq, v_splats(g));
+  }
 
   // Check bounding
   bool anyTraceIntersectsBounding = false;
   {
     vec3f vBsphCenter;
-    if (geom_node_tree && bsphereCenterNode)
-      vBsphCenter = v_add(geom_node_tree->getNodeWposRel(bsphereCenterNode), v_sub(geom_node_tree->getWtmOfs(), woffset));
+    vec4f vBsphR2;
+    if (DAGOR_LIKELY(!instance.isMetaAliased()))
+    {
+      if (DAGOR_LIKELY(!instance.isPosedSinceBind() && bindTraceSphereStamped))
+      {
+        // The cached bind sphere is tighter than rootBBox's circumsphere.
+        vBsphCenter = v_mat44_mul_vec3p(tm, vBindTraceSphere);
+        vBsphR2 = v_mul_x(v_mul_x(maxScaleSq, v_splat_w(vBindTraceSphere)), v_set_x(bsphere_scale * bsphere_scale));
+      }
+      else
+      {
+        // rootBBox conservatively bounds every enabled posed node.
+        const bbox3f rootBox = instance.getRootBBox();
+        // Overflow-safe midpoint: (bmin + bmax) can overflow for finite far-huge bounds.
+        const vec3f rootCenter = v_madd(rootBox.bmin, V_C_HALF, v_mul(rootBox.bmax, V_C_HALF));
+        vBsphCenter = v_mat44_mul_vec3p(tm, rootCenter);
+        vBsphR2 =
+          v_mul_x(v_mul_x(maxScaleSq, v_length3_sq_x(v_sub(rootBox.bmax, rootCenter))), v_set_x(bsphere_scale * bsphere_scale));
+      }
+    }
     else
-      vBsphCenter = v_mat44_mul_vec3p(tm, vBoundingSphere);
-    vec4f vBsphR2 = v_mul_x(v_mul_x(maxScaleSq, v_splat_w(vBoundingSphere)), v_set_x(bsphere_scale * bsphere_scale));
+    {
+      // Temp views carry no rootBBox: keep the legacy whole-resource bounds from the tree.
+      const GeomNodeTree *geomNodeTree = instance.getTree();
+      if (bsphereCenterNode)
+        vBsphCenter = v_add(geomNodeTree->getNodeWposRel(bsphereCenterNode), v_sub(geomNodeTree->getWtmOfs(), woffset));
+      else
+        vBsphCenter = v_mat44_mul_vec3p(tm, vBoundingSphere);
+      vBsphR2 = v_mul_x(v_mul_x(maxScaleSq, v_splat_w(vBoundingSphere)), v_set_x(bsphere_scale * bsphere_scale));
+    }
     for (CollisionTrace &trace : traces)
     {
       vec4f vExtBsphR2 = vBsphR2;
@@ -482,12 +617,6 @@ __forceinline bool CollisionResource::forEachIntersectedNode(mat44f original_tm,
   bool res = false;
   if (anyTraceIntersectsBounding)
   {
-    // 0.025 * sqrt(3) of absolute error max
-    const float eps = eastl::min(0.008f, 0.025f / getBoundingSphereRad());
-    // Scaled tm requires more complicated norm calculation code and additional T conversion from world to local basis and back
-    vec3f otmMask = v_and(v_cmp_gt(xyzScaleSq, v_splats(1.f - eps)), v_cmp_lt(xyzScaleSq, v_splats(1.f + eps)));
-    bool bIsOrthonormalizedTm = v_check_xyz_all_true(otmMask); // .w of scale43_sq is 0, not a scale
-
 #if VERIFY_TRACE_RESULTS
     dag::Vector<CollisionTrace> initialTraces(traces.begin(), traces.end());
 #endif
@@ -526,10 +655,12 @@ __forceinline bool CollisionResource::forEachIntersectedNode(mat44f original_tm,
     };
 
     if (DAGOR_LIKELY(bIsOrthonormalizedTm))
-      res = forEachIntersectedNode<true, trace_mode, trace_type, is_single_ray>(tm, 1.f /* max_tm_scale_sq */, woffset, geom_node_tree,
-        traces, calc_normal, behavior_filter, filter, cb_wrapper, out_stats, force_no_cull);
+      // The real outer scale, not 1: the orthonormal class admits in-band scale, and the
+      // per-mesh sphere reject would drop hits in the shell between radius 1 and 1 + band.
+      res = forEachIntersectedNode<true, trace_mode, trace_type, is_single_ray>(tm, v_extract_x(maxScaleSq), woffset, instance, traces,
+        calc_normal, behavior_filter, filter, cb_wrapper, out_stats, force_no_cull);
     else
-      res = forEachIntersectedNode<false, trace_mode, trace_type, is_single_ray>(tm, v_extract_x(maxScaleSq), woffset, geom_node_tree,
+      res = forEachIntersectedNode<false, trace_mode, trace_type, is_single_ray>(tm, v_extract_x(maxScaleSq), woffset, instance,
         traces, calc_normal, behavior_filter, filter, cb_wrapper, out_stats, force_no_cull);
   }
 
@@ -547,29 +678,62 @@ __forceinline bool CollisionResource::forEachIntersectedNode(mat44f original_tm,
   return res;
 }
 
-// Largest singular value, used where column lengths under-bound shear.
-static float mat33_spectral_norm(mat44f_cref m)
+float CollisionResource::mat33SpectralNorm(mat44f_cref tm) { return mat33_spectral_norm(tm); }
+
+bool CollisionResource::relativeDetAboveFloor(mat44f_cref tm, float &out_ndet)
 {
-  const float b00 = v_extract_x(v_dot3_x(m.col0, m.col0)), b11 = v_extract_x(v_dot3_x(m.col1, m.col1));
-  const float b22 = v_extract_x(v_dot3_x(m.col2, m.col2)), b01 = v_extract_x(v_dot3_x(m.col0, m.col1));
-  const float b02 = v_extract_x(v_dot3_x(m.col0, m.col2)), b12 = v_extract_x(v_dot3_x(m.col1, m.col2));
-  const float q = (b00 + b11 + b22) / 3.f;
-  const float p2 = sqr(b00 - q) + sqr(b11 - q) + sqr(b22 - q) + 2.f * (sqr(b01) + sqr(b02) + sqr(b12));
-  // Keep non-finite transforms out of posed bounds.
-  if (DAGOR_UNLIKELY(!(q + p2 < FLT_MAX)))
+  out_ndet = 0.f;
+  const vec4f absMax3 = v_max(v_abs(tm.col0), v_max(v_abs(tm.col1), v_abs(tm.col2)));
+  const float s = v_extract_x(v_hmax3(absMax3));
+  // The element range must keep 1/s a normal float (mirrors mat33_spectral_norm's band).
+  if (!(s >= FLT_MIN && s <= 1.f / FLT_MIN))
+    return false;
+  const vec4f vS = v_splats(s);
+  mat44f m;
+  m.col0 = v_div(tm.col0, vS);
+  m.col1 = v_div(tm.col1, vS);
+  m.col2 = v_div(tm.col2, vS);
+  out_ndet = v_extract_x(v_dot3_x(m.col0, v_cross3(m.col1, m.col2)));
+  const float g2 = v_extract_x(v_max(v_length3_sq_x(m.col0), v_max(v_length3_sq_x(m.col1), v_length3_sq_x(m.col2))));
+  const float g = sqrtf(g2);
+  return fabsf(out_ndet) > 1e-6f * g * g * g;
+}
+
+// Signed-permutation bases with one exact scale per axis: the only bases whose column max IS
+// the spectral norm bit-exactly, so no conservative restamp is due.
+static inline bool is_exact_axis_aligned_basis(const TMatrix &tm)
+{
+  for (int a = 0; a < 3; a++)
   {
-    LOGWARN_ONCE("collision: non-finite node tm in spectral norm; the callers' determinant gates hide such nodes");
-    return 1.f;
+    const Point3 c = tm.getcol(a);
+    if (((c.x != 0.f) + (c.y != 0.f) + (c.z != 0.f)) != 1)
+      return false;
   }
-  // The cutoff is scale-relative so tiny transforms remain conservative.
-  if (p2 <= 1e-14f * q * q)
-    return sqrtf(max(q, 0.f));
-  const float p = sqrtf(p2 / 6.f);
-  const float c00 = (b00 - q) / p, c11 = (b11 - q) / p, c22 = (b22 - q) / p;
-  const float c01 = b01 / p, c02 = b02 / p, c12 = b12 / p;
-  const float halfDet = 0.5f * (c00 * (c11 * c22 - c12 * c12) - c01 * (c01 * c22 - c12 * c02) + c02 * (c01 * c12 - c11 * c02));
-  const float phi = acosf(clamp(halfDet, -1.f, 1.f)) / 3.f;
-  return sqrtf(max(q + 2.f * p * cosf(phi), 0.f));
+  return true;
+}
+
+// Conservative caller-tm stretch for the pair-test radius culls: column lengths are exact for
+// the near-orthonormal class (the common case), so only scale or shear outside the band pays
+// the spectral bound.
+static float conservative_outer_scale(mat44f_cref tm)
+{
+  const vec3f xyzScaleSq = v_mat44_scale43_sq(tm);
+  const float g01 = fabsf(v_extract_x(v_dot3_x(tm.col0, tm.col1)));
+  const float g02 = fabsf(v_extract_x(v_dot3_x(tm.col0, tm.col2)));
+  const float g12 = fabsf(v_extract_x(v_dot3_x(tm.col1, tm.col2)));
+  if (DAGOR_LIKELY(
+        v_check_xyz_all_true(v_and(v_cmp_gt(xyzScaleSq, v_splats(1.f - 0.008f)), v_cmp_lt(xyzScaleSq, v_splats(1.f + 0.008f)))) &&
+        g01 < 0.008f && g02 < 0.008f && g12 < 0.008f))
+  {
+    // Gershgorin row-sum bound on the Gram matrix: sigma^2 <= max_i(len_i^2 + sum_j |g_ij|).
+    // The accepted off-diagonals are NOT free -- the bare column max would under-bound an
+    // in-band shear by up to sqrt(1 + 2 * 0.008), and these values feed ungated pair culls.
+    alignas(16) float lens[4];
+    v_stu(lens, xyzScaleSq);
+    const float r0 = lens[0] + g01 + g02, r1 = lens[1] + g01 + g12, r2 = lens[2] + g02 + g12;
+    return sqrtf(max(r0, max(r1, r2)));
+  }
+  return mat33_spectral_norm(tm);
 }
 
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -578,47 +742,47 @@ static float mat33_spectral_norm(mat44f_cref m)
 #endif
 
 template <bool orthonormalized_instance_tm, CollisionResource::IterationMode trace_mode,
-  CollisionResource::CollisionTraceType trace_type, bool is_single_ray, typename filter_t, typename callback_t>
+  CollisionResource::CollisionTraceType trace_type, bool is_single_ray, typename pose_t, typename filter_t, typename callback_t>
 __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, float max_tm_scale_sq, vec3f woffset,
-  const GeomNodeTree *geom_node_tree, dag::Span<CollisionTrace> traces, bool calc_normal, uint8_t behavior_filter,
-  const filter_t &filter, const callback_t &callback, TraceCollisionResourceStats *out_stats, bool force_no_cull) const
+  const pose_t &instance, dag::Span<CollisionTrace> traces, bool calc_normal, uint8_t behavior_filter, const filter_t &filter,
+  const callback_t &callback, TraceCollisionResourceStats *out_stats, bool force_no_cull) const
 {
   bool hasCollision = false;
   bool isTraceByCapsule = trace_type == CollisionTraceType::TRACE_CAPSULE || trace_type == CollisionTraceType::CAPSULE_HIT;
   calc_normal &= trace_type == CollisionTraceType::TRACE_RAY || trace_type == CollisionTraceType::TRACE_CAPSULE;
   // The BLAS bakes BLAS-eligible mesh-node triangles in resource-local (bind) space and is walked using
-  // only the instance tm -- it never consults the GeomNodeTree. A tree-driven node hit via the BLAS
+  // only the instance tm -- it never consults a bound GeomNodeTree. A tree-driven node hit via the BLAS
   // would therefore be tested at its bind pose, not its animated pose. The invariant (asserted in
   // initializeWithGeomNodeTree) is that tree-bound resources are never grid-optimized, so hasBlas() is
-  // already false for them; the explicit !geom_node_tree guard makes the trace path honour that contract
-  // in release builds too -- when a tree is supplied we fall through to the per-node loop, which applies
-  // the animated per-node tm via getMeshNodeTmInline.
-  const bool useBlas = hasBlas(behavior_filter) && !isTraceByCapsule && !geom_node_tree;
+  // already false for them; the explicit !getTree() guard makes the trace path honour that contract
+  // in release builds too -- a tree-backed pose falls through to the per-node loop, which applies
+  // the animated per-node tm via getPosedNodeWtmInline. An instance licenses the grid walk only while
+  // every grid-resident node still holds its seed pose and is enabled (one-way latch); once posed,
+  // grid-resident nodes fall through to the per-node loop like any other.
+  const bool useBlas = hasBlas(behavior_filter) && !isTraceByCapsule && !instance.getTree() && instance.isGridResidentPoseAtBind();
 
-  // The instance inverse is consumed only by the whole-resource reject and the per-trace BLAS/box/
-  // sphere/capsule pass at the end. A non-BLAS resource with no box/sphere/capsule nodes returns right
-  // after the mesh per-node pass (early-out below) and reaches neither, so gate the inverse on the same
-  // test to keep it off that path.
+  // The instance inverse serves the whole-resource reject, the per-trace BLAS/box/sphere/capsule
+  // pass at the end, and identity-pose mesh nodes, which reuse it as their node inverse. A non-BLAS
+  // resource with no box/sphere/capsule nodes returns right after the mesh per-node pass (early-out
+  // below) and reaches neither tail consumer, so the eager compute gates on the same test; the mesh
+  // loop derives the inverse lazily on first identity-pose use when the gate skipped it.
   const bool hasNonMeshNodes = boxNodesHead != CollisionNode::INVALID_IDX || sphereNodesHead != CollisionNode::INVALID_IDX ||
                                capsuleNodesHead != CollisionNode::INVALID_IDX;
 
   alignas(EA_CACHE_LINE_SIZE) mat44f itm;
-  if (useBlas || hasNonMeshNodes || meshNodesHead == CollisionNode::INVALID_IDX)
-  {
-    if (orthonormalized_instance_tm)
-      v_mat44_orthonormal_inverse43(itm, tm);
-    else
-      v_mat44_inverse43(itm, tm);
-  }
+  // Always the full affine inverse: the orthonormal epsilon class's transpose maps segments
+  // by s instead of 1/s; tm * inv(tm) = I keeps the parameter scale for the t semantics below.
+  bool itmComputed =
+    useBlas || hasNonMeshNodes || (!instance.isMetaAliased() && is_single_ray) || meshNodesHead == CollisionNode::INVALID_IDX;
+  if (itmComputed)
+    v_mat44_inverse43(itm, tm);
 
-  // Whole-resource reject: vFullBBox bounds every node, so a single ray that misses it (resource-local)
-  // hits nothing -- skip the per-node loop AND the per-trace grid/box pass. This is the same vFullBBox
-  // test that already gates the grid walk, hoisted ahead of the node loop. useBlas already excludes
-  // capsules (which need the radius-expanded box), so vFullBBox bounds the whole resource the grid serves.
-  if (useBlas && is_single_ray)
+  // A single non-capsule ray may reject against the posed node union. Only the tree-backed
+  // temp view skips it (no rootBBox); the tree-less legacy form reads the default instance's.
+  if (!instance.isMetaAliased() && is_single_ray && !isTraceByCapsule)
   {
     const CollisionTrace &tr = traces.front();
-    if (!v_test_segment_box_intersection(v_mat44_mul_vec3p(itm, tr.vFrom), v_mat44_mul_vec3p(itm, tr.vTo), vFullBBox))
+    if (!v_test_segment_box_intersection(v_mat44_mul_vec3p(itm, tr.vFrom), v_mat44_mul_vec3p(itm, tr.vTo), instance.getRootBBox()))
       return false;
   }
 
@@ -668,18 +832,42 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
     // non-IDENT nodes never carry the flags and fall through too.
     const uint8_t walkedGridFlag =
       useBlas ? (isCollidableGridForTrace(behavior_filter) ? CollisionNode::GRID_PHYS : CollisionNode::GRID_TRACEABLE) : 0;
+    const GeomNodeTree *instTree = instance.getTree();
+    // An owned pose composes stored matrices; a tree-backed one reads live wtms and cannot take
+    // the identity shortcut below.
+    const bool ownedPose = instTree == nullptr;
     for (uint16_t mi = meshNodesHead; DAGOR_LIKELY(mi != CollisionNode::INVALID_IDX); mi = allNodesList[mi].nextNode)
     {
       const CollisionNode *meshNode = &allNodesList[mi];
       if (meshNode->flags & walkedGridFlag)
         continue; // covered by the grid walk below
+      // Tree-backed poses read the live wtm; bind meta stays conservative under the no-scale
+      // contract (temp views alias it verbatim). One fetch feeds the hide gate, the traceable gate
+      // and the pose class: each per-node accessor otherwise re-bounds-checks its slot (temp views
+      // through the PoseView delegation), and the absent-slot fallback already encodes exactly
+      // the answers the individual accessors give out of range (enabled, not traceable).
+      const CollisionResourceInstance::PoseMeta &pm = instance.getPoseMeta(meshNode->nodeIndex);
+      if (pm.isDisabled() || !pm.isTraceable())
+        continue; // structurally hidden or untraceable pose: skipped before any filter
       if (!filter(meshNode))
         continue;
 
+      const float nodeMaxTmScale = pm.maxTmScale;
+      const uint8_t nodeTmFlags = pm.flags;
       alignas(EA_CACHE_LINE_SIZE) mat44f nodeTm, nodeItm;
-      nodeTm = getMeshNodeTmInline(meshNode, tm, woffset, geom_node_tree);
+      // A stored identity composes to the entity tm bit-for-bit, so taking it directly skips the
+      // 3x4 load, the mat44 conversion and the compose for every node placed at the origin --
+      // which is most of them in a real resource.
+      const bool poseIsIdent = ownedPose && pm.isPoseIdentity();
+      if (DAGOR_LIKELY(poseIsIdent))
+        nodeTm = tm;
+      else
+        nodeTm = getPosedNodeWtmInline(meshNode, tm, woffset, instance);
       vec3f bsphCenter = v_mat44_mul_vec3p(nodeTm, v_ldu(&meshNode->boundingSphere.c.x));
-      float bsphR2 = get_bsphere_r2(meshNode->boundingSphere.r) * max_tm_scale_sq * sqr(meshNode->cachedMaxTmScale);
+      // A driven node's wtm lives in tree world: the trace tm never composes into it, so its
+      // scale must not size the reject (an entity scale < 1 would under-cover the sphere).
+      const bool treeDriven = instTree && meshNode->geomNodeId.index() < instTree->nodeCount();
+      float bsphR2 = get_bsphere_r2(meshNode->boundingSphere.r) * (treeDriven ? 1.f : max_tm_scale_sq) * sqr(nodeMaxTmScale);
       if (is_single_ray)
       {
         vec3f vFrom = traces.front().vFrom;
@@ -696,20 +884,21 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       profileStats.meshNodesSphCheckPassed++;
 
       // both instance and node tms
-      bool isOrthonormalizedTm = orthonormalized_instance_tm && (meshNode->flags & CollisionNode::ORTHONORMALIZED);
-      bool isOrthouniformTm =
-        orthonormalized_instance_tm && (meshNode->flags & (CollisionNode::ORTHOUNIFORM | CollisionNode::ORTHONORMALIZED));
+      bool isOrthonormalizedTm = orthonormalized_instance_tm && (nodeTmFlags & CollisionNode::ORTHONORMALIZED);
 
-      if (DAGOR_LIKELY(isOrthouniformTm))
+      // ORTHONORMALIZED is an epsilon class: within it the transpose maps segments by s
+      // instead of 1/s and truncates them against the geometry. The full inverse keeps
+      // hit/miss exact, and tm * inv(tm) = I preserves the parameter scale, so the
+      // orthonormal-arm t semantics below stay valid without a rescale. An identity pose
+      // reuses the per-call inverse: same input matrix, so the same bits without per-node cost.
+      if (DAGOR_LIKELY(poseIsIdent))
       {
-        v_mat44_orthonormal_inverse43(nodeItm, nodeTm);
-        if (DAGOR_UNLIKELY(!isOrthonormalizedTm))
+        if (DAGOR_UNLIKELY(!itmComputed))
         {
-          vec4f scale = v_splat_x(v_rcp_x(v_set_x(meshNode->cachedMaxTmScale)));
-          nodeItm.col0 = v_mul(nodeItm.col0, scale);
-          nodeItm.col1 = v_mul(nodeItm.col1, scale);
-          nodeItm.col2 = v_mul(nodeItm.col2, scale);
+          v_mat44_inverse43(itm, tm);
+          itmComputed = true;
         }
+        nodeItm = itm;
       }
       else
         v_mat44_inverse43(nodeItm, nodeTm);
@@ -759,6 +948,13 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       if (DAGOR_UNLIKELY(isGridResident(*meshNode) && getBlasGridForResidentNode(*meshNode).blasData.empty()))
         continue; // defensive: residency stamped but grid wasn't built. Skip silently.
 
+      // |nodeItm d| under-bounds the radial widening of a mixed-scale node frame; capsules need
+      // the full inverse stretch: exact for uniform scale, conservative for shear, and it covers
+      // the class tolerance bands without a fixed pad (a down-scale inside the band needs MORE
+      // than any constant). A bit-exact rigid basis has inverse stretch exactly 1: skip the
+      // spectral path for that common population instead of paying it per node per capsule call.
+      const float nodeItmCapsuleScale = !isTraceByCapsule ? 1.f : is_exact_rigid_basis_v(nodeItm) ? 1.f : mat33_spectral_norm(nodeItm);
+
       for (int traceId = 0, traceEnd = traces.size(); traceId < traceEnd; traceId++)
       {
         CollisionTrace &trace = traces[traceId];
@@ -766,25 +962,19 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
           continue;
 
         vec3f vNodeLocalFrom = v_mat44_mul_vec3p(nodeItm, trace.vFrom);
-        vec3f vNodeLocalDir;
-        float localT;
-
-        if (isOrthonormalizedTm)
+        // Linear-part direction map (endpoint differences cancel far from the origin);
+        // renormalize only when the mapping changed the length (re-division adds ULP noise).
+        vec3f vNodeLocalDir = v_mat44_mul_vec3v(nodeItm, trace.vDir);
+        float localT = trace.t;
+        const float nodeDirLen = v_extract_x(v_length3_x(vNodeLocalDir));
+        if (fabsf(nodeDirLen - 1.f) > 1e-6f)
         {
-          vNodeLocalDir = v_mat44_mul_vec3v(nodeItm, trace.vDir);
-          localT = trace.t;
+          vNodeLocalDir = v_div(vNodeLocalDir, v_splats(nodeDirLen));
+          localT = trace.t * nodeDirLen;
         }
-        else
-        {
-          vec3f vNodeLocalTo = v_mat44_mul_vec3p(nodeItm, trace.vTo);
-          vec3f vNodeLocalFullDir = v_sub(vNodeLocalTo, vNodeLocalFrom);
-          vec4f vNodeLocalT = v_length3(vNodeLocalFullDir);
-          vNodeLocalDir = v_div(vNodeLocalFullDir, vNodeLocalT);
-          localT = v_extract_x(vNodeLocalT);
-          if (DAGOR_UNLIKELY(localT < VERY_SMALL_NUMBER))
-            continue;
-        }
-        float localCapsuleRadius = isTraceByCapsule ? trace.capsuleRadius * (localT / trace.t) : 0.f;
+        if (DAGOR_UNLIKELY(!(localT >= VERY_SMALL_NUMBER)))
+          continue;
+        float localCapsuleRadius = isTraceByCapsule ? trace.capsuleRadius * nodeItmCapsuleScale : 0.f;
 
         // check mesh node bounding
         bbox3f bbox = v_ldu_bbox3(meshNode->modelBBox);
@@ -915,7 +1105,9 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
             }
             if (calc_normal)
             {
-              if (DAGOR_LIKELY(isOrthouniformTm))
+              // Forward rotation is the inverse transpose only for bit-exact rigid bases; the
+              // epsilon classes admit shear that tilts a forward-mapped normal off the plane.
+              if (DAGOR_LIKELY(isOrthonormalizedTm) && is_exact_rigid_basis_v(nodeTm))
                 vIntersectionNorm = v_mat44_mul_vec3v(nodeTm, vNodeLocalNorm);
               else
               {
@@ -972,7 +1164,10 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
           {
             hasCollision = true;
             mat33f titm33;
-            if (!isOrthouniformTm && calc_normal)
+            // Forward rotation is the inverse transpose only for bit-exact rigid bases; the
+            // epsilon classes admit shear that tilts a forward-mapped normal off the plane.
+            const bool exactRigidNormals = isOrthonormalizedTm && is_exact_rigid_basis_v(nodeTm);
+            if (!exactRigidNormals && calc_normal)
             {
               mat33f itm33;
               v_mat33_from_mat44(itm33, nodeItm);
@@ -988,7 +1183,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
               {
                 mat33f normTm;
                 v_mat33_from_mat44(normTm, nodeTm);
-                if (DAGOR_UNLIKELY(!isOrthouniformTm))
+                if (DAGOR_UNLIKELY(!exactRigidNormals))
                   normTm = titm33;
                 vIntersectionNorm = v_norm3(v_mat33_mul_vec3(normTm, n_t));
               }
@@ -1011,33 +1206,132 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
   mat33f titm33;
   bool titmCalculated = false;
 
+  // Primitive nodes use the pose type's own primitive source: an instance is it, a legacy view
+  // answers with the default instance it wraps -- the knowledge lives in the type, so a future
+  // pose type must answer explicitly instead of falling into a hardcoded else.
+  const CollisionResourceInstance &primPose = instance.primPoseSource();
+  // Resource-local posed geometry tm for a primitive node, form-aware: owned poses read the
+  // stored matrix, tree-backed poses compose the live wtm back into resource space (itm and the
+  // live wtm share the woffset-relative frame, so their product is exactly resource-local).
+  auto primGeometryTm = [&](int node_index) {
+    if (DAGOR_LIKELY(!primPose.getTree()))
+      return primPose.getNodeGeometryTm(node_index);
+    const mat44f world = getPosedNodeWtmInline(&allNodesList[node_index], tm, woffset, primPose);
+    mat44f posed;
+    v_mat44_mul43(posed, itm, world);
+    return geometryTmFromPosed(node_index, posed, primPose.getPoseMeta(node_index));
+  };
+
+  // Sparse per-batch cache of non-identity prim inverses, keyed by nodeIndex: sized by the
+  // posed prims actually visited, not the node list.
+  struct PrimInvCache //-V730 invT/maxInvScale are set under the computed gate; eager init is per-trace waste
+  {
+    mat44f invT;
+    float maxInvScale;
+    int nodeIndex = -1;
+    bool computed = false;
+  };
+  dag::Vector<PrimInvCache, framemem_allocator> primInvCache;
+  // Node-indexed slot map, BATCH scope like the cache it indexes (a per-ray map would re-append
+  // the same node every ray and overflow narrow slots): a scan-based find-or-add is quadratic
+  // across the first ray's appends. Sized lazily so plain-IDENT batches never touch it.
+  dag::Vector<int, framemem_allocator> primSlotOfNode;
+
+  // The inverse spectral stretch converts world sweep radii to resource units: exact for uniform
+  // scale (1 bit-exactly for rigid bases), conservative for shear, and it covers the outer
+  // orthonormal tolerance band (down-scales inside the band need MORE than any fixed pad).
+  const float itmCapsuleScale = isTraceByCapsule ? mat33_spectral_norm(itm) : 1.f;
+
   for (int traceId = 0, traceEnd = traces.size(); traceId < traceEnd; traceId++)
   {
     CollisionTrace &trace = traces[traceId];
     if (!trace.isectBounding)
       continue;
 
+    // Linear-part direction map (endpoint differences cancel far from the origin);
+    // renormalize only when the mapping changed the length (re-division adds ULP noise).
     vec3f vLocalFrom = v_mat44_mul_vec3p(itm, trace.vFrom);
-    vec3f vLocalTo, vLocalDir;
-    typename eastl::conditional_t<orthonormalized_instance_tm, float &, float> localT = trace.t;
+    vec3f vLocalDir = v_mat44_mul_vec3v(itm, trace.vDir);
+    float localT = trace.t;
+    const float outerDirLen = v_extract_x(v_length3_x(vLocalDir));
+    if (fabsf(outerDirLen - 1.f) > 1e-6f)
+    {
+      vLocalDir = v_div(vLocalDir, v_splats(outerDirLen));
+      localT = trace.t * outerDirLen;
+    }
+    if (DAGOR_UNLIKELY(!(localT >= VERY_SMALL_NUMBER)))
+      continue;
+    vec3f vLocalTo = v_madd(vLocalDir, v_splats(localT), vLocalFrom);
+    float localCapsuleRadius = isTraceByCapsule ? trace.capsuleRadius * itmCapsuleScale : 0.f;
 
-    if (orthonormalized_instance_tm)
+    // Pull the resource-local ray into each primitive's stored frame.
+    struct PrimRay
     {
-      vLocalDir = v_mat44_mul_vec3v(itm, trace.vDir);
-      vLocalTo = v_madd(vLocalDir, v_splats(trace.t), vLocalFrom);
-      localT = trace.t;
-    }
-    else
-    {
-      vLocalTo = v_mat44_mul_vec3p(itm, trace.vTo);
-      vLocalDir = v_sub(vLocalTo, vLocalFrom);
-      vec4f vLocalT = v_length3(vLocalDir);
-      vLocalDir = v_div(vLocalDir, vLocalT);
-      localT = v_extract_x(vLocalT);
-      if (DAGOR_UNLIKELY(localT < VERY_SMALL_NUMBER))
-        continue;
-    }
-    float localCapsuleRadius = isTraceByCapsule ? trace.capsuleRadius * (localT / trace.t) : 0.f;
+      vec3f from, dir;
+      float t;
+      float capsuleRadius;
+    };
+    // pm comes from the caller's hide/traceable gate: re-fetching it here would re-bounds-check
+    // it for every primitive node of every trace.
+    auto makePrimRay = [&](const CollisionNode *node) {
+      PrimRay r;
+      r.from = vLocalFrom;
+      r.dir = vLocalDir;
+      r.t = localT;
+      r.capsuleRadius = localCapsuleRadius;
+      // Callers gate on posed: unplaced or IDENT prims never reach this lambda.
+      // A single ray reads each prim once: caching would be one-shot waste, so compute inline
+      // instead (compile-time branch). Multiray batches use the O(1) slot map.
+      PrimInvCache singleRayPc;
+      PrimInvCache *pcp = &singleRayPc;
+      if (!is_single_ray)
+      {
+        if (DAGOR_UNLIKELY(primSlotOfNode.empty()))
+          primSlotOfNode.assign(allNodesList.size(), -1);
+        int &slot = primSlotOfNode[node->nodeIndex];
+        if (slot < 0)
+        {
+          slot = (int)primInvCache.size();
+          primInvCache.push_back();
+          primInvCache.back().nodeIndex = node->nodeIndex;
+        }
+        pcp = &primInvCache[slot];
+      }
+      PrimInvCache &pc = *pcp;
+      if (!pc.computed)
+      {
+        // ALWAYS the full inverse with parameter rescaling below: ORTHONORMALIZED is an epsilon
+        // class, and its transpose shortcut maps a ray by s instead of 1/s while keeping t and
+        // radius -- enough to miss a boundary hit on a 1.0004-scale pose.
+        const mat44f nodeT = primGeometryTm(node->nodeIndex);
+        v_mat44_inverse43(pc.invT, nodeT);
+        // The inverse spectral norm keeps anisotropic capsules conservative; plain rays
+        // never read it, so do not pay for the norm outside capsule modes.
+        if (isTraceByCapsule)
+          pc.maxInvScale = mat33_spectral_norm(pc.invT) * 1.0002f;
+        pc.computed = true;
+      }
+      {
+        r.from = v_mat44_mul_vec3p(pc.invT, vLocalFrom);
+        vec3f nodeTo = v_mat44_mul_vec3p(pc.invT, v_madd(vLocalDir, v_splats(localT), vLocalFrom));
+        vec3f fullDir = v_sub(nodeTo, r.from);
+        vec4f len = v_length3(fullDir);
+        r.t = v_extract_x(len);
+        r.dir = v_div(fullDir, len);
+        if (isTraceByCapsule)
+          r.capsuleRadius = localCapsuleRadius * max(pc.maxInvScale, r.t / localT);
+      }
+      return r;
+    };
+    // Posed primitive normals use the full inverse transpose.
+    auto posedPrimNormal = [](mat44f_cref full_tm, vec3f local_norm) {
+      mat44f ifull;
+      v_mat44_inverse43(ifull, full_tm);
+      mat33f i33, t33;
+      v_mat33_from_mat44(i33, ifull);
+      v_mat33_transpose(t33, i33);
+      return v_norm3(v_mat33_mul_vec3(t33, local_norm));
+    };
 
     if (useBlas)
     {
@@ -1048,8 +1342,8 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
 #endif
 
       // moved it in (BLAS) block for rendinsts only, because in most cases we have not more than one not-mesh node
-      // don't forget to extend vFullBBox by localCapsuleRadius if you want to change it
-      if (!v_test_segment_box_intersection(vLocalFrom, vLocalTo, vFullBBox))
+      // This reject also covers posed primitives, so bind bounds are insufficient.
+      if (!v_test_segment_box_intersection(vLocalFrom, vLocalTo, primPose.getRootBBox()))
         continue;
 
       const Grid &blasGrid = getBlasGrid(behavior_filter);
@@ -1233,8 +1527,25 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
     for (uint16_t bi = boxNodesHead; bi != CollisionNode::INVALID_IDX; bi = allNodesList[bi].nextNode)
     {
       const CollisionNode *boxNode = &allNodesList[bi];
+      const CollisionResourceInstance::PoseMeta &pm = primPose.getPoseMeta(boxNode->nodeIndex);
+      if (pm.isDisabled() || !pm.isTraceable())
+        continue;
       if (!filter(boxNode))
         continue;
+      // A box is an OOBB, so a placed one costs a ray transform into its frame -- the same work
+      // the pre-instance dispatch did. An UNPLACED one cost nothing back then, because its stored
+      // geometry was already resource-local, and it must cost nothing now: no frame pull, no ray
+      // struct, no per-node branch on the result -- just the per-trace ray as-is.
+      const bool posed = !(pm.flags & CollisionNode::IDENT);
+      vec3f boxFrom = vLocalFrom, boxTo = vLocalTo;
+      if (DAGOR_UNLIKELY(posed))
+      {
+        const PrimRay pr = makePrimRay(boxNode);
+        if (pr.t < VERY_SMALL_NUMBER)
+          continue;
+        boxFrom = pr.from;
+        boxTo = v_madd(pr.dir, v_splats(pr.t), pr.from);
+      }
       float atMin = 1.f, atMax = 1.f; // [0; 1]
       int side = 0;
       bool isHit = false;
@@ -1242,7 +1553,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       switch (trace_type)
       {
         case CollisionTraceType::TRACE_RAY:
-          side = v_segment_box_intersection_side(vLocalFrom, vLocalTo, modelBBox, atMin, atMax);
+          side = v_segment_box_intersection_side(boxFrom, boxTo, modelBBox, atMin, atMax);
           isHit = side != -1;
           break;
         case CollisionTraceType::TRACE_CAPSULE:
@@ -1250,7 +1561,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
           // Very complex when done correct for all theoretically possible cases
           // Try to use traceRay for collres with box nodes
           break;
-        case CollisionTraceType::RAY_HIT: isHit = v_test_segment_box_intersection(vLocalFrom, vLocalTo, modelBBox); break;
+        case CollisionTraceType::RAY_HIT: isHit = v_test_segment_box_intersection(boxFrom, boxTo, modelBBox); break;
         case CollisionTraceType::CAPSULE_HIT:
           G_ASSERTF(false, "CollisionResource trace failed: capsule rayhit for box nodes is not implemented yet"); //-V1037
           break;
@@ -1259,25 +1570,42 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       if (isHit)
       {
         hasCollision = true;
+        // atMin is frame-invariant because it is a segment fraction.
         float intersectionT = trace.t * atMin;
         vec3f vIntersectionPos = v_madd(trace.vDir, v_splats(intersectionT), trace.vFrom);
         vec3f vIntersectionNorm = v_zero();
         if (trace_mode == FIND_BEST_INTERSECTION)
         {
-          localT *= atMin; // warning: localT is ref to trace.t if (orthonormalized_instance_tm==true)
+          localT *= atMin; // keep the local length consistent with the tightened trace.t below
           trace.t = intersectionT;
           vLocalTo = v_madd(vLocalDir, v_splats(localT), vLocalFrom);
         }
         if (calc_normal)
         {
-          switch (side % 3) // better than index
+          if (DAGOR_UNLIKELY(posed))
           {
-            case 0: vIntersectionNorm = tm.col0; break;
-            case 1: vIntersectionNorm = tm.col1; break;
-            case 2: vIntersectionNorm = tm.col2; break;
+            // Non-orthogonal poses require the inverse transpose.
+            mat44f fullTm;
+            v_mat44_mul43(fullTm, tm, primGeometryTm(boxNode->nodeIndex));
+            const vec3f faceAxis = side % 3 == 0 ? V_C_UNIT_1000 : (side % 3 == 1 ? V_C_UNIT_0100 : V_C_UNIT_0010);
+            vIntersectionNorm = posedPrimNormal(fullTm, faceAxis);
           }
-          if (!orthonormalized_instance_tm)
-            vIntersectionNorm = v_norm3(vIntersectionNorm);
+          else if (DAGOR_LIKELY(orthonormalized_instance_tm))
+          {
+            switch (side % 3) // better than index
+            {
+              case 0: vIntersectionNorm = tm.col0; break;
+              case 1: vIntersectionNorm = tm.col1; break;
+              case 2: vIntersectionNorm = tm.col2; break;
+            }
+          }
+          else
+          {
+            // A sheared outer tm maps face normals by the INVERSE TRANSPOSE: a normalized tangent
+            // column still tilts off the true world face plane.
+            const vec3f faceAxis = side % 3 == 0 ? V_C_UNIT_1000 : (side % 3 == 1 ? V_C_UNIT_0100 : V_C_UNIT_0010);
+            vIntersectionNorm = posedPrimNormal(tm, faceAxis);
+          }
           if (side < 3)
             vIntersectionNorm = v_neg(vIntersectionNorm);
         }
@@ -1292,50 +1620,76 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
     for (uint16_t si = sphereNodesHead; si != CollisionNode::INVALID_IDX; si = allNodesList[si].nextNode)
     {
       const CollisionNode *sphereNode = &allNodesList[si];
+      const CollisionResourceInstance::PoseMeta &pm = primPose.getPoseMeta(sphereNode->nodeIndex);
+      if (pm.isDisabled() || !pm.isTraceable())
+        continue;
+      // Zero-vert marker: adding a sweep radius to the negative marker would resurrect it as
+      // positive geometry in the capsule arms.
+      if (DAGOR_UNLIKELY(sphereNode->boundingSphere.r < 0.f))
+        continue;
       if (!filter(sphereNode))
         continue;
+      // Unplaced primitives keep the pre-instance shape: their stored geometry is already
+      // resource-local, so the per-trace ray is used as-is with no per-node frame pull.
+      const bool posed = !(pm.flags & CollisionNode::IDENT);
+      vec3f primFrom = vLocalFrom, primDir = vLocalDir;
+      float primT = localT, primR = localCapsuleRadius;
+      if (DAGOR_UNLIKELY(posed))
+      {
+        const PrimRay pr = makePrimRay(sphereNode);
+        if (pr.t < VERY_SMALL_NUMBER)
+          continue;
+        primFrom = pr.from;
+        primDir = pr.dir;
+        primT = pr.t;
+        primR = pr.capsuleRadius;
+      }
       bool isHit = false;
       vec3f bsphPos = v_ldu(&sphereNode->boundingSphere.c.x);
       vec4f bsphR2 = v_set_x(get_bsphere_r2(sphereNode->boundingSphere.r));
-      vec4f bsphCapsuleR = v_set_x(sphereNode->boundingSphere.r + localCapsuleRadius);
+      vec4f bsphCapsuleR = v_set_x(sphereNode->boundingSphere.r + primR);
       vec4f bsphCapsuleR2 = v_mul(bsphCapsuleR, bsphCapsuleR);
-      vec4f inOutLocalT = v_set_x(localT);
+      vec4f inOutLocalT = v_set_x(primT);
 
       switch (trace_type)
       {
-        case CollisionTraceType::TRACE_RAY:
-          isHit = v_ray_sphere_intersection(vLocalFrom, vLocalDir, inOutLocalT, bsphPos, bsphR2);
-          break;
+        case CollisionTraceType::TRACE_RAY: isHit = v_ray_sphere_intersection(primFrom, primDir, inOutLocalT, bsphPos, bsphR2); break;
         case CollisionTraceType::TRACE_CAPSULE:
-          isHit = v_ray_sphere_intersection(vLocalFrom, vLocalDir, inOutLocalT, bsphPos, bsphCapsuleR2);
+          isHit = v_ray_sphere_intersection(primFrom, primDir, inOutLocalT, bsphPos, bsphCapsuleR2);
           break;
         case CollisionTraceType::RAY_HIT:
-          isHit = v_test_ray_sphere_intersection(vLocalFrom, vLocalDir, v_splat_x(inOutLocalT), bsphPos, bsphR2);
+          isHit = v_test_ray_sphere_intersection(primFrom, primDir, v_splat_x(inOutLocalT), bsphPos, bsphR2);
           break;
         case CollisionTraceType::CAPSULE_HIT:
-          isHit = v_test_ray_sphere_intersection(vLocalFrom, vLocalDir, v_splat_x(inOutLocalT), bsphPos, bsphCapsuleR2);
+          isHit = v_test_ray_sphere_intersection(primFrom, primDir, v_splat_x(inOutLocalT), bsphPos, bsphCapsuleR2);
           break;
         default: G_ASSERTF(false, "CollisionResource trace failed: unsupported trace_type");
       }
       if (isHit)
       {
         hasCollision = true;
-        float intersectionT = trace.t * (v_extract_x(inOutLocalT) / localT);
+        float intersectionT = trace.t * (v_extract_x(inOutLocalT) / primT);
         vec3f vIntersectionPos = v_madd(trace.vDir, v_splats(intersectionT), trace.vFrom);
         vec3f vIntersectionNorm = v_zero();
         if (trace_mode == FIND_BEST_INTERSECTION)
         {
+          float newLocalT = posed ? localT * (v_extract_x(inOutLocalT) / primT) : v_extract_x(inOutLocalT);
           trace.t = intersectionT;
-          localT = v_extract_x(inOutLocalT);
+          localT = newLocalT;
         }
         if (calc_normal || trace_type == CollisionTraceType::TRACE_CAPSULE)
         {
-          vec3f vLocalHitPos = v_madd(vLocalDir, v_splat_x(inOutLocalT), vLocalFrom);
+          vec3f vLocalHitPos = v_madd(primDir, v_splat_x(inOutLocalT), primFrom);
           vec3f vLocalNorm = v_sub(vLocalHitPos, v_ldu(&sphereNode->boundingSphere.c.x));
+          mat44f fullTm;
+          if (DAGOR_UNLIKELY(posed))
+            v_mat44_mul43(fullTm, tm, primGeometryTm(sphereNode->nodeIndex));
 
           if (calc_normal)
           {
-            if (orthonormalized_instance_tm)
+            if (DAGOR_UNLIKELY(posed))
+              vIntersectionNorm = posedPrimNormal(fullTm, vLocalNorm);
+            else if (orthonormalized_instance_tm)
               vIntersectionNorm = v_norm3(v_mat44_mul_vec3v(tm, vLocalNorm));
             else
             {
@@ -1355,7 +1709,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
             // normalize before placing the contact on the target sphere surface
             vec3f vLocalPos =
               v_madd(v_norm3(vLocalNorm), v_splats(sphereNode->boundingSphere.r), v_ldu(&sphereNode->boundingSphere.c.x));
-            vIntersectionPos = v_mat44_mul_vec3p(tm, vLocalPos);
+            vIntersectionPos = v_mat44_mul_vec3p(posed ? fullTm : tm, vLocalPos);
           }
         }
         callback(traceId, sphereNode, intersectionT, vIntersectionNorm, vIntersectionPos,
@@ -1370,9 +1724,31 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
     for (uint16_t ci = capsuleNodesHead; ci != CollisionNode::INVALID_IDX; ci = allNodesList[ci].nextNode)
     {
       const CollisionNode *capsuleNode = &allNodesList[ci];
+      const CollisionResourceInstance::PoseMeta &pm = primPose.getPoseMeta(capsuleNode->nodeIndex);
+      if (pm.isDisabled() || !pm.isTraceable())
+        continue;
+      // Zero-vert marker: a pose write re-classifies it traceable, and the degenerate stored
+      // capsule plus a sweep radius would fake a hit at the pose origin.
+      if (DAGOR_UNLIKELY(capsuleNode->boundingSphere.r < 0.f))
+        continue;
       if (!filter(capsuleNode))
         continue;
-      float inOutLocalT = localT;
+      // Unplaced primitives keep the pre-instance shape: their stored geometry is already
+      // resource-local, so the per-trace ray is used as-is with no per-node frame pull.
+      const bool posed = !(pm.flags & CollisionNode::IDENT);
+      vec3f primFrom = vLocalFrom, primDir = vLocalDir;
+      float primT = localT, primR = localCapsuleRadius;
+      if (DAGOR_UNLIKELY(posed))
+      {
+        const PrimRay pr = makePrimRay(capsuleNode);
+        if (pr.t < VERY_SMALL_NUMBER)
+          continue;
+        primFrom = pr.from;
+        primDir = pr.dir;
+        primT = pr.t;
+        primR = pr.capsuleRadius;
+      }
+      float inOutLocalT = primT;
       bool isHit = false;
       vec3f vOutLocalNorm = v_zero();
       vec3f vOutLocalPos = v_zero();
@@ -1380,28 +1756,34 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       const Capsule &nodeCapsule = capsules[capsuleNode->capsuleIndex];
       switch (trace_type)
       {
-        case CollisionTraceType::TRACE_RAY: isHit = nodeCapsule.traceRay(vLocalFrom, vLocalDir, inOutLocalT, vOutLocalNorm); break;
+        case CollisionTraceType::TRACE_RAY: isHit = nodeCapsule.traceRay(primFrom, primDir, inOutLocalT, vOutLocalNorm); break;
         case CollisionTraceType::TRACE_CAPSULE:
-          isHit = nodeCapsule.traceCapsule(vLocalFrom, vLocalDir, inOutLocalT, localCapsuleRadius, vOutLocalNorm, vOutLocalPos);
+          isHit = nodeCapsule.traceCapsule(primFrom, primDir, inOutLocalT, primR, vOutLocalNorm, vOutLocalPos);
           break;
-        case CollisionTraceType::RAY_HIT: isHit = nodeCapsule.rayHit(vLocalFrom, vLocalDir, localT); break;
-        case CollisionTraceType::CAPSULE_HIT: isHit = nodeCapsule.capsuleHit(vLocalFrom, vLocalDir, localT, localCapsuleRadius); break;
+        case CollisionTraceType::RAY_HIT: isHit = nodeCapsule.rayHit(primFrom, primDir, primT); break;
+        case CollisionTraceType::CAPSULE_HIT: isHit = nodeCapsule.capsuleHit(primFrom, primDir, primT, primR); break;
         default: G_ASSERTF(false, "CollisionResource trace failed: unsupported trace_type");
       }
       if (isHit)
       {
         hasCollision = true;
-        float intersectionT = trace.t * (inOutLocalT / localT);
+        float intersectionT = trace.t * (inOutLocalT / primT);
         vec3f vIntersectionPos = v_madd(trace.vDir, v_splats(intersectionT), trace.vFrom);
         vec3f vIntersectionNorm = v_zero();
+        mat44f fullTm;
+        if (DAGOR_UNLIKELY(posed))
+          v_mat44_mul43(fullTm, tm, primGeometryTm(capsuleNode->nodeIndex));
         if (trace_mode == FIND_BEST_INTERSECTION)
         {
+          float newLocalT = posed ? localT * (inOutLocalT / primT) : inOutLocalT;
           trace.t = intersectionT;
-          localT = inOutLocalT;
+          localT = newLocalT;
         }
         if (calc_normal)
         {
-          if (orthonormalized_instance_tm)
+          if (DAGOR_UNLIKELY(posed))
+            vIntersectionNorm = posedPrimNormal(fullTm, vOutLocalNorm);
+          else if (orthonormalized_instance_tm)
             vIntersectionNorm = v_mat44_mul_vec3v(tm, vOutLocalNorm);
           else
           {
@@ -1417,7 +1799,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
         }
         if (trace_type == CollisionTraceType::TRACE_CAPSULE)
         {
-          vIntersectionPos = v_mat44_mul_vec3p(tm, vOutLocalPos);
+          vIntersectionPos = v_mat44_mul_vec3p(posed ? fullTm : tm, vOutLocalPos);
         }
         callback(traceId, capsuleNode, intersectionT, vIntersectionNorm, vIntersectionPos,
           tri_ref::makeForNonTri(capsuleNode->nodeIndex));
@@ -1437,26 +1819,325 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
 #pragma warning(pop)
 #endif
 
+static const float bsphereScale = sqrtf(3.f); // moving nodes can extend outside of bound box
+
+class CollisionResourceTraceAdapter
+{
+public:
+  // Wrapper-frame pose holder for the legacy overloads: a GNT argument materializes a stack temp
+  // view over the tree (aliasing the default-pose metadata, zero allocation, never refreshed), a
+  // null one resolves to the embedded default instance, which is never tree-backed. Neither can be
+  // a pose generation behind, so mayRefresh is false. Never copied, bound by reference for
+  // the duration of one trace call.
+  // Read-only pose the legacy entry points hand to the trace core. Both legacy forms read node
+  // metadata from the DEFAULT instance -- a tree-backed call aliases it, a tree-less call is it --
+  // so one aggregate covers both and the tree pointer alone selects the behaviour. Trivially
+  // destructible by design: the core is force-inlined, and a destructor that can free anywhere
+  // inside it costs every trace call whether or not it frees.
+  struct PoseView
+  {
+    const CollisionResourceInstance *owned; // default instance: stored matrices and metadata
+    const GeomNodeTree *treePtr;            // null for a tree-less call
+
+    bool posed;        // a live tree pose never licenses bind shortcuts
+    bool gridResident; // ... nor the grid walk
+
+    const GeomNodeTree *getTree() const { return treePtr; }
+    // A temp view over a tree carries no rootBBox and never refreshes; the tree-less form is the
+    // default instance itself, so it is not aliased.
+    bool isMetaAliased() const { return treePtr != nullptr; }
+    bool isPosedSinceBind() const { return posed; }
+    bool isGridResidentPoseAtBind() const { return gridResident; }
+    // Primitive source for the trace core: both legacy forms read primitives from the
+    // default instance the view wraps.
+    const CollisionResourceInstance &primPoseSource() const { return *owned; }
+    // Borrowed owned-pose accessors: the core reads them only on the tree-less path (the
+    // isMetaAliased gates), never for a tree-backed view -- asserted so a future core edit
+    // cannot silently read default-instance data for a driven pose.
+    bbox3f getRootBBox() const
+    {
+      G_ASSERT(treePtr == nullptr);
+      return owned->getRootBBox();
+    }
+    mat44f getNodeTm(int node_index) const
+    {
+      G_ASSERT(treePtr == nullptr);
+      return owned->getNodeTm(node_index);
+    }
+    // One out-of-range contract: the default instance is never aliased, so its own accessor
+    // reads the same slice with the same absent-slot fallback.
+    const CollisionResourceInstance::PoseMeta &getPoseMeta(int node_index) const { return owned->getPoseMeta(node_index); }
+  };
+
+  struct LegacyPose
+  {
+    static constexpr bool mayRefresh = false;
+
+    PoseView view;
+
+    __forceinline LegacyPose(const CollisionResource &res, const GeomNodeTree *tree)
+    {
+      const CollisionResourceInstance &def = res.getDefaultInstance();
+      view.owned = &def;
+      view.treePtr = tree;
+      view.posed = tree != nullptr || def.isPosedSinceBind();
+      view.gridResident = tree == nullptr && def.isGridResidentPoseAtBind();
+    }
+    __forceinline const PoseView &pose() const { return view; }
+  };
+
+  // Pose holder for the entry points that statically cannot have a tree. They hand the core the
+  // embedded default instance itself, so it sees the owning type with none of the view's
+  // indirection -- the shape the pre-instance dispatch had. Costs one extra instantiation of the
+  // force-inlined core, which is why it is reserved for the compile-time-treeless entry points
+  // rather than used for every legacy call.
+  struct DefaultPose
+  {
+    static constexpr bool mayRefresh = false;
+
+    const CollisionResourceInstance *inst;
+
+    __forceinline DefaultPose(const CollisionResource &res) : inst(&res.getDefaultInstance()) {}
+    __forceinline const CollisionResourceInstance &pose() const { return *inst; }
+  };
+
+  // Pose holder for the instance overloads: a caller-owned instance may be tree-backed, so its
+  // derived state may be a pose generation behind and the trace core has to check.
+  struct InstancePose
+  {
+    static constexpr bool mayRefresh = true;
+
+    const CollisionResourceInstance *inst;
+
+    __forceinline InstancePose(const CollisionResource &res, const CollisionResourceInstance &instance) :
+      inst(res.resolveInstanceForTrace(instance))
+    {}
+    __forceinline const CollisionResourceInstance &pose() const { return *inst; }
+  };
+
+  static __forceinline LegacyPose pose(const CollisionResource &res, const GeomNodeTree *tree) { return LegacyPose(res, tree); }
+
+  static __forceinline DefaultPose pose(const CollisionResource &res) { return DefaultPose(res); }
+
+  static __forceinline InstancePose pose(const CollisionResource &res, const CollisionResourceInstance &instance)
+  {
+    return InstancePose(res, instance);
+  }
+
+  template <typename pose_t>
+  static __forceinline bool traceRayClosest(const CollisionResource &res, const mat44f &tm, const pose_t &pose, const Point3 &from,
+    const Point3 &dir, float &in_out_t, Point3 *out_normal, int &out_mat_id, int *out_node_id, const CollisionNodeFilter *filter,
+    int ray_mat_id, uint8_t behavior_filter)
+  {
+    auto nodeFilter = [&](const CollisionNode *node) -> bool {
+      return node->checkBehaviorFlags(behavior_filter) && (!filter || !*filter || (*filter)(node->nodeIndex)) &&
+             (ray_mat_id == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(ray_mat_id, node->physMatId));
+    };
+
+    auto callback = [&](int, const CollisionNode *node, float t, vec3f normal, vec3f, tri_ref_t) {
+      in_out_t = t;
+      if (out_normal)
+        v_stu_p3(&out_normal->x, normal);
+      out_mat_id = node->physMatId;
+      if (out_node_id)
+        *out_node_id = node->nodeIndex;
+    };
+
+    return res.forEachIntersectedNode<CollisionResource::FIND_BEST_INTERSECTION, CollisionResource::CollisionTraceType::TRACE_RAY,
+      pose_t::mayRefresh>(tm, pose.pose(), v_ldu(&from.x), v_ldu(&dir.x), in_out_t, out_normal != nullptr, 1.f, behavior_filter,
+      nodeFilter, callback, nullptr, false);
+  }
+
+  template <typename pose_t>
+  static __forceinline bool traceRayAll(const CollisionResource &res, const mat44f &tm, const pose_t &pose, vec3f from, vec3f dir,
+    float in_t, CollResIntersectionsType &intersections, bool sort_intersections, uint8_t behavior_filter,
+    const CollisionNodeFilter *filter, const CollisionNodeMask *mask, float bsphere_scale, TraceCollisionResourceStats *out_stats,
+    bool force_no_cull)
+  {
+    intersections.clear();
+    auto nodeFilter = [&](const CollisionNode *node) -> bool {
+      return node->checkBehaviorFlags(behavior_filter) && (!filter || !*filter || (*filter)(node->nodeIndex)) &&
+             (!mask || mask->test(node->nodeIndex, true));
+    };
+
+    auto callback = [&](int, const CollisionNode *, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
+      IntersectedNode *inode = (IntersectedNode *)intersections.push_back_uninitialized();
+      v_stu_p3(&inode->normal.x, normal);
+      inode->intersectionT = t;
+      v_stu_p3(&inode->intersectionPos.x, pos);
+      inode->triRef = tri_ref;
+    };
+
+    res.forEachIntersectedNode<CollisionResource::ALL_INTERSECTIONS, CollisionResource::CollisionTraceType::TRACE_RAY,
+      pose_t::mayRefresh>(tm, pose.pose(), from, dir, in_t, true, bsphere_scale, behavior_filter, nodeFilter, callback, out_stats,
+      force_no_cull);
+    if (sort_intersections)
+      sort_collres_intersections(intersections);
+    return !intersections.empty();
+  }
+
+  template <typename pose_t>
+  static __forceinline bool traceCapsuleClosest(const CollisionResource &res, const mat44f &tm, const pose_t &pose, const Point3 &from,
+    const Point3 &dir, float in_t, float radius, IntersectedNode &intersection, float bsphere_scale, const CollisionNodeFilter *filter,
+    uint8_t behavior_filter)
+  {
+    CollisionTrace trace;
+    initCapsuleTrace(trace, from, dir, in_t, radius);
+    float closest = VERY_BIG_NUMBER;
+
+    auto nodeFilter = [&](const CollisionNode *node) -> bool {
+      return node->checkBehaviorFlags(behavior_filter) && (!filter || !*filter || (*filter)(node->nodeIndex));
+    };
+    auto callback = [&](int, const CollisionNode *, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
+      const vec3f line_pos = v_closest_point_on_line(pos, trace.vFrom, trace.vDir);
+      const float distance = v_extract_x(v_length3_sq_x(v_sub(line_pos, pos)));
+      if (distance < closest)
+      {
+        closest = distance;
+        v_stu_p3(&intersection.normal.x, normal);
+        intersection.intersectionT = t;
+        v_stu_p3(&intersection.intersectionPos.x, pos);
+        intersection.triRef = tri_ref;
+      }
+    };
+
+    dag::Span<CollisionTrace> traces(&trace, 1);
+    return res.forEachIntersectedNode<CollisionResource::ALL_NODES_INTERSECTIONS, CollisionResource::CollisionTraceType::TRACE_CAPSULE,
+      true /*is_single_ray*/, pose_t::mayRefresh>(tm, pose.pose(), traces, true, bsphere_scale, behavior_filter, nodeFilter, callback,
+      nullptr, false);
+  }
+
+  template <typename pose_t>
+  static __forceinline bool traceCapsuleBest(const CollisionResource &res, const mat44f &tm, const pose_t &pose, const Point3 &from,
+    const Point3 &dir, float &in_out_t, float radius, Point3 &out_normal, Point3 &out_pos, int &out_mat_id)
+  {
+    auto nodeFilter = [](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(CollisionNode::TRACEABLE); };
+    auto callback = [&](int, const CollisionNode *node, float t, vec3f normal, vec3f pos, tri_ref_t) {
+      in_out_t = t;
+      v_stu_p3(&out_normal.x, normal);
+      v_stu_p3(&out_pos.x, pos);
+      out_mat_id = node->physMatId;
+    };
+
+    CollisionTrace trace;
+    initCapsuleTrace(trace, from, dir, in_out_t, radius);
+    dag::Span<CollisionTrace> traces(&trace, 1);
+    return res.forEachIntersectedNode<CollisionResource::FIND_BEST_INTERSECTION, CollisionResource::CollisionTraceType::TRACE_CAPSULE,
+      true /*is_single_ray*/, pose_t::mayRefresh>(tm, pose.pose(), traces, true, 1.f, CollisionNode::TRACEABLE, nodeFilter, callback,
+      nullptr, false);
+  }
+
+  template <typename pose_t>
+  static __forceinline bool traceMultiRay(const CollisionResource &res, const mat44f &tm, const pose_t &pose,
+    dag::Span<CollisionTrace> traces, MultirayCollResIntersectionsType &intersections, bool sort_intersections, float bsphere_scale,
+    uint8_t behavior_filter, const CollisionNodeMask *mask, TraceCollisionResourceStats *out_stats)
+  {
+    intersections.clear();
+    auto nodeFilter = [&](const CollisionNode *node) -> bool {
+      return node->checkBehaviorFlags(behavior_filter) && (!mask || mask->test(node->nodeIndex, true));
+    };
+    auto callback = [&](int trace_id, const CollisionNode *node, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
+      traces[trace_id].outMatId = node->physMatId;
+      traces[trace_id].outNodeId = node->nodeIndex;
+      traces[trace_id].isHit = true;
+
+      MultirayIntersectedNode *inode = (MultirayIntersectedNode *)intersections.push_back_uninitialized();
+      v_stu_p3(&inode->normal.x, normal);
+      inode->intersectionT = t;
+      v_stu_p3(&inode->intersectionPos.x, pos);
+      inode->rayId = trace_id;
+      inode->triRef = tri_ref;
+    };
+
+    prepareTraces(traces);
+    res.forEachIntersectedNode<CollisionResource::ALL_INTERSECTIONS, CollisionResource::CollisionTraceType::TRACE_RAY,
+      false /*is_single_ray*/, pose_t::mayRefresh>(tm, pose.pose(), traces, true, bsphere_scale, behavior_filter, nodeFilter, callback,
+      out_stats, false);
+    if (sort_intersections)
+      sort_collres_intersections(intersections);
+    return !intersections.empty();
+  }
+
+  template <typename pose_t>
+  static __forceinline bool rayHit(const CollisionResource &res, const mat44f &tm, const pose_t &pose, const Point3 &from,
+    const Point3 &dir, float in_t, float bsphere_scale, const CollisionNodeMask *mask, int *out_mat_id)
+  {
+    auto nodeFilter = [&](const CollisionNode *node) -> bool {
+      return node->checkBehaviorFlags(CollisionNode::TRACEABLE) && (!mask || mask->test(node->nodeIndex, true));
+    };
+    auto callback = [out_mat_id](int, const CollisionNode *node, float, vec3f, vec3f, tri_ref_t) {
+      if (out_mat_id)
+        *out_mat_id = node->physMatId;
+    };
+
+    return res.forEachIntersectedNode<CollisionResource::ANY_ONE_INTERSECTION, CollisionResource::CollisionTraceType::RAY_HIT,
+      pose_t::mayRefresh>(tm, pose.pose(), v_ldu(&from.x), v_ldu(&dir.x), in_t, false, bsphere_scale, CollisionNode::TRACEABLE,
+      nodeFilter, callback, nullptr, false);
+  }
+
+  template <typename pose_t>
+  static __forceinline bool capsuleHit(const CollisionResource &res, const mat44f &tm, const pose_t &pose, const Point3 &from,
+    const Point3 &dir, float in_t, float radius, CollResHitNodesType &nodes_hit)
+  {
+    CollisionTrace trace;
+    initCapsuleTrace(trace, from, dir, in_t, radius);
+    auto nodeFilter = [](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(CollisionNode::TRACEABLE); };
+    auto callback = [&](int, const CollisionNode *node, float, vec3f, vec3f, tri_ref_t) { nodes_hit.push_back(node->nodeIndex); };
+
+    dag::Span<CollisionTrace> traces(&trace, 1);
+    return res.forEachIntersectedNode<CollisionResource::ALL_NODES_INTERSECTIONS, CollisionResource::CollisionTraceType::CAPSULE_HIT,
+      true /*is_single_ray*/, pose_t::mayRefresh>(tm, pose.pose(), traces, false, 1.f, CollisionNode::TRACEABLE, nodeFilter, callback,
+      nullptr, false);
+  }
+
+  template <typename pose_t>
+  static __forceinline bool multiRayHit(const CollisionResource &res, const mat44f &tm, const pose_t &pose,
+    dag::Span<CollisionTrace> traces)
+  {
+    auto nodeFilter = [](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(CollisionNode::TRACEABLE); };
+    auto callback = [&](int trace_id, const CollisionNode *node, float, vec3f, vec3f, tri_ref_t) {
+      traces[trace_id].isHit = true;
+      traces[trace_id].outMatId = node->physMatId;
+      traces[trace_id].outNodeId = node->nodeIndex;
+    };
+
+    prepareTraces(traces);
+    return res.forEachIntersectedNode<CollisionResource::ANY_ONE_INTERSECTION, CollisionResource::CollisionTraceType::RAY_HIT,
+      false /*is_single_ray*/, pose_t::mayRefresh>(tm, pose.pose(), traces, false, 1.f, CollisionNode::TRACEABLE, nodeFilter, callback,
+      nullptr, false);
+  }
+
+private:
+  static __forceinline void initCapsuleTrace(CollisionTrace &trace, const Point3 &from, const Point3 &dir, float in_t, float radius)
+  {
+    trace.vFrom = v_ldu(&from.x);
+    trace.vDir = v_ldu(&dir.x);
+    trace.vTo = v_madd(trace.vDir, v_splats(in_t), trace.vFrom);
+    trace.t = in_t;
+    trace.capsuleRadius = radius;
+    trace.isectBounding = false;
+  }
+
+  static __forceinline void prepareTraces(dag::Span<CollisionTrace> traces)
+  {
+    for (CollisionTrace &trace : traces)
+    {
+      trace.vTo = v_madd(trace.vDir, v_splats(trace.t), trace.vFrom);
+      trace.isectBounding = false;
+      trace.outMatId = PHYSMAT_INVALID;
+      trace.outNodeId = -1;
+      trace.isHit = false;
+    }
+  }
+};
+
 DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from,
   const Point3 &dir, float &in_out_t, Point3 *out_normal, int &out_mat_id, int &out_node_id) const
 {
   alignas(EA_CACHE_LINE_SIZE) mat44f tm;
   v_mat44_make_from_43cu_unsafe(tm, instance_tm.m[0]);
-  uint8_t behaviorFilter = CollisionNode::TRACEABLE;
-
-  auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
-
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, tri_ref_t /*tri_ref*/) {
-    in_out_t = t;
-    if (out_normal)
-      v_stu_p3(&out_normal->x, normal);
-    out_mat_id = node->physMatId;
-    out_node_id = node->nodeIndex;
-  };
-
-  return forEachIntersectedNode<FIND_BEST_INTERSECTION, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x),
-    v_ldu(&dir.x), in_out_t, out_normal != nullptr, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*stats*/,
-    false /*force_no_cull*/);
+  return CollisionResourceTraceAdapter::traceRayClosest(*this, tm, CollisionResourceTraceAdapter::pose(*this, geom_node_tree), from,
+    dir, in_out_t, out_normal, out_mat_id, &out_node_id, nullptr, PHYSMAT_INVALID, CollisionNode::TRACEABLE);
 }
 
 DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from,
@@ -1465,70 +2146,24 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, cons
 {
   alignas(EA_CACHE_LINE_SIZE) mat44f tm;
   v_mat44_make_from_43cu_unsafe(tm, instance_tm.m[0]);
-
-  auto nodeFilter = [&](const CollisionNode *node) -> bool {
-    return node->checkBehaviorFlags(behavior_filter) && (!filter || filter(node->nodeIndex)) &&
-           (ray_mat_id == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(ray_mat_id, node->physMatId));
-  };
-
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, tri_ref_t /*tri_ref*/) {
-    in_out_t = t;
-    if (out_normal)
-      v_stu_p3(&out_normal->x, normal);
-    // unconditional: out_mat_id is a reference, and PHYSMAT_DEFAULT (0) must overwrite a farther
-    // hit's material like every other id
-    out_mat_id = node->physMatId;
-  };
-
-  return forEachIntersectedNode<FIND_BEST_INTERSECTION, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x),
-    v_ldu(&dir.x), in_out_t, out_normal != nullptr, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*stats*/,
-    false /*force_no_cull*/);
+  return CollisionResourceTraceAdapter::traceRayClosest(*this, tm, CollisionResourceTraceAdapter::pose(*this, geom_node_tree), from,
+    dir, in_out_t, out_normal, out_mat_id, nullptr, &filter, ray_mat_id, behavior_filter);
 }
 
 DAGOR_NOINLINE bool CollisionResource::traceRay(const mat44f &tm, const Point3 &from, const Point3 &dir, float &in_out_t,
   Point3 *out_normal, int &out_mat_id, int ray_mat_id, uint8_t behavior_filter) const
 {
-  auto nodeFilter = [&](const CollisionNode *node) -> bool {
-    return node->checkBehaviorFlags(behavior_filter) &&
-           (ray_mat_id == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(ray_mat_id, node->physMatId));
-  };
-
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, tri_ref_t /*tri_ref*/) {
-    in_out_t = t;
-    if (out_normal)
-      v_stu_p3(&out_normal->x, normal);
-    out_mat_id = node->physMatId;
-  };
-
-  return forEachIntersectedNode<FIND_BEST_INTERSECTION, CollisionTraceType::TRACE_RAY>(tm, nullptr /*geom_node_tree*/, v_ldu(&from.x),
-    v_ldu(&dir.x), in_out_t, out_normal != nullptr, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*stats*/,
-    false /*force_no_cull*/);
+  return CollisionResourceTraceAdapter::traceRayClosest(*this, tm, CollisionResourceTraceAdapter::pose(*this), from, dir, in_out_t,
+    out_normal, out_mat_id, nullptr, nullptr, ray_mat_id, behavior_filter);
 }
 
 DAGOR_NOINLINE bool CollisionResource::traceRay(const mat44f &tm, const GeomNodeTree *geom_node_tree, const Point3 &from,
   const Point3 &dir, float in_t, CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, uint8_t behavior_filter,
   const CollisionNodeMask *collision_node_mask, bool force_no_cull) const
 {
-  intersected_nodes_list.clear();
-
-  auto nodeFilter = [&](const CollisionNode *node) -> bool {
-    return node->checkBehaviorFlags(behavior_filter) && (!collision_node_mask || collision_node_mask->test(node->nodeIndex, true));
-  };
-
-  auto callback = [&](int /*trace_id*/, const CollisionNode * /*node*/, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
-    IntersectedNode *inode = (IntersectedNode *)intersected_nodes_list.push_back_uninitialized();
-    v_stu_p3(&inode->normal.x, normal);
-    inode->intersectionT = t;
-    v_stu_p3(&inode->intersectionPos.x, pos);
-    inode->triRef = tri_ref;
-  };
-
-  forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x), v_ldu(&dir.x), in_t,
-    true /*calc_normal*/, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*out_stats*/, force_no_cull);
-
-  if (sort_intersections)
-    sort_collres_intersections(intersected_nodes_list);
-  return !intersected_nodes_list.empty();
+  return CollisionResourceTraceAdapter::traceRayAll(*this, tm, CollisionResourceTraceAdapter::pose(*this, geom_node_tree),
+    v_ldu(&from.x), v_ldu(&dir.x), in_t, intersected_nodes_list, sort_intersections, behavior_filter, nullptr, collision_node_mask,
+    1.f, nullptr, force_no_cull);
 }
 
 DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from,
@@ -1537,84 +2172,29 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, cons
 {
   alignas(EA_CACHE_LINE_SIZE) mat44f tm;
   v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
-  intersected_nodes_list.clear();
-  uint8_t behaviorFilter = CollisionNode::TRACEABLE;
-
-  auto nodeFilter = [&](const CollisionNode *node) -> bool {
-    return node->checkBehaviorFlags(behaviorFilter) && (!filter || filter(node->nodeIndex));
-  };
-
-  auto callback = [&](int /*trace_id*/, const CollisionNode * /*node*/, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
-    IntersectedNode *inode = (IntersectedNode *)intersected_nodes_list.push_back_uninitialized();
-    v_stu_p3(&inode->normal.x, normal);
-    inode->intersectionT = t;
-    v_stu_p3(&inode->intersectionPos.x, pos);
-    inode->triRef = tri_ref;
-  };
-
-  forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x), v_ldu(&dir.x), in_t,
-    true /*calc_normal*/, 1.f, behaviorFilter, nodeFilter, callback, nullptr, false /*force_no_cull*/);
-
-  if (sort_intersections)
-    sort_collres_intersections(intersected_nodes_list);
-  return !intersected_nodes_list.empty();
+  return CollisionResourceTraceAdapter::traceRayAll(*this, tm, CollisionResourceTraceAdapter::pose(*this, geom_node_tree),
+    v_ldu(&from.x), v_ldu(&dir.x), in_t, intersected_nodes_list, sort_intersections, CollisionNode::TRACEABLE, &filter, nullptr, 1.f,
+    nullptr, false);
 }
 
-static const float bsphereScale = sqrtf(3.f); // moving nodes can extend outside of bound box
 DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from,
   const Point3 &dir, float in_t, CollResIntersectionsType &intersected_nodes_list, bool sort_intersections,
   const CollisionNodeMask &collision_node_mask, TraceCollisionResourceStats *out_stats) const
 {
   alignas(EA_CACHE_LINE_SIZE) mat44f tm;
   v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
-  intersected_nodes_list.clear();
-  uint8_t behaviorFilter = CollisionNode::TRACEABLE;
-
-  auto nodeFilter = [&](const CollisionNode *node) -> bool {
-    return node->checkBehaviorFlags(behaviorFilter) && collision_node_mask.test(node->nodeIndex, true);
-  };
-
-  auto callback = [&](int /*trace_id*/, const CollisionNode * /*node*/, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
-    IntersectedNode *inode = (IntersectedNode *)intersected_nodes_list.push_back_uninitialized();
-    v_stu_p3(&inode->normal.x, normal);
-    inode->intersectionT = t;
-    v_stu_p3(&inode->intersectionPos.x, pos);
-    inode->triRef = tri_ref;
-  };
-
-  forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x), v_ldu(&dir.x), in_t,
-    true /*calc_normal*/, bsphereScale, behaviorFilter, nodeFilter, callback, out_stats, false /*force_no_cull*/);
-
-  if (sort_intersections)
-    sort_collres_intersections(intersected_nodes_list);
-  return !intersected_nodes_list.empty();
+  return CollisionResourceTraceAdapter::traceRayAll(*this, tm, CollisionResourceTraceAdapter::pose(*this, geom_node_tree),
+    v_ldu(&from.x), v_ldu(&dir.x), in_t, intersected_nodes_list, sort_intersections, CollisionNode::TRACEABLE, nullptr,
+    &collision_node_mask, bsphereScale, out_stats, false);
 }
 
 DAGOR_NOINLINE bool CollisionResource::traceRay(const mat44f &tm, const GeomNodeTree *geom_node_tree, vec3f from, vec3f dir,
   float in_t, CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, const CollisionNodeMask &collision_node_mask,
   TraceCollisionResourceStats *out_stats) const
 {
-  intersected_nodes_list.clear();
-  uint8_t behaviorFilter = CollisionNode::TRACEABLE;
-
-  auto nodeFilter = [&](const CollisionNode *node) -> bool {
-    return node->checkBehaviorFlags(behaviorFilter) && collision_node_mask.test(node->nodeIndex, true);
-  };
-
-  auto callback = [&](int /*trace_id*/, const CollisionNode * /*node*/, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
-    IntersectedNode *inode = (IntersectedNode *)intersected_nodes_list.push_back_uninitialized();
-    v_stu_p3(&inode->normal.x, normal);
-    inode->intersectionT = t;
-    v_stu_p3(&inode->intersectionPos.x, pos);
-    inode->triRef = tri_ref;
-  };
-
-  forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, from, dir, in_t, true /*calc_normal*/,
-    bsphereScale, behaviorFilter, nodeFilter, callback, out_stats, false /*force_no_cull*/);
-
-  if (sort_intersections)
-    sort_collres_intersections(intersected_nodes_list);
-  return !intersected_nodes_list.empty();
+  return CollisionResourceTraceAdapter::traceRayAll(*this, tm, CollisionResourceTraceAdapter::pose(*this, geom_node_tree), from, dir,
+    in_t, intersected_nodes_list, sort_intersections, CollisionNode::TRACEABLE, nullptr, &collision_node_mask, bsphereScale, out_stats,
+    false);
 }
 
 DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from,
@@ -1623,37 +2203,8 @@ DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, 
 {
   alignas(EA_CACHE_LINE_SIZE) mat44f tm;
   v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
-
-  CollisionTrace in;
-  in.vFrom = v_ldu(&from.x);
-  in.vDir = v_ldu(&dir.x);
-  in.vTo = v_madd(in.vDir, v_splats(in_t), in.vFrom);
-  in.t = in_t;
-  in.capsuleRadius = radius;
-  in.isectBounding = false;
-  float closest = VERY_BIG_NUMBER;
-
-  auto nodeFilter = [&](const CollisionNode *node) -> bool {
-    return node->checkBehaviorFlags(behavior_filter) && (!filter || filter(node->nodeIndex));
-  };
-
-  auto callback = [&](int /*trace_id*/, const CollisionNode * /*node*/, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
-    vec3f cl = v_closest_point_on_line(pos, in.vFrom, in.vDir);
-    float dist = v_extract_x(v_length3_sq_x(v_sub(cl, pos)));
-    if (dist < closest)
-    {
-      closest = dist;
-      v_stu_p3(&intersected_node.normal.x, normal);
-      intersected_node.intersectionT = t;
-      v_stu_p3(&intersected_node.intersectionPos.x, pos);
-      intersected_node.triRef = tri_ref;
-    }
-  };
-
-  constexpr bool is_single_ray = true;
-  dag::Span<CollisionTrace> traces(&in, 1);
-  return forEachIntersectedNode<ALL_NODES_INTERSECTIONS, CollisionTraceType::TRACE_CAPSULE, is_single_ray>(tm, geom_node_tree, traces,
-    true /*calc_normal*/, bsphere_scale, behavior_filter, nodeFilter, callback, nullptr /*out_stats*/, false /*force_no_cull*/);
+  return CollisionResourceTraceAdapter::traceCapsuleClosest(*this, tm, CollisionResourceTraceAdapter::pose(*this, geom_node_tree),
+    from, dir, in_t, radius, intersected_node, bsphere_scale, &filter, behavior_filter);
 }
 
 DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from,
@@ -1661,29 +2212,8 @@ DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, 
 {
   alignas(EA_CACHE_LINE_SIZE) mat44f tm;
   v_mat44_make_from_43cu_unsafe(tm, instance_tm.m[0]);
-  uint8_t behaviorFilter = CollisionNode::TRACEABLE;
-
-  auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
-
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, tri_ref_t /*tri_ref*/) {
-    in_out_t = t;
-    v_stu_p3(&out_normal.x, normal);
-    v_stu_p3(&out_pos.x, pos);
-    out_mat_id = node->physMatId;
-  };
-
-  CollisionTrace in;
-  in.vFrom = v_ldu(&from.x);
-  in.vDir = v_ldu(&dir.x);
-  in.vTo = v_madd(in.vDir, v_splats(in_out_t), in.vFrom);
-  in.t = in_out_t;
-  in.capsuleRadius = radius;
-  in.isectBounding = false;
-
-  dag::Span<CollisionTrace> traces(&in, 1);
-  return forEachIntersectedNode<FIND_BEST_INTERSECTION, CollisionTraceType::TRACE_CAPSULE, true /*is_single_ray*/>(tm, geom_node_tree,
-    traces, true /*out_normal*/, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*stats*/,
-    false /*force_no_cull*/);
+  return CollisionResourceTraceAdapter::traceCapsuleBest(*this, tm, CollisionResourceTraceAdapter::pose(*this, geom_node_tree), from,
+    dir, in_out_t, radius, out_normal, out_pos, out_mat_id);
 }
 
 DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from,
@@ -1692,35 +2222,8 @@ DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, 
 {
   alignas(EA_CACHE_LINE_SIZE) mat44f tm;
   v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
-
-  CollisionTrace in;
-  in.vFrom = v_ldu(&from.x);
-  in.vDir = v_ldu(&dir.x);
-  in.vTo = v_madd(in.vDir, v_splats(in_t), in.vFrom);
-  in.t = in_t;
-  in.capsuleRadius = radius;
-  in.isectBounding = false;
-  float closest = VERY_BIG_NUMBER;
-
-  auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behavior_filter); };
-
-  auto callback = [&](int /*trace_id*/, const CollisionNode * /*node*/, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
-    vec3f cl = v_closest_point_on_line(pos, in.vFrom, in.vDir);
-    float dist = v_extract_x(v_length3_sq_x(v_sub(cl, pos)));
-    if (dist < closest)
-    {
-      closest = dist;
-      v_stu_p3(&intersected_node.normal.x, normal);
-      intersected_node.intersectionT = t;
-      v_stu_p3(&intersected_node.intersectionPos.x, pos);
-      intersected_node.triRef = tri_ref;
-    }
-  };
-
-  constexpr bool is_single_ray = true;
-  dag::Span<CollisionTrace> traces(&in, 1);
-  return forEachIntersectedNode<ALL_NODES_INTERSECTIONS, CollisionTraceType::TRACE_CAPSULE, is_single_ray>(tm, geom_node_tree, traces,
-    true /*calc_normal*/, bsphere_scale, behavior_filter, nodeFilter, callback, nullptr /*out_stats*/, false /*force_no_cull*/);
+  return CollisionResourceTraceAdapter::traceCapsuleClosest(*this, tm, CollisionResourceTraceAdapter::pose(*this, geom_node_tree),
+    from, dir, in_t, radius, intersected_node, bsphere_scale, nullptr, behavior_filter);
 }
 
 DAGOR_NOINLINE bool CollisionResource::traceMultiRay(const mat44f &tm, dag::Span<CollisionTrace> traces, int ray_mat_id,
@@ -1749,8 +2252,9 @@ DAGOR_NOINLINE bool CollisionResource::traceMultiRay(const mat44f &tm, dag::Span
     trace.isHit = false;
   }
 
-  return forEachIntersectedNode<FIND_BEST_INTERSECTION, CollisionTraceType::TRACE_RAY>(tm, nullptr /*geom_node_tree*/, traces,
-    true /*calc_normal*/, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*stats*/, false /*force_no_cull*/);
+  return forEachIntersectedNode<FIND_BEST_INTERSECTION, CollisionTraceType::TRACE_RAY, false /*is_single_ray*/,
+    false /*pose_may_refresh: the default instance is never tree-backed*/>(tm, defaultInstance, traces, true /*calc_normal*/,
+    1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*stats*/, false /*force_no_cull*/);
 }
 
 DAGOR_NOINLINE bool CollisionResource::traceMultiRay(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree,
@@ -1760,40 +2264,106 @@ DAGOR_NOINLINE bool CollisionResource::traceMultiRay(const TMatrix &instance_tm,
 {
   alignas(EA_CACHE_LINE_SIZE) mat44f tm;
   v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
-  intersected_nodes_list.clear();
+  return CollisionResourceTraceAdapter::traceMultiRay(*this, tm, CollisionResourceTraceAdapter::pose(*this, geom_node_tree), traces,
+    intersected_nodes_list, sort_intersections, bsphere_scale, behavior_filter, collision_node_mask, out_stats);
+}
 
-  auto nodeFilter = [&](const CollisionNode *node) -> bool {
-    return node->checkBehaviorFlags(behavior_filter) && (!collision_node_mask || collision_node_mask->test(node->nodeIndex, true));
-  };
+DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, const CollisionResourceInstance &instance,
+  const Point3 &from, const Point3 &dir, float &in_out_t, Point3 *out_normal, int &out_mat_id, int &out_node_id) const
+{
+  alignas(EA_CACHE_LINE_SIZE) mat44f tm;
+  v_mat44_make_from_43cu_unsafe(tm, instance_tm.m[0]);
+  return CollisionResourceTraceAdapter::traceRayClosest(*this, tm, CollisionResourceTraceAdapter::pose(*this, instance), from, dir,
+    in_out_t, out_normal, out_mat_id, &out_node_id, nullptr, PHYSMAT_INVALID, CollisionNode::TRACEABLE);
+}
 
-  auto callback = [&](int trace_id, const CollisionNode *node, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
-    traces[trace_id].outMatId = node->physMatId;
-    traces[trace_id].outNodeId = node->nodeIndex;
-    traces[trace_id].isHit = true;
+DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, const CollisionResourceInstance &instance,
+  const Point3 &from, const Point3 &dir, float &in_out_t, Point3 *out_normal, int &out_mat_id, const CollisionNodeFilter &filter,
+  int ray_mat_id, uint8_t behavior_filter) const
+{
+  alignas(EA_CACHE_LINE_SIZE) mat44f tm;
+  v_mat44_make_from_43cu_unsafe(tm, instance_tm.m[0]);
+  return CollisionResourceTraceAdapter::traceRayClosest(*this, tm, CollisionResourceTraceAdapter::pose(*this, instance), from, dir,
+    in_out_t, out_normal, out_mat_id, nullptr, &filter, ray_mat_id, behavior_filter);
+}
 
-    MultirayIntersectedNode *inode = (MultirayIntersectedNode *)intersected_nodes_list.push_back_uninitialized();
-    v_stu_p3(&inode->normal.x, normal);
-    inode->intersectionT = t;
-    v_stu_p3(&inode->intersectionPos.x, pos);
-    inode->rayId = trace_id;
-    inode->triRef = tri_ref;
-  };
+DAGOR_NOINLINE bool CollisionResource::traceRay(const mat44f &tm, const CollisionResourceInstance &instance, const Point3 &from,
+  const Point3 &dir, float in_t, CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, uint8_t behavior_filter,
+  const CollisionNodeMask *collision_node_mask, bool force_no_cull) const
+{
+  return CollisionResourceTraceAdapter::traceRayAll(*this, tm, CollisionResourceTraceAdapter::pose(*this, instance), v_ldu(&from.x),
+    v_ldu(&dir.x), in_t, intersected_nodes_list, sort_intersections, behavior_filter, nullptr, collision_node_mask, 1.f, nullptr,
+    force_no_cull);
+}
 
-  for (CollisionTrace &trace : traces)
-  {
-    trace.vTo = v_madd(trace.vDir, v_splats(trace.t), trace.vFrom);
-    trace.isectBounding = false;
-    trace.outMatId = PHYSMAT_INVALID;
-    trace.outNodeId = -1;
-    trace.isHit = false;
-  }
+DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, const CollisionResourceInstance &instance,
+  const Point3 &from, const Point3 &dir, float in_t, CollResIntersectionsType &intersected_nodes_list, bool sort_intersections,
+  const CollisionNodeFilter &filter) const
+{
+  alignas(EA_CACHE_LINE_SIZE) mat44f tm;
+  v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
+  return CollisionResourceTraceAdapter::traceRayAll(*this, tm, CollisionResourceTraceAdapter::pose(*this, instance), v_ldu(&from.x),
+    v_ldu(&dir.x), in_t, intersected_nodes_list, sort_intersections, CollisionNode::TRACEABLE, &filter, nullptr, 1.f, nullptr, false);
+}
 
-  forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, traces, true /*calc_normal*/,
-    bsphere_scale, behavior_filter, nodeFilter, callback, out_stats, false /*force_no_cull*/);
+DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, const CollisionResourceInstance &instance,
+  const Point3 &from, const Point3 &dir, float in_t, CollResIntersectionsType &intersected_nodes_list, bool sort_intersections,
+  const CollisionNodeMask &collision_node_mask, TraceCollisionResourceStats *out_stats) const
+{
+  alignas(EA_CACHE_LINE_SIZE) mat44f tm;
+  v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
+  return CollisionResourceTraceAdapter::traceRayAll(*this, tm, CollisionResourceTraceAdapter::pose(*this, instance), v_ldu(&from.x),
+    v_ldu(&dir.x), in_t, intersected_nodes_list, sort_intersections, CollisionNode::TRACEABLE, nullptr, &collision_node_mask,
+    bsphereScale, out_stats, false);
+}
 
-  if (sort_intersections)
-    sort_collres_intersections(intersected_nodes_list);
-  return !intersected_nodes_list.empty();
+DAGOR_NOINLINE bool CollisionResource::traceRay(const mat44f &tm, const CollisionResourceInstance &instance, vec3f from, vec3f dir,
+  float in_t, CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, const CollisionNodeMask &collision_node_mask,
+  TraceCollisionResourceStats *out_stats) const
+{
+  return CollisionResourceTraceAdapter::traceRayAll(*this, tm, CollisionResourceTraceAdapter::pose(*this, instance), from, dir, in_t,
+    intersected_nodes_list, sort_intersections, CollisionNode::TRACEABLE, nullptr, &collision_node_mask, bsphereScale, out_stats,
+    false);
+}
+
+DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, const CollisionResourceInstance &instance,
+  const Point3 &from, const Point3 &dir, float in_t, float radius, IntersectedNode &intersected_node, float bsphere_scale,
+  const CollisionNodeFilter &filter, const uint8_t behavior_filter) const
+{
+  alignas(EA_CACHE_LINE_SIZE) mat44f tm;
+  v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
+  return CollisionResourceTraceAdapter::traceCapsuleClosest(*this, tm, CollisionResourceTraceAdapter::pose(*this, instance), from, dir,
+    in_t, radius, intersected_node, bsphere_scale, &filter, behavior_filter);
+}
+
+DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, const CollisionResourceInstance &instance,
+  const Point3 &from, const Point3 &dir, float &in_out_t, float radius, Point3 &out_normal, Point3 &out_pos, int &out_mat_id) const
+{
+  alignas(EA_CACHE_LINE_SIZE) mat44f tm;
+  v_mat44_make_from_43cu_unsafe(tm, instance_tm.m[0]);
+  return CollisionResourceTraceAdapter::traceCapsuleBest(*this, tm, CollisionResourceTraceAdapter::pose(*this, instance), from, dir,
+    in_out_t, radius, out_normal, out_pos, out_mat_id);
+}
+
+DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, const CollisionResourceInstance &instance,
+  const Point3 &from, const Point3 &dir, float in_t, float radius, IntersectedNode &intersected_node, float bsphere_scale,
+  const uint8_t behavior_filter) const
+{
+  alignas(EA_CACHE_LINE_SIZE) mat44f tm;
+  v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
+  return CollisionResourceTraceAdapter::traceCapsuleClosest(*this, tm, CollisionResourceTraceAdapter::pose(*this, instance), from, dir,
+    in_t, radius, intersected_node, bsphere_scale, nullptr, behavior_filter);
+}
+
+DAGOR_NOINLINE bool CollisionResource::traceMultiRay(const TMatrix &instance_tm, const CollisionResourceInstance &instance,
+  dag::Span<CollisionTrace> traces, MultirayCollResIntersectionsType &intersected_nodes_list, bool sort_intersections,
+  float bsphere_scale, uint8_t behavior_filter, const CollisionNodeMask *collision_node_mask,
+  TraceCollisionResourceStats *out_stats) const
+{
+  alignas(EA_CACHE_LINE_SIZE) mat44f tm;
+  v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
+  return CollisionResourceTraceAdapter::traceMultiRay(*this, tm, CollisionResourceTraceAdapter::pose(*this, instance), traces,
+    intersected_nodes_list, sort_intersections, bsphere_scale, behavior_filter, collision_node_mask, out_stats);
 }
 
 // Materialise a node's verts AND indices into the supplied framemem scratches and produce a
@@ -1930,6 +2500,7 @@ bool CollisionResource::traceRayMeshNodeLocal(const CollisionNode &node, const v
     v_local_dir, in_out_t, v_out_norm);
 }
 
+
 bool CollisionResource::traceRayMeshNodeLocalAllHits(const CollisionNode &node, const Point3 &from, const Point3 &dir, float in_t,
   CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, bool force_no_cull) const
 {
@@ -1984,8 +2555,16 @@ bool CollisionResource::traceRayMeshNodeLocalAllHits(const CollisionNode &node, 
 bool CollisionResource::testSphereIntersection(const CollisionNodeFilter &filter, const BSphere3 &sphere, const Point3 &dir_norm,
   Point3 &out_norm, float &out_depth, int &out_node_id) const
 {
+  return testSphereIntersection(filter, sphere, dir_norm, out_norm, out_depth, out_node_id, getDefaultInstance());
+}
+
+bool CollisionResource::testSphereIntersection(const CollisionNodeFilter &filter, const BSphere3 &sphere, const Point3 &dir_norm,
+  Point3 &out_norm, float &out_depth, int &out_node_id, const CollisionResourceInstance &instance) const
+{
+  const CollisionResourceInstance *inst = resolveOwnedPoseForQuery(instance, "testSphereIntersection");
   vec4f bsph = v_ldu_bsphere3(sphere);
-  if (!v_test_bsph_bsph_intersection(bsph, getBoundingSphereXYZR()))
+  // Bind bounds may miss posed nodes.
+  if (!v_bbox3_test_sph_intersect(inst->getRootBBox(), bsph, v_splat_w(v_mul(bsph, bsph))))
     return false;
 
   for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
@@ -1993,11 +2572,28 @@ bool CollisionResource::testSphereIntersection(const CollisionNodeFilter &filter
     const CollisionNode *meshNode = &allNodesList[mi];
     if ((filter && !filter(meshNode->nodeIndex)) || (!meshNode->checkBehaviorFlags(CollisionNode::TRACEABLE)))
       continue;
+    if (!inst->isNodeEnabled(meshNode->nodeIndex))
+      continue;
     Point3 nodeNorm;
     float nodeDepth;
-    if (test_sphere_node_intersection(sphere, meshNode, dir_norm, nodeNorm, nodeDepth))
+    if (test_sphere_node_intersection(sphere, meshNode, *inst, dir_norm, nodeNorm, nodeDepth))
     {
-      out_norm = meshNode->tm % nodeNorm;
+      const TMatrix &nodeTm = inst->getNodeTmRef(meshNode->nodeIndex);
+      if (is_exact_rigid_basis(nodeTm))
+        out_norm = nodeTm % nodeNorm; // exact rotation: length preserved
+      else
+      {
+        // Epsilon classes admit shear/slight scale, so even a class-orthonormal pose maps
+        // normals by the inverse transpose, then renormalizes.
+        mat44f full, ifull;
+        v_mat44_make_from_43cu_unsafe(full, nodeTm.array);
+        v_mat44_inverse43(ifull, full);
+        mat33f i33, t33;
+        v_mat33_from_mat44(i33, ifull);
+        v_mat33_transpose(t33, i33);
+        Point3_vec4 n = nodeNorm;
+        v_stu_p3(&out_norm.x, v_norm3(v_mat33_mul_vec3(t33, v_ldu(&n.x))));
+      }
       out_depth = nodeDepth;
       out_node_id = meshNode->nodeIndex;
       return true;
@@ -2008,13 +2604,20 @@ bool CollisionResource::testSphereIntersection(const CollisionNodeFilter &filter
 
 bool CollisionResource::testCapsuleNodeIntersection(const Point3 &p0, const Point3 &p1, float radius) const
 {
+  return testCapsuleNodeIntersection(p0, p1, radius, getDefaultInstance());
+}
+
+bool CollisionResource::testCapsuleNodeIntersection(const Point3 &p0, const Point3 &p1, float radius,
+  const CollisionResourceInstance &instance) const
+{
+  const CollisionResourceInstance *inst = resolveOwnedPoseForQuery(instance, "testCapsuleNodeIntersection");
   bbox3f bbox;
   vec3f radV = v_splats(radius);
   v_bbox3_init_by_bsph(bbox, v_ldu_p3_safe(&p0.x), radV);
   v_bbox3_add_pt(bbox, v_sub(v_ldu_p3_safe(&p1.x), radV));
   v_bbox3_add_pt(bbox, v_add(v_ldu_p3_safe(&p1.x), radV));
 
-  if (!v_bbox3_test_sph_intersect(bbox, vBoundingSphere, v_splat_w(vBoundingSphere)))
+  if (!v_bbox3_test_box_intersect(bbox, inst->getRootBBox()))
     return false;
 
   for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
@@ -2022,7 +2625,9 @@ bool CollisionResource::testCapsuleNodeIntersection(const Point3 &p0, const Poin
     const CollisionNode *meshNode = &allNodesList[mi];
     if (!meshNode->checkBehaviorFlags(CollisionNode::TRACEABLE))
       continue;
-    if (test_capsule_node_intersection(p0, p1, radius, meshNode))
+    if (!inst->isNodeEnabled(meshNode->nodeIndex))
+      continue;
+    if (test_capsule_node_intersection(p0, p1, radius, meshNode, *inst))
       return true;
   }
   return false;
@@ -2036,7 +2641,8 @@ VECTORCALL bool CollisionResource::traceQuad(vec3f a00, vec3f a01, vec3f a10, ve
   v_bbox3_add_pt(bbox, a10);
   v_bbox3_add_pt(bbox, a11);
 
-  if (!v_bbox3_test_sph_intersect(bbox, vBoundingSphere, v_splat_w(vBoundingSphere)))
+  // Bind bounds may miss posed nodes.
+  if (!v_bbox3_test_box_intersect(bbox, defaultInstance.getRootBBox()))
     return false;
 
   for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
@@ -2044,8 +2650,11 @@ VECTORCALL bool CollisionResource::traceQuad(vec3f a00, vec3f a01, vec3f a10, ve
     const CollisionNode *meshNode = &allNodesList[mi];
     if (!meshNode->checkBehaviorFlags(CollisionNode::TRACEABLE))
       continue;
+    // same structural contract as every other trace: disabled or singular-posed nodes never test
+    if (!defaultInstance.isNodeEnabled(meshNode->nodeIndex) || !defaultInstance.isNodeTraceable(meshNode->nodeIndex))
+      continue;
     mat44f nodeTm, nodeItm;
-    v_mat44_make_from_43cu_unsafe(nodeTm, meshNode->tm.array);
+    v_mat44_make_from_43cu_unsafe(nodeTm, defaultInstance.getNodeTmRef(meshNode->nodeIndex).array);
     bbox3f nodeBox;
     v_bbox3_init(nodeBox, nodeTm, v_ldu_bbox3(meshNode->modelBBox));
     if (!v_bbox3_test_box_intersect(nodeBox, bbox))
@@ -2658,41 +3267,55 @@ bool CollisionResource::getNodeFaceVertsByRef(tri_ref_t ref, Point3 &v0, Point3 
 
 bool CollisionResource::checkInclusion(const Point3 &pos, CollResIntersectionsType &intersected_nodes_list) const
 {
+  return checkInclusion(pos, intersected_nodes_list, getDefaultInstance());
+}
+
+bool CollisionResource::checkInclusion(const Point3 &pos, CollResIntersectionsType &intersected_nodes_list,
+  const CollisionResourceInstance &instance) const
+{
   intersected_nodes_list.clear();
+  const CollisionResourceInstance *inst = resolveOwnedPoseForQuery(instance, "checkInclusion");
   vec4f vPos = v_ldu(&pos.x);
-  if (!v_test_vec_x_le(v_length3_sq(v_sub(vPos, vBoundingSphere)), v_splat_w(vBoundingSphere)))
+  // Bind bounds may miss posed nodes.
+  if (!v_bbox3_test_pt_inside(inst->getRootBBox(), vPos))
     return false;
+
+  auto nodeTestable = [inst](int node_index) { return inst->isNodeEnabled(node_index) && inst->isNodeTraceable(node_index); };
 
   for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
   {
     const CollisionNode *meshNode = &allNodesList[mi];
     if (!meshNode->hasGeometry())
       continue; // degenerate-dropped node: no collision surface, its modelBBox is stale
+    if (!nodeTestable(meshNode->nodeIndex))
+      continue;
     // Test only for bbox
-    TMatrix itm = meshNode->getInverseTmFlags();
+    TMatrix itm = invInstNodeTm(*inst, meshNode->nodeIndex);
     Point3 localPos = itm * pos;
     if (meshNode->modelBBox & localPos)
       ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->triRef = tri_ref::makeForNonTri(meshNode->nodeIndex);
   }
 
+  // Pull primitive probes into their stored geometry frames.
   for (uint16_t bi = boxNodesHead; bi != CollisionNode::INVALID_IDX; bi = allNodesList[bi].nextNode)
   {
     const CollisionNode *boxNode = &allNodesList[bi];
-    if (boxNode->modelBBox & pos)
+    if (nodeTestable(boxNode->nodeIndex) && (boxNode->modelBBox & (invInstNodeTm(*inst, boxNode->nodeIndex) * pos)))
       ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->triRef = tri_ref::makeForNonTri(boxNode->nodeIndex);
   }
 
   for (uint16_t si = sphereNodesHead; si != CollisionNode::INVALID_IDX; si = allNodesList[si].nextNode)
   {
     const CollisionNode *sphNode = &allNodesList[si];
-    if (lengthSq(pos - sphNode->boundingSphere.c) <= get_bsphere_r2(sphNode->boundingSphere.r))
+    if (nodeTestable(sphNode->nodeIndex) && lengthSq(invInstNodeTm(*inst, sphNode->nodeIndex) * pos - sphNode->boundingSphere.c) <=
+                                              get_bsphere_r2(sphNode->boundingSphere.r))
       ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->triRef = tri_ref::makeForNonTri(sphNode->nodeIndex);
   }
 
   for (uint16_t ci = capsuleNodesHead; ci != CollisionNode::INVALID_IDX; ci = allNodesList[ci].nextNode)
   {
     const CollisionNode *capNode = &allNodesList[ci];
-    if (capsules[capNode->capsuleIndex].isInside(pos))
+    if (nodeTestable(capNode->nodeIndex) && capsules[capNode->capsuleIndex].isInside(invInstNodeTm(*inst, capNode->nodeIndex) * pos))
       ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->triRef = tri_ref::makeForNonTri(capNode->nodeIndex);
   }
 
@@ -2706,7 +3329,7 @@ bool CollisionResource::calcOffsetForIntersection(const TMatrix &tm1, const Coll
 
   G_ASSERTF(node_to_check.type == COLLISION_NODE_TYPE_CONVEX, "final node #%u is not of convex type, only convex is supported",
     (unsigned)node_to_check.nodeIndex);
-  TMatrix finalTm = node_to_check.getInverseTmFlags() * tm1;
+  TMatrix finalTm = invNodeTm(node_to_check.nodeIndex) * tm1;
   const plane3f *checkPlanes = convexPlanes.data() + node_to_check.planesOfs;
   const int checkPlanesCount = node_to_check.planesCount;
   const int numIterations = 5;
@@ -2806,7 +3429,7 @@ bool CollisionResource::calcOffsetForSeparation(const TMatrix &tm1, const Collis
 
   G_ASSERTF(node_to_check.type == COLLISION_NODE_TYPE_CONVEX, "final node #%u is not of convex type, only convex is supported",
     (unsigned)node_to_check.nodeIndex);
-  TMatrix finalTm = node_to_check.getInverseTmFlags() * tm1;
+  TMatrix finalTm = invNodeTm(node_to_check.nodeIndex) * tm1;
   const plane3f *checkPlanes = convexPlanes.data() + node_to_check.planesOfs;
   const int checkPlanesCount = node_to_check.planesCount;
   const int numIterations = 5;
@@ -2915,12 +3538,66 @@ bool CollisionResource::testInclusion(int test_node_index, const TMatrix &tm_tes
   if (!node_to_test)
     return false;
 
+  if (!defaultInstance.isNodeEnabled(test_node_index) || !defaultInstance.isNodeTraceable(test_node_index))
+    return false;
+
+  // Zero-vert marker: enabled/traceable does not exclude it, and its negative radius would
+  // still satisfy every plane of a large convex below.
+  if (node_to_test->boundingSphere.r < 0.f)
+    return false;
+
   TMatrix testTm;
-  if (test_node_tree)
+  // Primitive probes use the stored geometry frame.
+  if (node_to_test->type == COLLISION_NODE_TYPE_BOX || node_to_test->type == COLLISION_NODE_TYPE_SPHERE)
+  {
+    TMatrix geomTm;
+    v_mat_43cu_from_mat44(geomTm.array, defaultInstance.getNodeGeometryTm(test_node_index));
+    testTm = tm_test * geomTm;
+  }
+  else if (test_node_tree)
     getCollisionNodeTm(node_to_test, tm_test, test_node_tree, testTm);
   else
-    testTm = tm_test * node_to_test->tm;
+    testTm = tm_test * getNodeTm(node_to_test->nodeIndex);
 
+  return testNodeInclusionInConvex(*node_to_test, testTm, convex, tm_restrain, res_pos);
+}
+
+bool CollisionResource::testInclusion(int test_node_index, const TMatrix &tm_test, dag::ConstSpan<plane3f> convex,
+  const TMatrix &tm_restrain, const CollisionResourceInstance &test_instance, Point3 *res_pos) const
+{
+  const CollisionNode *node_to_test = getNode((uint32_t)test_node_index);
+  if (!node_to_test)
+    return false;
+  // Stored-pose read for EVERY arm: a tree-backed instance falls back to the default pose,
+  // so one query answers at one pose regardless of the probed node's type.
+  const CollisionResourceInstance *ts = resolveOwnedPoseForQuery(test_instance, "testInclusion");
+  if (!ts->isNodeEnabled(test_node_index) || !ts->isNodeTraceable(test_node_index))
+    return false;
+
+  // Zero-vert marker: enabled/traceable does not exclude it, and its negative radius would
+  // still satisfy every plane of a large convex below.
+  if (node_to_test->boundingSphere.r < 0.f)
+    return false;
+
+  TMatrix testTm;
+  // Primitive probes use the stored geometry frame.
+  if (node_to_test->type == COLLISION_NODE_TYPE_BOX || node_to_test->type == COLLISION_NODE_TYPE_SPHERE)
+  {
+    TMatrix geomTm;
+    v_mat_43cu_from_mat44(geomTm.array, ts->getNodeGeometryTm(test_node_index));
+    testTm = tm_test * geomTm;
+  }
+  else
+    getCollisionNodeTm(node_to_test, tm_test, *ts, testTm);
+
+  return testNodeInclusionInConvex(*node_to_test, testTm, convex, tm_restrain, res_pos);
+}
+
+bool CollisionResource::testNodeInclusionInConvex(const CollisionNode &node, const TMatrix &test_tm, dag::ConstSpan<plane3f> convex,
+  const TMatrix &tm_restrain, Point3 *res_pos) const
+{
+  const CollisionNode *node_to_test = &node;
+  const TMatrix &testTm = test_tm;
   TMatrix finalTm = inverse(tm_restrain) * testTm;
   if (node_to_test->type == COLLISION_NODE_TYPE_BOX)
   {
@@ -2945,7 +3622,11 @@ bool CollisionResource::testInclusion(int test_node_index, const TMatrix &tm_tes
   }
   else if (node_to_test->type == COLLISION_NODE_TYPE_SPHERE)
   {
-    BSphere3 localSph = finalTm * make_node_bsphere(node_to_test->boundingSphere.c, node_to_test->boundingSphere.r);
+    // Column lengths under-bound sheared sphere placements.
+    mat44f vFinalTm;
+    v_mat44_make_from_43cu_unsafe(vFinalTm, finalTm.array);
+    BSphere3 localSph =
+      make_node_bsphere(finalTm * node_to_test->boundingSphere.c, node_to_test->boundingSphere.r * mat33_spectral_norm(vFinalTm));
     vec4f sph = v_ldu(&localSph.c.x);
     bool insideAll = true;
     for (int j = 0; j < convex.size() && insideAll; ++j)
@@ -3003,14 +3684,43 @@ bool CollisionResource::testInclusion(int test_node_index, const TMatrix &tm_tes
   G_ASSERTF(restraining_node->type == COLLISION_NODE_TYPE_CONVEX, "restrain node #%u is not of convex type, only convex is supported",
     (unsigned)restraining_node->nodeIndex);
 
+  const CollisionResourceInstance &restrainDef = restraining_resource->getDefaultInstance();
+  if (!restrainDef.isNodeEnabled(restraining_node_index) || !restrainDef.isNodeTraceable(restraining_node_index))
+    return false;
+
   TMatrix restrainTm;
   if (restrain_node_tree)
     restraining_resource->getCollisionNodeTm(restraining_node, tm_restrain, restrain_node_tree, restrainTm);
   else
-    restrainTm = tm_restrain * restraining_node->tm;
+    restrainTm = tm_restrain * restraining_resource->getNodeTm(restraining_node->nodeIndex);
 
   return testInclusion(test_node_index, tm_test, restraining_resource->getNodeConvexPlanes(restraining_node_index), restrainTm,
     test_node_tree);
+}
+
+bool CollisionResource::testInclusion(int test_node_index, const TMatrix &tm_test, const CollisionResource *restraining_resource,
+  int restraining_node_index, const TMatrix &tm_restrain, const CollisionResourceInstance &test_instance,
+  const CollisionResourceInstance &restrain_instance) const
+{
+  if (!restraining_resource)
+    return false;
+  const CollisionNode *restraining_node = restraining_resource->getNode((uint32_t)restraining_node_index);
+  if (!restraining_node)
+    return false;
+  G_ASSERTF(restraining_node->type == COLLISION_NODE_TYPE_CONVEX, "restrain node #%u is not of convex type, only convex is supported",
+    (unsigned)restraining_node->nodeIndex);
+
+  // Stored-pose read, like the test arm: a tree-backed restrain instance answers at the
+  // default pose until the adoption pass.
+  const CollisionResourceInstance *ri = restraining_resource->resolveOwnedPoseForQuery(restrain_instance, "testInclusion");
+  if (!ri->isNodeEnabled(restraining_node_index) || !ri->isNodeTraceable(restraining_node_index))
+    return false;
+
+  TMatrix restrainTm;
+  restraining_resource->getCollisionNodeTm(restraining_node, tm_restrain, *ri, restrainTm);
+
+  return testInclusion(test_node_index, tm_test, restraining_resource->getNodeConvexPlanes(restraining_node_index), restrainTm,
+    test_instance);
 }
 
 DAGOR_NOINLINE bool CollisionResource::rayHit(const mat44f &tm, const Point3 &from, const Point3 &dir, float in_t, int ray_mat_id,
@@ -3023,9 +3733,9 @@ DAGOR_NOINLINE bool CollisionResource::rayHit(const mat44f &tm, const Point3 &fr
   auto callback = [&](int /*trace_id*/, const CollisionNode *node, float /*t*/, vec3f /*normal*/, vec3f /*pos*/,
                     tri_ref_t /*tri_ref*/) { out_mat_id = node->physMatId; };
 
-  return forEachIntersectedNode<ANY_ONE_INTERSECTION, CollisionTraceType::RAY_HIT>(tm, nullptr /*geom_node_tree*/, v_ldu(&from.x),
-    v_ldu(&dir.x), in_t, false /*out_normal*/, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*stats*/,
-    false /*force_no_cull*/);
+  return forEachIntersectedNode<ANY_ONE_INTERSECTION, CollisionTraceType::RAY_HIT,
+    false /*pose_may_refresh: the default instance is never tree-backed*/>(tm, defaultInstance, v_ldu(&from.x), v_ldu(&dir.x), in_t,
+    false /*out_normal*/, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*stats*/, false /*force_no_cull*/);
 }
 
 DAGOR_NOINLINE bool CollisionResource::rayHit(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from,
@@ -3033,20 +3743,8 @@ DAGOR_NOINLINE bool CollisionResource::rayHit(const TMatrix &instance_tm, const 
 {
   alignas(EA_CACHE_LINE_SIZE) mat44f tm;
   v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
-  uint8_t behaviorFilter = CollisionNode::TRACEABLE;
-
-  auto nodeFilter = [&](const CollisionNode *node) -> bool {
-    return node->checkBehaviorFlags(behaviorFilter) && (!collision_node_mask || collision_node_mask->test(node->nodeIndex, true));
-  };
-
-  auto callback = [out_mat_id](int /*trace_id*/, const CollisionNode *node, float /*t*/, vec3f /*normal*/, vec3f /*pos*/,
-                    tri_ref_t /*tri_ref*/) {
-    if (out_mat_id)
-      *out_mat_id = node->physMatId;
-  };
-
-  return forEachIntersectedNode<ANY_ONE_INTERSECTION, CollisionTraceType::RAY_HIT>(tm, geom_node_tree, v_ldu(&from.x), v_ldu(&dir.x),
-    in_t, false /*out_normal*/, bsphere_scale, behaviorFilter, nodeFilter, callback, nullptr /*stats*/, false /*force_no_cull*/);
+  return CollisionResourceTraceAdapter::rayHit(*this, tm, CollisionResourceTraceAdapter::pose(*this, geom_node_tree), from, dir, in_t,
+    bsphere_scale, collision_node_mask, out_mat_id);
 }
 
 DAGOR_NOINLINE bool CollisionResource::capsuleHit(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from,
@@ -3054,27 +3752,8 @@ DAGOR_NOINLINE bool CollisionResource::capsuleHit(const TMatrix &instance_tm, co
 {
   alignas(EA_CACHE_LINE_SIZE) mat44f tm;
   v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
-  uint8_t behaviorFilter = CollisionNode::TRACEABLE;
-
-  CollisionTrace in;
-  in.vFrom = v_ldu(&from.x);
-  in.vDir = v_ldu(&dir.x);
-  in.vTo = v_madd(in.vDir, v_splats(in_t), in.vFrom);
-  in.t = in_t;
-  in.capsuleRadius = radius;
-  in.isectBounding = false;
-
-  auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
-
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float, vec3f, vec3f, tri_ref_t) {
-    nodes_hit.push_back(node->nodeIndex);
-  };
-
-  constexpr bool is_single_ray = true;
-  dag::Span<CollisionTrace> traces(&in, 1);
-  return forEachIntersectedNode<ALL_NODES_INTERSECTIONS, CollisionTraceType::CAPSULE_HIT, is_single_ray>(tm, geom_node_tree, traces,
-    false /*calc_normal*/, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*out_stats*/,
-    false /*force_no_cull*/);
+  return CollisionResourceTraceAdapter::capsuleHit(*this, tm, CollisionResourceTraceAdapter::pose(*this, geom_node_tree), from, dir,
+    in_t, radius, nodes_hit);
 }
 
 DAGOR_NOINLINE bool CollisionResource::multiRayHit(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree,
@@ -3082,27 +3761,34 @@ DAGOR_NOINLINE bool CollisionResource::multiRayHit(const TMatrix &instance_tm, c
 {
   alignas(EA_CACHE_LINE_SIZE) mat44f tm;
   v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
-  uint8_t behaviorFilter = CollisionNode::TRACEABLE;
+  return CollisionResourceTraceAdapter::multiRayHit(*this, tm, CollisionResourceTraceAdapter::pose(*this, geom_node_tree), traces);
+}
 
-  auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
+DAGOR_NOINLINE bool CollisionResource::rayHit(const TMatrix &instance_tm, const CollisionResourceInstance &instance,
+  const Point3 &from, const Point3 &dir, float in_t, float bsphere_scale, const CollisionNodeMask *collision_node_mask,
+  int *out_mat_id) const
+{
+  alignas(EA_CACHE_LINE_SIZE) mat44f tm;
+  v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
+  return CollisionResourceTraceAdapter::rayHit(*this, tm, CollisionResourceTraceAdapter::pose(*this, instance), from, dir, in_t,
+    bsphere_scale, collision_node_mask, out_mat_id);
+}
 
-  auto callback = [&](int trace_id, const CollisionNode *node, float, vec3f, vec3f, tri_ref_t) {
-    traces[trace_id].isHit = true;
-    traces[trace_id].outMatId = node->physMatId;
-    traces[trace_id].outNodeId = node->nodeIndex;
-  };
+DAGOR_NOINLINE bool CollisionResource::capsuleHit(const TMatrix &instance_tm, const CollisionResourceInstance &instance,
+  const Point3 &from, const Point3 &dir, float in_t, float radius, CollResHitNodesType &nodes_hit) const
+{
+  alignas(EA_CACHE_LINE_SIZE) mat44f tm;
+  v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
+  return CollisionResourceTraceAdapter::capsuleHit(*this, tm, CollisionResourceTraceAdapter::pose(*this, instance), from, dir, in_t,
+    radius, nodes_hit);
+}
 
-  for (CollisionTrace &trace : traces)
-  {
-    trace.vTo = v_madd(trace.vDir, v_splats(trace.t), trace.vFrom);
-    trace.isectBounding = false;
-    trace.outMatId = PHYSMAT_INVALID;
-    trace.outNodeId = -1;
-    trace.isHit = false;
-  }
-
-  return forEachIntersectedNode<ANY_ONE_INTERSECTION, CollisionTraceType::RAY_HIT>(tm, geom_node_tree, traces, false /*calc_normal*/,
-    1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*out_stats*/, false /*force_no_cull*/);
+DAGOR_NOINLINE bool CollisionResource::multiRayHit(const TMatrix &instance_tm, const CollisionResourceInstance &instance,
+  dag::Span<CollisionTrace> traces) const
+{
+  alignas(EA_CACHE_LINE_SIZE) mat44f tm;
+  v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
+  return CollisionResourceTraceAdapter::multiRayHit(*this, tm, CollisionResourceTraceAdapter::pose(*this, instance), traces);
 }
 
 void CollisionResource::initializeWithGeomNodeTree(const GeomNodeTree &geom_node_tree)
@@ -3206,8 +3892,11 @@ uint8_t CollisionResource::classifyNodeTmFlags(mat44f_cref tm, float &out_max_sc
     else
       flags = CollisionNode::ORTHOUNIFORM;
   }
-  // Preserve the serialized column-max scale for authored poses.
-  out_max_scale = sqrtf(max(len0sq, max(len1sq, len2sq)));
+  // Preserve the serialized column-max scale for authored poses. Squared lengths overflow for
+  // large finite scales and FTZ-underflow to zero below ~1e-19; the spectral norm normalizes
+  // internally and stays finite and nonzero for any valid basis.
+  const float maxLenSq = max(len0sq, max(len1sq, len2sq));
+  out_max_scale = (maxLenSq >= FLT_MIN && maxLenSq <= FLT_MAX) ? sqrtf(maxLenSq) : mat33_spectral_norm(tm);
   return flags;
 }
 
@@ -3244,31 +3933,43 @@ bbox3f CollisionResource::getNodeGeometryBBox(const CollisionNode &node) const
   return box;
 }
 
-const CollisionResourceInstance::PoseMeta CollisionResourceInstance::PoseMeta::absent_slot = {
-  1.f, uint8_t(CollisionNode::IDENT | CollisionNode::ORTHONORMALIZED), uint8_t(0)};
-
-bool CollisionResourceInstance::isDefault() const { return res && this == &res->defaultInstance; }
-
-mat44f CollisionResourceInstance::getNodeGeometryTm(int node_index) const
+Point3 CollisionResource::getNodeResourceCenter(int node_id) const
 {
-  G_ASSERT((uint32_t)node_index < nodeTm.size());
-  const CollisionNode &node = res->getAllNodes()[node_index];
-  // A singular authored primitive remains in its baked frame.
-  if (DAGOR_UNLIKELY(poseMeta[node_index].isGeometryBaked()))
+  const CollisionNode *n = getNode(node_id);
+  if (!n)
+    return Point3(0, 0, 0);
+  // Exact center of getNodeResourceBBox (affine maps commute with box midpoints) at one point
+  // transform; the same degenerate set anchors on the node placement column.
+  if (n->boundingSphere.r < 0 || n->type == COLLISION_NODE_TYPE_POINTS ||
+      ((n->type == COLLISION_NODE_TYPE_MESH || n->type == COLLISION_NODE_TYPE_CONVEX) && !n->hasGeometry()) ||
+      DAGOR_UNLIKELY(!defaultInstance.isNodeTraceable(node_id)))
+    return getNodeTm(node_id).getcol(3);
+  Point3 c;
+  v_stu_p3(&c.x, v_bbox3_center(getNodeGeometryBBox(*n)));
+  TMatrix gt;
+  v_mat_43cu_from_mat44(gt.array, defaultInstance.getNodeGeometryTm(node_id));
+  return gt * c;
+}
+
+// Shared with the tree-backed prim path, which derives `posed` from the live tree.
+mat44f CollisionResource::geometryTmFromPosed(int node_index, mat44f_cref posed, const CollisionResourceInstance::PoseMeta &pm) const
+{
+  const CollisionNode &node = getAllNodes()[node_index];
+  // A singular authored primitive remains in its baked frame; a RETAINED bake (valid general
+  // sphere, Ritter radius unrecoverable) keeps stored geometry in the authored frame and
+  // composes the same compatibility transform as the eps-IDENT prims below.
+  if (DAGOR_UNLIKELY(pm.isGeometryBaked() && !pm.isRetainedBake()))
   {
     mat44f identity;
     v_mat44_ident(identity);
     return identity;
   }
-  mat44f posed;
-  v_mat44_make_from_43cu_unsafe(posed, nodeTm[node_index].array);
-  if ((node.type != COLLISION_NODE_TYPE_BOX && node.type != COLLISION_NODE_TYPE_SPHERE) || !(node.flags & CollisionNode::IDENT))
+  if (!usesAuthoredFrame(node, pm))
     return posed;
 
-  const dag::Vector<TMatrix> &authoredTm = res->authoredNodeTm;
-  G_ASSERT((uint32_t)node_index < authoredTm.size());
+  G_ASSERT((uint32_t)node_index < authoredNodeTm.size());
   mat44f authored;
-  v_mat44_make_from_43cu_unsafe(authored, authoredTm[node_index].array);
+  v_mat44_make_from_43cu_unsafe(authored, authoredNodeTm[node_index].array);
   if (v_check_xyzw_all_true(v_cmp_eq(posed.col0, authored.col0)) && v_check_xyzw_all_true(v_cmp_eq(posed.col1, authored.col1)) &&
       v_check_xyzw_all_true(v_cmp_eq(posed.col2, authored.col2)) && v_check_xyzw_all_true(v_cmp_eq(posed.col3, authored.col3)))
   {
@@ -3277,272 +3978,159 @@ mat44f CollisionResourceInstance::getNodeGeometryTm(int node_index) const
     return identity;
   }
   mat44f invAuthored, geometryTm;
-  v_mat44_inverse43(invAuthored, authored);
+  if (DAGOR_LIKELY((uint32_t)node_index < authoredNodeItm.size()))
+    v_mat44_make_from_43cu_unsafe(invAuthored, authoredNodeItm[node_index].array);
+  else
+    v_mat44_inverse43(invAuthored, authored);
   v_mat44_mul43(geometryTm, posed, invAuthored);
   return geometryTm;
 }
 
-bool CollisionResourceInstance::updateFromGeomNodeTree(const GeomNodeTree &tree, mat44f_cref entity_tm)
-{
-  if (!validateForUpdate())
-    return false;
-  posedSinceBind = true;
-  // Compose translation entity-relative to preserve large-world precision.
-  const mat44f entityRot = {entity_tm.col0, entity_tm.col1, entity_tm.col2, v_zero()};
-  mat44f invEntity;
-  v_mat44_inverse43(invEntity, entityRot);
-  const vec3f relOfs = v_sub(tree.getWtmOfs(), entity_tm.col3);
-  hasBsphereCenterLocal = res->bsphereCenterNode && res->bsphereCenterNode.index() < tree.nodeCount();
-  if (hasBsphereCenterLocal)
-  {
-    mat44f centerTm = tree.getNodeWtmRel(res->bsphereCenterNode);
-    centerTm.col3 = v_add(centerTm.col3, relOfs);
-    bsphereCenterLocal = v_mat44_mul_vec3p(invEntity, centerTm.col3);
-  }
-  dag::ConstSpan<CollisionNode> nodes = res->getAllNodes();
-  for (uint32_t i = 0, e = min<uint32_t>(nodes.size(), nodeTm.size()); i < e; ++i)
-  {
-    const CollisionNode &node = nodes[i];
-    auto gnId = node.geomNodeId.index() < tree.nodeCount() ? node.geomNodeId : dag::Index16();
-    if (!gnId)
-    {
-      resetNodeToBindPose((int)i);
-      continue;
-    }
-    mat44f m = tree.getNodeWtmRel(gnId);
-    m.col3 = v_add(m.col3, relOfs);
-    v_mat44_mul43(m, invEntity, m);
-    // Missing rel-tm slots on appended nodes mean identity.
-    if ((res->collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID) && i < (uint32_t)res->relGeomNodeTms.size())
-    {
-      mat44f relGeomNodeTm;
-      v_mat44_make_from_43cu_unsafe(relGeomNodeTm, res->relGeomNodeTms[i].array);
-      v_mat44_mul43(m, m, relGeomNodeTm);
-    }
-    v_mat_43cu_from_mat44(nodeTm[i].array, m);
-    recomputePoseMeta((int)i);
-    if (res->isAnyGridMember(node))
-      gridResidentPoseAtBind = false; // one-way latch: a bone drives a grid-member node
-  }
-  recomputeRootBBox();
-  return true;
-}
 
 // Live IDENT means exact identity; loader epsilon classes are not dispatch no-ops.
-// Widens only the mirror meta: CollisionNode::cachedMaxTmScale keeps its column-max so legacy
-// dispatch stays bit-identical; pose-aware readers get the conservative spectral bound.
+// Widens the shared pose meta scale to the conservative spectral bound; for shear-class
+// authored nodes getNodeMaxTmScale, the exporter weld eps and the serialized scale follow it.
 void CollisionResource::stampConservativePoseScale(int node_index)
 {
   CollisionResourceInstance::PoseMeta &pm = defaultInstance.poseMeta[node_index];
+  // A RETAINED bake's public scale describes its identity effective frame; reclassifying the
+  // unchanged authored matrix would leak the authored scale into it.
+  if (pm.isGeometryBaked())
+    return;
   const bool shearLike = pm.flags == 0;
-  // The classifier admits shear with an absolute eps (1e-3 on squared column dots), so its
-  // slack on the spectral norm grows as ~eps/(2*scale^2): restamp epsilon-classified uniform
-  // transforms until that slack is inside the sub-0.1% band the orthonormal shortcut accepts:
-  // eps/(2*s^2) <= 1e-3 <=> s^2 >= 1e-3/2e-3 = 0.5 (ORTHONORMALIZED implies s ~= 1, slack ~0.05%).
-  const bool slackUniform = (pm.flags & CollisionNode::ORTHOUNIFORM) != 0 && pm.maxTmScale * pm.maxTmScale < 1e-3f / 2e-3f;
+  // The column max under-reads every non-bit-exact uniform basis (slack ~eps/(2*s^2)):
+  // restamp with the spectral norm; exact axis-aligned bases keep their bit-exact column max.
+  const bool slackUniform = (pm.flags & CollisionNode::ORTHOUNIFORM) != 0 && (pm.flags & CollisionNode::ORTHONORMALIZED) == 0 &&
+                            !is_exact_axis_aligned_basis(authoredNodeTm[node_index]);
+  // ORTHONORMALIZED is an epsilon class (IDENT included): the column max can under-read the
+  // stretch by the classifier tolerance; Gershgorin over the tolerance volume gives
+  // sigma^2 <= 1 + 3e-3, so 1.0015 covers it. Bit-exact rigid bases keep their exact stamp.
+  if ((pm.flags & CollisionNode::ORTHONORMALIZED) && !is_exact_rigid_basis(authoredNodeTm[node_index]))
+    pm.maxTmScale = max(pm.maxTmScale, 1.0015f);
   if (!shearLike && !slackUniform)
     return;
   mat44f vTm;
   v_mat44_make_from_43cu_unsafe(vTm, authoredNodeTm[node_index].array);
-  pm.maxTmScale = max(pm.maxTmScale, mat33_spectral_norm(vTm) * 1.0002f);
+  // No margin on the uniform-class restamp (a true uniform's spectral norm IS its scale,
+  // and consumers pin the exact stamp); the shear class keeps the persisted margin.
+  pm.maxTmScale = max(pm.maxTmScale, mat33_spectral_norm(vTm) * (shearLike ? 1.0002f : 1.f));
   // The widened scale raises the relative determinant floor: re-gate traceability so a
   // near-singular shear cannot stay traceable on the strength of its pre-widen column max.
+  // Same normalized gate as setAuthoredNodeTm: raw det * s^3 overflows for large finite bases.
   if (pm.isTraceable())
   {
-    const float det = v_extract_x(v_dot3_x(vTm.col0, v_cross3(vTm.col1, vTm.col2)));
-    const float s = pm.maxTmScale;
-    pm.setTraceable(fabsf(det) > 1e-6f * s * s * s);
+    float ndet;
+    pm.setTraceable(relativeDetAboveFloor(vTm, ndet));
+    if (!pm.isTraceable())
+      pm.setComposable(false); // effectively singular: the stored value is the right report
   }
 }
 
-void CollisionResourceInstance::recomputePoseMeta(int node_index)
-{
-  // A geometry-baked (singular-authored) primitive has no recoverable node-local frame,
-  // so no live pose is realizable: keep the node hidden rather than classifying the
-  // identity geometry tm, which would resurrect it at its baked bind pose.
-  if (DAGOR_UNLIKELY(poseMeta[node_index].isGeometryBaked()))
-  {
-    poseMeta[node_index].setTraceable(false);
-    LOGWARN_ONCE("collres instance %p of res %p: live pose on geometry-baked node %d is not realizable; node stays hidden", this, res,
-      node_index);
-    return;
-  }
-  // A non-finite component anywhere in the affine pose (translation included) must not
-  // classify as traceable nor reach posed bounds. The exponent-bit test survives
-  // -ffinite-math-only, which folds float-domain tricks like x - x away.
-  mat44f posedFull;
-  v_mat44_make_from_43cu_unsafe(posedFull, nodeTm[node_index].array);
-  const bool poseFinite = v_test_xyzw_finite(v_add(v_add(posedFull.col0, posedFull.col1), v_add(posedFull.col2, posedFull.col3)));
-  const mat44f geometryTm = getNodeGeometryTm(node_index);
-  uint8_t flags = CollisionResource::classifyNodeTmFlags(geometryTm, poseMeta[node_index].maxTmScale);
-  const bool exactIdentity =
-    v_check_xyz_all_true(v_cmp_eq(geometryTm.col0, V_C_UNIT_1000)) && v_check_xyz_all_true(v_cmp_eq(geometryTm.col1, V_C_UNIT_0100)) &&
-    v_check_xyz_all_true(v_cmp_eq(geometryTm.col2, V_C_UNIT_0010)) && v_check_xyz_all_true(v_cmp_eq(geometryTm.col3, v_zero()));
-  // Epsilon classes can still under-bound shear.
-  if (!exactIdentity)
-    poseMeta[node_index].maxTmScale = max(poseMeta[node_index].maxTmScale, mat33_spectral_norm(geometryTm) * 1.0002f);
-  if ((flags & CollisionNode::IDENT) && !exactIdentity)
-    flags = (flags & ~CollisionNode::IDENT) | CollisionNode::TRANSLATE;
-  poseMeta[node_index].flags = flags;
-  // The relative determinant gate accepts tiny valid poses but rejects collapsed or mirrored ones.
-  const float s = poseMeta[node_index].maxTmScale;
-  const float det = v_extract_x(v_dot3_x(geometryTm.col0, v_cross3(geometryTm.col1, geometryTm.col2)));
-  const float minTraceableDet = 1e-6f * s * s * s;
-  poseMeta[node_index].setTraceable(poseFinite && det > minTraceableDet);
-  if (DAGOR_UNLIKELY(det < -minTraceableDet))
-    LOGWARN_ONCE("collres instance %p of res %p: mirrored pose (det=%g) for node %d; node is not traceable", this, res, det,
-      node_index);
-}
-
-// Shared ownership/freshness gate for updates and dispatch.
-static bool check_instance_owned_and_fresh(const CollisionResource *res, const CollisionResourceInstance &instance, const char *site)
-{
-  const bool ok = instance.getResource() == res && instance.nodeCount() == (int)res->getAllNodes().size();
-  G_ASSERTF(ok,
-    "%s: CollisionResourceInstance is foreign or stale (res %p vs %p, %d nodes vs %d): instances must be "
-    "(re)created after all post-load node mutation",
-    site, instance.getResource(), res, instance.nodeCount(), (int)res->getAllNodes().size());
-  if (DAGOR_UNLIKELY(!ok))
-    LOGERR_ONCE("%s: CollisionResource %p used with a foreign/stale instance (res %p, %d nodes vs %d)", site, res,
-      instance.getResource(), instance.nodeCount(), (int)res->getAllNodes().size());
-  return ok;
-}
-
-bool CollisionResourceInstance::validateForUpdate() const
-{
-  const bool bound = res && !isDefault();
-  G_ASSERTF(bound, "updating a default or resource-less CollisionResourceInstance");
-  if (DAGOR_UNLIKELY(!bound))
-  {
-    LOGERR_ONCE("updating a default or resource-less CollisionResourceInstance is ignored");
-    return false;
-  }
-  return check_instance_owned_and_fresh(res, *this, "update"); // a failed update is ignored
-}
-
-void CollisionResourceInstance::resetNodeToBindPose(int node_index)
-{
-  // Copy metadata verbatim so authored mirrored traceability is preserved -- but a
-  // structural hide belongs to THIS instance, not to the bind pose it resets to.
-  const CollisionResourceInstance &def = res->defaultInstance;
-  const bool wasDisabled = poseMeta[node_index].isDisabled();
-  nodeTm[node_index] = def.nodeTm[node_index];
-  poseMeta[node_index] = def.poseMeta[node_index];
-  poseMeta[node_index].setDisabled(wasDisabled);
-  // A posed default cannot relicense the combined grid.
-  if (res->isAnyGridMember(res->getAllNodes()[node_index]))
-    gridResidentPoseAtBind &= def.gridResidentPoseAtBind;
-}
-
-bool CollisionResourceInstance::updateNodeTmImpl(int node_index, mat44f_cref tm)
-{
-  G_ASSERT_RETURN((uint32_t)node_index < nodeTm.size(), false);
-  posedSinceBind = true;
-  v_mat_43cu_from_mat44(nodeTm[node_index].array, tm);
-  recomputePoseMeta(node_index);
-  const CollisionNode &node = res->getAllNodes()[node_index];
-  // membership, not residency: either grid's walk may cover this node's triangles
-  if (res->isAnyGridMember(node))
-    gridResidentPoseAtBind = false; // one-way latch: the combined-grid walk no longer covers this pose
-  // Nodes that never trace (hidden, unrealizable, POINTS, geometry-less mesh/convex) must not
-  // widen (or poison) the posed bounds either: same predicate set as recomputeRootBBox, so the
-  // grow-only arm never over-widens relative to the next full recompute.
-  const bool boundsRelevant =
-    isNodeEnabled(node_index) && poseMeta[node_index].isTraceable() && node.type != COLLISION_NODE_TYPE_POINTS &&
-    !((node.type == COLLISION_NODE_TYPE_MESH || node.type == COLLISION_NODE_TYPE_CONVEX) && !node.hasGeometry());
-  if (boundsRelevant)
-  {
-    bbox3f nodeBox = res->getNodeGeometryBBox(node);
-    v_bbox3_init(nodeBox, getNodeGeometryTm(node_index), nodeBox);
-    v_bbox3_add_box(rootBBox, nodeBox); // grow-only: exact bounds return on the next full update
-  }
-  return true;
-}
-
-bool CollisionResourceInstance::updateNodeTm(int node_index, mat44f_cref tm)
-{
-  if (!validateForUpdate())
-    return false;
-  return updateNodeTmImpl(node_index, tm);
-}
-
-bool CollisionResourceInstance::setNodeEnabled(int node_index, bool enabled)
-{
-  if (!validateForUpdate())
-    return false;
-  G_ASSERT_RETURN((uint32_t)node_index < nodeTm.size(), false); // same out-of-range contract as updateNodeTm
-  PoseMeta &pm = poseMeta[(uint32_t)node_index];
-  if (pm.isDisabled() == !enabled)
-    return true; // already in the requested state: accepted, not dropped
-  pm.setDisabled(!enabled);
-  if (!enabled && res->isAnyGridMember(res->getAllNodes()[node_index]))
-    gridResidentPoseAtBind = false; // one-way latch: the grid walk would still hit the disabled node
-  recomputeRootBBox();
-  return true;
-}
-
-void CollisionResourceInstance::recomputeRootBBox()
-{
-  bbox3f box;
-  v_bbox3_init_empty(box);
-  dag::ConstSpan<CollisionNode> nodes = res->getAllNodes();
-  for (uint32_t i = 0, e = min<uint32_t>(nodes.size(), nodeTm.size()); i < e; ++i)
-  {
-    const CollisionNode &node = nodes[i];
-    if (!isNodeEnabled((int)i) || !poseMeta[i].isTraceable())
-      continue; // hidden or unrealizable poses do not trace and must not bound
-    if (node.type == COLLISION_NODE_TYPE_POINTS)
-      continue; // never a trace target
-    if ((node.type == COLLISION_NODE_TYPE_MESH || node.type == COLLISION_NODE_TYPE_CONVEX) && !node.hasGeometry())
-      continue;
-    bbox3f nodeBox = res->getNodeGeometryBBox(node);
-    bbox3f composedBox;
-    v_bbox3_init(composedBox, getNodeGeometryTm((int)i), nodeBox);
-    v_bbox3_add_box(box, composedBox);
-    // Epsilon-IDENT grid geometry needs both raw and composed bounds; a live pose diverging
-    // within the IDENT eps widens this union conservatively.
-    if (node.type == COLLISION_NODE_TYPE_MESH && (poseMeta[i].flags & CollisionNode::IDENT))
-      v_bbox3_add_box(box, nodeBox);
-  }
-  rootBBox = box;
-}
-
-void CollisionResourceInstance::seedPose()
-{
-  const CollisionResourceInstance &def = res->defaultInstance;
-  G_ASSERT(&def != this);
-  nodeTm = def.nodeTm;
-  poseMeta = def.poseMeta;
-  // Pose state seeds, but a fresh instance starts with every node enabled.
-  bool clearedHide = false;
-  for (PoseMeta &pm : poseMeta)
-  {
-    clearedHide |= pm.isDisabled();
-    pm.setDisabled(false);
-  }
-  posedSinceBind = def.posedSinceBind; // a posed default seeds a posed copy
-  gridResidentPoseAtBind = def.gridResidentPoseAtBind;
-  // Poses seed verbatim, so the default's rootBBox stays valid unless a hide was cleared.
-  if (DAGOR_UNLIKELY(clearedHide))
-    recomputeRootBBox();
-  else
-    rootBBox = def.rootBBox;
-}
-
-CollisionResourceInstancePtr CollisionResource::createInstance() const
+CollisionResourceInstancePtr CollisionResource::createInstance(const GeomNodeTree *tree) const
 {
   CollisionResourceInstancePtr inst(new CollisionResourceInstance);
-  initInstance(*inst);
+  initInstance(*inst, tree);
   return inst;
 }
 
-void CollisionResource::initInstance(CollisionResourceInstance &inst) const
+void CollisionResource::initInstance(CollisionResourceInstance &inst, const GeomNodeTree *tree) const
 {
   // Reinitialization matches creation: rebind and seed from the resource's current pose
   // (a posed default seeds a posed copy; only structural hides reset).
   inst.hasBsphereCenterLocal = false;
   inst.res = this;
+  inst.boundNodeLayoutGen = nodeLayoutGen;
+  inst.tree = tree;
+  inst.poseGeneration = 0;
+  inst.treeNodeCountAtBind = tree ? (uint32_t)tree->nodeCount() : 0;
+  inst.layoutDriftAsserted = false; // a rebind re-arms the once-per-binding drift assert
   inst.seedPose();
+}
+
+TMatrix CollisionResource::getNodeTm(int node_id) const
+{
+  const CollisionNode *n = getNode(node_id);
+  if (!n)
+    return TMatrix::IDENT;
+  return defaultInstance.nodeTm[node_id];
+}
+
+void CollisionResource::setNodeTm(int node_id, const TMatrix &new_tm)
+{
+  G_ASSERT_RETURN(getNode(node_id), );
+  mat44f t;
+  v_mat44_make_from_43cu_unsafe(t, new_tm.array);
+  defaultInstance.updateNodeTmImpl(node_id, t);
+}
+
+float CollisionResource::getNodeMaxTmScale(int node_id) const
+{
+  const CollisionNode *n = getNode(node_id);
+  return n ? defaultInstance.poseMeta[node_id].maxTmScale : 1.f;
+}
+
+BBox3 CollisionResource::getNodeBBox(int node_id) const
+{
+  const CollisionNode *n = getNode(node_id);
+  if (!n)
+    return BBox3();
+  if (n->type != COLLISION_NODE_TYPE_BOX && n->type != COLLISION_NODE_TYPE_SPHERE)
+    return n->modelBBox;
+  // IDENT and singular authored primitives retain exporter-baked bounds.
+  if ((defaultInstance.poseMeta[node_id].flags & CollisionNode::IDENT) ||
+      (defaultInstance.poseMeta[node_id].isGeometryBaked() && !defaultInstance.poseMeta[node_id].isRetainedBake()))
+    return n->modelBBox;
+  // r < 0 is the exporter's zero-vert marker for EVERY primitive: composing it would corner-map
+  // the inverted box into a phantom placement. Return the stored (empty) box raw, as the
+  // pre-instance accessor did.
+  if (n->boundingSphere.r < 0)
+    return n->modelBBox;
+  // A non-composable pose (non-finite or inverse-overflowing) must not compose: NaN/Inf bounds
+  // would leak. A finite mirrored pose is hidden from traces but composes fine.
+  if (DAGOR_UNLIKELY(!defaultInstance.isNodeComposable(node_id)))
+    return n->modelBBox;
+  TMatrix tm;
+  v_mat_43cu_from_mat44(tm.array, defaultInstance.getNodeGeometryTm(node_id));
+  if (n->type == COLLISION_NODE_TYPE_SPHERE) // exact: corner-mapping would inflate under rotation
+    return composed_sphere_box(tm, n->boundingSphere.c, n->boundingSphere.r);
+  BBox3 out;
+  for (int k = 0; k < 8; k++)
+    out += tm * n->modelBBox.point(k);
+  return out;
+}
+
+BSphere3 CollisionResource::getNodeBSphere(int node_id) const
+{
+  const CollisionNode *n = getNode(node_id);
+  if (!n || n->boundingSphere.r < 0)
+    return BSphere3(); // empty: r = r2 = -1
+  // A RETAINED bake is a valid poseable sphere: it composes through the compatibility
+  // transform like the bbox accessor, only a SINGULAR bake stays pinned at its baked frame.
+  if (n->type != COLLISION_NODE_TYPE_SPHERE || (defaultInstance.poseMeta[node_id].flags & CollisionNode::IDENT) ||
+      (defaultInstance.poseMeta[node_id].isGeometryBaked() && !defaultInstance.poseMeta[node_id].isRetainedBake()))
+    return BSphere3(n->boundingSphere.c, n->boundingSphere.r);
+  // A non-composable pose (non-finite or inverse-overflowing) must not compose (NaN/Inf
+  // center); a finite mirrored pose is hidden from traces but composes fine.
+  if (DAGOR_UNLIKELY(!defaultInstance.isNodeComposable(node_id)))
+    return BSphere3(n->boundingSphere.c, n->boundingSphere.r);
+  TMatrix tm;
+  v_mat_43cu_from_mat44(tm.array, defaultInstance.getNodeGeometryTm(node_id));
+  return BSphere3(tm * n->boundingSphere.c, n->boundingSphere.r * defaultInstance.poseMeta[node_id].maxTmScale);
+}
+
+TMatrix CollisionResource::getStoredToNodeLocalTm(int node_id) const
+{
+  const CollisionNode *n = getNode(node_id);
+  if (!n)
+    return TMatrix::IDENT;
+  const CollisionResourceInstance::PoseMeta &pm = defaultInstance.poseMeta[node_id];
+  // eps-IDENT prims (immutable serialized flags, matching getNodeGeometryTm's dispatch) and
+  // retained bakes store the authored frame; a SINGULAR bake has no invertible authored tm.
+  const bool authoredFrameStored = (n->type == COLLISION_NODE_TYPE_BOX || n->type == COLLISION_NODE_TYPE_SPHERE) &&
+                                   ((n->flags & CollisionNode::IDENT) || pm.isRetainedBake());
+  if (!authoredFrameStored)
+    return TMatrix::IDENT;
+  return inverse(authoredNodeTm[node_id]);
 }
 
 TMatrix CollisionResource::invNodeTm(int node_index) const { return invInstNodeTm(defaultInstance, node_index); }
@@ -3556,8 +4144,9 @@ TMatrix CollisionResource::invInstNodeTm(const CollisionResourceInstance &instan
   TMatrix tm;
   v_mat_43cu_from_mat44(tm.array, instance.getNodeGeometryTm(node_index));
   TMatrix ret;
-  // Only the provably length-preserving class may use the transpose shortcut.
-  if (DAGOR_LIKELY(pm.flags & CollisionNode::ORTHONORMALIZED))
+  // Only bit-exact rigid bases may use the transpose shortcut: the orthonormal class admits
+  // in-band scale, and the transpose maps points by s instead of 1/s.
+  if (is_exact_rigid_basis(tm))
     ret = orthonormalized_inverse(tm);
   else
     ret = inverse(tm);
@@ -3589,15 +4178,18 @@ const CollisionResourceInstance *CollisionResource::resolveInstanceForTrace(cons
   return check_instance_owned_and_fresh(this, instance, "trace") ? &instance : &defaultInstance;
 }
 
-// Analytic AABB avoids the rotation inflation of corner-mapping a sphere.
-// TMatrix is column-major (m[i] IS column i), so Point3(tm[0][k], tm[1][k], tm[2][k])
-// gathers ROW k -- r * |row_k| is the tight Cauchy-Schwarz extent along axis k.
-static BBox3 composed_sphere_box(const TMatrix &tm, const Point3 &c, float r)
+const CollisionResourceInstance *CollisionResource::resolveOwnedPoseForQuery(const CollisionResourceInstance &instance,
+  const char *site) const
 {
-  const Point3 center = tm * c;
-  const Point3 ext(r * Point3(tm[0][0], tm[1][0], tm[2][0]).length(), r * Point3(tm[0][1], tm[1][1], tm[2][1]).length(),
-    r * Point3(tm[0][2], tm[1][2], tm[2][2]).length());
-  return BBox3(center - ext, center + ext);
+  // Secondary queries read stored resource-local matrices; a tree-backed pose has none, so
+  // they keep the default pose until their adoption pass teaches them a tree path.
+  const CollisionResourceInstance *inst = resolveInstanceForTrace(instance);
+  if (DAGOR_UNLIKELY(inst->getTree() != nullptr))
+  {
+    LOGWARN_ONCE("%s: tree-backed collres instance used with a stored-pose query on res %p; default pose is used", site, this);
+    return &defaultInstance;
+  }
+  return inst;
 }
 
 void CollisionResource::sortNodesList()
@@ -3665,9 +4257,13 @@ void CollisionResource::sortNodesList()
     }
     defaultInstance.nodeTm = eastl::move(sortedTm);
     authoredNodeTm = eastl::move(sortedAuthoredTm);
+    authoredNodeItm.clear(); // stale order; the rebuildNodesLL that follows any sort rebuilds it
     defaultInstance.poseMeta = eastl::move(sortedMeta);
     if (hasRelTms)
       mem_copy_from(relGeomNodeTms, relTms.data());
+    // Instances bound before this permutation would read the previous occupant's pose per node;
+    // the freshness gate compares this generation and falls back to the current pose.
+    nodeLayoutGen++;
   }
 
   // Containment reads the same precomputed keys (cached values; the pose-array permutation
@@ -3697,6 +4293,29 @@ void CollisionResource::rebuildNodesLL()
   // This function restamps indices but never reorders pose arrays.
   G_ASSERT(defaultInstance.nodeTm.size() == allNodesList.size() && authoredNodeTm.size() == allNodesList.size() &&
            defaultInstance.poseMeta.size() == allNodesList.size());
+  // Recomputes the authored-inverse cache for the operations that funnel through here (load,
+  // collapse, deepCopy). sortNodesList, eraseNodeAt and setAuthoredNodeTm carry their own
+  // bookkeeping; an append leaves its slot past the sized cache until the next rebuild, so
+  // readers take the compute fallback. Only eps-IDENT box/sphere prims and retained bakes
+  // read it: a resource without them skips the N inverses outright.
+  auto slotWantsItm = [&](size_t i) { return usesAuthoredFrame(allNodesList[i], defaultInstance.poseMeta[i]); };
+  bool wantItm = false;
+  for (size_t i = 0; i < allNodesList.size() && !wantItm; ++i)
+    wantItm = slotWantsItm(i);
+  authoredNodeItm.resize(wantItm ? authoredNodeTm.size() : 0);
+  // Only consumer slots get the inverse (the readers gate on the same predicate); the rest
+  // hold identity, so every sized slot is deterministic and a sparse-consumer resource pays
+  // k inverses per rebuild, not N.
+  for (size_t i = 0; i < authoredNodeItm.size(); ++i)
+    if (slotWantsItm(i))
+    {
+      mat44f a, inv;
+      v_mat44_make_from_43cu_unsafe(a, authoredNodeTm[i].array);
+      v_mat44_inverse43(inv, a);
+      v_mat_43cu_from_mat44(authoredNodeItm[i].array, inv);
+    }
+    else
+      authoredNodeItm[i] = TMatrix::IDENT;
   // Re-stamping nodeIndex = position invalidates nodeIndex-keyed BLAS ranges when the list order changed.
   // Pre-stamp node indices are dense, so rebase each range through the old-to-new permutation first.
   const bool needRemap = !gridForTraceable.blasNodeRanges.empty() || !gridForCollidable.blasNodeRanges.empty();
@@ -3741,7 +4360,8 @@ void CollisionResource::rebuildNodesLL()
       else
         meshNodesHead = meshNodesTail = idx;
       ++numMeshNodes;
-      allMeshEligible &= node.type == COLLISION_NODE_TYPE_MESH && (node.flags & CollisionNode::IDENT) && node.indicesCount > 0 &&
+      allMeshEligible &= node.type == COLLISION_NODE_TYPE_MESH && (defaultInstance.poseMeta[nodeNo].flags & CollisionNode::IDENT) &&
+                         node.indicesCount > 0 &&
                          node.checkBehaviorFlags((uint16_t)(CollisionNode::TRACEABLE | CollisionNode::PHYS_COLLIDABLE));
     }
     else if (node.type == COLLISION_NODE_TYPE_BOX)
@@ -3794,15 +4414,35 @@ void CollisionResource::rebuildNodesLL()
     stampConservativePoseScale(i);
   defaultInstance.recomputeRootBBox();
 
-  // Extend serialized bind bounds over composed epsilon-IDENT mesh frames.
+  // Extend serialized bind bounds over composed epsilon-IDENT mesh frames and over un-baked
+  // rotated/skewed boxes, whose conservative local box recomposes beyond the serialized sphere.
   Point3_vec4 bsphC;
   v_stu_p3(&bsphC.x, vBoundingSphere);
   float bindR2 = v_extract_w(vBoundingSphere);
   for (const CollisionNode &n : allNodesList)
   {
+    const CollisionResourceInstance::PoseMeta &pm = defaultInstance.poseMeta[n.nodeIndex];
+    if (n.type == COLLISION_NODE_TYPE_BOX)
+    {
+      // Mirror unbakePrimNode's conservative branch: exact-frame (IDENT/TRANSLATE/baked) boxes
+      // recompose inside the serialized sphere.
+      if ((pm.flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) || pm.isGeometryBaked())
+        continue;
+      const TMatrix &authored = authoredNodeTm[n.nodeIndex];
+      for (int k = 0; k < 8; k++)
+      {
+        const Point3_vec4 p = authored * n.modelBBox.point(k);
+        bindR2 = max(bindR2, lengthSq(p - *(const Point3 *)&bsphC.x));
+        // The whole-resource box pre-rejects (rendinst reads vFullBBox) must cover the
+        // recomposed conservative box too, not just the sphere.
+        boundingBox += p;
+        v_bbox3_add_pt(vFullBBox, v_ld(&p.x));
+      }
+      continue;
+    }
     if (n.type != COLLISION_NODE_TYPE_MESH && n.type != COLLISION_NODE_TYPE_CONVEX)
       continue;
-    if (!(defaultInstance.poseMeta[n.nodeIndex].flags & CollisionNode::IDENT))
+    if (!(pm.flags & CollisionNode::IDENT))
       continue;
     const TMatrix &authored = authoredNodeTm[n.nodeIndex];
     // bit-compare intended: a false mismatch only widens the bind sphere conservatively
@@ -3822,6 +4462,8 @@ void CollisionResource::eraseNodeAt(int node_index)
   erase_items(allNodesList, node_index, 1);
   defaultInstance.nodeTm.erase(defaultInstance.nodeTm.begin() + node_index);
   authoredNodeTm.erase(authoredNodeTm.begin() + node_index);
+  if ((uint32_t)node_index < authoredNodeItm.size())
+    authoredNodeItm.erase(authoredNodeItm.begin() + node_index);
   defaultInstance.poseMeta.erase(defaultInstance.poseMeta.begin() + node_index);
   if (relGeomNodeTms.size() > node_index)
     erase_items(relGeomNodeTms, node_index, 1);
@@ -3831,13 +4473,37 @@ struct ITestIntersectionAlgo
 {
   // a_head_idx / b_head_idx index into a_all / b_all and address the head of the per-type linked
   // list; CollisionNode::INVALID_IDX means the list is empty. Walk via allNodesList[i].nextNode.
-  // res_a / res_b let the algo route grid-resident mesh nodes through the grid's vert21 array
-  // or the ownVerts21 blocks. Non-resident nodes would index a_verts_base / b_verts_base.
+  // Resources select geometry storage; instances supply placements.
   virtual bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
     dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
-    const CollisionResource *res_a, const Point3_vec4 *a_verts_base, const uint32_t *a_idx_base, const CollisionResource *res_b,
-    const Point3_vec4 *b_verts_base, const uint32_t *b_idx_base) = 0;
+    const CollisionResource *res_a, const CollisionResourceInstance *inst_a, const CollisionResource *res_b,
+    const CollisionResourceInstance *inst_b) = 0;
   virtual ~ITestIntersectionAlgo() = 0;
+
+  // Shared eligibility gate of every pair-test arm: hidden or unrealizable poses never collide.
+  // Zero-vert markers (r < 0) and degenerate-dropped mesh/convex have no geometry either --
+  // composing their stale (inverted-empty) bounds would manufacture phantom colliders.
+  static bool poseCollidable(const CollisionResourceInstance *inst, const CollisionNode *n)
+  {
+    if (inst->getResource()->getNodeBSphereRadius(n->nodeIndex) < 0.f ||
+        ((n->type == COLLISION_NODE_TYPE_MESH || n->type == COLLISION_NODE_TYPE_CONVEX) && !n->hasGeometry()))
+      return false;
+    return inst->isNodeEnabled(n->nodeIndex) && inst->isNodeTraceable(n->nodeIndex);
+  }
+
+  // Composed box/sphere-node geometry in its historical resource frame.
+  // Pair tests preserve the legacy conservative AABB contract for boxes.
+  static BBox3 composedNodeBox(const CollisionResourceInstance *inst, int node_index, const BBox3 &local_box)
+  {
+    if (inst->getPoseMeta(node_index).flags & CollisionNode::IDENT)
+      return local_box;
+    TMatrix tm;
+    v_mat_43cu_from_mat44(tm.array, inst->getNodeGeometryTm(node_index));
+    BBox3 out;
+    for (int k = 0; k < 8; k++)
+      out += tm * local_box.point(k);
+    return out;
+  }
 
   Point3 collisionPointA;
   Point3 collisionPointB;
@@ -3863,11 +4529,13 @@ public:
 
   bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
     dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
-    const CollisionResource *res_a, const Point3_vec4 * /*a_verts_base*/, const uint32_t * /*a_idx_base*/,
-    const CollisionResource *res_b, const Point3_vec4 * /*b_verts_base*/, const uint32_t * /*b_idx_base*/) final
+    const CollisionResource *res_a, const CollisionResourceInstance *inst_a, const CollisionResource *res_b,
+    const CollisionResourceInstance *inst_b) final
   {
     aResource = res_a;
     bResource = res_b;
+    aInst = inst_a;
+    bInst = inst_b;
     outsideOfBounding.clear();
     reserve_and_resize(outsideOfBounding, a_nodes_count);
     aWtms.clear();
@@ -3877,12 +4545,14 @@ public:
     for (uint16_t ia = a_head_idx; ia != CollisionNode::INVALID_IDX; ia = a_all[ia].nextNode)
     {
       const CollisionNode *nodeA = &a_all[ia];
+      if (!ITestIntersectionAlgo::poseCollidable(inst_a, nodeA))
+        continue;
       if (checkOnlyPhysNodes && !nodeA->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
         continue;
       mat44f vWtmA;
-      v_mat44_make_from_43cu_unsafe(vWtmA, nodeA->tm.array);
-      v_mat44_mul43(vWtmA, tm_a, vWtmA);
-      vec4f aNodeWbsph = v_perm_xyzd(v_mat44_mul_vec3p(vWtmA, v_ldu(&nodeA->boundingSphere.c.x)), v_splats(nodeA->boundingSphere.r));
+      v_mat44_mul43(vWtmA, tm_a, inst_a->getNodeTm(nodeA->nodeIndex));
+      vec4f aNodeWbsph = v_perm_xyzd(v_mat44_mul_vec3p(vWtmA, v_ldu(&nodeA->boundingSphere.c.x)),
+        v_splats(nodeA->boundingSphere.r * inst_a->getPoseMeta(nodeA->nodeIndex).maxTmScale));
       outsideOfBounding.set(nodeA->nodeIndex, !isBoundingsIntersect(aNodeWbsph, v_set_x(a_max_scale), b_wbsph, v_set_x(b_max_scale)));
       aWtms[nodeA->nodeIndex] = vWtmA;
     }
@@ -3890,13 +4560,16 @@ public:
     for (uint16_t ib = b_head_idx; ib != CollisionNode::INVALID_IDX; ib = b_all[ib].nextNode)
     {
       const CollisionNode *nodeB = &b_all[ib];
+      if (!ITestIntersectionAlgo::poseCollidable(inst_b, nodeB))
+        continue;
       if (checkOnlyPhysNodes && !nodeB->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
         continue;
 
       mat44f vWtmB, vIWtmB;
-      v_mat44_make_from_43cu_unsafe(vWtmB, nodeB->tm.array);
-      v_mat44_mul43(vWtmB, tm_b, vWtmB);
-      vec3f bNodeBoundingCenter = v_mat44_mul_vec3p(vWtmB, v_ldu(&nodeB->boundingSphere.c.x));
+      v_mat44_mul43(vWtmB, tm_b, inst_b->getNodeTm(nodeB->nodeIndex));
+      // The transformed vector's w lane is not a radius.
+      vec4f bNodeBoundingCenter = v_perm_xyzd(v_mat44_mul_vec3p(vWtmB, v_ldu(&nodeB->boundingSphere.c.x)),
+        v_splats(nodeB->boundingSphere.r * inst_b->getPoseMeta(nodeB->nodeIndex).maxTmScale));
       if (!isBoundingsIntersect(bNodeBoundingCenter, v_set_x(b_max_scale), a_wbsph, v_set_x(a_max_scale)))
         continue;
       v_mat44_inverse43(vIWtmB, vWtmB);
@@ -3907,12 +4580,16 @@ public:
         const CollisionNode *nodeA = &a_all[ia];
         if (outsideOfBounding[nodeA->nodeIndex])
           continue;
+        // Skipped nodes have no initialized world transform.
+        if (!ITestIntersectionAlgo::poseCollidable(inst_a, nodeA))
+          continue;
         if (checkOnlyPhysNodes && !nodeA->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
           continue;
 
         mat44f vWtmA = aWtms[nodeA->nodeIndex];
         vec3f sphereCenterNodeA = v_mat44_mul_vec3p(vWtmA, v_ldu(&nodeA->boundingSphere.c.x));
-        float sumRad = nodeA->boundingSphere.r * a_max_scale + nodeB->boundingSphere.r * b_max_scale;
+        float sumRad = nodeA->boundingSphere.r * inst_a->getPoseMeta(nodeA->nodeIndex).maxTmScale * a_max_scale +
+                       nodeB->boundingSphere.r * inst_b->getPoseMeta(nodeB->nodeIndex).maxTmScale * b_max_scale;
         if (v_extract_x(v_length3_sq_x(v_sub(sphereCenterNodeA, sphereCenterNodeB))) > sumRad * sumRad)
           continue;
 
@@ -3926,7 +4603,7 @@ public:
         if (v_bbox3_test_trasformed_box_likely_intersect(bboxB, bboxA, tmAtoB) == false)
           continue;
 
-        if (isMeshNodeIntersectedWithMeshNode(nodeA, nodeB, tmAtoB))
+        if (isMeshNodeIntersectedWithMeshNode(nodeA, nodeB, tmAtoB, vWtmA, vWtmB))
           return true;
       }
     }
@@ -3995,7 +4672,8 @@ private:
     return true;
   }
 
-  bool isMeshNodeIntersectedWithMeshNode(const CollisionNode *node_a, const CollisionNode *node_b, const mat44f &tm_a_to_b)
+  bool isMeshNodeIntersectedWithMeshNode(const CollisionNode *node_a, const CollisionNode *node_b, const mat44f &tm_a_to_b,
+    const mat44f &v_wtm_a, const mat44f &v_wtm_b)
   {
     bool useBlas = false;
     if (b_grid && !b_grid->blasData.empty())
@@ -4026,13 +4704,11 @@ private:
 
     bool found = false;
     auto emitHit = [&](vec3f a0, vec3f a1, vec3f a2, vec3f b0, vec3f b1, vec3f b2) {
-      mat44f tmA, tmB;
-      v_mat44_make_from_43cu_unsafe(tmA, node_a->tm.array);
-      v_mat44_make_from_43cu_unsafe(tmB, node_b->tm.array);
       vec3f ac = v_mul(v_add(a0, v_add(a1, a2)), v_splats(1 / 3.f));
       vec3f bc = v_mul(v_add(b0, v_add(b1, b2)), v_splats(1 / 3.f));
-      v_stu_p3(&collisionPointA.x, v_mat44_mul_vec3p(tmA, ac));
-      v_stu_p3(&collisionPointB.x, v_mat44_mul_vec3p(tmB, bc));
+      // Contacts use full world transforms.
+      v_stu_p3(&collisionPointA.x, v_mat44_mul_vec3p(v_wtm_a, ac));
+      v_stu_p3(&collisionPointB.x, v_mat44_mul_vec3p(v_wtm_b, bc));
       found = true;
     };
     aResource->iterateNodeFacesVerts(node_a->nodeIndex, [&](int, vec4f a0, vec4f a1, vec4f a2) {
@@ -4077,9 +4753,12 @@ private:
   // members are kept here.
   const CollisionResource *aResource = nullptr;
   const CollisionResource *bResource = nullptr;
+  const CollisionResourceInstance *aInst = nullptr;
+  const CollisionResourceInstance *bInst = nullptr;
   eastl::bitvector<framemem_allocator> outsideOfBounding;
   dag::RelocatableFixedVector<mat44f, 40> aWtms;
 };
+
 
 class TestMeshNodeBoxNodesIntersectionAlgo final : public ITestIntersectionAlgo
 {
@@ -4089,8 +4768,8 @@ public:
 
   bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
     dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
-    const CollisionResource *res_a, const Point3_vec4 * /*a_verts_base*/, const uint32_t * /*a_idx_base*/,
-    const CollisionResource * /*res_b*/, const Point3_vec4 * /*b_verts_base*/, const uint32_t * /*b_idx_base*/) final
+    const CollisionResource *res_a, const CollisionResourceInstance *inst_a, const CollisionResource * /*res_b*/,
+    const CollisionResourceInstance *inst_b) final
   {
     aResource = res_a;
     alignas(EA_CACHE_LINE_SIZE) mat44f vIWtmB;
@@ -4099,28 +4778,35 @@ public:
     for (uint16_t ia = a_head_idx; ia != CollisionNode::INVALID_IDX; ia = a_all[ia].nextNode)
     {
       const CollisionNode *nodeA = &a_all[ia];
+      if (!ITestIntersectionAlgo::poseCollidable(inst_a, nodeA))
+        continue;
       if (checkOnlyPhysNodes && !nodeA->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
         continue;
       alignas(EA_CACHE_LINE_SIZE) mat44f vWtmA, tmAtoB;
-      v_mat44_make_from_43cu_unsafe(vWtmA, nodeA->tm.array);
-      v_mat44_mul43(vWtmA, tm_a, vWtmA);
+      v_mat44_mul43(vWtmA, tm_a, inst_a->getNodeTm(nodeA->nodeIndex));
       v_mat44_mul43(tmAtoB, vIWtmB, vWtmA);
       vec3f sphereCenterNodeA = v_mat44_mul_vec3p(vWtmA, v_ldu(&nodeA->boundingSphere.c.x));
 
       for (uint16_t ib = b_head_idx; ib != CollisionNode::INVALID_IDX; ib = b_all[ib].nextNode)
       {
         const CollisionNode *nodeB = &b_all[ib];
+        if (!ITestIntersectionAlgo::poseCollidable(inst_b, nodeB))
+          continue;
         if (checkOnlyPhysNodes && !nodeB->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
           continue;
-        vec3f sphereCenterNodeB = v_mat44_mul_vec3p(tm_b, v_ldu(&nodeB->boundingSphere.c.x));
-        float sumRad = nodeA->boundingSphere.r * a_max_scale + nodeB->boundingSphere.r * b_max_scale;
+        // Box bounding-sphere centers are stored node-local.
+        vec3f sphereCenterNodeB =
+          v_mat44_mul_vec3p(tm_b, v_mat44_mul_vec3p(inst_b->getNodeTm(nodeB->nodeIndex), v_ldu(&nodeB->boundingSphere.c.x)));
+        float sumRad = nodeA->boundingSphere.r * inst_a->getPoseMeta(nodeA->nodeIndex).maxTmScale * a_max_scale +
+                       nodeB->boundingSphere.r * inst_b->getPoseMeta(nodeB->nodeIndex).maxTmScale * b_max_scale;
         if (v_extract_x(v_length3_sq_x(v_sub(sphereCenterNodeA, sphereCenterNodeB))) > sumRad * sumRad)
           continue;
 
         // SAT overlap is frame-independent, so test in B's frame with tmAtoB (also used to transform A's
         // triangles below); this avoids the inverse of A's world tm and the reverse tmBtoA.
+        const BBox3 composedBoxB = composedNodeBox(inst_b, nodeB->nodeIndex, nodeB->modelBBox);
         bbox3f bboxA = v_ldu_bbox3(nodeA->modelBBox);
-        bbox3f bboxB = v_ldu_bbox3(nodeB->modelBBox);
+        bbox3f bboxB = v_ldu_bbox3(composedBoxB);
         if (v_bbox3_test_trasformed_box_likely_intersect(bboxB, bboxA, tmAtoB) == false)
           continue;
 
@@ -4134,11 +4820,11 @@ public:
           v_st(&a0b.x, v_mat44_mul_vec3p(tmAtoB, a0));
           v_st(&a1b.x, v_mat44_mul_vec3p(tmAtoB, a1));
           v_st(&a2b.x, v_mat44_mul_vec3p(tmAtoB, a2));
-          if (test_triangle_box_intersection(a0b, a1b, a2b, nodeB->modelBBox))
+          if (test_triangle_box_intersection(a0b, a1b, a2b, composedBoxB))
           {
             vec3f ac = v_mul(v_add(a0, v_add(a1, a2)), v_splats(1 / 3.f));
             v_stu_p3(&collisionPointA.x, v_mat44_mul_vec3p(vWtmA, ac));
-            collisionPointB = nodeB->boundingSphere.c;
+            v_stu_p3(&collisionPointB.x, sphereCenterNodeB); // posed center: raw c would report bind
             found = true;
           }
         });
@@ -4161,8 +4847,8 @@ public:
 
   bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
     dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
-    const CollisionResource * /*res_a*/, const Point3_vec4 * /*a_verts_base*/, const uint32_t * /*a_idx_base*/,
-    const CollisionResource * /*res_b*/, const Point3_vec4 * /*b_verts_base*/, const uint32_t * /*b_idx_base*/) final
+    const CollisionResource * /*res_a*/, const CollisionResourceInstance *inst_a, const CollisionResource * /*res_b*/,
+    const CollisionResourceInstance *inst_b) final
   {
     alignas(EA_CACHE_LINE_SIZE) mat44f vIWtmA, tmBToA;
     v_mat44_inverse43(vIWtmA, tm_a);
@@ -4171,23 +4857,33 @@ public:
     for (uint16_t ia = a_head_idx; ia != CollisionNode::INVALID_IDX; ia = a_all[ia].nextNode)
     {
       const CollisionNode *nodeA = &a_all[ia];
+      if (!ITestIntersectionAlgo::poseCollidable(inst_a, nodeA))
+        continue;
       if (checkOnlyPhysNodes && !nodeA->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
         continue;
-      vec3f sphereCenterNodeA = v_mat44_mul_vec3p(tm_a, v_ldu(&nodeA->boundingSphere.c.x));
+      // Box bounding-sphere centers are stored node-local.
+      vec3f sphereCenterNodeA =
+        v_mat44_mul_vec3p(tm_a, v_mat44_mul_vec3p(inst_a->getNodeTm(nodeA->nodeIndex), v_ldu(&nodeA->boundingSphere.c.x)));
+      const BBox3 composedBoxA = composedNodeBox(inst_a, nodeA->nodeIndex, nodeA->modelBBox);
       for (uint16_t ib = b_head_idx; ib != CollisionNode::INVALID_IDX; ib = b_all[ib].nextNode)
       {
         const CollisionNode *nodeB = &b_all[ib];
+        if (!ITestIntersectionAlgo::poseCollidable(inst_b, nodeB))
+          continue;
         if (checkOnlyPhysNodes && !nodeB->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
           continue;
-        vec3f sphereCenterNodeB = v_mat44_mul_vec3p(tm_b, v_ldu(&nodeB->boundingSphere.c.x));
-        float sumRad = nodeA->boundingSphere.r * a_max_scale + nodeB->boundingSphere.r * b_max_scale;
+        vec3f sphereCenterNodeB =
+          v_mat44_mul_vec3p(tm_b, v_mat44_mul_vec3p(inst_b->getNodeTm(nodeB->nodeIndex), v_ldu(&nodeB->boundingSphere.c.x)));
+        float sumRad = nodeA->boundingSphere.r * inst_a->getPoseMeta(nodeA->nodeIndex).maxTmScale * a_max_scale +
+                       nodeB->boundingSphere.r * inst_b->getPoseMeta(nodeB->nodeIndex).maxTmScale * b_max_scale;
         if (v_extract_x(v_length3_sq_x(v_sub(sphereCenterNodeA, sphereCenterNodeB))) > sumRad * sumRad)
           continue;
 
-        if (v_bbox3_test_trasformed_box_likely_intersect(v_ldu_bbox3(nodeA->modelBBox), v_ldu_bbox3(nodeB->modelBBox), tmBToA))
+        if (v_bbox3_test_trasformed_box_likely_intersect(v_ldu_bbox3(composedBoxA),
+              v_ldu_bbox3(composedNodeBox(inst_b, nodeB->nodeIndex, nodeB->modelBBox)), tmBToA))
         {
-          collisionPointA = nodeA->boundingSphere.c;
-          collisionPointB = nodeB->boundingSphere.c;
+          v_stu_p3(&collisionPointA.x, sphereCenterNodeA); // posed centers: raw c would report bind
+          v_stu_p3(&collisionPointB.x, sphereCenterNodeB);
           return true;
         }
       }
@@ -4205,8 +4901,8 @@ public:
 
   bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
     dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
-    const CollisionResource *res_a, const Point3_vec4 * /*a_verts_base*/, const uint32_t * /*a_idx_base*/,
-    const CollisionResource * /*res_b*/, const Point3_vec4 * /*b_verts_base*/, const uint32_t * /*b_idx_base*/) final
+    const CollisionResource *res_a, const CollisionResourceInstance *inst_a, const CollisionResource * /*res_b*/,
+    const CollisionResourceInstance *inst_b) final
   {
     aResource = res_a;
     alignas(EA_CACHE_LINE_SIZE) mat44f vIWtmB;
@@ -4215,37 +4911,65 @@ public:
     for (uint16_t ia = a_head_idx; ia != CollisionNode::INVALID_IDX; ia = a_all[ia].nextNode)
     {
       const CollisionNode *nodeA = &a_all[ia];
+      if (!ITestIntersectionAlgo::poseCollidable(inst_a, nodeA))
+        continue;
       if (checkOnlyPhysNodes && !nodeA->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
         continue;
       alignas(EA_CACHE_LINE_SIZE) mat44f vWtmA, tmAToB;
-      v_mat44_make_from_43cu_unsafe(vWtmA, nodeA->tm.array);
-      v_mat44_mul43(vWtmA, tm_a, vWtmA);
+      v_mat44_mul43(vWtmA, tm_a, inst_a->getNodeTm(nodeA->nodeIndex));
       v_mat44_mul43(tmAToB, vIWtmB, vWtmA);
 
       vec3f sphereCenterNodeA = v_mat44_mul_vec3p(vWtmA, v_ldu(&nodeA->boundingSphere.c.x));
       for (uint16_t ib = b_head_idx; ib != CollisionNode::INVALID_IDX; ib = b_all[ib].nextNode)
       {
         const CollisionNode *nodeB = &b_all[ib];
+        if (!ITestIntersectionAlgo::poseCollidable(inst_b, nodeB))
+          continue;
         if (checkOnlyPhysNodes && !nodeB->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
           continue;
-        vec3f sphereCenterNodeB = v_mat44_mul_vec3p(tm_b, v_ldu(&nodeB->boundingSphere.c.x));
-        float sumRad = nodeA->boundingSphere.r * a_max_scale + nodeB->boundingSphere.r * b_max_scale;
+        // maxTmScale conservatively encloses a non-uniformly posed sphere.
+        const bool identTB = (inst_b->getPoseMeta(nodeB->nodeIndex).flags & CollisionNode::IDENT) != 0;
+        Point3_vec4 composedCB;
+        v_st(&composedCB.x, identTB
+                              ? v_ldu(&nodeB->boundingSphere.c.x)
+                              : v_mat44_mul_vec3p(inst_b->getNodeGeometryTm(nodeB->nodeIndex), v_ldu(&nodeB->boundingSphere.c.x)));
+        // A BAKED sphere's stored radius is already in the tested frame (its geometry tm is
+        // identity): scaling it again would shrink or inflate the narrow phase.
+        const float composedRB =
+          (nodeB->boundingSphere.r < 0.f || identTB ||
+            (inst_b->getPoseMeta(nodeB->nodeIndex).isGeometryBaked() && !inst_b->getPoseMeta(nodeB->nodeIndex).isRetainedBake()))
+            ? nodeB->boundingSphere.r
+            : nodeB->boundingSphere.r * inst_b->getPoseMeta(nodeB->nodeIndex).maxTmScale;
+        vec3f sphereCenterNodeB = v_mat44_mul_vec3p(tm_b, v_ldu(&composedCB.x));
+        float sumRad =
+          nodeA->boundingSphere.r * inst_a->getPoseMeta(nodeA->nodeIndex).maxTmScale * a_max_scale + composedRB * b_max_scale;
         if (v_extract_x(v_length3_sq_x(v_sub(sphereCenterNodeA, sphereCenterNodeB))) > sumRad * sumRad)
           continue;
 
+        // The widened enclosing sphere is a CULL, not the geometry: the narrow phase runs in
+        // the sphere's STORED frame against the stored radius, or a non-uniform pose would
+        // report contacts outside its short axes.
+        mat44f triToSphere = tmAToB;
+        if (!identTB)
+        {
+          mat44f invGtmB;
+          v_mat44_inverse43(invGtmB, inst_b->getNodeGeometryTm(nodeB->nodeIndex));
+          v_mat44_mul43(triToSphere, invGtmB, tmAToB);
+        }
+        const vec3f storedCB = v_ldu(&nodeB->boundingSphere.c.x);
+        const vec4f storedRB2 = v_set_x(get_bsphere_r2(nodeB->boundingSphere.r));
         bool found = false;
         aResource->iterateNodeFacesVerts(nodeA->nodeIndex, [&](int, vec4f a0, vec4f a1, vec4f a2) {
           if (found)
             return;
-          vec3f a0b = v_mat44_mul_vec3p(tmAToB, a0);
-          vec3f a1b = v_mat44_mul_vec3p(tmAToB, a1);
-          vec3f a2b = v_mat44_mul_vec3p(tmAToB, a2);
-          if (v_test_triangle_sphere_intersection(a0b, a1b, a2b, v_ldu(&nodeB->boundingSphere.c.x),
-                v_set_x(get_bsphere_r2(nodeB->boundingSphere.r))))
+          vec3f a0b = v_mat44_mul_vec3p(triToSphere, a0);
+          vec3f a1b = v_mat44_mul_vec3p(triToSphere, a1);
+          vec3f a2b = v_mat44_mul_vec3p(triToSphere, a2);
+          if (v_test_triangle_sphere_intersection(a0b, a1b, a2b, storedCB, storedRB2))
           {
             vec3f ac = v_mul(v_add(a0, v_add(a1, a2)), v_splats(1.f / 3.f));
             v_stu_p3(&collisionPointA.x, v_mat44_mul_vec3p(vWtmA, ac));
-            collisionPointB = nodeB->boundingSphere.c;
+            v_stu_p3(&collisionPointB.x, sphereCenterNodeB);
             found = true;
           }
         });
@@ -4266,21 +4990,51 @@ bool CollisionResource::testIntersection(const CollisionResource *res_a, const T
 {
   G_ASSERT(res_a);
   G_ASSERT(res_b);
+  return testIntersection(res_a, tm_a, res_a->getDefaultInstance(), res_b, tm_b, res_b->getDefaultInstance(), collisionPointA,
+    collisionPointB, checkOnlyPhysNodes, useTraceFaces);
+}
+
+bool CollisionResource::testIntersection(const CollisionResource *res_a, const TMatrix &tm_a,
+  const CollisionResourceInstance &instance_a, const CollisionResource *res_b, const TMatrix &tm_b,
+  const CollisionResourceInstance &instance_b, Point3 &collisionPointA, Point3 &collisionPointB, bool checkOnlyPhysNodes,
+  bool useTraceFaces)
+{
+  G_ASSERT(res_a);
+  G_ASSERT(res_b);
+  const CollisionResourceInstance *instA = res_a->resolveOwnedPoseForQuery(instance_a, "test_collision_resources_intersection");
+  const CollisionResourceInstance *instB = res_b->resolveOwnedPoseForQuery(instance_b, "test_collision_resources_intersection");
 
   alignas(EA_CACHE_LINE_SIZE) mat44f vTmA, vTmB;
   v_mat44_make_from_43cu_unsafe(vTmA, tm_a.array);
   v_mat44_make_from_43cu_unsafe(vTmB, tm_b.array);
-  float maxScaleA = v_extract_x(v_mat44_max_scale43_x(vTmA));
-  float maxScaleB = v_extract_x(v_mat44_max_scale43_x(vTmB));
+  // Column lengths under-bound shear on the arbitrary outer tms, and both pair families
+  // pre-reject on these scales: use the conservative bound.
+  float maxScaleA = conservative_outer_scale(vTmA);
+  float maxScaleB = conservative_outer_scale(vTmB);
 
-  // world xyz|r
-  vec4f aWbsph = v_perm_xyzd(v_mat44_mul_vec3p(vTmA, res_a->vBoundingSphere), v_splats(res_a->boundingSphereRad));
-  vec4f bWbsph = v_perm_xyzd(v_mat44_mul_vec3p(vTmB, res_b->vBoundingSphere), v_splats(res_b->boundingSphereRad));
+  // Posed instances derive whole-resource bounds from rootBBox.
+  auto worldBsph = [](const mat44f &tm, const CollisionResource *res, const CollisionResourceInstance *inst) {
+    if (inst->isDefault() && !inst->isPosedSinceBind())
+    {
+      // The stamped sphere extends the serialized one (rotated boxes, eps-IDENT mesh frames).
+      // A stamp smaller than the live sphere is stale (stamped before bounds): live wins.
+      if (DAGOR_LIKELY(res->bindTraceSphereStamped && v_extract_w(res->vBindTraceSphere) >= sqr(res->boundingSphereRad)))
+        return v_perm_xyzd(v_mat44_mul_vec3p(tm, res->vBindTraceSphere), v_sqrt(v_splat_w(res->vBindTraceSphere)));
+      return v_perm_xyzd(v_mat44_mul_vec3p(tm, res->vBoundingSphere), v_splats(res->boundingSphereRad));
+    }
+    const bbox3f rootBox = inst->getRootBBox();
+    const vec3f rootCenter = v_madd(rootBox.bmin, V_C_HALF, v_mul(rootBox.bmax, V_C_HALF)); // overflow-safe midpoint
+    return v_perm_xyzd(v_mat44_mul_vec3p(tm, rootCenter), v_length3(v_sub(rootBox.bmax, rootCenter)));
+  };
+  vec4f aWbsph = worldBsph(vTmA, res_a, instA);
+  vec4f bWbsph = worldBsph(vTmB, res_b, instB);
   if (!TestMeshNodeMeshNodesIntersectionAlgo::isBoundingsIntersect(aWbsph, v_set_x(maxScaleA), bWbsph, v_set_x(maxScaleB)))
     return false;
 
+  // The combined grid holds bind-frame bytes: a live-posed grid member de-licenses the walk (same
+  // latch as the trace core); the algo's brute-force arm composes the current pose per node.
   TestMeshNodeMeshNodesIntersectionAlgo testMeshNodeMeshNodesIntersectionAlgo(aWbsph, res_a->allNodesList.size(), bWbsph,
-    useTraceFaces ? &res_b->gridForTraceable : nullptr);
+    useTraceFaces && instB->isGridResidentPoseAtBind() ? &res_b->gridForTraceable : nullptr);
   TestMeshNodeBoxNodesIntersectionAlgo testMeshNodeBoxNodesIntersectionAlgo;
   TestMeshNodeSphereNodesIntersectionAlgo testMeshNodeSphereNodesIntersectionAlgo;
   TestBoxNodeBoxNodesIntersectionAlgo testBoxNodeBoxNodesIntersectionAlgo;
@@ -4307,7 +5061,7 @@ bool CollisionResource::testIntersection(const CollisionResource *res_a, const T
       if (ITestIntersectionAlgo *testAB = arrIntersectionCall[nodeTypeIxA][nodeTypeIxB])
       {
         result = testAB->apply(res_a->nodeLists[nodeTypeIxA], aAll, vTmA, res_b->nodeLists[nodeTypeIxB], bAll, vTmB, maxScaleA,
-          maxScaleB, checkOnlyPhysNodes, res_a, nullptr, nullptr, res_b, nullptr, nullptr);
+          maxScaleB, checkOnlyPhysNodes, res_a, instA, res_b, instB);
 
         collisionPointA = testAB->collisionPointA;
         collisionPointB = testAB->collisionPointB;
@@ -4315,7 +5069,7 @@ bool CollisionResource::testIntersection(const CollisionResource *res_a, const T
       else if (ITestIntersectionAlgo *testBA = arrIntersectionCall[nodeTypeIxB][nodeTypeIxA])
       {
         result = testBA->apply(res_b->nodeLists[nodeTypeIxB], bAll, vTmB, res_a->nodeLists[nodeTypeIxA], aAll, vTmA, maxScaleB,
-          maxScaleA, checkOnlyPhysNodes, res_b, nullptr, nullptr, res_a, nullptr, nullptr);
+          maxScaleA, checkOnlyPhysNodes, res_b, instB, res_a, instA);
 
         collisionPointB = testBA->collisionPointA;
         collisionPointA = testBA->collisionPointB;
@@ -4339,13 +5093,15 @@ bool CollisionResource::testIntersection(const CollisionResource *res_a, const T
 // from the decoded node block) into the inner `tm2to1 * v2` -- consistent because the BLAS holds only
 // IDENT-transform nodes, so node-local == res2-local.
 bool CollisionResource::testMeshNodePair(const CollisionNode *node1, dag::ConstSpan<Point3_vec4> node1Faces,
-  const CollisionResource *res2, const CollisionNode *node2, const TMatrix &tm1ToWorld, const TMatrix &tm2, const TMatrix &tm2to1,
-  Point3 &cp1, Point3 &cp2, uint16_t *node_index1, uint16_t *node_index2)
+  const CollisionResource *res2, const CollisionNode *node2, const TMatrix &node2_wtm, const TMatrix &tm1ToWorld,
+  const TMatrix &tm2to1, Point3 &cp1, Point3 &cp2, uint16_t *node_index1, uint16_t *node_index2, bool node2_grid_at_bind)
 {
   dag::Vector<Point3_vec4, framemem_allocator> res2Faces;
   const CollisionResource::Grid &res2Blas = res2->getBlasGridForResidentNode(*node2);
   const CollisionResource::Grid::NodeRange *nr2 = nullptr;
-  if (!res2Blas.blasData.empty())
+  // The grid arm serves bind-frame bytes: a live-posed grid member must brute-force through the
+  // caller's posed tms instead (same latch as the trace core).
+  if (node2_grid_at_bind && !res2Blas.blasData.empty())
     for (const auto &r : res2Blas.blasNodeRanges)
       if (r.nodeIndex == node2->nodeIndex)
       {
@@ -4371,7 +5127,8 @@ bool CollisionResource::testMeshNodePair(const CollisionNode *node1, dag::ConstS
   }
   else
   {
-    const TMatrix tm1to2 = inverse(tm2) * tm1ToWorld;
+    // Grid candidates must invert the full posed placement.
+    const TMatrix tm1to2 = inverse(node2_wtm) * tm1ToWorld;
     bbox3f bboxRes2v = v_ldu_bbox3(tm1to2 * node1->modelBBox);
     const vec3f boxMinQ = v_madd(bboxRes2v.bmin, res2Blas.blasScale, res2Blas.blasOfs);
     const vec3f boxMaxQ = v_madd(bboxRes2v.bmax, res2Blas.blasScale, res2Blas.blasOfs);
@@ -4415,8 +5172,8 @@ bool CollisionResource::testMeshNodePair(const CollisionNode *node1, dag::ConstS
       const Point3 &v2_2 = res2Faces[i2 + 2];
       if (test_triangle_triangle_intersection_mueller(v1_0, v1_1, v1_2, tm2to1 * v2_0, tm2to1 * v2_1, tm2to1 * v2_2))
       {
-        cp1 = node1->tm * ((v1_0 + v1_1 + v1_2) * 0.333333f);
-        cp2 = node2->tm * ((v2_0 + v2_1 + v2_2) * 0.333333f);
+        cp1 = tm1ToWorld * ((v1_0 + v1_1 + v1_2) * 0.333333f);
+        cp2 = node2_wtm * ((v2_0 + v2_1 + v2_2) * 0.333333f);
         if (node_index1)
           *node_index1 = node1->nodeIndex;
         if (node_index2)
@@ -4434,11 +5191,30 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
 {
   G_ASSERT(res1);
   G_ASSERT(res2);
+  return testIntersection(res1, tm1, filter1, res1->getDefaultInstance(), res2, tm2, filter2, res2->getDefaultInstance(),
+    collisionPoint1, collisionPoint2, nodeIndex1, nodeIndex2, node_indices1);
+}
 
-  float scale1 = tm1.getcol(1).length();
-  float scale2 = tm2.getcol(1).length();
+bool CollisionResource::testIntersection(const CollisionResource *res1, const TMatrix &tm1, const CollisionNodeFilter &filter1,
+  const CollisionResourceInstance &instance1, const CollisionResource *res2, const TMatrix &tm2, const CollisionNodeFilter &filter2,
+  const CollisionResourceInstance &instance2, Point3 &collisionPoint1, Point3 &collisionPoint2, uint16_t *nodeIndex1,
+  uint16_t *nodeIndex2, Tab<uint16_t> *node_indices1)
+{
+  G_ASSERT(res1);
+  G_ASSERT(res2);
+  const CollisionResourceInstance *inst1 = res1->resolveOwnedPoseForQuery(instance1, "test_collres_intersection");
+  const CollisionResourceInstance *inst2 = res2->resolveOwnedPoseForQuery(instance2, "test_collres_intersection");
+  auto nodePlacement = [](const CollisionResourceInstance *inst, const CollisionNode *n) -> const TMatrix & {
+    return inst->getNodeTmRef(n->nodeIndex);
+  };
 
-  TMatrix modelTm2to1 = inverse(tm1) * tm2;
+  // Conservative stretch, not one column: the outer tms are arbitrary caller matrices, and every
+  // radius cull below scales by these (same bound as the dispatch pair family).
+  mat44f vTm1, vTm2;
+  v_mat44_make_from_43cu_unsafe(vTm1, tm1.array);
+  v_mat44_make_from_43cu_unsafe(vTm2, tm2.array);
+  float scale1 = conservative_outer_scale(vTm1);
+  float scale2 = conservative_outer_scale(vTm2);
 
   Tab<bool> boxOutside(framemem_ptr());
   reserve_and_resize(boxOutside, res2->allNodesList.size());
@@ -4453,17 +5229,104 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
 #define _INC(x)
 #endif
 
+  // Precompute node1-invariant resource-2 pose data.
+  struct Mesh2Data
+  {
+    const CollisionNode *node;
+    TMatrix wtm2;   // tm2 * node placement: the node's full world matrix
+    Point3 wCenter; // world bounding-sphere center
+    float rTerm;    // pose-scaled bounding-sphere radius (before the outer scale2)
+  };
+  struct Box2Data
+  {
+    const CollisionNode *node;
+    BBox3 composedBox; // stored box in posed resource-2 space
+    Point3 wCenter;
+    float rTerm;
+  };
+  struct Sph2Data
+  {
+    const CollisionNode *node;
+    Point3 composedC; // stored sphere in posed resource-2 space
+    float composedR;
+    TMatrix invGtm;    // resource -> stored sphere frame (identity when the pose is IDENT)
+    bool pullToStored; // false: stored frame == resource frame
+    Point3 wCenter;
+  };
+  dag::Vector<Mesh2Data, framemem_allocator> mesh2s;
+  dag::Vector<Box2Data, framemem_allocator> box2s;
+  dag::Vector<Sph2Data, framemem_allocator> sph2s;
+  mesh2s.reserve(res2->numMeshNodes);
+  box2s.reserve(res2->numBoxNodes);
+  sph2s.reserve(res2->getAllNodes().size() - res2->numMeshNodes - res2->numBoxNodes - res2->numCapsuleNodes);
+  for (uint16_t mi2 = res2->meshNodesHead; mi2 != CollisionNode::INVALID_IDX; mi2 = res2->allNodesList[mi2].nextNode)
+  {
+    const CollisionNode *node2 = &res2->allNodesList[mi2];
+    if (!ITestIntersectionAlgo::poseCollidable(inst2, node2))
+      continue;
+    if (filter2 && !filter2(node2->nodeIndex))
+      continue;
+    Mesh2Data &m2 = mesh2s.push_back();
+    m2.node = node2;
+    m2.wtm2 = tm2 * nodePlacement(inst2, node2);
+    m2.wCenter = m2.wtm2 * node2->boundingSphere.c;
+    m2.rTerm = node2->boundingSphere.r * inst2->getPoseMeta(node2->nodeIndex).maxTmScale;
+  }
+  for (uint16_t bi2 = res2->boxNodesHead; bi2 != CollisionNode::INVALID_IDX; bi2 = res2->allNodesList[bi2].nextNode)
+  {
+    const CollisionNode *node2 = &res2->allNodesList[bi2];
+    if (!ITestIntersectionAlgo::poseCollidable(inst2, node2))
+      continue;
+    if (filter2 && !filter2(node2->nodeIndex))
+      continue;
+    Box2Data &b2 = box2s.push_back();
+    b2.node = node2;
+    b2.composedBox = ITestIntersectionAlgo::composedNodeBox(inst2, node2->nodeIndex, node2->modelBBox);
+    b2.wCenter = tm2 * (nodePlacement(inst2, node2) * node2->boundingSphere.c);
+    b2.rTerm = node2->boundingSphere.r * inst2->getPoseMeta(node2->nodeIndex).maxTmScale;
+  }
+  for (uint16_t si2 = res2->sphereNodesHead; si2 != CollisionNode::INVALID_IDX; si2 = res2->allNodesList[si2].nextNode)
+  {
+    const CollisionNode *node2 = &res2->allNodesList[si2];
+    if (!ITestIntersectionAlgo::poseCollidable(inst2, node2))
+      continue;
+    if (filter2 && !filter2(node2->nodeIndex))
+      continue;
+    // Stored sphere geometry follows its compatibility transform.
+    const bool identT2 = (inst2->getPoseMeta(node2->nodeIndex).flags & CollisionNode::IDENT) != 0;
+    TMatrix geometryTm2;
+    v_mat_43cu_from_mat44(geometryTm2.array, inst2->getNodeGeometryTm(node2->nodeIndex));
+    Sph2Data &s2 = sph2s.push_back();
+    s2.node = node2;
+    s2.composedC = identT2 ? node2->boundingSphere.c : geometryTm2 * node2->boundingSphere.c;
+    s2.pullToStored = !identT2;
+    s2.invGtm = identT2 ? TMatrix::IDENT : inverse(geometryTm2);
+    // BAKED radii are already in the tested frame; see the sphere-vs-sphere arm.
+    s2.composedR =
+      (node2->boundingSphere.r < 0.f || identT2 ||
+        (inst2->getPoseMeta(node2->nodeIndex).isGeometryBaked() && !inst2->getPoseMeta(node2->nodeIndex).isRetainedBake()))
+        ? node2->boundingSphere.r
+        : node2->boundingSphere.r * inst2->getPoseMeta(node2->nodeIndex).maxTmScale;
+    // broadphase center in the same single-composed frame the narrow phase tests
+    s2.wCenter = tm2 * s2.composedC;
+  }
+
   // Per-node1 face materialisation feeds the per-pair mesh/box/sphere sub-loops below.
   // iterateNodeFacesVerts dispatches on residency internally; cache once per node1 because a
   // BLAS-resident walk is O(total_leaves) (no per-node side table) and would otherwise rerun per node2.
   for (uint16_t mi1 = res1->meshNodesHead; mi1 != CollisionNode::INVALID_IDX; mi1 = res1->allNodesList[mi1].nextNode)
   {
     const CollisionNode *node1 = &res1->allNodesList[mi1];
+    if (!ITestIntersectionAlgo::poseCollidable(inst1, node1))
+      continue;
     if (filter1 && !filter1(node1->nodeIndex))
       continue;
 
-    Point3 sphereCenter1 = tm1 * (node1->tm * node1->boundingSphere.c);
-    TMatrix invTm1, tm1ToWorld;
+    const TMatrix node1Tm = nodePlacement(inst1, node1);
+    Point3 sphereCenter1 = tm1 * (node1Tm * node1->boundingSphere.c);
+    const float r1Term = node1->boundingSphere.r * inst1->getPoseMeta(node1->nodeIndex).maxTmScale * scale1;
+    // Initialized despite the lazy-compute flags: MSVC cannot prove the flag protocol (C4701).
+    TMatrix invTm1 = TMatrix::IDENT, tm1ToWorld = TMatrix::IDENT;
     bool invTm1ready = false;
     mem_set_0(boxOutside);
     dag::Vector<Point3_vec4, framemem_allocator> node1FaceVerts;
@@ -4478,15 +5341,13 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
       node1FaceVerts.push_back(p2);
     });
 
-    for (uint16_t mi2 = res2->meshNodesHead; mi2 != CollisionNode::INVALID_IDX; mi2 = res2->allNodesList[mi2].nextNode)
+    for (const Mesh2Data &m2 : mesh2s)
     {
-      const CollisionNode *node2 = &res2->allNodesList[mi2];
+      const CollisionNode *node2 = m2.node;
       _INC(numNodesDebug);
 
-      if (filter2 && !filter2(node2->nodeIndex))
-        continue;
-
-      if (node2->insideOfNode != 0xffff && boxOutside[node2->insideOfNode])
+      // Serialized containment is valid only while parent and child remain at bind.
+      if (node2->insideOfNode != 0xffff && !inst2->isPosedSinceBind() && boxOutside[node2->insideOfNode])
       {
         boxOutside[node2->nodeIndex] = true;
         continue;
@@ -4494,19 +5355,18 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
 
       _INC(numBoxesInsideDebug);
 
-      Point3 sphereCenter2 = tm2 * (node2->tm * node2->boundingSphere.c);
-      float sumRad = node1->boundingSphere.r * scale1 + node2->boundingSphere.r * scale2;
-      if (lengthSq(sphereCenter1 - sphereCenter2) >= sumRad * sumRad)
+      float sumRad = r1Term + m2.rTerm * scale2;
+      if (lengthSq(sphereCenter1 - m2.wCenter) >= sumRad * sumRad)
         continue;
       _INC(numSpheresDebug);
 
       if (!invTm1ready)
       {
-        tm1ToWorld = tm1 * node1->tm;
+        tm1ToWorld = tm1 * node1Tm;
         invTm1 = inverse(tm1ToWorld);
         invTm1ready = true;
       }
-      TMatrix tm2to1 = invTm1 * (tm2 * node2->tm);
+      TMatrix tm2to1 = invTm1 * m2.wtm2;
 
       if (!test_box_box_intersection(node1->modelBBox, node2->modelBBox, tm2to1))
       {
@@ -4515,8 +5375,8 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
       }
       _INC(numBoxesDebug);
 
-      if (testMeshNodePair(node1, make_span_const(node1FaceVerts), res2, node2, tm1ToWorld, tm2, tm2to1, collisionPoint1,
-            collisionPoint2, nodeIndex1, nodeIndex2))
+      if (testMeshNodePair(node1, make_span_const(node1FaceVerts), res2, node2, m2.wtm2, tm1ToWorld, tm2to1, collisionPoint1,
+            collisionPoint2, nodeIndex1, nodeIndex2, inst2->isGridResidentPoseAtBind()))
       {
         if (!node_indices1)
           return true;
@@ -4524,36 +5384,41 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
       }
     }
 
-    TMatrix tm1to2;
+    TMatrix tm1to2 = TMatrix::IDENT; // initialized for the same C4701 reason as invTm1
     bool tm1to2ready = false;
 
     auto faceCentroidWorld = [&](size_t i1) {
-      return node1->tm * ((node1FaceVerts[i1] + node1FaceVerts[i1 + 1] + node1FaceVerts[i1 + 2]) * 0.333333f);
+      return tm1 * (node1Tm * ((node1FaceVerts[i1] + node1FaceVerts[i1 + 1] + node1FaceVerts[i1 + 2]) * 0.333333f));
     };
 
-    for (uint16_t bi2 = res2->boxNodesHead; bi2 != CollisionNode::INVALID_IDX; bi2 = res2->allNodesList[bi2].nextNode)
+    for (const Box2Data &b2 : box2s)
     {
-      const CollisionNode *node2 = &res2->allNodesList[bi2];
-      Point3 sphereCenter2 = tm2 * (node2->tm * node2->boundingSphere.c);
-
-      float sumRad = node1->boundingSphere.r * scale1 + node2->boundingSphere.r * scale2;
-      if (lengthSq(sphereCenter1 - sphereCenter2) >= sumRad * sumRad)
+      const CollisionNode *node2 = b2.node;
+      float sumRad = r1Term + b2.rTerm * scale2;
+      if (lengthSq(sphereCenter1 - b2.wCenter) >= sumRad * sumRad)
         continue;
-      if (!test_box_box_intersection(node1->modelBBox, node2->modelBBox, modelTm2to1))
+      if (!invTm1ready)
+      {
+        tm1ToWorld = tm1 * node1Tm;
+        invTm1 = inverse(tm1ToWorld);
+        invTm1ready = true;
+      }
+      // Map the composed box into node1's local frame.
+      if (!test_box_box_intersection(node1->modelBBox, b2.composedBox, invTm1 * tm2))
         continue;
       if (!tm1to2ready)
       {
-        tm1to2 = inverse(tm2) * tm1 * node1->tm;
+        tm1to2 = inverse(tm2) * tm1 * node1Tm;
         tm1to2ready = true;
       }
 
       for (size_t i1 = 0; i1 + 2 < node1FaceVerts.size(); i1 += 3)
       {
         if (!test_triangle_box_intersection(tm1to2 * node1FaceVerts[i1], tm1to2 * node1FaceVerts[i1 + 1],
-              tm1to2 * node1FaceVerts[i1 + 2], node2->modelBBox))
+              tm1to2 * node1FaceVerts[i1 + 2], b2.composedBox))
           continue;
         collisionPoint1 = faceCentroidWorld(i1);
-        collisionPoint2 = node2->boundingSphere.c;
+        collisionPoint2 = b2.wCenter; // posed world center, like the sphere arm
         if (nodeIndex1)
           *nodeIndex1 = node1->nodeIndex;
         if (nodeIndex2)
@@ -4565,28 +5430,30 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
       }
     }
 
-    for (uint16_t si2 = res2->sphereNodesHead; si2 != CollisionNode::INVALID_IDX; si2 = res2->allNodesList[si2].nextNode)
+    for (const Sph2Data &s2 : sph2s)
     {
-      const CollisionNode *node2 = &res2->allNodesList[si2];
-      Point3 sphereCenter2 = tm2 * (node2->tm * node2->boundingSphere.c);
-
-      float sumRad = node1->boundingSphere.r * scale1 + node2->boundingSphere.r * scale2;
-      if (lengthSq(sphereCenter1 - sphereCenter2) >= sqr(sumRad))
+      const CollisionNode *node2 = s2.node;
+      float sumRad = r1Term + s2.composedR * scale2;
+      if (lengthSq(sphereCenter1 - s2.wCenter) >= sqr(sumRad))
         continue;
       if (!tm1to2ready)
       {
-        tm1to2 = inverse(tm2) * tm1 * node1->tm;
+        tm1to2 = inverse(tm2) * tm1 * node1Tm;
         tm1to2ready = true;
       }
 
+      // Narrow phase in the sphere's STORED frame: the widened enclosing sphere above is only
+      // the cull, and testing it directly would invent contacts outside a non-uniform pose's
+      // short axes.
+      const TMatrix tri2sphere = s2.pullToStored ? s2.invGtm * tm1to2 : tm1to2;
       const auto node2BSphere = make_node_bsphere(node2->boundingSphere.c, node2->boundingSphere.r);
       for (size_t i1 = 0; i1 + 2 < node1FaceVerts.size(); i1 += 3)
       {
-        if (!test_triangle_sphere_intersection(tm1to2 * node1FaceVerts[i1], tm1to2 * node1FaceVerts[i1 + 1],
-              tm1to2 * node1FaceVerts[i1 + 2], node2BSphere))
+        if (!test_triangle_sphere_intersection(tri2sphere * node1FaceVerts[i1], tri2sphere * node1FaceVerts[i1 + 1],
+              tri2sphere * node1FaceVerts[i1 + 2], node2BSphere))
           continue;
         collisionPoint1 = faceCentroidWorld(i1);
-        collisionPoint2 = node2->boundingSphere.c;
+        collisionPoint2 = s2.wCenter;
         if (nodeIndex1)
           *nodeIndex1 = node1->nodeIndex;
         if (nodeIndex2)
@@ -4617,19 +5484,41 @@ void CollisionResource::getCollisionNodeTm(const CollisionNode *node, mat44f_cre
   mat44f &out_tm) const
 {
   if (node->type == COLLISION_NODE_TYPE_MESH || node->type == COLLISION_NODE_TYPE_CONVEX || node->type == COLLISION_NODE_TYPE_CAPSULE)
-    out_tm = getMeshNodeTmInline(node, instance_tm, v_zero(), geom_node_tree);
+  {
+    const CollisionResourceTraceAdapter::LegacyPose ps(*this, geom_node_tree);
+    out_tm = getPosedNodeWtmInline(node, instance_tm, v_zero(), ps.pose());
+  }
   else
     out_tm = instance_tm;
 }
 
-__forceinline mat44f CollisionResource::getMeshNodeTmInline(const CollisionNode *node, mat44f_cref instance_tm, vec3f instance_woffset,
-  const GeomNodeTree *geom_node_tree) const
+void CollisionResource::getCollisionNodeTm(const CollisionNode *node, const TMatrix &instance_tm,
+  const CollisionResourceInstance &instance, TMatrix &out_tm) const
+{
+  mat44f tm, outTm;
+  v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
+  getCollisionNodeTm(node, tm, instance, outTm);
+  v_mat_43cu_from_mat44(out_tm.array, outTm);
+}
+
+void CollisionResource::getCollisionNodeTm(const CollisionNode *node, mat44f_cref instance_tm,
+  const CollisionResourceInstance &instance, mat44f &out_tm) const
+{
+  // uniform frame contract: the posed node->world matrix is instance_tm * T for every node type
+  const CollisionResourceInstance *inst = resolveInstanceForTrace(instance);
+  out_tm = getPosedNodeWtmInline(node, instance_tm, v_zero(), *inst);
+}
+
+template <typename pose_t>
+__forceinline mat44f CollisionResource::getPosedNodeWtmInline(const CollisionNode *node, mat44f_cref instance_tm,
+  vec3f instance_woffset, const pose_t &instance) const
 {
   mat44f outTm;
-  if (auto idx = (geom_node_tree && node->geomNodeId.index() < geom_node_tree->nodeCount()) ? node->geomNodeId : dag::Index16())
+  const GeomNodeTree *geomNodeTree = instance.getTree();
+  if (auto idx = (geomNodeTree && node->geomNodeId.index() < geomNodeTree->nodeCount()) ? node->geomNodeId : dag::Index16())
   {
-    outTm = geom_node_tree->getNodeWtmRel(idx); //-V1004
-    outTm.col3 = v_add(outTm.col3, v_sub(geom_node_tree->getWtmOfs(), instance_woffset));
+    outTm = geomNodeTree->getNodeWtmRel(idx); //-V1004
+    outTm.col3 = v_add(outTm.col3, v_sub(geomNodeTree->getWtmOfs(), instance_woffset));
     if (collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)
     {
       mat44f relGeomNodeTm;
@@ -4637,12 +5526,10 @@ __forceinline mat44f CollisionResource::getMeshNodeTmInline(const CollisionNode 
       v_mat44_mul43(outTm, outTm, relGeomNodeTm);
     }
   }
+  else if (!geomNodeTree)
+    v_mat44_mul43(outTm, instance_tm, instance.getNodeTm(node->nodeIndex));
   else
-  {
-    mat44f nodeTm;
-    v_mat44_make_from_43cu_unsafe(nodeTm, node->tm.m[0]);
-    v_mat44_mul43(outTm, instance_tm, nodeTm);
-  }
+    v_mat44_mul43(outTm, instance_tm, defaultInstance.getNodeTm(node->nodeIndex)); // unbound: default pose
   return outTm;
 }
 
@@ -4677,6 +5564,13 @@ void CollisionResource::clipCapsule(const TMatrix &instance_tm, const Capsule &c
 
 void CollisionResource::clipCapsule(const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, const Point3 &movedirNormalized)
 {
+  clipCapsule(c, cp1, cp2, md, movedirNormalized, getDefaultInstance());
+}
+
+void CollisionResource::clipCapsule(const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, const Point3 &movedirNormalized,
+  const CollisionResourceInstance &instance)
+{
+  const CollisionResourceInstance *inst = resolveOwnedPoseForQuery(instance, "clipCapsule");
   const bool haveMoveDir = lengthSq(movedirNormalized) > 1e-6f;
   const vec3f vMoveDir = haveMoveDir ? v_ldu(&movedirNormalized.x) : v_zero();
 
@@ -4703,7 +5597,8 @@ void CollisionResource::clipCapsule(const Capsule &c, Point3 &cp1, Point3 &cp2, 
   };
 
   const Grid &blasGrid = getBlasGrid(CollisionNode::PHYS_COLLIDABLE);
-  const bool useBlas = !blasGrid.blasData.empty();
+  // The combined grid is valid only for an enabled bind pose.
+  const bool useBlas = !blasGrid.blasData.empty() && inst->isGridResidentPoseAtBind();
   if (useBlas)
   {
     // BLAS path: filter the BLAS by the capsule's resource-local bbox and clip each candidate.
@@ -4736,7 +5631,7 @@ void CollisionResource::clipCapsule(const Capsule &c, Point3 &cp1, Point3 &cp2, 
   // stop contributing to capsule clipping (e.g. convex collision in rendInstGenCollision.cpp). Skips
   // the nodes the BLAS walk above already clipped, keyed by the walked grid's membership flag (exact,
   // unlike the eligibility mirror). Triangles are read node-local (iterateNodeFacesVerts) and
-  // transformed by node->tm into resource-local (the capsule/BLAS frame).
+  // transformed by the node's default T into resource-local (the capsule/BLAS frame).
   const uint8_t walkedGridFlag =
     useBlas ? (isCollidableGridForTrace(CollisionNode::PHYS_COLLIDABLE) ? CollisionNode::GRID_PHYS : CollisionNode::GRID_TRACEABLE)
             : 0;
@@ -4747,23 +5642,62 @@ void CollisionResource::clipCapsule(const Capsule &c, Point3 &cp1, Point3 &cp2, 
       continue;
     if (node->flags & walkedGridFlag)
       continue; // already handled by the BLAS walk above
+    if (!ITestIntersectionAlgo::poseCollidable(inst, node))
+      continue; // structurally hidden or untraceable pose
 
     // SOLID nodes trace without back-face culling (never in the BLAS -- a SOLID node aborts buildBLAS),
     // so disable the movedir cull to match FRT/per-node semantics.
     const bool cull = haveMoveDir && !node->checkBehaviorFlags(CollisionNode::SOLID);
-    mat44f nodeTm;
-    v_mat44_make_from_43cu_unsafe(nodeTm, node->tm.m[0]); // node-local -> resource-local
+    const mat44f nodeTm = inst->getNodeTm(node->nodeIndex); // node-local -> resource-local
     iterateNodeFacesVerts(mi, [&](int, vec4f lv0, vec4f lv1, vec4f lv2) {
       clipTri(v_mat44_mul_vec3p(nodeTm, lv0), v_mat44_mul_vec3p(nodeTm, lv1), v_mat44_mul_vec3p(nodeTm, lv2), cull);
     });
   }
 }
 
+bool CollisionResource::test_sphere_node_intersection(const BSphere3 &sphere, const CollisionNode *node,
+  const CollisionResourceInstance &instance, const Point3 &dir_norm, Point3 &out_norm, float &out_depth) const
+{
+  const CollisionResourceInstance *inst = resolveOwnedPoseForQuery(instance, "test_sphere_node_intersection");
+  if (DAGOR_UNLIKELY(!inst->isNodeTraceable(node->nodeIndex)))
+    return false; // singular pose: no defined node frame to test in
+  mat44f vitm;
+  v_mat44_inverse43(vitm, inst->getNodeTm(node->nodeIndex));
+  TMatrix itm;
+  v_mat_43ca_from_mat44(itm.array, vitm);
+  // Convert scaled probes conservatively through the inverse pose.
+  // A bit-exact rigid frame tests exactly: padding it would report contacts across real gaps.
+  if (is_exact_rigid_basis(itm))
+    return testSphereNodeIntersectionLocal(itm, sphere, node, dir_norm, out_norm, out_depth);
+  // The inverse spectral stretch is exact for uniform scale and conservative for shear, so the
+  // class tolerance bands are covered without a fixed pad (a down-scale inside the band needs
+  // MORE than any constant); the depth conversion below restores the world-radius gap.
+  const float rScale = mat33_spectral_norm(vitm);
+  const float rLocal = sphere.r * rScale;
+  if (!testSphereNodeIntersectionLocal(itm, BSphere3(sphere.c, rLocal), node, dir_norm, out_norm, out_depth))
+    return false;
+  // Convert the center-to-plane gap alone (plane gaps scale by 1 / |M^-T n| under an affine
+  // pose; |M n| matches that only without shear), then restore the world radius: the
+  // conservatively widened local radius must not ride through the normal factor. The
+  // traceability gate bounds the divisor; clamp at contact so the widened local test cannot
+  // report a positive (separated) depth.
+  mat33f i33, t33;
+  v_mat33_from_mat44(i33, vitm);
+  v_mat33_transpose(t33, i33);
+  const float invN = v_extract_x(v_length3_x(v_mat33_mul_vec3(t33, v_ldu_p3_safe(&out_norm.x))));
+  out_depth = min(0.f, (out_depth + rLocal) / invN - sphere.r);
+  return true;
+}
+
 bool CollisionResource::test_sphere_node_intersection(const BSphere3 &sphere, const CollisionNode *node, const Point3 &dir_norm,
   Point3 &out_norm, float &out_depth) const
 {
-  TMatrix itm = inverse(node->tm);
+  return test_sphere_node_intersection(sphere, node, getDefaultInstance(), dir_norm, out_norm, out_depth);
+}
 
+bool CollisionResource::testSphereNodeIntersectionLocal(const TMatrix &itm, const BSphere3 &sphere, const CollisionNode *node,
+  const Point3 &dir_norm, Point3 &out_norm, float &out_depth) const
+{
   BSphere3 localSphere(itm * sphere.c, sphere.r);
   if (!(node->modelBBox & localSphere))
     return false;
@@ -4799,9 +5733,27 @@ bool CollisionResource::test_sphere_node_intersection(const BSphere3 &sphere, co
 bool CollisionResource::test_capsule_node_intersection(const Point3 &p0, const Point3 &p1, float radius,
   const CollisionNode *node) const
 {
-  TMatrix itm = inverse(node->tm);
+  return test_capsule_node_intersection(p0, p1, radius, node, getDefaultInstance());
+}
+
+bool CollisionResource::test_capsule_node_intersection(const Point3 &p0, const Point3 &p1, float radius, const CollisionNode *node,
+  const CollisionResourceInstance &instance) const
+{
+  const CollisionResourceInstance *inst = resolveOwnedPoseForQuery(instance, "test_capsule_node_intersection");
+  if (DAGOR_UNLIKELY(!inst->isNodeTraceable(node->nodeIndex)))
+    return false; // singular pose: no defined node frame to test in
+  mat44f vitm;
+  v_mat44_inverse43(vitm, inst->getNodeTm(node->nodeIndex));
+  TMatrix itm;
+  v_mat_43ca_from_mat44(itm.array, vitm);
   Point3 localCylinderPoint0 = itm * p0;
   Point3 localCylinderPoint1 = itm * p1;
+
+  // Convert scaled sweep radii conservatively into node-local units: the inverse spectral
+  // stretch is exact for uniform scale and covers the class tolerance bands without a fixed
+  // pad (a down-scale inside the band needs MORE than any constant).
+  if (!is_exact_rigid_basis(itm))
+    radius *= mat33_spectral_norm(vitm);
 
   const Point3 radiusVec(radius, radius, radius);
   BBox3 bbox;
@@ -4855,7 +5807,8 @@ int CollisionResource::getMemoryUsed() const
   int mem = sizeof(*this);
   mem +=
     (int)(defaultInstance.nodeTm.size() * sizeof(TMatrix) + authoredNodeTm.size() * sizeof(TMatrix) +
-          defaultInstance.poseMeta.size() * sizeof(CollisionResourceInstance::PoseMeta) + allNodesList.size() * sizeof(CollisionNode));
+          authoredNodeItm.size() * sizeof(TMatrix) + defaultInstance.poseMeta.size() * sizeof(CollisionResourceInstance::PoseMeta) +
+          allNodesList.size() * sizeof(CollisionNode));
   mem += (int)nodeBlasData.size();
   mem += (int)names.size();
   mem += capsules.size() * sizeof(Capsule);
@@ -4878,6 +5831,32 @@ Point3 CollisionResource::getWorldBoundingSphere(const TMatrix &tm, const GeomNo
   v_mat44_make_from_43cu_unsafe(vTm, tm.array);
   Point3 ret;
   v_stu_p3(&ret.x, getWorldBoundingSphere(vTm, geom_node_tree));
+  return ret;
+}
+
+vec4f CollisionResource::getWorldBoundingSphere(const mat44f &tm, const CollisionResourceInstance &instance) const
+{
+  const CollisionResourceInstance *inst = resolveInstanceForTrace(instance);
+  // A read-side query must not anchor the lazy refresh to its own tm (first caller would
+  // mis-anchor the trace reject to a query tm); a stale tree-backed pose answers at the
+  // bind center instead of refreshing.
+  bool fresh = true;
+  if (inst->getTree())
+    fresh = interlocked_acquire_load(inst->poseGeneration) == inst->getTree()->getPoseGeneration() &&
+            interlocked_acquire_load(inst->defaultPoseGenAtRefresh) == defaultPoseGen;
+  // No selected center node: the BIND center by contract (matrix-posed instances included --
+  // the das setBsphereCenterNode ordering relies on this fallback).
+  if (!inst->hasBsphereCenterLocal || !fresh)
+    return v_mat44_mul_vec3p(tm, vBoundingSphere);
+  return v_mat44_mul_vec3p(tm, inst->bsphereCenterLocal);
+}
+
+Point3 CollisionResource::getWorldBoundingSphere(const TMatrix &tm, const CollisionResourceInstance &instance) const
+{
+  mat44f vTm;
+  v_mat44_make_from_43cu_unsafe(vTm, tm.array);
+  Point3 ret;
+  v_stu_p3(&ret.x, getWorldBoundingSphere(vTm, instance));
   return ret;
 }
 

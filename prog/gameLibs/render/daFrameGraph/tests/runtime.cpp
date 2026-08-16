@@ -9,6 +9,7 @@
 #include <drv/3d/dag_driverDesc.h>
 #include <memory/dag_framemem.h>
 #include <shaders/dag_shaderVar.h>
+#include <debug/dag_assert.h>
 #include <EASTL/any.h>
 #include <EASTL/vector.h>
 
@@ -109,6 +110,54 @@ TEST_CASE("Hijacker disappears", "[name resolution]")
     expectedMessage = Message::Original;
     testRuntime.executeGraph();
   }
+}
+
+TEST_CASE("Sibling name space reached through parent", "[name resolution]")
+{
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle senderHandle = (dafg::root() / "a" / "view0").registerNode("sender", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("message").blob(Message::Original);
+  });
+
+  // A broken read disables the node instead of failing the test, hence the flag.
+  bool receiverExecuted = false;
+  dafg::NodeHandle receiverHandle =
+    (dafg::root() / "a" / "view1").registerNode("receiver", DAFG_PP_NODE_SRC, [&receiverExecuted](dafg::Registry registry) {
+      registry.executionHas(dafg::SideEffects::External);
+      auto messageHandle = (registry.getParentNameSpace() / "view0").read("message").blob<Message>().handle();
+      return [&receiverExecuted, messageHandle] {
+        receiverExecuted = true;
+        CHECK(*messageHandle.get() == Message::Original);
+      };
+    });
+
+  testRuntime.executeGraph();
+  CHECK(receiverExecuted);
+}
+
+TEST_CASE("Root name space is its own parent", "[name resolution]")
+{
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle senderHandle = dafg::register_node("sender", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("message").blob(Message::Original);
+  });
+
+  bool receiverExecuted = false;
+  dafg::NodeHandle receiverHandle = dafg::register_node("receiver", DAFG_PP_NODE_SRC, [&receiverExecuted](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    auto messageHandle = registry.getParentNameSpace().read("message").blob<Message>().handle();
+    return [&receiverExecuted, messageHandle] {
+      receiverExecuted = true;
+      CHECK(*messageHandle.get() == Message::Original);
+    };
+  });
+
+  testRuntime.executeGraph();
+  CHECK(receiverExecuted);
 }
 
 TEST_CASE("Sender became useless", "[prunning]")
@@ -1268,6 +1317,9 @@ TEST_CASE("Runtime deduces TEXCF_UPDATE_DESTINATION from usage in modifier node"
 
 TEST_CASE("Runtime deduces TEXCF_VARIABLE_RATE from usage in reader node", "[resource flags]")
 {
+  if (!d3d::get_driver_desc().caps.hasVariableRateShadingTexture)
+    SKIP("Driver does not support VRS");
+
   TestRuntime testRuntime{};
 
   dafg::NodeHandle providerHandle = dafg::register_node("provider", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
@@ -1621,6 +1673,8 @@ TEST_CASE("Untracked buffer is synced entirely by daFG via enhanced barriers", "
   activateBufferCount = deactivateBufferCount = 0;
   activationBarrierCount = releaseBarrierCount = transitionBarrierCount = legacyBarrierCount = 0;
 
+  const bool untrackedSupported = d3d::get_driver_desc().caps.hasEnhancedResourceBarriers;
+
   g_interfaceTableCopy = d3di;
 
   TestRuntime testRuntime{};
@@ -1669,12 +1723,24 @@ TEST_CASE("Untracked buffer is synced entirely by daFG via enhanced barriers", "
 
   d3di = g_interfaceTableCopy;
 
-  CHECK(activateBufferCount == 0);
-  CHECK(deactivateBufferCount == 0);
-  CHECK(legacyBarrierCount == 0);
-  CHECK(activationBarrierCount == 1);
-  CHECK(transitionBarrierCount == 1);
-  CHECK(releaseBarrierCount == 1);
+  if (untrackedSupported)
+  {
+    CHECK(activateBufferCount == 0);
+    CHECK(deactivateBufferCount == 0);
+    CHECK(legacyBarrierCount == 0);
+    CHECK(activationBarrierCount == 1);
+    CHECK(transitionBarrierCount == 1);
+    CHECK(releaseBarrierCount == 1);
+  }
+  else
+  {
+    CHECK(activateBufferCount == 1);
+    CHECK(deactivateBufferCount == 1);
+    CHECK(legacyBarrierCount == 1);
+    CHECK(activationBarrierCount == 0);
+    CHECK(transitionBarrierCount == 0);
+    CHECK(releaseBarrierCount == 0);
+  }
 }
 
 TEST_CASE("Untracked buffer UAV-UAV hazard is synchronized via enhanced barriers", "[untracked resources]")
@@ -1684,6 +1750,8 @@ TEST_CASE("Untracked buffer UAV-UAV hazard is synchronized via enhanced barriers
   static int releaseBarrierCount;
   static int legacyBarrierCount;
   activationBarrierCount = hazardBarrierCount = releaseBarrierCount = legacyBarrierCount = 0;
+
+  const bool untrackedSupported = d3d::get_driver_desc().caps.hasEnhancedResourceBarriers;
 
   g_interfaceTableCopy = d3di;
 
@@ -1728,10 +1796,20 @@ TEST_CASE("Untracked buffer UAV-UAV hazard is synchronized via enhanced barriers
 
   d3di = g_interfaceTableCopy;
 
-  CHECK(legacyBarrierCount == 0);
-  CHECK(activationBarrierCount == 1);
-  CHECK(hazardBarrierCount == 1);
-  CHECK(releaseBarrierCount == 1);
+  if (untrackedSupported)
+  {
+    CHECK(legacyBarrierCount == 0);
+    CHECK(activationBarrierCount == 1);
+    CHECK(hazardBarrierCount == 1);
+    CHECK(releaseBarrierCount == 1);
+  }
+  else
+  {
+    CHECK(legacyBarrierCount == 0);
+    CHECK(activationBarrierCount == 0);
+    CHECK(hazardBarrierCount == 0);
+    CHECK(releaseBarrierCount == 0);
+  }
 }
 
 TEST_CASE("Untracked texture is synced entirely by daFG via enhanced barriers", "[untracked resources]")
@@ -1744,6 +1822,8 @@ TEST_CASE("Untracked texture is synced entirely by daFG via enhanced barriers", 
   static int legacyBarrierCount;
   activateTextureCount = deactivateTextureCount = 0;
   activationBarrierCount = releaseBarrierCount = transitionBarrierCount = legacyBarrierCount = 0;
+
+  const bool untrackedSupported = d3d::get_driver_desc().caps.hasEnhancedResourceBarriers;
 
   g_interfaceTableCopy = d3di;
 
@@ -1801,12 +1881,24 @@ TEST_CASE("Untracked texture is synced entirely by daFG via enhanced barriers", 
 
   d3di = g_interfaceTableCopy;
 
-  CHECK(activateTextureCount == 0);
-  CHECK(deactivateTextureCount == 0);
-  CHECK(legacyBarrierCount == 0);
-  CHECK(activationBarrierCount == 1);
-  CHECK(transitionBarrierCount == 1);
-  CHECK(releaseBarrierCount == 1);
+  if (untrackedSupported)
+  {
+    CHECK(activateTextureCount == 0);
+    CHECK(deactivateTextureCount == 0);
+    CHECK(legacyBarrierCount == 0);
+    CHECK(activationBarrierCount == 1);
+    CHECK(transitionBarrierCount == 1);
+    CHECK(releaseBarrierCount == 1);
+  }
+  else
+  {
+    CHECK(activateTextureCount == 1);
+    CHECK(deactivateTextureCount == 1);
+    CHECK(legacyBarrierCount == 1);
+    CHECK(activationBarrierCount == 0);
+    CHECK(transitionBarrierCount == 0);
+    CHECK(releaseBarrierCount == 0);
+  }
 }
 
 TEST_CASE("Untracked texture UAV-UAV hazard is synchronized via enhanced barriers", "[untracked resources]")
@@ -1816,6 +1908,8 @@ TEST_CASE("Untracked texture UAV-UAV hazard is synchronized via enhanced barrier
   static int releaseBarrierCount;
   static int legacyBarrierCount;
   activationBarrierCount = hazardBarrierCount = releaseBarrierCount = legacyBarrierCount = 0;
+
+  const bool untrackedSupported = d3d::get_driver_desc().caps.hasEnhancedResourceBarriers;
 
   g_interfaceTableCopy = d3di;
 
@@ -1865,10 +1959,20 @@ TEST_CASE("Untracked texture UAV-UAV hazard is synchronized via enhanced barrier
 
   d3di = g_interfaceTableCopy;
 
-  CHECK(legacyBarrierCount == 0);
-  CHECK(activationBarrierCount == 1);
-  CHECK(hazardBarrierCount == 1);
-  CHECK(releaseBarrierCount == 1);
+  if (untrackedSupported)
+  {
+    CHECK(legacyBarrierCount == 0);
+    CHECK(activationBarrierCount == 1);
+    CHECK(hazardBarrierCount == 1);
+    CHECK(releaseBarrierCount == 1);
+  }
+  else
+  {
+    CHECK(legacyBarrierCount == 0);
+    CHECK(activationBarrierCount == 0);
+    CHECK(hazardBarrierCount == 0);
+    CHECK(releaseBarrierCount == 0);
+  }
 }
 
 TEST_CASE("Untracked texture render target to shader resource transition", "[untracked resources]")
@@ -1880,6 +1984,8 @@ TEST_CASE("Untracked texture render target to shader resource transition", "[unt
   static int legacyBarrierCount;
   activateTextureCount = 0;
   activationBarrierCount = transitionBarrierCount = releaseBarrierCount = legacyBarrierCount = 0;
+
+  const bool untrackedSupported = d3d::get_driver_desc().caps.hasEnhancedResourceBarriers;
 
   g_interfaceTableCopy = d3di;
 
@@ -1932,11 +2038,22 @@ TEST_CASE("Untracked texture render target to shader resource transition", "[unt
 
   d3di = g_interfaceTableCopy;
 
-  CHECK(activateTextureCount == 0);
-  CHECK(legacyBarrierCount == 0);
-  CHECK(activationBarrierCount == 1);
-  CHECK(transitionBarrierCount == 1);
-  CHECK(releaseBarrierCount == 1);
+  if (untrackedSupported)
+  {
+    CHECK(activateTextureCount == 0);
+    CHECK(legacyBarrierCount == 0);
+    CHECK(activationBarrierCount == 1);
+    CHECK(transitionBarrierCount == 1);
+    CHECK(releaseBarrierCount == 1);
+  }
+  else
+  {
+    CHECK(activateTextureCount == 1);
+    CHECK(legacyBarrierCount == 1);
+    CHECK(activationBarrierCount == 0);
+    CHECK(transitionBarrierCount == 0);
+    CHECK(releaseBarrierCount == 0);
+  }
 }
 
 TEST_CASE("Untracked texture copy destination to shader resource transition", "[untracked resources]")
@@ -1948,6 +2065,8 @@ TEST_CASE("Untracked texture copy destination to shader resource transition", "[
   static int legacyBarrierCount;
   activateTextureCount = 0;
   activationBarrierCount = transitionBarrierCount = releaseBarrierCount = legacyBarrierCount = 0;
+
+  const bool untrackedSupported = d3d::get_driver_desc().caps.hasEnhancedResourceBarriers;
 
   g_interfaceTableCopy = d3di;
 
@@ -2000,11 +2119,22 @@ TEST_CASE("Untracked texture copy destination to shader resource transition", "[
 
   d3di = g_interfaceTableCopy;
 
-  CHECK(activateTextureCount == 0);
-  CHECK(legacyBarrierCount == 0);
-  CHECK(activationBarrierCount == 1);
-  CHECK(transitionBarrierCount == 1);
-  CHECK(releaseBarrierCount == 1);
+  if (untrackedSupported)
+  {
+    CHECK(activateTextureCount == 0);
+    CHECK(legacyBarrierCount == 0);
+    CHECK(activationBarrierCount == 1);
+    CHECK(transitionBarrierCount == 1);
+    CHECK(releaseBarrierCount == 1);
+  }
+  else
+  {
+    CHECK(activateTextureCount == 1);
+    CHECK(legacyBarrierCount == 1);
+    CHECK(activationBarrierCount == 0);
+    CHECK(transitionBarrierCount == 0);
+    CHECK(releaseBarrierCount == 0);
+  }
 }
 
 TEST_CASE("Untracked texture read-after-read needs no intermediate barrier", "[untracked resources]")
@@ -2014,6 +2144,8 @@ TEST_CASE("Untracked texture read-after-read needs no intermediate barrier", "[u
   static int releaseBarrierCount;
   static int legacyBarrierCount;
   activationBarrierCount = transitionBarrierCount = releaseBarrierCount = legacyBarrierCount = 0;
+
+  const bool untrackedSupported = d3d::get_driver_desc().caps.hasEnhancedResourceBarriers;
 
   g_interfaceTableCopy = d3di;
 
@@ -2065,10 +2197,20 @@ TEST_CASE("Untracked texture read-after-read needs no intermediate barrier", "[u
 
   d3di = g_interfaceTableCopy;
 
-  CHECK(legacyBarrierCount == 0);
-  CHECK(activationBarrierCount == 1);
-  CHECK(transitionBarrierCount == 1);
-  CHECK(releaseBarrierCount == 1);
+  if (untrackedSupported)
+  {
+    CHECK(legacyBarrierCount == 0);
+    CHECK(activationBarrierCount == 1);
+    CHECK(transitionBarrierCount == 1);
+    CHECK(releaseBarrierCount == 1);
+  }
+  else
+  {
+    CHECK(legacyBarrierCount == 1);
+    CHECK(activationBarrierCount == 0);
+    CHECK(transitionBarrierCount == 0);
+    CHECK(releaseBarrierCount == 0);
+  }
 }
 
 TEST_CASE("Untracked texture barriers are re-emitted every frame", "[untracked resources]")
@@ -2079,6 +2221,8 @@ TEST_CASE("Untracked texture barriers are re-emitted every frame", "[untracked r
   static int transitionBarrierCount;
   static int releaseBarrierCount;
   static int legacyBarrierCount;
+
+  const bool untrackedSupported = d3d::get_driver_desc().caps.hasEnhancedResourceBarriers;
 
   g_interfaceTableCopy = d3di;
 
@@ -2139,12 +2283,24 @@ TEST_CASE("Untracked texture barriers are re-emitted every frame", "[untracked r
 
     testRuntime.executeGraph();
 
-    CHECK(activateTextureCount == 0);
-    CHECK(deactivateTextureCount == 0);
-    CHECK(legacyBarrierCount == 0);
-    CHECK(activationBarrierCount == 1);
-    CHECK(transitionBarrierCount == 1);
-    CHECK(releaseBarrierCount == 1);
+    if (untrackedSupported)
+    {
+      CHECK(activateTextureCount == 0);
+      CHECK(deactivateTextureCount == 0);
+      CHECK(legacyBarrierCount == 0);
+      CHECK(activationBarrierCount == 1);
+      CHECK(transitionBarrierCount == 1);
+      CHECK(releaseBarrierCount == 1);
+    }
+    else
+    {
+      CHECK(activateTextureCount == 1);
+      CHECK(deactivateTextureCount == 1);
+      CHECK(legacyBarrierCount == 1);
+      CHECK(activationBarrierCount == 0);
+      CHECK(transitionBarrierCount == 0);
+      CHECK(releaseBarrierCount == 0);
+    }
   }
 
   d3di = g_interfaceTableCopy;
@@ -2159,6 +2315,8 @@ TEST_CASE("Untracked depth texture transitions to shader resource", "[untracked 
   static int legacyBarrierCount;
   activateTextureCount = 0;
   activationBarrierCount = transitionBarrierCount = releaseBarrierCount = legacyBarrierCount = 0;
+
+  const bool untrackedSupported = d3d::get_driver_desc().caps.hasEnhancedResourceBarriers;
 
   g_interfaceTableCopy = d3di;
 
@@ -2210,12 +2368,332 @@ TEST_CASE("Untracked depth texture transitions to shader resource", "[untracked 
 
   d3di = g_interfaceTableCopy;
 
-  CHECK(activateTextureCount == 0);
-  CHECK(legacyBarrierCount == 0);
-  CHECK(activationBarrierCount == 1);
-  CHECK(transitionBarrierCount == 1);
-  CHECK(releaseBarrierCount == 1);
+  if (untrackedSupported)
+  {
+    CHECK(activateTextureCount == 0);
+    CHECK(legacyBarrierCount == 0);
+    CHECK(activationBarrierCount == 1);
+    CHECK(transitionBarrierCount == 1);
+    CHECK(releaseBarrierCount == 1);
+  }
+  else
+  {
+    CHECK(activateTextureCount == 1);
+    CHECK(legacyBarrierCount == 1);
+    CHECK(activationBarrierCount == 0);
+    CHECK(transitionBarrierCount == 0);
+    CHECK(releaseBarrierCount == 0);
+  }
 }
+
+TEST_CASE("Untracked depth attachment read-write to read-only needs a barrier", "[untracked resources]")
+{
+  static int depthReadBarrierCount;
+  depthReadBarrierCount = 0;
+
+  const bool untrackedSupported = d3d::get_driver_desc().caps.hasEnhancedResourceBarriers;
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_depth")
+      .texture({.creationFlags = TEXFMT_DEPTH32 | TEXCF_RTARGET | TEXCF_NO_STATE_TRACKING, .resolution = IPoint2{1, 1}})
+      .atStage(dafg::Stage::PS)
+      .useAs(dafg::Usage::DEPTH_ATTACHMENT);
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("untracked_depth").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT);
+  });
+
+  d3di.enhanced_texture_barrier = [](const d3d::TextureBarrier &barrier, BaseTexture *texture) {
+    if (barrier.layoutTransition.src == d3d::TextureLayout::DepthRw && barrier.layoutTransition.dst == d3d::TextureLayout::DepthRo)
+      depthReadBarrierCount++;
+    g_interfaceTableCopy.enhanced_texture_barrier(barrier, texture);
+  };
+
+  testRuntime.executeGraph();
+
+  d3di = g_interfaceTableCopy;
+
+  CHECK(depthReadBarrierCount == (untrackedSupported ? 1 : 0));
+}
+
+TEST_CASE("Untracked read-only depth attachment that is sampled needs a sampleable layout", "[untracked resources]")
+{
+  static int sampledDepthBarrierCount;
+  sampledDepthBarrierCount = 0;
+
+  const bool untrackedSupported = d3d::get_driver_desc().caps.hasEnhancedResourceBarriers;
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_depth")
+      .texture({.creationFlags = TEXFMT_DEPTH32 | TEXCF_RTARGET | TEXCF_NO_STATE_TRACKING, .resolution = IPoint2{1, 1}})
+      .atStage(dafg::Stage::PS)
+      .useAs(dafg::Usage::DEPTH_ATTACHMENT);
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("untracked_depth").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE);
+  });
+
+  d3di.enhanced_texture_barrier = [](const d3d::TextureBarrier &barrier, BaseTexture *texture) {
+    if (barrier.memorySync.dst & d3d::AccessFlag::ShaderResource)
+    {
+      CHECK(barrier.layoutTransition.dst != d3d::TextureLayout::DepthRo);
+      sampledDepthBarrierCount++;
+    }
+    g_interfaceTableCopy.enhanced_texture_barrier(barrier, texture);
+  };
+
+  testRuntime.executeGraph();
+
+  d3di = g_interfaceTableCopy;
+
+  CHECK(sampledDepthBarrierCount == (untrackedSupported ? 1 : 0));
+}
+
+TEST_CASE("Untracked depth attachment clear uses supported stage", "[untracked resources]")
+{
+  static int clearBarrierCount;
+  clearBarrierCount = 0;
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_depth")
+      .texture({.creationFlags = TEXFMT_DEPTH32 | TEXCF_RTARGET | TEXCF_NO_STATE_TRACKING, .resolution = IPoint2{1, 1}})
+      .atStage(dafg::Stage::PS)
+      .useAs(dafg::Usage::DEPTH_ATTACHMENT)
+      .clear(make_clear_value(0.f, 0));
+  });
+
+  d3di.enhanced_texture_barrier = [](const d3d::TextureBarrier &barrier, BaseTexture *texture) {
+    const d3d::PipelineStageFlags depthStages =
+      d3d::PipelineStageFlag::EarlyFragmentTests | d3d::PipelineStageFlag::LateFragmentTests | d3d::PipelineStageFlag::All;
+    if (barrier.memorySync.src & d3d::AccessFlag::DepthStencilWrite)
+      CHECK((barrier.pipelineSync.src & depthStages).asInteger() != 0);
+    if (barrier.memorySync.dst & d3d::AccessFlag::DepthStencilWrite)
+      CHECK((barrier.pipelineSync.dst & depthStages).asInteger() != 0);
+    g_interfaceTableCopy.enhanced_texture_barrier(barrier, texture);
+  };
+
+  testRuntime.executeGraph();
+
+  d3di = g_interfaceTableCopy;
+}
+
+TEST_CASE("Untracked texture rename without a usage yields no barrier", "[untracked resources]")
+{
+  static int genericReadBarrierCount;
+  genericReadBarrierCount = 0;
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_tex")
+      .texture({.creationFlags = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED | TEXCF_NO_STATE_TRACKING, .resolution = IPoint2{1, 1}})
+      .atStage(dafg::Stage::COMPUTE)
+      .useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  dafg::NodeHandle renamerHandle = dafg::register_node("renamer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.rename("untracked_tex", "renamed_untracked_tex");
+  });
+
+  d3di.enhanced_texture_barrier = [](const d3d::TextureBarrier &barrier, BaseTexture *texture) {
+    const auto [srcLayout, dstLayout] = barrier.layoutTransition;
+    if (srcLayout == d3d::TextureLayout::GenericRead || dstLayout == d3d::TextureLayout::GenericRead)
+      genericReadBarrierCount++;
+    g_interfaceTableCopy.enhanced_texture_barrier(barrier, texture);
+  };
+
+  testRuntime.executeGraph();
+
+  d3di = g_interfaceTableCopy;
+
+  CHECK(genericReadBarrierCount == 0);
+}
+
+#if DAGOR_DBGLEVEL > 0
+
+namespace
+{
+
+struct ExpectUntrackedViolation
+{
+  ExpectUntrackedViolation()
+  {
+    violations = 0;
+    prevHandler = dgs_assertion_handler;
+    dgs_assertion_handler = &countViolations;
+  }
+
+  ~ExpectUntrackedViolation()
+  {
+    dgs_assertion_handler = prevHandler;
+    CHECK(violations > 0);
+  }
+
+  // Count all asserts as untracked validation for simplicity
+  static bool countViolations(bool, const char *, int, const char *, const char *, const char *, const DagorSafeArg *, int)
+  {
+    ++violations;
+    return false;
+  }
+
+  static inline int violations = 0;
+  decltype(dgs_assertion_handler) prevHandler = nullptr;
+};
+
+} // namespace
+
+TEST_CASE("Untracked buffer created by a node with custom execution is banned", "[untracked resources]")
+{
+  if (!d3d::get_driver_desc().caps.hasEnhancedResourceBarriers)
+    SKIP("Driver does not support untracked resources");
+
+  TestRuntime testRuntime{};
+  ExpectUntrackedViolation expectViolation{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_buf")
+      .buffer({4, 1, SBCF_BIND_UNORDERED | SBCF_NO_STATE_TRACKING, 0})
+      .atStage(dafg::Stage::COMPUTE)
+      .useAs(dafg::Usage::SHADER_RESOURCE);
+    return [] {};
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("untracked_buf").buffer().atStage(dafg::Stage::COMPUTE).useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  testRuntime.executeGraph();
+}
+
+TEST_CASE("Untracked texture read by a node with custom execution is banned", "[untracked resources]")
+{
+  if (!d3d::get_driver_desc().caps.hasEnhancedResourceBarriers)
+    SKIP("Driver does not support untracked resources");
+
+  TestRuntime testRuntime{};
+  ExpectUntrackedViolation expectViolation{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_tex")
+      .texture({.creationFlags = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED | TEXCF_NO_STATE_TRACKING, .resolution = IPoint2{1, 1}})
+      .atStage(dafg::Stage::COMPUTE)
+      .useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("untracked_tex").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE);
+    return [] {};
+  });
+
+  testRuntime.executeGraph();
+}
+
+TEST_CASE("Untracked texture history read by a node with custom execution is banned", "[untracked resources]")
+{
+  if (!d3d::get_driver_desc().caps.hasEnhancedResourceBarriers)
+    SKIP("Driver does not support untracked resources");
+
+  TestRuntime testRuntime{};
+  ExpectUntrackedViolation expectViolation{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_tex")
+      .texture({.creationFlags = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED | TEXCF_NO_STATE_TRACKING, .resolution = IPoint2{1, 1}})
+      .withHistory(dafg::History::DiscardOnFirstFrame)
+      .atStage(dafg::Stage::COMPUTE)
+      .useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.readTextureHistory("untracked_tex").atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE);
+    return [] {};
+  });
+
+  testRuntime.executeGraph();
+}
+
+TEST_CASE("External untracked texture used by a node with custom execution is banned", "[untracked resources]")
+{
+  if (!d3d::get_driver_desc().caps.hasEnhancedResourceBarriers)
+    SKIP("Driver does not support untracked resources");
+
+  TestRuntime testRuntime{};
+
+  const auto flags = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED | TEXCF_NO_STATE_TRACKING;
+  const auto untrackedTex = UniqueTex(dag::create_tex(NULL, 1, 1, flags, 1, "ext_untracked_tex"));
+
+  ExpectUntrackedViolation expectViolation{};
+
+  auto producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [&untrackedTex](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.registerExternal("untracked_ext").texture([&untrackedTex](auto) { return ManagedTexView(untrackedTex); });
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("untracked_ext").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE);
+    return [] {};
+  });
+
+  testRuntime.executeGraph();
+}
+
+TEST_CASE("External untracked buffer used by a node with custom execution is banned", "[untracked resources]")
+{
+  if (!d3d::get_driver_desc().caps.hasEnhancedResourceBarriers)
+    SKIP("Driver does not support untracked resources");
+
+  TestRuntime testRuntime{};
+
+  const auto flags = SBCF_BIND_UNORDERED | SBCF_NO_STATE_TRACKING;
+  const auto untrackedBuf = UniqueBuf(dag::create_sbuffer(4, 1, flags, 0, "ext_untracked_buf"));
+
+  ExpectUntrackedViolation expectViolation{};
+
+  auto producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [&untrackedBuf](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.registerExternal("untracked_ext").buffer([&untrackedBuf](auto) { return ManagedBufView(untrackedBuf); });
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("untracked_ext").buffer().atStage(dafg::Stage::COMPUTE).useAs(dafg::Usage::SHADER_RESOURCE);
+    return [] {};
+  });
+
+  testRuntime.executeGraph();
+}
+
+#endif // DAGOR_DBGLEVEL > 0
 
 TEST_CASE("Declaration callback runs inside FRAMEMEM_REGION", "[framemem]")
 {

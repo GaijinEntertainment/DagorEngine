@@ -31,7 +31,7 @@ void BufferHeap::Heap::applyFirstAllocation(uint64_t payload_size)
   notifyBufferMemoryAllocate(payload_size);
 }
 
-ValueRange<uint64_t> BufferHeap::Heap::allocate(uint64_t size, uint64_t alignment)
+eastl::optional<ValueRange<uint64_t>> BufferHeap::Heap::allocate(uint64_t size, uint64_t alignment)
 {
   if (freeRanges.empty())
   {
@@ -79,7 +79,7 @@ ValueRange<uint64_t> BufferHeap::Heap::allocate(uint64_t size, uint64_t alignmen
   return make_value_range<uint64_t>(offset, size);
 }
 
-ValueRange<uint64_t> BufferHeap::Heap::allocateExact(uint64_t size, uint64_t alignment)
+eastl::optional<ValueRange<uint64_t>> BufferHeap::Heap::allocateExact(uint64_t size, uint64_t alignment)
 {
   if (freeRanges.empty())
   {

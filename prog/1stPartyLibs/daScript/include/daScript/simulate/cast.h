@@ -63,10 +63,16 @@ namespace das
               return v_ldu_p3_safe((const float*)&v);
             else if constexpr (sizeof(PT) == sizeof(float) * 2)
               return v_ldu_half((const float*)&v);
+            else if constexpr (sizeof(PT) == sizeof(float))
+              return v_set_x(*(const float*)&v);
             else
             {
-              static_assert(sizeof(PT) == sizeof(float));
-              return v_set_x(*(const float*)&v);
+              // odd sizes (2/3/6 bytes: float16, byte2/3, half3, short3...) — memcpy is the
+              // only over-read-safe load (a 6-byte value at the end of a page must not use
+              // vector loads)
+              vec4f r = v_zero();
+              memcpy(&r, &v, sizeof(PT));
+              return r;
             }
 #endif
         }
@@ -231,6 +237,12 @@ namespace das
     struct cast <uint16_t> {
         static __forceinline uint16_t to ( vec4f x )           { return uint16_t(v_extract_xi(v_cast_vec4i(x))); }
         static __forceinline vec4f from ( uint16_t x )         { return v_cast_vec4f(v_seti_x(x)); }
+    };
+
+    template <>
+    struct cast <float16_t> {   // scalar convention: bits ride widened in lane 0, like int16
+        static __forceinline float16_t to ( vec4f x )          { float16_t h; h.bits = uint16_t(v_extract_xi(v_cast_vec4i(x))); return h; }
+        static __forceinline vec4f from ( float16_t x )        { return v_cast_vec4f(v_seti_x(x.bits)); }
     };
 
     template <>
@@ -454,6 +466,35 @@ namespace das
 
     template <> struct cast <range64> : cast_iVec<range64> {};
     template <> struct cast <urange64> : cast_iVec<urange64> {};
+
+    // 16/8-bit lattice vectors — byte-packed in the low bytes of the slot; prune handles
+    // every size (incl. the odd 2/3/6-byte widths) after the generic-memcpy branch above
+    template <> struct cast <half2>   : cast_fVec<half2> {};
+    template <> struct cast <half3>   : cast_fVec<half3> {};
+    template <> struct cast <half4>   : cast_fVec<half4> {};
+    template <> struct cast <half8>   : cast_fVec<half8> {};
+
+    template <> struct cast <short2>  : cast_iVec<short2> {};
+    template <> struct cast <short3>  : cast_iVec<short3> {};
+    template <> struct cast <short4>  : cast_iVec<short4> {};
+    template <> struct cast <short8>  : cast_iVec<short8> {};
+
+    template <> struct cast <ushort2> : cast_iVec<ushort2> {};
+    template <> struct cast <ushort3> : cast_iVec<ushort3> {};
+    template <> struct cast <ushort4> : cast_iVec<ushort4> {};
+    template <> struct cast <ushort8> : cast_iVec<ushort8> {};
+
+    template <> struct cast <byte2>   : cast_iVec<byte2> {};
+    template <> struct cast <byte3>   : cast_iVec<byte3> {};
+    template <> struct cast <byte4>   : cast_iVec<byte4> {};
+    template <> struct cast <byte8>   : cast_iVec<byte8> {};
+    template <> struct cast <byte16>  : cast_iVec<byte16> {};
+
+    template <> struct cast <ubyte2>  : cast_iVec<ubyte2> {};
+    template <> struct cast <ubyte3>  : cast_iVec<ubyte3> {};
+    template <> struct cast <ubyte4>  : cast_iVec<ubyte4> {};
+    template <> struct cast <ubyte8>  : cast_iVec<ubyte8> {};
+    template <> struct cast <ubyte16> : cast_iVec<ubyte16> {};
 
     template <typename TT>
     struct cast_enum {

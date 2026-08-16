@@ -1,5 +1,6 @@
 from "dagor.system" import exit, get_arg_value_by_name
 from "%sqstd/string.nut" import tostring_r
+from "types" import Function
 
 let knownProps = ["size","rendObj","watch","behavior","halign","valign","flow","pos","hplace","vplace","padding", "margin", "eventHandlers", "hotkeys"].totable()
 
@@ -17,7 +18,7 @@ function checkIsUiComponent(table): bool {
 function testUi(entry): bool {
   if (entry==null)
     return true
-  if (type(entry)=="function")
+  if (entry instanceof Function)
     entry=entry()
   let t = type(entry)
   if (t=="table" || t=="class") {

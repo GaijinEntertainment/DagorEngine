@@ -1,6 +1,7 @@
 options gen2
 options indenting = 4
 options remove_unused_symbols = false
+options no_global_variables = false
 
 module rtti shared public
 
@@ -10,9 +11,76 @@ require strings
 typedef FileAccessPtr = smart_ptr<FileAccess>
 
 
-[generic]
+//! Deprecated: resolves each AnnotationInfo back to the live Annotation object and
+//! reconstructs an AST-shaped argument list per invoke. Use `each_annotation` instead.
+[generic, deprecated]
 def structure_for_each_annotation(st : StructInfo; subexpr : block<(ann : Annotation; args : AnnotationArguments) : void>) {
     rtti_builtin_structure_for_each_annotation(st, subexpr)
+}
+
+def private each_annotation_range(pinfo; annotation_count : uint) {
+    return <- generator<AnnotationInfo const&> {
+        for (index in range(int(annotation_count))) {
+            unsafe {
+                yield get_annotation(*pinfo, index)
+            }
+        }
+        return false
+    }
+}
+
+//! Iterates annotations (`[name(args)]`) of a structure, function, or enumeration.
+[generic]
+def each_annotation(info : StructInfo) {
+    unsafe {
+        let pinfo = addr(info)
+        return <- each_annotation_range(pinfo, info.annotation_count)
+    }
+}
+
+[generic]
+def each_annotation(info : FuncInfo) {
+    unsafe {
+        let pinfo = addr(info)
+        return <- each_annotation_range(pinfo, info.annotation_count)
+    }
+}
+
+[generic]
+def each_annotation(info : EnumInfo) {
+    unsafe {
+        let pinfo = addr(info)
+        return <- each_annotation_range(pinfo, info.annotation_count)
+    }
+}
+
+def private each_annotation_argument_range(pinfo; argument_count : uint) {
+    return <- generator<AnnotationArgumentInfo const&> {
+        for (index in range(int(argument_count))) {
+            unsafe {
+                yield get_annotation_argument(*pinfo, index)
+            }
+        }
+        return false
+    }
+}
+
+//! Iterates the arguments of one annotation.
+[generic]
+def each_annotation_argument(info : AnnotationInfo) {
+    unsafe {
+        let pinfo = addr(info)
+        return <- each_annotation_argument_range(pinfo, info.count)
+    }
+}
+
+//! Iterates field/global annotation arguments (`@name = value` on a field).
+[generic]
+def each_annotation_argument(info : VarInfo) {
+    unsafe {
+        let pinfo = addr(info)
+        return <- each_annotation_argument_range(pinfo, info.annotation_argument_count)
+    }
 }
 
 [generic]
@@ -133,7 +201,7 @@ def public class_info(cl) : StructInfo const? {
         }
     } static_elif (typeinfo is_lambda(cl)) {
         unsafe {
-            var l = reinterpret<int8 ??> addr(cl)
+            var l = addr<int8 ??>(cl)
             if (l == null) return null
             var pti = reinterpret<TypeInfo const ??>(l[0] - 16)
             return (*pti).structType
@@ -161,7 +229,7 @@ def public type_info(cl) : TypeInfo const? {
         }
     } static_elif (typeinfo is_lambda(cl)) {
         unsafe {
-            var l = reinterpret<int8 ??> addr(cl)
+            var l = addr<int8 ??>(cl)
             if (l == null) return null
             return reinterpret<TypeInfo const ??>(l[0] - 16)
         }
@@ -174,14 +242,14 @@ def public type_info(cl) : TypeInfo const? {
 [generic]
 def type_info(vinfo : LocalVariableInfo) : TypeInfo const? {
     unsafe {
-        return reinterpret<TypeInfo const?>(addr(vinfo))
+        return addr<TypeInfo const?>(vinfo)
     }
 }
 
 [generic]
 def type_info(vinfo : VarInfo) : TypeInfo const? {
     unsafe {
-        return reinterpret<TypeInfo const?>(addr(vinfo))
+        return addr<TypeInfo const?>(vinfo)
     }
 }
 
@@ -192,13 +260,24 @@ def RttiValue_nothing {
     return t
 }
 
-//! Returns true when the source line at `at` carries a `// nolint:CODE` (or
-//! `// nolint:CODE1,CODE2,...`) directive listing `code`. Null-safe wrapper
-//! around the C-side scanner; returns false if `at.fileInfo == null` or
-//! `at.line == 0`. Canonical entry point for lint visitors.
+// LINT019 support: every suppression hit is recorded so the stale-nolint scan can
+// tell live directives from dead ones. Keyed "{file}:{line}:{code}", per process.
+var private nolint_consumed : table<string>
+
+//! Returns true when the source line at `at` carries a `// nolint:CODE` (or `// nolint:CODE1,CODE2,...`) directive listing `code`. Null-safe wrapper around the C-side scanner; returns false if `at.fileInfo == null` or `at.line == 0`. Canonical entry point for lint visitors.
 def public is_lint_suppressed(at : LineInfo; code : string) : bool {
     return false if (at.fileInfo == null || at.line == 0u)
-    return rtti_is_nolint_suppressed(at.fileInfo, at.line, code)
+    if (rtti_is_nolint_suppressed(at.fileInfo, at.line, code)) {
+        nolint_consumed |> insert("{at.fileInfo.name}:{int(at.line)}:{code}")
+        return true
+    }
+    return false
+}
+
+//! True when a diagnostic already consumed the ``// nolint:code`` directive at `fname`:`line`
+//! (1-based) during this run. The query half of the LINT019 stale-nolint scan.
+def public was_nolint_consumed(fname : string; line : int; code : string) : bool {
+    return key_exists(nolint_consumed, "{fname}:{line}:{code}")
 }
 
 //! Extracts the leading code from a lint message such as "LINT001: foo bar"

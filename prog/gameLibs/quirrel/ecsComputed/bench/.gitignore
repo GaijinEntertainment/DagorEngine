@@ -1,0 +1,6 @@
+*.exe
+*.pdb
+/ecsFrpBench
+/ecsFrpBench-*
+/LICENSE-ecsFrpBench
+/debug

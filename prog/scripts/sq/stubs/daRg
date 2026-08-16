@@ -120,6 +120,10 @@ class EditableText {
   }
 }
 
+class StatefulCompType {
+  name = "StatefulCompType"
+}
+
 let darg = {
   resolve_button_id = @(st) assert(type(st)=="string")
   anim_play = @(_trigger) null
@@ -151,6 +155,7 @@ let darg = {
   }()
   move_mouse_cursor = @(_where, _useTransform = true) null
   calc_comp_size = @[pure](_comp) [0,0]
+  calc_content_size = @[pure](_comp) [0,0]
   calc_str_box = @[pure](_txt, _params = null) [0,0]
   getFontDefHt = function[pure](fontname) { assert(type(fontname)=="string"); return 0; }
   getFontInitialHt = function[pure](fontname) { assert(type(fontname)=="string"); return 0; }
@@ -202,6 +207,10 @@ let darg = {
   DasFunction = class {
     constructor(_das_script, _func_name) {}
     function _call(...) {}
+  }
+
+  function StatefulComp(_ctor: function, _key = null): instance {
+    return StatefulCompType()
   }
 }
 

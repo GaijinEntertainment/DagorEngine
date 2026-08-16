@@ -198,9 +198,6 @@ bool set_render_target() { return d3di.set_render_target(); }
 bool set_depth(BaseTexture *tex, DepthAccess access) { return d3di.set_depth(tex, access); }
 bool set_depth(BaseTexture *tex, int layer, DepthAccess access) { return d3di.set_depth(tex, layer, access); }
 
-bool set_render_target(int rt_index, BaseTexture *t, int fc, uint8_t level) { return d3di.set_render_target(rt_index, t, fc, level); }
-bool set_render_target(int rt_index, BaseTexture *t, uint8_t level) { return d3di.set_render_target(rt_index, t, level); }
-
 void get_render_target(Driver3dRenderTarget &out_rt) { return d3di.get_render_target(out_rt); }
 bool set_render_target(const Driver3dRenderTarget &rt) { return d3di.set_render_target(rt); }
 void set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors)

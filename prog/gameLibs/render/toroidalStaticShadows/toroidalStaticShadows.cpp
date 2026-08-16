@@ -404,3 +404,15 @@ void ToroidalStaticShadows::printCascadesStatistics() const
   debug("%s", statMessage.c_str());
 #endif
 }
+
+uint32_t ToroidalStaticShadows::getMinCompletelyValidFramesAcrossAllCascades() const
+{
+  // Rel build has no statistics, so treat it as if all cascades are always valid.
+  // It doesn't matter, because this is dev-only feature.
+  uint32_t minCompletelyValidFrames = static_cast<uint32_t>(INT_MAX);
+#if COLLECT_STATIC_SHADOWS_STATISTICS
+  for (const ToroidalStaticShadowCascade &cascade : cascades)
+    minCompletelyValidFrames = min(minCompletelyValidFrames, cascade.staticShadowsStatistics.completelyValidFramesSinceLastUpdate);
+#endif
+  return minCompletelyValidFrames;
+}

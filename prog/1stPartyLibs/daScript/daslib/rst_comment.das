@@ -39,9 +39,9 @@ enum ParserState {
 let private DEBUG_COMMENT_READER = false;
 
 [macro_function]
-def private debug_rst ( s : string ) {
+def private debug_rst ( _s : string ) {
     if (DEBUG_COMMENT_READER) {
-        print("{s}\n")
+        print("{_s}\n")
     }
 }
 
@@ -121,8 +121,7 @@ class RstComment : AstCommentReader {
             delete chars
             return
         }
-        // `//!@nolint` — style_lint suppression marker. Drop the line so it
-        // never reaches generated RST.
+        // `//!@nolint` — style_lint suppression marker. Drop the line so it never reaches generated RST.
         let after_bang = strip_left(slice(string(chars), 1))
         if (after_bang |> starts_with("@nolint")) {
             delete chars
@@ -392,9 +391,7 @@ class RstComment : AstCommentReader {
                 }
             }
         }
-                // else
-                //     to_log(LOG_WARNING, "WARNING: unsupported structure-annotation = {ann.annotation.name} in {st.name}\n")
-        // to_log(LOG_WARNING, "WARNING: unsupported structure-annotation = {ann.annotation.name} in {st.name}\n")
+                // else to_log(LOG_WARNING, "WARNING: unsupported structure-annotation = {ann.annotation.name} in {st.name}\n") to_log(LOG_WARNING, "WARNING: unsupported structure-annotation = {ann.annotation.name} in {st.name}\n")
         for (fc in field_comments) {
             if (fc.kind=="function") {
                 write_to_detail("function-{get_module_name(prog, mod)}-{st.name}-{fc.name}", fc.comment)
@@ -470,9 +467,7 @@ class RstComment : AstCommentReader {
         let detailIds = args |> find_index("--detail_output")
         let outputIds = args |> find_index("--docs_output")
         if (detailIds >= 0) {
-            // `--detail_output Y` → write to `Y/detail/`. Matches the natural
-            // read path `{topic_root}/detail/...` so the consumer can set
-            // `topic_root = Y` without the `/index/` segment.
+            // `--detail_output Y` → write to `Y/detail/`. Matches the natural read path `{topic_root}/detail/...` so the consumer can set `topic_root = Y` without the `/index/` segment.
             output = args[detailIds+1] + "/detail/"
         } elif (outputIds >= 0) {
             output = args[outputIds+1] + "/index/detail/"

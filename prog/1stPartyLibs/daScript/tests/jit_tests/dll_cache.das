@@ -5,8 +5,8 @@
 options gen2
 options no_aot
 
+require daslib/ast
 require daslib/fio
-require daslib/rtti
 require strings
 require dastest/testing_boost
 
@@ -44,10 +44,10 @@ def compile_probe() : string {
             cop.jit_enabled = true
             cop.jit_dll_mode = true
             access |> add_extra_module("just_in_time", "{get_das_root()}/daslib/just_in_time.das")
-            compile_file(PROBE_PATH, access, unsafe(addr(mg)), cop) $(ok, program, errors) {
+            compile_file(PROBE_PATH, access, unsafe(addr(mg)), cop) $(ok, program, _errors) {
                 if (ok && program != null) {
                     ns = string(program.thisNamespace)
-                    simulate(program) $(sok, context, serrors) {}
+                    simulate(program) $(_sok, _context, _serrors) {}
                 }
             }
         }

@@ -104,6 +104,77 @@ class LogWalker : DapiDataWalker {
         log += "URange64:{value}\n"
     }
 
+    // --- 16/8-bit lattice ---
+    def override Float16(var value : float16&) : void {
+        log += "Float16:{value}\n"
+    }
+    def override Half2(var value : half2&) : void {
+        log += "Half2:{value}\n"
+    }
+    def override Half3(var value : half3&) : void {
+        log += "Half3:{value}\n"
+    }
+    def override Half4(var value : half4&) : void {
+        log += "Half4:{value}\n"
+    }
+    def override Half8(var value : half8&) : void {
+        log += "Half8:{value}\n"
+    }
+    def override Short2(var value : short2&) : void {
+        log += "Short2:{value}\n"
+    }
+    def override Short3(var value : short3&) : void {
+        log += "Short3:{value}\n"
+    }
+    def override Short4(var value : short4&) : void {
+        log += "Short4:{value}\n"
+    }
+    def override Short8(var value : short8&) : void {
+        log += "Short8:{value}\n"
+    }
+    def override UShort2(var value : ushort2&) : void {
+        log += "UShort2:{value}\n"
+    }
+    def override UShort3(var value : ushort3&) : void {
+        log += "UShort3:{value}\n"
+    }
+    def override UShort4(var value : ushort4&) : void {
+        log += "UShort4:{value}\n"
+    }
+    def override UShort8(var value : ushort8&) : void {
+        log += "UShort8:{value}\n"
+    }
+    def override Byte2(var value : byte2&) : void {
+        log += "Byte2:{value}\n"
+    }
+    def override Byte3(var value : byte3&) : void {
+        log += "Byte3:{value}\n"
+    }
+    def override Byte4(var value : byte4&) : void {
+        log += "Byte4:{value}\n"
+    }
+    def override Byte8(var value : byte8&) : void {
+        log += "Byte8:{value}\n"
+    }
+    def override Byte16(var value : byte16&) : void {
+        log += "Byte16:{value}\n"
+    }
+    def override UByte2(var value : ubyte2&) : void {
+        log += "UByte2:{value}\n"
+    }
+    def override UByte3(var value : ubyte3&) : void {
+        log += "UByte3:{value}\n"
+    }
+    def override UByte4(var value : ubyte4&) : void {
+        log += "UByte4:{value}\n"
+    }
+    def override UByte8(var value : ubyte8&) : void {
+        log += "UByte8:{value}\n"
+    }
+    def override UByte16(var value : ubyte16&) : void {
+        log += "UByte16:{value}\n"
+    }
+
     // --- enum/bitfield ---
     def override WalkEnumeration(var value : int&; ei : EnumInfo) : void {
         log += "Enum:{ei.name}:{value}\n"

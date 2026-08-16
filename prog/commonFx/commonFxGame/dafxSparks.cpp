@@ -210,6 +210,7 @@ struct DafxSparks : BaseParticleEffect
 
     desc.renderDescs.push_back({dafx_ex::renderTags[rtag], "sparks_ps"});
     desc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_THERMAL], "sparks_thermal"});
+    desc.statGroup = eastl::to_underlying(dafx_ex::StatGroup::Sparks);
 
     builtDesc->qualityFlags = fx_apply_quality_bits(parQuality, 0xffffffff);
 

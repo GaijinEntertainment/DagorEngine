@@ -257,7 +257,8 @@ static void on_relem_changed(ContextId context_id, const DynamicRenderableSceneL
             {
               bool isAnimated = meshInfo->vertexProcessor && !meshInfo->vertexProcessor->isOneTimeOnly();
               add_object(context_id, objectId,
-                {{eastl::move(meshInfo.value())}, BvhType::Dyn, isAnimated, get_tag(resource, true, lodIx)});
+                {{eastl::move(meshInfo.value())}, BvhType::Dyn, isAnimated, get_tag(resource, true, lodIx),
+                  make_asset_name_ref(resource)});
             }
           }
         }
@@ -288,7 +289,8 @@ static void on_relem_changed(ContextId context_id, const DynamicRenderableSceneL
             {
               bool isAnimated = meshInfo->vertexProcessor && !meshInfo->vertexProcessor->isOneTimeOnly();
               add_object(context_id, objectId,
-                {{eastl::move(meshInfo.value())}, BvhType::Dyn, isAnimated, get_tag(resource, true, lodIx)});
+                {{eastl::move(meshInfo.value())}, BvhType::Dyn, isAnimated, get_tag(resource, true, lodIx),
+                  make_asset_name_ref(resource)});
             }
           }
         }
@@ -361,15 +363,6 @@ void init(ContextId context_id)
 
 void enable_dynamic_planar_decals(bool enable) { bvh_decals = enable; }
 
-void teardown(ContextId context_id)
-{
-  on_unload_scene(context_id);
-  {
-    RelemChangedContextsWriteLock contextsGuard(relem_changed_contexts_lock);
-    relem_changed_contexts.erase(context_id);
-  }
-}
-
 void on_unload_scene(ContextId context_id)
 {
   if (!context_id->hasAny(Features::AnyDynrend))
@@ -425,6 +418,15 @@ void on_unload_scene(ContextId context_id)
   {
     d3d::free_bindless_resource_range(D3DResourceType::SBUF, context_id->initialNodesHolderBindlessSlot, 1);
     context_id->initialNodesHolderBindlessSlot = 0;
+  }
+}
+
+void teardown(ContextId context_id)
+{
+  bvh::dyn::on_unload_scene(context_id);
+  {
+    RelemChangedContextsWriteLock contextsGuard(relem_changed_contexts_lock);
+    relem_changed_contexts.erase(context_id);
   }
 }
 
@@ -659,18 +661,42 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
   auto getColorModData = [&](const Mesh &mesh, const ShaderMesh::RElem &elem) -> PerInstanceData * {
     if (mesh.hasColorMod)
     {
-      Color4 solid_fill_color;
-      float color_multiplier;
       static int solid_fill_colorVarId = get_shader_variable_id("solid_fill_color");
       static int color_multiplierVarId = get_shader_variable_id("color_multiplier");
-      if (elem.mat->getColor4Variable(solid_fill_colorVarId, solid_fill_color) &&
-          elem.mat->getRealVariable(color_multiplierVarId, color_multiplier))
+      static int camouflage_texVarId = get_shader_variable_id("camouflage_tex");
+      static int camouflage_scale_and_offsetVarId = get_shader_variable_id("camouflage_scale_and_offset");
+
+      Color4 solid_fill_color;
+      float color_multiplier;
+      TEXTUREID camouflage_tex = BAD_TEXTUREID;
+
+      if (elem.mat->getTextureVariable(camouflage_texVarId, camouflage_tex) && camouflage_tex != BAD_TEXTUREID)
       {
-        colorModData.x =
-          E3DCOLOR(solid_fill_color.r * 255, solid_fill_color.g * 255, solid_fill_color.b * 255, solid_fill_color.a * 255);
-        colorModData.y = color_multiplier * 255;
-        return &colorModData;
+        auto [_, bindless] = hold_camo_tex(bvh_context_id, camouflage_tex, false);
+        colorModData.x = bindless;
+
+        Color4 scaleOffset;
+        if (elem.mat->getColor4Variable(camouflage_scale_and_offsetVarId, scaleOffset))
+        {
+          colorModData.y = uint32_t(float_to_half(scaleOffset.r)) | (uint32_t(float_to_half(scaleOffset.g)) << 16);
+          colorModData.z = uint32_t(float_to_half(scaleOffset.b)) | (uint32_t(float_to_half(scaleOffset.a)) << 16);
+        }
       }
+      else
+      {
+        colorModData.x = MeshMeta::INVALID_TEXTURE;
+
+        if (elem.mat->getColor4Variable(solid_fill_colorVarId, solid_fill_color))
+          colorModData.y =
+            E3DCOLOR(solid_fill_color.r * 255, solid_fill_color.g * 255, solid_fill_color.b * 255, solid_fill_color.a * 255);
+      }
+
+      if (elem.mat->getRealVariable(color_multiplierVarId, color_multiplier))
+        colorModData.w = color_multiplier * 255;
+      else
+        colorModData.w = 255;
+
+      return &colorModData;
     }
 
     return nullptr;
@@ -977,7 +1003,7 @@ struct DynrendBVHJob : public cpujobs::IJob
       dynrend::AddedPerInstanceRenderData emptyPID;
       for (auto og : ogInstances)
         if (auto res = og->getCurSceneResource())
-          iterate_instances((dynrend::ContextId)-1, *res, *og, false, emptyPID, {}, 0, 0, 0, 0, nullptr, 0, &ctx);
+          iterate_instances(dynrend::ContextId::INVALID_BVH, *res, *og, false, emptyPID, {}, 0, 0, 0, 0, nullptr, 0, &ctx);
 
       if (bvhContextId->decalDataHolder)
         d3d::resource_barrier(ResourceBarrierDesc(bvhContextId->decalDataHolder.get(), RB_RO_SRV | RB_STAGE_ALL_SHADERS));
@@ -1058,13 +1084,14 @@ static inline void handle_cloth_wind(const ShaderMesh::RElem &elem, SkinData &da
     elem.mat->getRealVariable(cloth_wind__time_scale_maxVarId, data.clothWind.timeScaleMax);
     elem.mat->getRealVariable(cloth_wind__ambient_influenceVarId, data.clothWind.ambientInfluence);
     elem.mat->getRealVariable(cloth_wind__noise_ampVarId, data.clothWind.noiseAmp);
-    data.clothWind.clothNoiseCombinedTexBindless = 0xFFFFFFFFu; // To be filled from mesh
+    data.clothWind.clothNoiseCombinedTexBindless = MeshMeta::INVALID_TEXTURE; // To be filled from mesh
   }
 }
 
 static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, const DynamicRenderableSceneResource &res,
   const uint8_t *path_filter, uint32_t path_filter_size, uint8_t render_mask, dag::ConstSpan<int> offsets,
-  dynrend::BVHSetInstanceData set_instance_data, bool animate, dynrend::BVHCamoData &camo_data, void *user_data)
+  dynrend::BVHSetInstanceData set_instance_data, bool animate, dynrend::BVHCamoData &camo_data,
+  dynrend::BVHSkinnedMemoryUsage &skin_mem, void *user_data)
 {
   IterCtx *ctx = (IterCtx *)user_data;
   ContextId bvh_context_id = ctx->contextId;
@@ -1089,6 +1116,9 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
   auto lodNo = inst.getCurrentLodNo();
   auto rigidCount = res.getRigidsConst().size();
   auto meshIndexCounter = 0;
+
+  const bool useMemoryLimit = skin_mem.max_bytes >= 0;
+  const bool overMemoryLimit = useMemoryLimit && skin_mem.current_bytes >= skin_mem.max_bytes;
 
   PerInstanceData camoData;
   PerInstanceData *camoDataPtr = nullptr;
@@ -1252,6 +1282,8 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
       if (!isVisible)
         return;
       int currMeshIndex = meshIndexCounter++;
+      if (overMemoryLimit)
+        return;
       if (!bvh_context_id->hasAny(Features::DynrendSkinnedFull))
         return;
 
@@ -1361,6 +1393,16 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
 
         add_dynrend_instance(bvh_context_id, instances, meshId, tm43, perInstanceDataPtr, ctx->noShadow, animationUpdateMode,
           skinningInfo, meshElem.metaAllocId);
+
+        if (useMemoryLimit)
+        {
+          // If the skinned mesh doesn't have a BLAS yet, just use an estimate.
+          // Skinned BLASes get allocated during bvh update later in the frame
+          constexpr int64_t ESTIMATED_BLAS_BYTES_PER_TRIANGLE = 64;
+          int64_t instanceMemory =
+            meshElem.blas ? meshElem.blas.getASSize() : (bvhMesh.indexCount / 3) * ESTIMATED_BLAS_BYTES_PER_TRIANGLE;
+          skin_mem.current_bytes += instanceMemory;
+        }
       }
     });
   G_VERIFY(offsets.size() == meshIndexCounter);

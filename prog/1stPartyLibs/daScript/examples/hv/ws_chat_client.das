@@ -33,6 +33,9 @@ class TerminalChatClient : HvWebSocketClient {
     def override onMessage(msg : string#) {
         print("{msg}\n")
     }
+    def override onMessageFrame(msg : string#; byte_count : int; opcode : ws_opcode) {
+        if (opcode == ws_opcode.WS_OPCODE_TEXT) onMessage(msg)
+    }
 }
 
 [export]
@@ -48,13 +51,13 @@ def main() {
         client->process_event_que()
         // Non-blocking read from stdin
         let line = fgets(fstdin())
-        if (length(line) > 0) {
+        if (!empty(line)) {
             let text = strip(line)
             if (text == "/quit") {
                 client->close()
                 break
             }
-            if (length(text) > 0) {
+            if (!empty(text)) {
                 client->send(text)
             }
         }

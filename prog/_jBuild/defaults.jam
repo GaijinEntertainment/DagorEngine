@@ -94,18 +94,18 @@ if ! $(__DEFAULTS_INCLUDED) {
   UseZlibVer    ?= ng ;
   OpenXrVer     ?= 1.1.54 ;
   XessEnabled   ?= no ;
-  AgsEnabled    ?= no ;
   BundleVersion ?= 1.0.0 ;
   ZstdVer       ?= 1.4.5 ;
   DbgDigest     ?= once ;  # once, min, max, stop
   AgilitySdkVer ?= 1.619.3 ;
-  AgsSdkVer     ?= 6.3.0 ;
-  AftermathSdkVer ?= 2025.5.0.251114 ;
+  AftermathSdkVer ?= 2025.5.0.25317 ;
   NvApiVer      ?= R610 ;
   NvtxSdkVersion ?= 3.5 ;
   DefFreeTypeVer = 2.8 ;
   FreeTypeVer   ?= $(DefFreeTypeVer) ;
   FidelityFXVer ?= 2.1.1 ;
+
+  if $(Config) != rel { AgsSdkVer ?= 6.3.0 ; }
 
   if $(Platform) = nswitch {
     # 3.x fails silently somewhere deep inside of macro hell

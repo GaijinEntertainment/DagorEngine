@@ -1,6 +1,8 @@
 options gen2
 options rtti
 
+module common
+
 require daslib/json_boost public
 require daslib/strings_boost public
 require daslib/ast public
@@ -48,6 +50,109 @@ def make_tool_result(text : string; is_error : bool = false) : string {
     result.isError = is_error
     result.content |> emplace(ContentItem(_type = "text", text = text))
     return sprint_json(result, false)
+}
+
+// ── Cross-tree guard ─────────────────────────────────────────────────
+// When a tool is asked about a file that lives OUTSIDE this server's root (a different git
+// worktree), the answer is produced against THIS root's module sources and THIS binary's
+// compiled-in C++ bindings — so it can be stale/wrong for that file (missing symbols, outdated
+// signatures). Detect it and prepend a warning so the caller knows the result is suspect.
+
+// Walk up from `start_dir` to the nearest ancestor holding a `.git` entry — a directory in the
+// main tree, a file in a linked worktree; `fexist` catches both. "" if none within a bounded walk.
+def private git_tree_root(start_dir : string) : string {
+    var d = normalize(start_dir)
+    for (_ in range(64)) {
+        if (fexist(path_join(d, ".git"))) {
+            return d
+        }
+        let up = dir_name(d)
+        if (empty(up) || up == d) {
+            break
+        }
+        d = up
+    }
+    return ""
+}
+
+// How to make a cross-tree worktree queryable: depends on whether it's been bootstrapped.
+def private bootstrap_hint(tree : string) : string {
+    if (empty(tree)) {
+        return "couldn't locate its git root"
+    }
+    let has_bin = fexist(path_join(tree, "bin/daslang")) || fexist(path_join(tree, "bin/daslang.exe"))
+    let has_mcp = fexist(path_join(tree, ".mcp.json"))
+    if (has_bin && has_mcp) {
+        return "that worktree is bootstrapped — start a session rooted in {tree} to query it correctly"
+    }
+    if (has_bin) {
+        return "that worktree has a binary but no MCP config — run `daslang utils/mcp/setup.das -- --root {tree} --no-build`, then query from a session rooted there"
+    }
+    return "that worktree isn't bootstrapped — run `daslang utils/mcp/setup.das -- --root {tree}`, then query from a session rooted there"
+}
+
+// A `relative()` result escapes its base only when its first segment is `..` — exactly ".." or a
+// "../" prefix. A segment that merely begins with ".." (a dir named "..foo") stays inside the base.
+def private escapes_root(rel : string) : bool {
+    return rel == ".." || starts_with(rel, "../")
+}
+
+//! The cross-tree warning for a `file` argument — "" when every path it names is relative
+//! (server-cwd-relative, so in-tree) or under the server's root (`project_root` if given, else the
+//! process cwd). Parses the arg the way the tools do (`parse_file_list`: comma/newline split,
+//! whitespace-stripped, empties skipped, globs expanded), so the guard sees the same files, and
+//! warns on the FIRST cross-tree path. Public so it can be unit-tested directly.
+def crosstree_warning(file_arg, project_root : string) : string {
+    if (empty(file_arg)) {
+        return ""
+    }
+    // resolve the effective root to an ABSOLUTE path — a relative project_root would otherwise make
+    // relative_result fail for every file and silence the guard entirely
+    let raw_root = empty(project_root) ? getcwd() : project_root
+    let root = is_absolute(raw_root) ? normalize(raw_root) : normalize(path_join(getcwd(), raw_root))
+    var paths : array<string>
+    parse_file_list(file_arg, paths)
+    for (p in paths) {
+        // relative paths resolve against the server's own cwd, so they are in-tree by construction
+        if (!is_absolute(p)) {
+            continue
+        }
+        let fileabs = normalize(p)
+        let rr = relative_result(fileabs, root)
+        // in-tree when the relative path computes AND doesn't escape upward; a compute error means
+        // different root names / volumes (Windows cross-drive) — that IS outside the root, so warn.
+        if (!(rr is error) && !escapes_root(to_generic_path(rr as value))) {
+            continue
+        }
+        let tree = git_tree_root(dir_name(fileabs))
+        return ("CROSS-TREE WARNING — this file is in a different worktree than this MCP server.\n" +
+                "  file:   {p}\n" +
+                "  server: {root}\n" +
+                "This server resolves modules AND its binary's compiled-in C++ bindings from its own root, " +
+                "so results for this file may be STALE or wrong (missing symbols, outdated signatures). " +
+                "{bootstrap_hint(tree)}.")
+    }
+    return ""
+}
+
+//! Prepend the cross-tree warning (if any) as a leading content block of a tool-result JSON.
+//! No-op (returns the input unchanged) when the file is in-tree, so the common path pays nothing
+//! beyond one path comparison.
+def guard_crosstree(result_json, file_arg, project_root : string) : string {
+    let warn = crosstree_warning(file_arg, project_root)
+    if (empty(warn)) {
+        return result_json
+    }
+    let item = sprint_json(ContentItem(_type = "text", text = warn), false)
+    let marker = "\"content\":["
+    let pos = find(result_json, marker)
+    if (pos < 0) {
+        return result_json
+    }
+    let cut = pos + length(marker)
+    // an empty content array ("content":[]) must not get a trailing comma — [item,] is invalid JSON
+    let sep = (cut < length(result_json) && slice(result_json, cut, cut + 1) == "]") ? "" : ","
+    return slice(result_json, 0, cut) + item + sep + slice(result_json, cut, length(result_json))
 }
 
 // Validate the `project` argument shared across MCP subtools. Empty is fine
@@ -101,6 +206,7 @@ def compile_and_simulate_ctx(file : string; project : string = ""; blk : block<(
         using() $(var cop : CodeOfPolicies) {
             cop.threadlock_context = true
             cop.ignore_shared_modules = true
+            cop.auto_inline_functions = false   // introspection describes the SOURCE - splices rewrite bodies/references
             compile_file(file, access, unsafe(addr(mg)), cop) $(ok; program; issues) {
                 if (!ok) {
                     result = "Compilation failed:\n{issues}"
@@ -135,6 +241,7 @@ def compile_program(file : string; _export_all : bool; _no_opt : bool; project :
         using() $(var cop : CodeOfPolicies) {
             cop.threadlock_context = true
             cop.ignore_shared_modules = true
+            cop.auto_inline_functions = false   // introspection describes the SOURCE - splices rewrite bodies/references
             if (_export_all) {
                 cop.export_all = true
             }
@@ -176,6 +283,7 @@ def compile_only(file : string; _export_all : bool; _no_opt : bool; project : st
         using() $(var cop : CodeOfPolicies) {
             cop.threadlock_context = true
             cop.ignore_shared_modules = true
+            cop.auto_inline_functions = false   // introspection describes the SOURCE - splices rewrite bodies/references
             if (_export_all) {
                 cop.export_all = true
             }
@@ -228,7 +336,7 @@ def write_func_signature(var w : StringBuilderWriter; func) {
 
 def write_handled_type(var w : StringBuilderWriter; value : Annotation const) {
     write(w, "  handled {value.name}")
-    var ann = unsafe(reinterpret<BasicStructureAnnotation?> value)
+    var ann = unsafe(reinterpret<BasicStructureAnnotation?>(value))
     basic_struct_for_each_parent(*ann) $(parent) {
         write(w, " : {parent.name}")
     }
@@ -414,6 +522,9 @@ def resolve_path(path : string) : string {
     // std::filesystem doesn't classify them as absolute (no trailing separator),
     // so they'd otherwise be joined under das_root and produce an invalid path.
     if (is_absolute(path) || find(path, ":") == 1) return path
+    // Deliberately NOT normalize()d: lexically_normal rewrites every separator to the
+    // platform preferred one, so on Windows it would turn the forward slashes of
+    // get_das_root() into backslashes and break callers that compare against it.
     return path_join(get_das_root(), path)
 }
 

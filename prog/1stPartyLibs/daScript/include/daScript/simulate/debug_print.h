@@ -438,6 +438,75 @@ namespace das {
         virtual void URange64 ( urange64 & ra ) override {
             ss << ra;
         }
+        virtual void Float16 ( float16_t & h ) override {
+            ss << h;
+        }
+        virtual void Half2 ( half2 & hv ) override {
+            ss << hv;
+        }
+        virtual void Half3 ( half3 & hv ) override {
+            ss << hv;
+        }
+        virtual void Half4 ( half4 & hv ) override {
+            ss << hv;
+        }
+        virtual void Half8 ( half8 & hv ) override {
+            ss << hv;
+        }
+        virtual void Short2 ( short2 & sv ) override {
+            ss << sv;
+        }
+        virtual void Short3 ( short3 & sv ) override {
+            ss << sv;
+        }
+        virtual void Short4 ( short4 & sv ) override {
+            ss << sv;
+        }
+        virtual void Short8 ( short8 & sv ) override {
+            ss << sv;
+        }
+        virtual void UShort2 ( ushort2 & sv ) override {
+            ss << sv;
+        }
+        virtual void UShort3 ( ushort3 & sv ) override {
+            ss << sv;
+        }
+        virtual void UShort4 ( ushort4 & sv ) override {
+            ss << sv;
+        }
+        virtual void UShort8 ( ushort8 & sv ) override {
+            ss << sv;
+        }
+        virtual void Byte2 ( byte2 & bv ) override {
+            ss << bv;
+        }
+        virtual void Byte3 ( byte3 & bv ) override {
+            ss << bv;
+        }
+        virtual void Byte4 ( byte4 & bv ) override {
+            ss << bv;
+        }
+        virtual void Byte8 ( byte8 & bv ) override {
+            ss << bv;
+        }
+        virtual void Byte16 ( byte16 & bv ) override {
+            ss << bv;
+        }
+        virtual void UByte2 ( ubyte2 & bv ) override {
+            ss << bv;
+        }
+        virtual void UByte3 ( ubyte3 & bv ) override {
+            ss << bv;
+        }
+        virtual void UByte4 ( ubyte4 & bv ) override {
+            ss << bv;
+        }
+        virtual void UByte8 ( ubyte8 & bv ) override {
+            ss << bv;
+        }
+        virtual void UByte16 ( ubyte16 & bv ) override {
+            ss << bv;
+        }
         virtual void FakeContext ( Context * ctx ) override {
             ss << "context 0x" << HEX << intptr_t(ctx) << DEC;
         }

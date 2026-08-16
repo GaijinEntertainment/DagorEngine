@@ -14,6 +14,7 @@ public:
   void reset();
   const char *getAssetName(const char *defaultValue = "") const;
   const char *getAssetTypeName() const;
+  bool isCompositeAsset() const;
   const char *getName() const;
   float getWeight() const;
   bool getUseTransformationMatrix() const;
@@ -23,6 +24,8 @@ public:
   bool tryGetPoint2Parameter(const char *name, Point2 &value) const;
   bool isEntBlock() const;
   bool hasEntBlock() const;
+  bool hasChildNode(unsigned dataBlockId) const;
+  bool isAncestorOfNode(unsigned dataBlockId) const;
   bool hasNameParameter() const;
   bool canEditAssetName(bool isRootNode) const;
   bool canEditChildren() const;

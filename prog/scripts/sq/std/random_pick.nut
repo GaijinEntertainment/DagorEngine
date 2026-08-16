@@ -1,10 +1,11 @@
+from "types" import Table, Array
 let Rand = require("rand.nut")
 
 function pickword(dictionary, seed=null, allow_cache=false){
   let rand = Rand(seed)
   local totalWeight = 0.0
   assert(["table","array"].contains(type(dictionary)), "dictionary should be array or table")
-  if (type(dictionary) == "table"){
+  if (dictionary instanceof Table){
     if (!("___totalWeight___" in dictionary)) {
       foreach (weight in dictionary)
         totalWeight += weight
@@ -22,7 +23,7 @@ function pickword(dictionary, seed=null, allow_cache=false){
   local ret = null
   local cur_rand_sum = 0
   foreach (key, val in dictionary) {
-    let isArray = type(dictionary) == "array"
+    let isArray = dictionary instanceof Array
     let word = isArray ? val : key
     let weight = isArray ? 1 : val.tofloat()
     if (word == "___totalWeight___")

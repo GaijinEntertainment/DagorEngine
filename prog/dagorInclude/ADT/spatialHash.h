@@ -276,7 +276,7 @@ public:
       {
         ObjectType &obj = oldCell.front();
         oldCell.remove(obj);
-        insertAt(obj, hashFn(obj.wbsph));
+        insertAt(obj, hashFn(obj.getWBSph()));
       }
     }
   }
@@ -338,7 +338,7 @@ public:
     }
   }
 
-private:
+protected:
   __forceinline IBBox2 getBoxLimits(bbox3f bbox) const
   {
     IBBox2 limits;

@@ -1,3 +1,21 @@
+# CI lane targets: verify formatting / regenerated-bindings freshness. Both run
+# daslang interpreted (no LLVM), so define them before the DAS_LLVM_DISABLED
+# early-return below.
+add_custom_target(check_format
+    COMMAND $<TARGET_FILE:daslang> ${PROJECT_SOURCE_DIR}/utils/das-fmt/dasfmt.das -- --path ${PROJECT_SOURCE_DIR}/ --verify
+    DEPENDS daslang
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    COMMENT "Verifying .das formatting (das-fmt --verify)"
+)
+
+add_custom_target(check_dasgen
+    COMMAND $<TARGET_FILE:daslang> ${PROJECT_SOURCE_DIR}/utils/dasgen/gen_bind.das
+    COMMAND git diff --exit-code -- ${PROJECT_SOURCE_DIR}/include/daScript/builtin/
+    DEPENDS daslang
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    COMMENT "Checking generated builtin .inc files are up to date (dasgen)"
+)
+
 # Build daslang utilities as standalone executables using -exe mode.
 # Each utility with a main.das is compiled via daslang -exe and the
 # resulting binary is placed next to the daslang compiler binary
@@ -104,13 +122,14 @@ foreach(util ${DAS_UTILS})
 endforeach()
 add_dependencies(all_utils_exe dastest_exe)
 
-# Prewarm the JIT dll cache for the whole test tree, except the folders dastest
-# also excludes under -jit (gc, ast_match, ast, no_aot — they use runtime quote/qmacro
-# the JIT can't lower). Reuses the jit_exe target built by the foreach above (bin/jit.exe, built
-# with --jit-register-all-modules). Run explicitly:
+# Prewarm the JIT dll cache for the whole test tree, except module-gated folders and gc
+# (mirrors tests/.das_test: gc stays interp-only under -jit — heap_collect can't see
+# jitted-frame locals; quote/qmacro folders prewarm fine now that jit_enabled triggers
+# daslib/quote lowering). Reuses the jit_exe target built by the foreach above
+# (bin/jit.exe, built with --jit-register-all-modules). Run explicitly:
 #   ninja jit_cache_all_tests
 add_custom_target(jit_cache_all_tests
-    COMMAND ${UTIL_BIN_DIR}/jit.exe ${PROJECT_SOURCE_DIR}/tests --parallel 0 $<IF:$<CONFIG:Debug>,--jit-opt-level=0,--jit-opt-level=3> --exclude gc --exclude dasHV --exclude dasPUGIXML --exclude dasSQLITE --exclude stbimage --exclude live_host --exclude audio --exclude strudel --exclude ast_match --exclude ast --exclude no_aot
+    COMMAND ${UTIL_BIN_DIR}/jit.exe ${PROJECT_SOURCE_DIR}/tests --parallel 0 $<IF:$<CONFIG:Debug>,--jit-opt-level=0,--jit-opt-level=3> --exclude gc --exclude dasHV --exclude dasPUGIXML --exclude dasSQLITE --exclude sql_conformance --exclude stbimage --exclude dasGLTF --exclude live_host --exclude audio --exclude strudel --exclude strudel_device --exclude minfft
     DEPENDS jit_exe
     WORKING_DIRECTORY ${UTIL_BIN_DIR}
     COMMENT "JIT-compiling tests/ into the .jitted_scripts cache"
@@ -123,49 +142,28 @@ SET(DAS_UTILS_TO_TEST
     detect-dupe
     find-dupe/tests
     hygiene
+    ast-fuzz
 )
 
 FOREACH(_das ${DAS_UTILS_TO_TEST})
     LIST(APPEND _run_utils_tests
         COMMAND ${CMAKE_COMMAND} -E echo "Running tests ${_das}"
         COMMAND daslang ${PROJECT_SOURCE_DIR}/dastest/dastest.das -- --test ${PROJECT_SOURCE_DIR}/utils/${_das}
-        DEPENDS das-fmt tree_sitter_daslang
+        DEPENDS gen1_to_gen2 tree_sitter_daslang
     )
 ENDFOREACH()
+
+# gen1_to_gen2 (utils/dasFormatter, the gen1->gen2 syntax converter) carries its own
+# --tests self-check suite. It's a C++ target (not a daslang -exe util), so invoke
+# the binary directly rather than through dastest. Previously uncovered by CI, which
+# let the make-literal verify-compile tests rot unnoticed. (issue #3094)
+LIST(APPEND _run_utils_tests
+    COMMAND ${CMAKE_COMMAND} -E echo "Running tests gen1_to_gen2 dasFormatter --tests"
+    COMMAND $<TARGET_FILE:gen1_to_gen2> --tests
+    DEPENDS gen1_to_gen2
+)
 ADD_CUSTOM_TARGET(run_utils_tests
     ${_run_utils_tests}
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     COMMENT "Running utils tests"
 )
-
-# Install utility executables (OPTIONAL — only present when -exe targets are built).
-# UTIL_BIN_DIR uses CMAKE_CFG_INTDIR which doesn't resolve at install time on
-# multi-config generators. Use install(CODE) with CMAKE_INSTALL_CONFIG_NAME.
-# Same generator-keyed split as UTIL_BIN_DIR above — under MSVC+Ninja the exes
-# are in plain bin/, and bin/${CMAKE_INSTALL_CONFIG_NAME} would miss them all.
-if(_DAS_UTILS_MULTI_CONFIG)
-    set(_UTIL_INSTALL_PATTERN "${PROJECT_SOURCE_DIR}/bin/\${CMAKE_INSTALL_CONFIG_NAME}")
-else()
-    set(_UTIL_INSTALL_PATTERN "${PROJECT_SOURCE_DIR}/bin")
-endif()
-# `daslang -exe` writes its output via fopen("wb") which gives 0644 on Linux/
-# macOS — no executable bit. file(INSTALL) defaults to preserving source perms,
-# so without explicit FILE_PERMISSIONS the installed copy is non-executable
-# and users must `chmod +x` before running. v0.6.2-RC3 Linux bundle shipped
-# this way (all 8 daslang -exe outputs were `-rw-r--r--`).
-foreach(util ${DAS_UTILS})
-    install(CODE "
-        set(_util_exe \"${_UTIL_INSTALL_PATTERN}/${util}.exe\")
-        if(EXISTS \"\${_util_exe}\")
-            file(INSTALL \"\${_util_exe}\" DESTINATION \"\${CMAKE_INSTALL_PREFIX}/${DAS_INSTALL_BINDIR}\"
-                FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-        endif()
-    ")
-endforeach()
-install(CODE "
-    set(_util_exe \"${_UTIL_INSTALL_PATTERN}/dastest.exe\")
-    if(EXISTS \"\${_util_exe}\")
-        file(INSTALL \"\${_util_exe}\" DESTINATION \"\${CMAKE_INSTALL_PREFIX}/${DAS_INSTALL_BINDIR}\"
-            FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-    endif()
-")

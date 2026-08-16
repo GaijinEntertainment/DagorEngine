@@ -58,21 +58,19 @@ lowlatency::LatencyMode lowlatency::get_from_blk()
     case GpuVendor::INTEL: mode = video->getInt("intel_latency", def); break;
     default: mode = lowlatency::LatencyMode::LATENCY_MODE_OFF;
   }
+  bool frameGenerationEnabled = false;
   if (vendor == GpuVendor::NVIDIA)
-  {
-    const bool frameGenerationEnabled =
+    frameGenerationEnabled =
       video->getInt("dlssFrameGenerationCount", 0) > 0 ||
       (stricmp(video->getStr("antialiasing_mode", "off"), "dlss") == 0 && video->getInt("antialiasing_fgc", 0) != 0);
-    if (frameGenerationEnabled)
-      return lowlatency::LatencyMode::LATENCY_MODE_NV_BOOST; // forced by frame generation
-  }
   else if (vendor == GpuVendor::INTEL)
-  {
-    const bool frameGenerationEnabled =
+    frameGenerationEnabled =
       (stricmp(video->getStr("antialiasing_mode", "off"), "xess") == 0 && video->getInt("antialiasing_fgc", 0) > 0);
-    if (frameGenerationEnabled)
-      return lowlatency::LatencyMode::LATENCY_MODE_ON; // Intel's frame generation doesn't have a boost mode, so just use ON
-  }
+
+  // frame generation needs at least ON, the choice between ON and ON+BOOST stays with the player
+  if (frameGenerationEnabled && mode == lowlatency::LatencyMode::LATENCY_MODE_OFF)
+    mode = lowlatency::LatencyMode::LATENCY_MODE_ON;
+
   return static_cast<lowlatency::LatencyMode>(mode);
 }
 

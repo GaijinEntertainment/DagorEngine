@@ -18,10 +18,12 @@
 static debug_log_callback_t original_log_callback = nullptr;
 static int fail_test_on_err(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
 {
+  static const int D3DE_TAG = _MAKE4C('D3DE');
+
   if (original_log_callback)
     original_log_callback(lev_tag, fmt, arg, anum, ctx_file, ctx_line);
 
-  if (lev_tag > LOGLEVEL_ERR)
+  if (lev_tag > LOGLEVEL_ERR && lev_tag != D3DE_TAG)
     return 1;
 
   String s;
@@ -36,17 +38,23 @@ static int fail_test_on_err(int lev_tag, const char *fmt, const void *arg, int a
   return 1;
 }
 
-#define CUSTOM_UNITTEST_CODE                                             \
-  static DagorSettingsBlkHolder stgBlkHolder;                            \
-  dgs_init_argv(argc, argv);                                             \
-  set_debug_console_handle((intptr_t)::GetStdHandle(STD_OUTPUT_HANDLE)); \
-  dagor_change_root_directory();                                         \
-  dagor_init_base_path();                                                \
-  dgs_load_settings_blk(false, "../../settings.blk");                    \
-  cpujobs::init();                                                       \
-  d3d::init_driver();                                                    \
-  ::dagor_init_video("daFGtests", 0, nullptr, "");                       \
-  ::startup_game(RESTART_ALL);                                           \
+#if _TARGET_PC_WIN
+#define GET_STDOUT_HANDLE() (::GetStdHandle(STD_OUTPUT_HANDLE))
+#else
+#define GET_STDOUT_HANDLE() (stdout)
+#endif
+
+#define CUSTOM_UNITTEST_CODE                               \
+  static DagorSettingsBlkHolder stgBlkHolder;              \
+  dgs_init_argv(argc, argv);                               \
+  set_debug_console_handle((intptr_t)GET_STDOUT_HANDLE()); \
+  dagor_change_root_directory();                           \
+  dagor_init_base_path();                                  \
+  dgs_load_settings_blk(false, "../../settings.blk");      \
+  cpujobs::init();                                         \
+  d3d::init_driver();                                      \
+  ::dagor_init_video("daFGtests", 0, nullptr, "");         \
+  ::startup_game(RESTART_ALL);                             \
   original_log_callback = debug_set_log_callback(&fail_test_on_err);
 
 #define CUSTOM_UNITTEST_SHUTDOWN_CODE \

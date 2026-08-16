@@ -212,11 +212,17 @@ float3 voronoi( in float3 x, float s, bool inverted) {
     return float3(result, id);
 }
 
-float get_worley_2_octaves(float3 p, float3 offset) {
-  float3 xyz = p + offset;
+float get_worley(float3 p, float s) {
+  float3 xyz = p;
 
-  float worley_value1 = voronoi(xyz, 1.0, true).r;
-  float worley_value2 = voronoi(xyz, 2.0, false).r;
+  return saturate(voronoi(xyz, s, true).r);
+}
+
+float get_worley_2_octaves(float3 p, float s) {
+  float3 xyz = p;
+
+  float worley_value1 = voronoi(xyz, 1.0 * s, true).r;
+  float worley_value2 = voronoi(xyz, 2.0 * s, false).r;
 
   worley_value1 = saturate(worley_value1);
   worley_value2 = saturate(worley_value2);
@@ -391,4 +397,248 @@ float3 curl_noise(float3 pos, float scale, bool3 tile = bool3(true,true, false))
     float3 derivs = get_perlin_5_octaves_deriv(pos.xyz, scale, tile).yzw/scale;
   #endif
   return derivs.yzx - derivs.zxy;
+}
+
+float2 interpolation_c2( float2 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
+float2 interpolation_c2_deriv( float2 x ) { return x * x * (x * (x * 30.0 - 60.0) + 30.0); }
+
+void perlin_hash(float2 gridcell, float s, bool2 tile,
+          out float4 hash_0,
+          out float4 hash_1)
+{
+  const float2 OFFSET = float2( 26.0, 161.0 );
+  const float DOMAIN = 71.0;
+  const float2 SOMELARGEFLOATS = float2( 951.135664, 642.949883 );
+
+  gridcell.xy = gridcell.xy - floor(gridcell.xy * ( 1.0 / DOMAIN )) * DOMAIN;
+  float d = DOMAIN - 1.5;
+  float2 gridcell_inc1 = step( gridcell, float2( d, d ) ) * ( gridcell + 1.0 );
+
+  #if __HLSL_VERSION >= 2021
+    gridcell_inc1 = select(tile, gridcell_inc1 % s, gridcell_inc1);
+  #else
+    gridcell_inc1 = tile ? gridcell_inc1 % s : gridcell_inc1;
+  #endif
+
+  float4 P = float4( gridcell.xy, gridcell_inc1.xy ) + OFFSET.xyxy;
+  P *= P;
+  P = P.xzxz * P.yyww;
+  hash_0 = frac( P * ( 1.0 / SOMELARGEFLOATS.x ) );
+  hash_1 = frac( P * ( 1.0 / SOMELARGEFLOATS.y ) );
+}
+
+float perlin(float2 P, float s, bool2 tile) {
+  P *= s;
+
+  float2 Pi = floor(P);
+  float2 Pf = P - Pi;
+  float2 Pf_min1 = Pf - 1.0;
+
+  float4 hashx0, hashy0;
+  perlin_hash( Pi, s, tile, hashx0, hashy0 );
+
+  float4 grad_x0 = hashx0 - 0.49999;
+  float4 grad_y0 = hashy0 - 0.49999;
+  float4 grad_results = rsqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 ) * ( float2( Pf.x, Pf_min1.x ).xyxy * grad_x0 + float2( Pf.y, Pf_min1.y ).xxyy * grad_y0 );
+
+  float2 blend = interpolation_c2( Pf );
+  float4 blend2 = float4( blend.xy, float2( 1.0 - blend.xy ) );
+  float final = dot( grad_results, blend2.zxzx * blend2.wwyy );
+  final *= 1.0/sqrt(0.5);
+  return final;
+}
+
+// x: value, yz: deriv
+float3 perlin_deriv(float2 P, float s, bool2 tile) {
+  P *= s;
+
+  float2 Pi = floor(P);
+  float2 Pf = P - Pi;
+  float2 Pf_min1 = Pf - 1.0;
+
+  float4 hashx0, hashy0;
+  perlin_hash( Pi, s, tile, hashx0, hashy0 );
+
+  float4 grad_x0 = hashx0 - 0.49999;
+  float4 grad_y0 = hashy0 - 0.49999;
+  float4 norm_0 = rsqrt( grad_x0 * grad_x0 + grad_y0 * grad_y0 );
+  grad_x0 *= norm_0;
+  grad_y0 *= norm_0;
+
+  float4 dotval_0 = float2( Pf.x, Pf_min1.x ).xyxy * grad_x0 + float2( Pf.y, Pf_min1.y ).xxyy * grad_y0;
+
+  float3 dotval0_grad0 = float3( dotval_0.x, grad_x0.x, grad_y0.x );
+  float3 dotval1_grad1 = float3( dotval_0.y, grad_x0.y, grad_y0.y );
+  float3 dotval2_grad2 = float3( dotval_0.z, grad_x0.z, grad_y0.z );
+  float3 dotval3_grad3 = float3( dotval_0.w, grad_x0.w, grad_y0.w );
+
+  float3 k0_gk0 = dotval1_grad1 - dotval0_grad0;
+  float3 k1_gk1 = dotval2_grad2 - dotval0_grad0;
+  float3 k2_gk2 = dotval3_grad3 - dotval2_grad2 - k0_gk0;
+
+  float2 blend = interpolation_c2( Pf );
+  float2 blendDeriv = interpolation_c2_deriv( Pf );
+
+  float u = blend.x;
+  float v = blend.y;
+
+  float3 result = dotval0_grad0
+      + u * ( k0_gk0 + v * k2_gk2 )
+      + v * k1_gk1;
+
+  result.y += blendDeriv.x * ( k0_gk0.x + v * k2_gk2.x );
+  result.z += blendDeriv.y * ( k1_gk1.x + u * k2_gk2.x );
+
+  result *= 1.0/sqrt(0.5);
+  return float3(result.x, result.yz*s);
+}
+
+float perlin(float2 P) {
+  return perlin(P, 1, false);
+}
+
+uint2 hash_int2(uint2 x)
+{
+  x ^= x >> 16;
+  x *= uint(0x7feb352d);
+  x ^= x >> 15;
+  x *= uint(0x846ca68b);
+  x ^= x >> 16;
+  return x;
+}
+
+float2 voronoi_hash( float2 x, float s) {
+  x = x % s;
+  x = float2( dot(x, float2(127.1,311.7)),
+              dot(x, float2(269.5,183.3)));
+
+  uint2 v = hash_int2(uint2(asuint(x.x), asuint(x.y)));
+  return (v&0xFFFFFF)*(1./16777216);//24 bits, as amount of meaningful bits in mantissa
+}
+
+float3 voronoi( in float2 x, float s, bool inverted) {
+  x *= s;
+  x += 0.5;
+  float2 p = floor(x);
+  float2 f = frac(x);
+
+  float id = 0.0;
+  float2 res = float2( 1.0 , 1.0);
+  for(int j=-1; j<=1; j++) {
+    for(int i=-1; i<=1; i++) {
+      float2 b = float2(i, j);
+      float2 r = float2(b) - f + voronoi_hash(p + b, s);
+      float d = dot(r, r);
+
+      if(d < res.x) {
+        id = dot(p + b, float2(1.0, 57.0));
+        res = float2(d, res.x);
+      } else if(d < res.y) {
+        res.y = d;
+      }
+    }
+  }
+
+  float2 result = res;
+  id = abs(id);
+
+  if(inverted)
+    return float3(1.0 - result, id);
+  else
+    return float3(result, id);
+}
+
+float get_worley(float2 p, float s) {
+  return saturate(voronoi(p, s, true).r);
+}
+
+float get_worley_2_octaves(float2 p, float s) {
+  float worley_value1 = voronoi(p, 1.0 * s, true).r;
+  float worley_value2 = voronoi(p, 2.0 * s, false).r;
+
+  worley_value1 = saturate(worley_value1);
+  worley_value2 = saturate(worley_value2);
+
+  return worley_value1 - worley_value2 * 0.25;
+}
+
+float get_worley_3_octaves(float2 p, float s) {
+  float worley_value1 = voronoi(p, 1.0 * s, true).r;
+  float worley_value2 = voronoi(p, 2.0 * s, false).r;
+  float worley_value3 = voronoi(p, 4.0 * s, false).r;
+
+  worley_value1 = saturate(worley_value1);
+  worley_value2 = saturate(worley_value2);
+  worley_value3 = saturate(worley_value3);
+
+  return worley_value1 - worley_value2 * 0.3 - worley_value3 * 0.3;
+}
+
+float get_perlin_5_octaves(float2 p, float s, bool2 tile, float frequency_factor = 2.0, float amplitude_factor = 0.5) {
+  float2 xy = p;
+
+  float f = 1.0;
+  float a = 1.0;
+  float perlin_value = 0.0;
+  perlin_value += a * perlin(xy, s*f, tile).r; a *= amplitude_factor; f *= (frequency_factor + (tile.x ? 0 : 0.02));
+  perlin_value += a * perlin(xy, s*f, tile).r; a *= amplitude_factor; f *= (frequency_factor + (tile.x ? 0 : 0.03));
+  perlin_value += a * perlin(xy, s*f, tile).r; a *= amplitude_factor; f *= (frequency_factor + (tile.x ? 0 : 0.01));
+  perlin_value += a * perlin(xy, s*f, tile).r; a *= amplitude_factor; f *= (frequency_factor + (tile.x ? 0 : 0.01));
+  perlin_value += a * perlin(xy, s*f, tile).r;
+
+  return perlin_value;
+}
+
+float get_perlin_3_octaves(float2 p, float s, bool2 tile, float frequency_factor = 2.0, float amplitude_factor = 0.5) {
+  float2 xy = p;
+
+  float f = 1.0;
+  float a = 1.0;
+  float perlin_value = 0.0;
+  perlin_value += a * perlin(xy, s*f, tile).r; a *= amplitude_factor; f *= (frequency_factor + (tile.x ? 0 : 0.02));
+  perlin_value += a * perlin(xy, s*f, tile).r; a *= amplitude_factor; f *= (frequency_factor + (tile.x ? 0 : 0.03));
+  perlin_value += a * perlin(xy, s*f, tile).r;
+
+  return perlin_value;
+}
+
+float3 get_perlin_5_octaves_deriv(float2 p, float s, bool2 tile) {
+  float2 xy = p;
+  float amplitude_factor = 0.5;
+  float frequency_factor = 2.0;
+
+  float f = 1.0;
+  float a = 1.0;
+  float3 perlin_value = 0.0;
+  perlin_value += a * perlin_deriv(xy, s*f, tile); a *= amplitude_factor; f *= (frequency_factor + (tile.x ? 0 : 0.02));
+  perlin_value += a * perlin_deriv(xy, s*f, tile); a *= amplitude_factor; f *= (frequency_factor + (tile.x ? 0 : 0.03));
+  perlin_value += a * perlin_deriv(xy, s*f, tile); a *= amplitude_factor; f *= (frequency_factor + (tile.x ? 0 : 0.01));
+  perlin_value += a * perlin_deriv(xy, s*f, tile); a *= amplitude_factor; f *= (frequency_factor + (tile.x ? 0 : 0.01));
+  perlin_value += a * perlin_deriv(xy, s*f, tile);
+
+  return perlin_value;
+}
+
+float get_perlin_5_octaves(float2 p, bool2 tile) {return get_perlin_5_octaves(p, 1., tile);}
+
+float get_perlin_7_octaves(float2 p, float s, float scale_freq = 2.0, float scale_amp = 0.5) {
+  float2 xy = p;
+  float f = 1.0;
+  float a = 1.0;
+
+  float perlin_value = 0.0;
+  perlin_value += a * perlin(xy, s * f, true).r; a *= scale_amp; f *= scale_freq;
+  perlin_value += a * perlin(xy, s * f, true).r; a *= scale_amp; f *= scale_freq;
+  perlin_value += a * perlin(xy, s * f, true).r; a *= scale_amp; f *= scale_freq;
+  perlin_value += a * perlin(xy, s * f, true).r; a *= scale_amp; f *= scale_freq;
+  perlin_value += a * perlin(xy, s * f, true).r; a *= scale_amp; f *= scale_freq;
+  perlin_value += a * perlin(xy, s * f, true).r; a *= scale_amp; f *= scale_freq;
+  perlin_value += a * perlin(xy, s * f, true).r;
+
+  return perlin_value;
+}
+
+float2 curl_noise(float2 pos, float scale, bool2 tile = bool2(true, true)) {
+  float2 derivs = get_perlin_5_octaves_deriv(pos, scale, tile).yz/scale;
+  return float2(derivs.y, -derivs.x);
 }

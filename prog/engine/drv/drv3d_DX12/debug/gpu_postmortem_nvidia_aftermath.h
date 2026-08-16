@@ -59,7 +59,9 @@ class Aftermath
       PFN_GFSDK_Aftermath_GpuCrashDump_GetPageFaultResourceInfo getPageFaultResourceInfo = nullptr;
       PFN_GFSDK_Aftermath_GpuCrashDump_GetActiveShadersInfoCount getActiveShadersInfoCount = nullptr;
       PFN_GFSDK_Aftermath_GpuCrashDump_GetActiveShadersInfo getActiveShadersInfo = nullptr;
-      PFN_GFSDK_Aftermath_GpuCrashDump_GetEventMarkersInfoCount getEventMarkersInfoCount = nullptr;
+      // PFN_..._GetEventMarkersInfoCount takes the count by value, the entry point it describes takes an out pointer.
+      GFSDK_Aftermath_Result(GFSDK_AFTERMATH_CALL *getEventMarkersInfoCount)(const GFSDK_Aftermath_GpuCrashDump_Decoder decoder,
+        uint32_t *pMarkerCount) = nullptr;
       PFN_GFSDK_Aftermath_GpuCrashDump_GetEventMarkersInfo getEventMarkersInfo = nullptr;
     } crashDump;
 

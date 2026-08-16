@@ -233,7 +233,12 @@ void VirtualResourceRequestBase::bindAsIndexBuffer()
 
 void VirtualResourceRequestBase::atStage(Stage stage) { thisRequest().usage.stage = stage; }
 
-void VirtualResourceRequestBase::useAs(Usage type) { thisRequest().usage.type = type; }
+void VirtualResourceRequestBase::useAs(Usage type)
+{
+  auto &request = thisRequest();
+  request.usage.type = type;
+  request.usageDeclared = true;
+}
 
 const ResourceProvider *VirtualResourceRequestBase::provider() { return &registry->resourceProviderReference; }
 
@@ -278,7 +283,7 @@ void VirtualResourceRequestBase::clear(ResourceSubtypeTag projectee, const char 
 
   // Implicitly read the blob
   nodeData.readResources.insert(blobId);
-  nodeData.resourceRequests.emplace(blobId, ResourceRequest{{}, false, false, projectee});
+  nodeData.resourceRequests.emplace(blobId, ResourceRequest{.subtypeTag = projectee});
 
   detail::VirtualResourceRequestBase fakeReq{{blobId, false}, nodeId, registry};
   fakeReq.markWithTag(projectee);

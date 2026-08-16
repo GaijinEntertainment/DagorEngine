@@ -39,7 +39,7 @@ OSSpinlock typeDirtListLock;
 static eastl::unordered_set<int> typeDirtList DAG_TS_GUARDED_BY(typeDirtListLock) = {-1};
 static eastl::unordered_set<int> typeDirtListStaging DAG_TS_GUARDED_BY(typeDirtListLock) = {-1};
 
-static bool need_type_reset(const auto &t) { return t.size() == 1 && *t.begin() == -1; }
+static bool need_type_reset(const auto &t) { return t.count(-1) != 0; }
 static void do_type_reset()
 {
   OSSpinlockScopedLock lock(typeDirtListLock);
@@ -653,6 +653,8 @@ void prepare_ri_extra_instances()
       auto riRes = rendinst::getRIGenExtraRes(riType);
       if (DAGOR_UNLIKELY(!riRes))
         return;
+      if (!rendinst::isRIGenExtraPlacedInTiledScenes(riType))
+        return;
       if (riRes->getBvhId() == 0)
       {
         // Not yet loaded. Put it into the dirt list so it will be checked later.
@@ -661,31 +663,36 @@ void prepare_ri_extra_instances()
       }
 
 
+      if (!riRes->hasTreeOrFlag())
+        elemCount = 1;
+      else
+      {
+        int bestLod = min<int>(max<int>(riRes->getQlBestLod(), riRes->getBvhMinLod()), riRes->lods.size() - 1);
+        auto &lod = riRes->lods[bestLod];
+        auto elems = lod.scene->getMesh()->getMesh()->getMesh()->getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
+
+        bool hasIndices;
+        for (auto [elemIx, elem] : enumerate(elems))
+          elemCount += elem.vertexData->isRenderable(hasIndices) ? 1 : 0;
+      }
+
+      if (elemCount == 0)
+      {
+        // No renderable elems yet. Put it into the dirt list so it will be checked later.
+        newDirtList.insert(riType);
+        return;
+      }
+
       tmpHandles.clear();
       if (rendinst::getRiGenExtraInstances(tmpHandles, riType) > 0)
       {
-        if (!riRes->hasTreeOrFlag())
-          elemCount = 1;
-        else
-        {
-          int bestLod = min<int>(max<int>(riRes->getQlBestLod(), riRes->getBvhMinLod()), riRes->lods.size() - 1);
-          auto &lod = riRes->lods[bestLod];
-          auto elems = lod.scene->getMesh()->getMesh()->getMesh()->getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
-
-          bool hasIndices;
-          for (auto [elemIx, elem] : enumerate(elems))
-            elemCount += elem.vertexData->isRenderable(hasIndices) ? 1 : 0;
-        }
-
-        if (elemCount == 0)
-          return;
-
         group.maxLodDistSq = rendinst::getMaxLodDist(riType);
 
         tmpCacheVec0.clear();
         tmpCacheVec1.clear();
         tmpCacheVec0.reserve(tmpHandles.size());
         // at most, only a few percent of instances will have invalid bsphere, so we don't need to reserve for tmpCacheVec1
+        bool anyPendingNode = false;
         for (const auto handle : tmpHandles)
         {
           vec4f bsphere;
@@ -701,7 +708,13 @@ void prepare_ri_extra_instances()
             else
               tmpCacheVec0.push_back(cache);
           }
+          else if (rendinst::isNodeAllocated(handle))
+            anyPendingNode = true;
         }
+        // An allocated node only reports alive once its deferred tiled scene add is flushed, and no
+        // callback fires then retry. Instances that never got a node must not keep the type dirty.
+        if (anyPendingNode)
+          newDirtList.insert(riType);
         const int allocSize = tmpCacheVec0.size() + tmpCacheVec1.size();
         if (allocSize == 0)
           return;
@@ -879,6 +892,17 @@ void override_out_of_camera_ri_dist_mul(float dist_sq_mul_ooc)
 {
   override_dist_sq_mul_ooc = true;
   saved_ooc_cull_dist_sq_mul = dist_sq_mul_ooc;
+}
+
+void collect_riex_staged_blas_addresses(ContextId context_id, dag::Vector<uint64_t> &addresses)
+{
+  for (auto &jobFlips : riExtraJobGroups[context_id].jobs)
+    for (int flip = 0; flip < 2; ++flip)
+      for (auto &lodRes : jobFlips[flip].newUniqueRiExtraTreeBuffers)
+        for (auto &tree : lodRes)
+          for (auto &elem : tree.second.elems)
+            if (elem.second.blas)
+              addresses.push_back(elem.second.blas.getGPUAddress());
 }
 
 void tidy_up_riex_trees(ContextId context_id)

@@ -58,5 +58,11 @@ void PicAsyncLoad::pic_mgr_async_load_cb(PICTUREID pid, TEXTUREID tid, d3d::Samp
   delete req;
 }
 
+bool PicAsyncLoad::pic_mgr_load_confirm_cb(void *arg)
+{
+  AsyncLoadRequest *req = (AsyncLoadRequest *)arg;
+  return req->isActive();
+}
+
 
 } // namespace darg

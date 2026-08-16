@@ -368,11 +368,12 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
           LayerHiddenMask layers_hide_mask;
           for (unsigned i = 0; i < EditLayerProps::layerProps.size(); i++)
           {
-            if (!EditLayerProps::layerProps[i].renderToMask)
+            const EditLayerProps &layerProp = EditLayerProps::layerProps[i];
+            if (!layerProp.renderToMask)
               layers_hide_mask.setHidden(i);
-            if (EditLayerProps::layerProps[i].hide && EditLayerProps::layerProps[i].renderToMask)
+            if (layerProp.isLayerOrTypeHidden() && layerProp.renderToMask)
               DAEDITOR3.conNote("%s: unhiding layer '%s' due to \"to mask\" is ON", "Loft mask export", EditLayerProps::layerName(i));
-            else if (!EditLayerProps::layerProps[i].hide && !EditLayerProps::layerProps[i].renderToMask)
+            else if (!layerProp.isLayerOrTypeHidden() && !layerProp.renderToMask)
               DAEDITOR3.conNote("%s: hiding layer '%s' due to \"to mask\" is OFF", "Loft mask export", EditLayerProps::layerName(i));
           }
           DAEDITOR3.setEntityLayerHiddenMask(layers_hide_mask);

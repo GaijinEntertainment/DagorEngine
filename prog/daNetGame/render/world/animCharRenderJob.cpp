@@ -34,13 +34,15 @@ void AnimcharRenderMainJob::doJob()
   if (eastl::to_underlying(flt) == 0) // First one wake others up
     threadpool::wake_up_all();
 
-  G_FAST_ASSERT(dynCtx != dynrend::ContextId::INVALID && frustum);
+  G_FAST_ASSERT(dynrend::is_valid_context(dynCtx) && frustum);
   const animchar_visbits_t add_vis_bits = VISFLG_MAIN_VISIBLE | VISFLG_MAIN_CAMERA_RENDERED;
-  const animchar_visbits_t check_bits = VISFLG_MAIN_AND_SHADOW_VISIBLE | VISFLG_MAIN_VISIBLE;
+  const animchar_visbits_t require_any_vis_bits = VISFLG_MAIN_AND_SHADOW_VISIBLE | VISFLG_MAIN_VISIBLE;
+  const animchar_visbits_t reject_if_any_vis_bits = VISFLG_COCKPIT_VISIBLE;
+
   const uint8_t filterMask = UpdateStageInfoRender::RENDER_MAIN;
-  g_entity_mgr->broadcastEventImmediate(
-    AnimcharRenderAsyncEvent(dynCtx, &mainCtx->globalVarsState, occlusion, *frustum, add_vis_bits, check_bits, filterMask,
-      /*needPreviousMatrices*/ (hints & UpdateStageInfoRender::RENDER_MOTION_VECS) != 0, flt, texCtx));
+  g_entity_mgr->broadcastEventImmediate(AnimcharRenderAsyncEvent(dynCtx, &mainCtx->globalVarsState, occlusion, *frustum, add_vis_bits,
+    require_any_vis_bits, reject_if_any_vis_bits, filterMask,
+    /*needPreviousMatrices*/ (hints & UpdateStageInfoRender::RENDER_MOTION_VECS) != 0, flt, texCtx));
   if (interlocked_decrement(mainCtx->jobsLeft) == 0) // Last one finalizes to 0th
   {
     for (int n = 1; n < AnimcharRenderAsyncFilter::ARF_IDX_COUNT; n++)

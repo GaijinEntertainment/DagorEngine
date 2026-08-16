@@ -15,6 +15,7 @@
 #include <math/integer/dag_IPoint2.h>
 #include <drv_utils.h>
 #include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <driver.h>
 #include "globals.h"
 
@@ -41,8 +42,12 @@ float square_scale = 1.f;
 
 void android_d3d_reinit(void *w)
 {
+  if (!w)
+    return;
+
   using namespace native_android;
 
+  const IPoint2 prevTargetResolution = {buffer_width, buffer_height};
   ANativeWindow *nativeWindow = (ANativeWindow *)w;
 
   window_width = ANativeWindow_getWidth(nativeWindow);
@@ -78,11 +83,6 @@ void android_d3d_reinit(void *w)
   const DataBlock *videoBlk = settings->getBlockByNameEx("video");
   const String resStr(16, videoBlk->getStr("androidResolution", "Native"));
 
-  // The window is reported in the device natural orientation, which is portrait on most phones
-  // while the game is landscape locked, so at the first init we can see a transposed size.
-  // Resolution is derived from the long/short axes to stay independent of that.
-  const IPoint2 landscapeWindow = {max(window_width, window_height), min(window_width, window_height)};
-
   if (resStr == "HD")
     target_resolution = IPoint2(1280, 720);
   else if (resStr == "Full HD")
@@ -95,7 +95,7 @@ void android_d3d_reinit(void *w)
   if (target_resolution == undefined_resolution)
   {
     bool isAuto, isRetina;
-    get_settings_resolution(target_resolution.x, target_resolution.y, isRetina, landscapeWindow.x, landscapeWindow.y, isAuto);
+    get_settings_resolution(target_resolution.x, target_resolution.y, isRetina, window_width, window_height, isAuto);
 
     // When screen is a square (tablet/foldable phone) depending on
     // the calculation mode for resolution we might get an unreasonably
@@ -107,6 +107,12 @@ void android_d3d_reinit(void *w)
       // 20/9 aspect is used for majority of low to medium end phones
       const IPoint2 referenceAspect = referenceAspectBlk->getIPoint2("aspect", {20, 9});
       const float referenceRatio = static_cast<float>(referenceAspect.x) / referenceAspect.y;
+
+      // System might provide us swaped dimension which is ok on phones
+      // but the reference aspect multiplier is always about
+      // bigger dimension to smaller one relation
+      const IPoint2 landscapeWindow = {max(window_width, window_height), min(window_width, window_height)};
+
       const float realRatio = static_cast<float>(landscapeWindow.x) / landscapeWindow.y;
 
       const float threshold = referenceAspectBlk->getReal("deviationThreshold", 0.1f);
@@ -124,7 +130,7 @@ void android_d3d_reinit(void *w)
     target_resolution.x *= square_scale;
     target_resolution.y *= square_scale;
 
-    target_resolution = min(target_resolution, landscapeWindow);
+    target_resolution = min(target_resolution, {window_width, window_height});
     target_resolution -= target_resolution % 8;
   }
   else
@@ -132,7 +138,7 @@ void android_d3d_reinit(void *w)
     const String aspectRatio(16, videoBlk->getStr("androidAspectRatio", "Auto"));
     if (aspectRatio != "Fixed")
     {
-      target_resolution.x = (landscapeWindow.x * target_resolution.y) / landscapeWindow.y;
+      target_resolution.x = (window_width * target_resolution.y) / window_height;
     }
   }
 
@@ -143,9 +149,18 @@ void android_d3d_reinit(void *w)
   DEBUG_CTX("ScreenSizes realDPI: %dx%d win: %dx%d buf: %dx%d", dagor_android_scr_xdpi, dagor_android_scr_ydpi, window_width,
     window_height, buffer_width, buffer_height);
 
-  // if this re-init is not first, reset device to setup proper surface
-  if (d3d::is_inited())
+  if (!d3d::is_inited())
   {
+    notify_window_resized(buffer_width, buffer_height);
+    return;
+  }
+
+  if (prevTargetResolution != target_resolution)
+    notify_window_resized(buffer_width, buffer_height);
+  else
+  {
+    // nothing is sized to the screen here, so only the surface has to be rebuilt. Do it while the
+    // command handler keeps the window alive, vkCreateAndroidSurfaceKHR needs a live one
     d3d::reset_device();
     d3d::set_render_target();
   }
@@ -167,6 +182,9 @@ void drv3d_vulkan::WindowState::getRenderWindowSettings()
 
 void drv3d_vulkan::os_restore_display_mode() {}
 
+void drv3d_vulkan::os_present_window_lock() {}
+void drv3d_vulkan::os_present_window_unlock() {}
+
 void drv3d_vulkan::os_set_display_mode(int, int) {}
 
 eastl::string drv3d_vulkan::os_get_additional_ext_requirements(VulkanPhysicalDeviceHandle dev,
@@ -179,6 +197,13 @@ eastl::string drv3d_vulkan::os_get_additional_ext_requirements(VulkanPhysicalDev
 
 VulkanSurfaceKHRHandle drv3d_vulkan::init_window_surface(VulkanInstance &instance, void *window)
 {
+  // a reset can be requested before the window is destroyed and run after it.
+  if (!window)
+  {
+    DEBUG_CTX("vulkan: Can't create surface for NULL window");
+    return {};
+  }
+
   VulkanSurfaceKHRHandle result;
   VkAndroidSurfaceCreateInfoKHR sci = {};
   sci.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;

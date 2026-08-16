@@ -151,7 +151,8 @@ namespace das {
 
     void Module_BuiltIn::addArrayTypes(ModuleLibrary & lib) {
         // array functions
-        addExtern<DAS_BIND_FUN(builtin_array_clear)>(*this, lib, "clear",
+        // the public 'clear' is a builtin.das generic (finalize banner); this is its raw half
+        addExtern<DAS_BIND_FUN(builtin_array_clear)>(*this, lib, "__builtin_array_clear",
             SideEffects::modifyArgument, "builtin_array_clear")
                 ->args({"array","context","at"});
         addExtern<DAS_BIND_FUN(builtin_array_size)>(*this, lib, "length",

@@ -8,7 +8,7 @@ require dastest/testing_boost public
 
 [test]
 def test_table_i64_key_index_write_read(t : T?) {
-    var tab : table<int64; int>
+    var tab : table<int64; int>  // nolint:STYLE031 — fused tab[k]=v write path is under test
     tab[1_l] = 10
     tab[1000000000000_l] = 20
     tab[-1_l] = 30
@@ -28,7 +28,7 @@ def test_table_i64_key_overwrite(t : T?) {
 
 [test]
 def test_table_u64_key_index(t : T?) {
-    var tab : table<uint64; int>
+    var tab : table<uint64; int>  // nolint:STYLE031 — fused tab[k]=v write path is under test
     tab[1_ul] = 100
     tab[18446744073709551615_ul] = 200
     t |> equal(tab[1_ul], 100)

@@ -32,6 +32,7 @@ Sources =
   collisionFactory.cpp
   collisionGameRes.cpp
   collisionGameResLoad.cpp
+  collisionResourceInstance.cpp
   collisionGameRes_avx.cpp
   collisionTraceOOL.cpp
 

@@ -423,7 +423,7 @@ struct BufferedRenderer
 
   int beginChunk(); // return chunk_id 0-based
   void endChunk(const TargetParams &target_params);
-  void renderChunk(int chunk_id, int targetW, int targetH);
+  void renderChunk(int chunk_id, int targetW, int targetH, int pre_rotation = 0);
   void renderChunkCustom(int chunk_id, int targetW, int targetH, int replace_buffer, Ptr<ShaderElement> shaderElem);
 
   void resetBuffers();

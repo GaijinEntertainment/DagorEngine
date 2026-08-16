@@ -59,10 +59,16 @@ struct ProcessedAdditionalProbe
   float normalizedW;
 };
 
-ProcessedAdditionalProbe processAdditionalProbe(DecodedProbe additionalProbe, ViewInfo vInfo, uint2 tile_coord, float sceneLinearDepth, float4 scenePlane, float depth_exp)
+// anchor uv from explicit view info (tile_to_center.xy is tile size in uv units,
+// coord_to_probe_coord.x is 1/tile size): works for the prev frame too
+float2 getScreenProbeAnchorScreenUV(uint2 tile_coord, uint2 coord_ofs, ViewInfo vInfo)
 {
-  float2 uv = getScreenProbeCenterScreenUV(tile_coord, vInfo.tile_to_center, vInfo.screen_limit);
-  //uv = screenICoordToScreenUV(tile_coord*screenspace_probe_res.z + additionalProbe.coord_ofs);
+  return min(saturate((tile_coord*uint(vInfo.screenspace_probe_res.z) + coord_ofs + 0.5)*(vInfo.tile_to_center.xy*vInfo.screenspace_probe_screen_coord_to_probe_coord.x)), vInfo.screen_limit);
+}
+
+ProcessedAdditionalProbe processAdditionalProbe(DecodedProbe additionalProbe, uint2 add_coord_ofs, ViewInfo vInfo, uint2 tile_coord, float sceneLinearDepth, float4 scenePlane, float depth_exp)
+{
+  float2 uv = getScreenProbeAnchorScreenUV(tile_coord, add_coord_ofs, vInfo);
   float3 otherProbeCamPos = additionalProbe.normalizedW*getViewVecFromTc(uv, vInfo.lt, vInfo.hor, vInfo.ver);
   float newRelativeDepthDifference = pow2(dot(float4(otherProbeCamPos, -1), scenePlane));
   newRelativeDepthDifference += sp_get_additional_rel_depth_sample(additionalProbe.normalizedW*vInfo.zn_zfar.y, sceneLinearDepth, depth_exp);
@@ -123,7 +129,8 @@ UpsampleCornerWeights calc_upsample_weights(SRVBufferInfo srvInfo, ViewInfo vInf
     else
     {
       DecodedProbe baseProbe = sp_decodeProbeInfo(encodedProbe);
-      float3 probeCamPos = baseProbe.normalizedW*getViewVecFromTc(getScreenProbeCenterScreenUV(sampleProbeCoord, vInfo.tile_to_center, vInfo.screen_limit), vInfo.lt, vInfo.hor, vInfo.ver);
+      uint2 cornerCoordOfs = decodeCoordOfs(sp_loadEncodedProbeNormalCoord(srvInfo.posBuffer, screenProbeIndex, vInfo.screenspace_probes_count__added__total.z));
+      float3 probeCamPos = baseProbe.normalizedW*getViewVecFromTc(getScreenProbeAnchorScreenUV(sampleProbeCoord, cornerCoordOfs, vInfo), vInfo.lt, vInfo.hor, vInfo.ver);
 
       float bestRelDepth = pow2(dot(float4(probeCamPos, -1), scenePlane))
                          + sp_get_additional_rel_depth_sample(baseProbe.normalizedW*vInfo.zn_zfar.y, pointInfo.sceneLinearDepth, depth_exp);
@@ -143,8 +150,9 @@ UpsampleCornerWeights calc_upsample_weights(SRVBufferInfo srvInfo, ViewInfo vInf
           uint addProbeIndex = vInfo.screenspace_probes_count__added__total.x + addI;
           uint additionalEncodedProbe = sp_loadEncodedProbe(srvInfo.posBuffer, addProbeIndex);
           DecodedProbe additionalProbe = sp_decodeProbeInfo(additionalEncodedProbe);
+          uint2 addCoordOfs = decodeCoordOfs(sp_loadEncodedProbeNormalCoord(srvInfo.posBuffer, addProbeIndex, vInfo.screenspace_probes_count__added__total.z));
 
-          ProcessedAdditionalProbe addProbeProcessed = processAdditionalProbe(additionalProbe, vInfo, sampleProbeCoord, pointInfo.sceneLinearDepth, scenePlane, depth_exp);
+          ProcessedAdditionalProbe addProbeProcessed = processAdditionalProbe(additionalProbe, addCoordOfs, vInfo, sampleProbeCoord, pointInfo.sceneLinearDepth, scenePlane, depth_exp);
           if (addProbeProcessed.depthWeight > bestDepthWeight)
           {
             bestRelDepth = addProbeProcessed.relativeDepthDifference;

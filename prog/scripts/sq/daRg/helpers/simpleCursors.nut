@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "types" import String
 
 let tooltipBox = @(content) {
   rendObj = ROBJ_BOX
@@ -35,8 +36,8 @@ let tooltipCmp = @(){
   watch = tooltipGen
   behavior = Behaviors.BoundToArea
   safeAreaMargin = sh(1)
-  transform = const {}
-  children = type(getTooltip()) == "string"
+  transform = true
+  children = getTooltip() instanceof String
   ? tooltipBox({
       rendObj = ROBJ_TEXTAREA
       behavior = Behaviors.TextArea
@@ -70,9 +71,7 @@ function mkCursor(...){
     size = const [sh(2), sh(2)]
     hotspot = const [0, 0]
     children = vargv
-    transform = const {
-      pivot = [0, 0]
-    }
+    transform = const { pivot = [0, 0] }
   })
 }
 

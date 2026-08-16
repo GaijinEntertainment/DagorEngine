@@ -89,10 +89,7 @@ static void makePack(DagorAssetMgr &mgr, dag::ConstSpan<DagorAsset *> assets, da
   const DataBlock &expblk, Tab<AssetPack *> &tex_pack, Tab<AssetPack *> &grp_pack, FastNameMapEx &addPackages, ILogWriter &log,
   bool tex, bool res, const char *target_str, const char *profile)
 {
-  Tab<GrpAndTexPackId> folder_map(tmpmem);
-  folder_map.reserve(64);
   int tex_type = mgr.getTexAssetTypeId();
-  String tmpFolderPath;
   int tex_pack_init_cnt = tex_pack.size(), grp_pack_init_cnt = grp_pack.size();
 
   stripPrefix = expblk.getStr("stripPrefix", "");
@@ -190,8 +187,9 @@ static void makePack(DagorAssetMgr &mgr, dag::ConstSpan<DagorAsset *> assets, da
     }
   }
 
-  debug("total: %d assets in %d packs for target=%s", assets.size(),
-    (tex_pack.size() - tex_pack_init_cnt) + (grp_pack.size() - grp_pack_init_cnt), target_str);
+  if (assets.size() > 1)
+    debug("total: %d assets in %d packs for target=%s", assets.size(),
+      (tex_pack.size() - tex_pack_init_cnt) + (grp_pack.size() - grp_pack_init_cnt), target_str);
 }
 bool detect_valid_patch(const DataBlock &expblk, const char *pkg_name, const char *app_dir, const char *target_str,
   const char *profile, char *out_md5)

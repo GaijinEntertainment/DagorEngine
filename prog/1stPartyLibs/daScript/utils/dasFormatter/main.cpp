@@ -1,16 +1,32 @@
 #include "daScript/ast/ast.h"
+#include "daScript/ast/dyn_modules.h"
 #include "daScript/daScriptModule.h"
 #include "daScript/ast/ast_serializer.h"
 #include "daScript/misc/platform.h"
+#include "daScript/misc/sysos.h"
 #include "fmt.h"
+
+#if !defined(DAS_ENABLE_DLL) || !defined(DAS_ENABLE_DYN_INCLUDES)
+#include "modules/external_declare.inc"
+#endif
 
 using namespace das;
 
+das::FileAccessPtr get_file_access( char * pak );
 
 void InitModules() {
     // register modules
     register_builtin_modules();
-#include "modules/external_need.inc"
+#if !defined(DAS_ENABLE_DLL) || !defined(DAS_ENABLE_DYN_INCLUDES)
+#include "modules/external_pull.inc"
+#endif
+#ifdef DAS_ENABLE_DYN_INCLUDES
+    daScriptEnvironment::ensure();
+    auto access = get_file_access(nullptr);
+    TextPrinter tout;
+    vector<string> load_modules;
+    require_dynamic_modules(access, getDasRoot(), "", load_modules, tout);
+#endif
     Module::Initialize();
     // compile and run
 
@@ -18,7 +34,7 @@ void InitModules() {
 
 string help() {
     return "Tool to convert daslang v1 syntax to v2\n"
-           "das-fmt {-i} filename1 {filename2} ...:\n"
+           "gen1_to_gen2 {-i} filename1 {filename2} ...:\n"
            "   -i inplace conversion, write to the same file. Multiple filenames only allowed in inplace mode\n"
            "   --tests Run tests, no filenames required\n"
            "   --semicolon Keep semicolon after convertion\n"

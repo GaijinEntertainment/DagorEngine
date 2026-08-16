@@ -23,11 +23,7 @@ require daslib/regex public
 
 [reader_macro(name="regex")]
 class RegexReader : AstReaderMacro {
-    //! This macro implements embedding of the REGEX object into the AST::
-    //!   var op_regex <- %regex~operator[^a-zA-Z_]%%
-    //! Regex is compiled at the time of parsing, and the resulting object is embedded into the AST.
-    //! Flags can be appended after a trailing ``~``: ``%regex~pattern~flags%%``
-    //! Supported flags: ``i`` (case-insensitive), ``s`` (dotAll).
+    //! This macro embeds a REGEX object into the AST.
     def override accept(prog : ProgramPtr; mod : Module?; var expr : ExprReader?; ch : int; info : LineInfo) : bool {
         if (ch != '\n' && ch != '\r') {
             append(expr.sequence, ch)

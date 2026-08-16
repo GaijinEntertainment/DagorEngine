@@ -7,7 +7,7 @@
 // Input is 4x8 bits color channel mask and output will be a 8bit mask of render targets
 inline uint32_t color_channel_mask_to_render_target_mask(uint32_t mask)
 {
-  // For each color chanel generate the used bit
+  // For each color channel generate the used bit
   const uint32_t channel0 = mask >> 0;
   const uint32_t channel1 = mask >> 1;
   const uint32_t channel2 = mask >> 2;
@@ -49,9 +49,9 @@ inline uint32_t render_target_mask_to_color_channel_mask(uint32_t mask)
   return r | g | b | a;
 }
 
-// Takes a 4x8 bit render target output channel mask and turns it into a 4x8 render target ouput mask
+// Takes a 4x8 bit render target output channel mask and turns it into a 4x8 render target output mask
 // where if any channel of a target is enabled all channels of the result are enabled.
-// Simply speaking it turns all non 0 hex digits in the mask into F and all 0 are keept as 0.
+// Simply speaking it turns all non 0 hex digits in the mask into F and all 0 are kept as 0.
 inline uint32_t spread_color_chanel_mask_to_render_target_color_channel_mask(uint32_t mask)
 {
   const uint32_t r = mask & 0x11111111;

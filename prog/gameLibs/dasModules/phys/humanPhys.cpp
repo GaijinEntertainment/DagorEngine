@@ -11,8 +11,6 @@ DAS_BASE_BIND_ENUM_98(HUStandState, HUStandState, ESS_STAND, ESS_CROUCH, ESS_CRA
   ESS_CLIMB, ESS_CLIMB_THROUGH, ESS_CLIMB_OVER, ESS_CLIMB_LADDER, ESS_EXTERNALLY_CONTROLLED, ESS_NUM);
 DAS_BASE_BIND_ENUM(HumanPhysState::StateFlag, StateFlag, ST_JUMP, ST_CROUCH, ST_CRAWL, ST_ON_GROUND, ST_SPRINT, ST_WALK, ST_SWIM,
   ST_DOWNED);
-DAS_BASE_BIND_ENUM(HumanPhys::ClimbTrajectoryStage, ClimbTrajectoryStage, CLIMB_STAGE_JUMP_UP, CLIMB_STAGE_CLIMB,
-  CLIMB_STAGE_JUMP_DOWN, CLIMB_STAGE_FLY_DOWN, CLIMB_STAGE_LANDING, CLIMB_STAGE_STAND_UP);
 DAS_BASE_BIND_ENUM(HumanControlState::DodgeState, DodgeState, No, Left, Right, Back);
 
 DAS_ANNOTATE_VECTOR(HumanWeaponParamsArray, HumanWeaponParamsArray)
@@ -237,6 +235,22 @@ struct PrecomputedWeaponPositionsAnnotation : das::ManagedStructureAnnotation<Pr
   }
 };
 
+struct SegmentedHumanPhysicsStateAnnotation : das::ManagedStructureAnnotation<SegmentedHumanPhysicsState, false>
+{
+  SegmentedHumanPhysicsStateAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("SegmentedHumanPhysicsState", ml)
+  {
+    cppName = " ::SegmentedHumanPhysicsState";
+
+    addField<DAS_BIND_MANAGED_FIELD(prevSeg)>("prevSeg");
+    addField<DAS_BIND_MANAGED_FIELD(currSeg)>("currSeg");
+    addField<DAS_BIND_MANAGED_FIELD(prevTime)>("prevTime");
+    addField<DAS_BIND_MANAGED_FIELD(currTime)>("currTime");
+    addField<DAS_BIND_MANAGED_FIELD(prevDuration)>("prevDuration");
+    addField<DAS_BIND_MANAGED_FIELD(currDuration)>("currDuration");
+    addField<DAS_BIND_MANAGED_FIELD(currFromPos)>("currFromPos");
+  }
+};
+
 struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
 {
   HumanPhysAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("HumanPhys", ml)
@@ -348,6 +362,7 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
 
     addField<DAS_BIND_MANAGED_FIELD(climbOnPos)>("climbOnPos");
     addField<DAS_BIND_MANAGED_FIELD(climbOnRad)>("climbOnRad");
+    addField<DAS_BIND_MANAGED_FIELD(climbCeilRad)>("climbCeilRad");
     addField<DAS_BIND_MANAGED_FIELD(climbLadderHeight)>("climbLadderHeight");
     addField<DAS_BIND_MANAGED_FIELD(climbPositions)>("climbPositions");
 
@@ -381,14 +396,7 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addField<DAS_BIND_MANAGED_FIELD(maxHeightForFastClimbing)>("maxHeightForFastClimbing");
     addField<DAS_BIND_MANAGED_FIELD(fastClimbingMult)>("fastClimbingMult");
 
-    addField<DAS_BIND_MANAGED_FIELD(useClimbTrajectory)>("useClimbTrajectory");
-    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryPrevStage)>("climbTrajectoryPrevStage");
-    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryNextStage)>("climbTrajectoryNextStage");
-    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryPrevPosition)>("climbTrajectoryPrevPosition");
-    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryNextPosition)>("climbTrajectoryNextPosition");
-    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryPrevProgress)>("climbTrajectoryPrevProgress");
-    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryNextProgress)>("climbTrajectoryNextProgress");
-    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryTransitionK)>("climbTrajectoryTransitionK");
+    addField<DAS_BIND_MANAGED_FIELD(segPhysState)>("segPhysState");
 
     addField<DAS_BIND_MANAGED_FIELD(climbOverMaxHeight)>("climbOverMaxHeight");
     addField<DAS_BIND_MANAGED_FIELD(climbOverHeightThreshold)>("climbOverHeightThreshold");
@@ -501,7 +509,6 @@ public:
     addEnumeration(new EnumerationHUWeaponEquipState());
     addEnumeration(new EnumerationHumanControlThrowSlot());
     addEnumeration(new EnumerationStateFlag());
-    addEnumeration(new EnumerationClimbTrajectoryStage());
     addEnumeration(new EnumerationPrecomputedPresetMode());
     addEnumeration(new EnumerationDodgeState());
 
@@ -513,6 +520,7 @@ public:
     addAnnotation(new HumanWeaponEquipStateAnnotation(lib));
     addAnnotation(new HumanPhysStateAnnotation(lib));
     addAnnotation(new PrecomputedWeaponPositionsAnnotation(lib));
+    addAnnotation(new SegmentedHumanPhysicsStateAnnotation(lib));
     addAnnotation(new HumanPhysAnnotation(lib));
     das::addUsing<::HumanPhysState>(*this, lib, "::HumanPhysState");
 
@@ -547,6 +555,8 @@ public:
       das::SideEffects::modifyArgument, "bind_dascript::human_phys_calcGunTm");
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_isGoProneAllowed)>(*this, lib, "human_phys_isGoProneAllowed",
       das::SideEffects::none, "bind_dascript::human_phys_isGoProneAllowed");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_get_seg_anim_name)>(*this, lib, "human_phys_get_seg_anim_name",
+      das::SideEffects::none, "bind_dascript::human_phys_get_seg_anim_name");
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_set_can_aim)>(*this, lib, "human_phys_state_set_can_aim",
       das::SideEffects::modifyArgument, "bind_dascript::human_phys_state_set_can_aim");
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_set_can_zoom)>(*this, lib, "human_phys_state_set_can_zoom",

@@ -93,7 +93,7 @@ namespace das
         virtual ExpressionPtr visit(Visitor & vis) override;
         virtual bool rtti_isAddr() const override { return true; }
         virtual void dispatch( Visitor & vis ) override;
-        virtual void gc_collect ( gc_root * target, gc_root * from ) override;
+        virtual void gc_collect ( gc_root * to, gc_root * from ) override;
         string target;
         TypeDeclPtr funcType = nullptr;
         Function * func = nullptr;
@@ -144,6 +144,10 @@ namespace das
                 bool        no_promotion : 1;
                 bool        underClone : 1;
                 bool        underDeref : 1;
+                bool        noBoundCheck : 1;
+                bool        noTableInit : 1;    // direct store target (tab[k] = / <- / :=) — skip the default_init_containers rewrite.
+                                                // Re-derived from syntactic position by preVisit on every infer pass, so ExprAt::clone
+                                                // deliberately does NOT copy it: a clone lands in whatever position it lands in.
             };
             uint32_t atFlags = 0;
         };
@@ -786,8 +790,8 @@ namespace das
         auto getValue() const { return ExprConstT::getValue(); };
     };
 
-    int64_t getConstExprIntOrUInt ( ExpressionPtr expr );
-    pair<int64_t,bool> tryGetConstExprIntOrUInt ( ExpressionPtr expr );
+    DAS_API int64_t getConstExprIntOrUInt ( ExpressionPtr expr );
+    DAS_API pair<int64_t,bool> tryGetConstExprIntOrUInt ( ExpressionPtr expr );
 
     struct DAS_API ExprConstUInt2 : ExprConstT<uint2,ExprConstUInt2> {
         ExprConstUInt2(uint2 i = uint2())
@@ -854,6 +858,18 @@ namespace das
             : ExprConstT(i,Type::tDouble) { __rtti = "ExprConstDouble"; }
         ExprConstDouble(const LineInfo & a, double i = 0.0)
             : ExprConstT(a,i,Type::tDouble) { __rtti = "ExprConstDouble"; }
+        auto getValue() const { return ExprConstT::getValue(); };
+    };
+
+    struct DAS_API ExprConstFloat16 : ExprConstT<float16_t,ExprConstFloat16> {
+        ExprConstFloat16(float16_t i = float16_t())
+            : ExprConstT(i,Type::tFloat16) { __rtti = "ExprConstFloat16"; }
+        ExprConstFloat16(float i)
+            : ExprConstT(float16_t(i),Type::tFloat16) { __rtti = "ExprConstFloat16"; }
+        ExprConstFloat16(const LineInfo & a, float16_t i)
+            : ExprConstT(a,i,Type::tFloat16) { __rtti = "ExprConstFloat16"; }
+        ExprConstFloat16(const LineInfo & a, float i)
+            : ExprConstT(a,float16_t(i),Type::tFloat16) { __rtti = "ExprConstFloat16"; }
         auto getValue() const { return ExprConstT::getValue(); };
     };
 
@@ -996,7 +1012,10 @@ namespace das
         virtual bool rtti_isWith() const override { return true; }
         virtual void dispatch( Visitor & vis ) override;
         virtual void gc_collect ( gc_root * target, gc_root * from ) override;
+        bool isModuleWith() const { return !moduleName.empty(); }
         ExpressionPtr   with = nullptr, body = nullptr;
+        string          moduleName;     // module-flavored `with (module foo/bar)`; with==nullptr for this flavor
+        bool            moduleUnsafeByProject = false;  // .das_project with_module_unsafe() demanded unsafe for this target (stamped at parse)
     };
 
     struct DAS_API ExprAssume : Expression {
@@ -1289,6 +1308,7 @@ namespace das
             struct {
                 bool            upcast : 1;
                 bool            reinterpret : 1;
+                bool            fromAddrSugar : 1;      // addr<T?>(x) sugar; unsafe() on this cast covers the generated addr under it
             };
             uint32_t castFlags = 0;
         };
@@ -1351,7 +1371,7 @@ namespace das
     struct MakeFieldDecl;
     typedef MakeFieldDecl *   MakeFieldDeclPtr;
 
-    struct MakeFieldDecl : gc_node {
+    struct DAS_API MakeFieldDecl : gc_node {
         LineInfo        at;
         string          name;
         ExpressionPtr   value = nullptr;
@@ -1397,6 +1417,7 @@ namespace das
         MakeStructPtr  arguments = nullptr;
         bool        argumentsFailedToInfer = false;
         bool        methodCall = false;
+        bool        pipedCallArgument = false;  // last nonNamedArgument was attached via trailing pipe
     };
 
     struct DAS_API ExprMakeLocal : Expression {
@@ -1404,7 +1425,6 @@ namespace das
         ExprMakeLocal ( const LineInfo & at )
             : Expression(at) { __rtti = "ExprMakeLocal"; }
         virtual bool rtti_isMakeLocal() const override { return true; }
-        virtual void setRefSp ( bool ref, bool cmres, uint32_t sp, uint32_t off );
         virtual void dispatch( Visitor & vis ) override;
         virtual void gc_collect ( gc_root * target, gc_root * from ) override;
         TypeDeclPtr                 makeType = nullptr;
@@ -1429,7 +1449,6 @@ namespace das
             : ExprMakeLocal(at) { __rtti = "ExprMakeStruct"; }
         virtual ExpressionPtr clone( ExpressionPtr expr = nullptr ) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
-        virtual void setRefSp ( bool ref, bool cmres, uint32_t sp, uint32_t off ) override;
         virtual bool rtti_isMakeStruct() const override { return true; }
         virtual void dispatch( Visitor & vis ) override;
         virtual void gc_collect ( gc_root * target, gc_root * from ) override;
@@ -1462,7 +1481,6 @@ namespace das
             : ExprMakeLocal(at) { __rtti = "ExprMakeVariant"; }
         virtual ExpressionPtr clone( ExpressionPtr expr = nullptr ) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
-        virtual void setRefSp ( bool ref, bool cmres, uint32_t sp, uint32_t off ) override;
         virtual bool rtti_isMakeVariant() const override { return true; }
         virtual void dispatch( Visitor & vis ) override;
         virtual void gc_collect ( gc_root * target, gc_root * from ) override;
@@ -1476,7 +1494,6 @@ namespace das
             : ExprMakeLocal(at) { __rtti = "ExprMakeArray"; }
         virtual ExpressionPtr clone( ExpressionPtr expr = nullptr ) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
-        virtual void setRefSp ( bool ref, bool cmres, uint32_t sp, uint32_t off ) override;
         virtual bool rtti_isMakeArray() const override { return true; }
         virtual void dispatch( Visitor & vis ) override;
         virtual void gc_collect ( gc_root * target, gc_root * from ) override;
@@ -1484,6 +1501,7 @@ namespace das
         TypeDeclPtr                 recordType = nullptr;
         vector<ExpressionPtr>       values;
         bool                        gen2 = false;
+        bool                        makeArrayOnHeap = false; // set by inferer when this gen2 literal feeds to_array_move/to_table_move: build a heap array<T> directly (no stack T[N] + copy)
     };
 
     struct DAS_API ExprMakeTuple : ExprMakeArray {
@@ -1493,7 +1511,6 @@ namespace das
         virtual bool rtti_isMakeTuple() const override { return true; }
         virtual ExpressionPtr clone( ExpressionPtr expr = nullptr ) const override;
         virtual ExpressionPtr visit(Visitor & vis) override;
-        virtual void setRefSp ( bool ref, bool cmres, uint32_t sp, uint32_t off ) override;
         virtual void dispatch( Visitor & vis ) override;
         virtual void gc_collect ( gc_root * target, gc_root * from ) override;
         bool isKeyValue = false;

@@ -80,6 +80,7 @@ public:
   virtual void setCallback(IGuiSceneCallback *cb) override { guiSceneCb = cb; }
   virtual void initDasEnvironment(TGuiInitDas init_callback) override;
   virtual void shutdownDasEnvironment() override;
+  virtual void waitAllDasJobsDone() override;
 
   // Need this to perform additional binding
   virtual HSQUIRRELVM getScriptVM() const override { return sqvm; }
@@ -237,6 +238,7 @@ public:
 
 
   bool haveActiveCursorOnPanels() const override;
+  bool havePointerOnPanels() const override;
   bool isAnyPanelPointedAtWithHand(int hand) const override { return spatialInteractionState.wasPanelHit(hand); }
   bool isAnyPanelTouchedWithHand(int hand) const override { return spatialInteractionState.isHandTouchingPanel[hand]; }
 
@@ -364,6 +366,9 @@ public:
   bool isRebuildingInvalidatedParts = false;
 
   bool isEvaluatingBuilder = false;
+  // Set while the reconciler writes stateful argument observables: those writes are
+  // ordered, not the nested mutation the report is meant to catch.
+  bool suppressNestedUpdateReport = false;
 
   int screensPanelsIterDepth = 0;
 

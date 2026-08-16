@@ -52,7 +52,7 @@ struct DeviceFeaturesConfig
     VALIDATE_IMPLICIT_CB_SIZE,
     RECORD_CONTEXT_RING_BUFFER,
     COUNT,
-    INVLID = COUNT
+    INVALID = COUNT
   };
   typedef eastl::bitset<COUNT> Type;
 };

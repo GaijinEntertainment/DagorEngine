@@ -178,6 +178,22 @@ public:
   {
     iterate_linked_list(head, [](auto node) { node->data.collapse(); });
   }
+  // frees only the calling thread's node; tolerates concurrent adds, but not concurrent frees
+  void freeThreadData()
+  {
+    Node *node = threadData[instanceId];
+    if (!node)
+      return;
+    if (interlocked_compare_exchange_ptr(head, node->next, node) != node)
+      for (Node *p = interlocked_acquire_load_ptr(head); p; p = p->next)
+        if (p->next == node)
+        {
+          p->next = node->next;
+          break;
+        }
+    threadData[instanceId] = nullptr;
+    delete node;
+  }
   void freeAll()
   {
     iterate_linked_list(head, [](auto node) {

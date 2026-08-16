@@ -475,6 +475,51 @@ static void ImDrawList_PolyFillScanFlood(ImDrawList *draw, std::vector<ImVec2>* 
 }
 */
 
+// MODIFICATION BY GAIJIN
+// Dashed link stroke, used for "muted" edges in the daEditorX graph editor. Kept here rather than in
+// the caller so a dashed link goes through Link::Draw like any other: same draw channel, same
+// hover/selected extra thickness.
+//
+// Deliberately does NOT use ImCubicBezierFixedStep. That solves arc length by bisection with a
+// 24-point quadrature per probe and allocates a std::map per call (see its own #todo), which is far
+// too much for a stroke redrawn every frame -- and with a curve shorter than one step it emits a
+// single sample, drawing nothing at all. Sampling at a fixed parametric step and accumulating
+// segment length is enough to phase a dash pattern, allocates nothing, and always reaches P3.
+static void ImDrawList_AddDashedBezier(ImDrawList* drawList, const ImCubicBezierPoints& curve, float thickness, ImU32 color, float dash_size)
+{
+    if (dash_size <= 0.0f || (color & IM_COL32_A_MASK) == 0)
+        return;
+
+    // The control polygon bounds the arc length from above, so it is a safe basis for the sample
+    // count without measuring the curve; ~3px per sample keeps the dashes smooth.
+    const float polyLength = ImSqrt(ImLengthSqr(curve.P1 - curve.P0)) + ImSqrt(ImLengthSqr(curve.P2 - curve.P1))
+                           + ImSqrt(ImLengthSqr(curve.P3 - curve.P2));
+    const int segmentCount = ImClamp(static_cast<int>(polyLength / 3.0f), 16, 256);
+
+    const float period = dash_size * 2.0f;
+    float walked = 0.0f;
+    ImVec2 prev = curve.P0;
+    for (int i = 1; i <= segmentCount; ++i)
+    {
+        const ImVec2 point     = ImCubicBezierSample(curve, static_cast<float>(i) / segmentCount);
+        const ImVec2 delta     = point - prev;
+        const float  segLength = ImSqrt(ImLengthSqr(delta));
+
+        float done = 0.0f;
+        while (done < segLength) // skipped outright for a zero-length step, so never divides by 0
+        {
+            const float phase = ImFmod(walked, period);
+            const bool  on    = phase < dash_size;
+            const float step  = ImMin(on ? (dash_size - phase) : (period - phase), segLength - done);
+            if (on)
+                drawList->AddLine(prev + delta * (done / segLength), prev + delta * ((done + step) / segLength), color, thickness);
+            done   += step;
+            walked += step;
+        }
+        prev = point;
+    }
+}
+
 static void ImDrawList_AddBezierWithArrows(ImDrawList* drawList, const ImCubicBezierPoints& curve, float thickness,
     float startArrowSize, float startArrowWidth, float endArrowSize, float endArrowWidth,
     bool fill, ImU32 color, float strokeThickness, const ImVec2* startDirHint = nullptr, const ImVec2* endDirHint = nullptr)
@@ -932,6 +977,14 @@ void ed::Link::Draw(ImDrawList* drawList, ImU32 color, float extraThickness) con
         return;
 
     const auto curve = GetCurve();
+
+    // MODIFICATION BY GAIJIN: dashed links (see ImDrawList_AddDashedBezier). Arrows are skipped --
+    // a dashed link is a "carries no data" marker, so the endpoint decoration would only add noise.
+    if (m_DashSize > 0.0f)
+    {
+        ImDrawList_AddDashedBezier(drawList, curve, m_Thickness + extraThickness, color, m_DashSize);
+        return;
+    }
 
     ImDrawList_AddBezierWithArrows(drawList, curve, m_Thickness + extraThickness,
         m_StartPin && m_StartPin->m_ArrowSize  > 0.0f ? m_StartPin->m_ArrowSize  + extraThickness : 0.0f,
@@ -1634,6 +1687,11 @@ void ed::EditorContext::End()
 
 bool ed::EditorContext::DoLink(LinkId id, PinId startPinId, PinId endPinId, ImU32 color, float thickness)
 {
+    // MODIFICATION BY GAIJIN: SetNextLinkDashSize is one-shot, so clear it even on the early-out
+    // paths below -- otherwise a dash set for a link whose pin got culled would leak to the next one.
+    const float dashSize = m_NextLinkDashSize;
+    m_NextLinkDashSize = 0.0f;
+
     //auto& editorStyle = GetStyle();
 
     auto startPin = FindPin(startPinId);
@@ -1651,6 +1709,7 @@ bool ed::EditorContext::DoLink(LinkId id, PinId startPinId, PinId endPinId, ImU3
     link->m_Color         = color;
     link->m_HighlightColor= GetColor(StyleColor_HighlightLinkBorder);
     link->m_Thickness     = thickness;
+    link->m_DashSize      = dashSize; // MODIFICATION BY GAIJIN
     link->m_IsLive        = true;
 
     link->UpdateEndpoints();

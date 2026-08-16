@@ -37,6 +37,7 @@ MAKE_TYPE_FACTORY(HumanWeaponEquipState, HumanWeaponEquipState);
 MAKE_TYPE_FACTORY(HumanPhysState, HumanPhysState);
 MAKE_TYPE_FACTORY(HumanControlState, HumanControlState);
 MAKE_TYPE_FACTORY(PrecomputedWeaponPositions, PrecomputedWeaponPositions);
+MAKE_TYPE_FACTORY(SegmentedHumanPhysicsState, SegmentedHumanPhysicsState);
 MAKE_TYPE_FACTORY(HumanPhys, HumanPhys);
 
 typedef Tab<HumanControlState> HumanControlStateTab;
@@ -114,6 +115,17 @@ inline void human_phys_calcGunTm(const HumanPhys &phys, PrecomputedPresetMode mo
 }
 
 inline bool human_phys_isGoProneAllowed(const HumanPhys &phys) { return phys.isGoProneAllowed(); }
+
+inline const char *human_phys_get_seg_anim_name(const HumanPhys &phys, int seg_index)
+{
+  const SegmentedHumanPhysics *segPhys = phys.segPhysShared;
+  if (segPhys && (0 <= seg_index && seg_index < segPhys->segs.size()))
+  {
+    const int animID = segPhys->segs[seg_index].animID;
+    return (0 <= animID && animID < segPhys->anims.size()) ? segPhys->anims[animID].c_str() : "";
+  }
+  return "";
+}
 
 inline void human_control_state_set_walk_speed(HumanControlState &ct, float speed) { ct.setWalkSpeed(speed); }
 

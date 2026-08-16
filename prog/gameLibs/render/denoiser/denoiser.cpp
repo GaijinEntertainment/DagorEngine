@@ -1893,7 +1893,11 @@ void denoise_gi(const GIDenoiser &params)
 
   ReblurSharedConstants reblurSharedConstants = make_reblur_shared_constants(params.hitDistParams, params.antilagSettings, false,
     IPoint2{resolution_config.ptgi.width, resolution_config.ptgi.height}, halfRes, params.maxStabilizedFrameNum, params.checkerboard,
-    true, false, false);
+    true, params.antiFirefly, false);
+
+  // Only the validation layer reads these; the default is specular only.
+  reblurSharedConstants.hasDiffuse = 1;
+  reblurSharedConstants.hasSpecular = 0;
 
   Sbuffer *reblurSharedCb =
     create_and_update_reblur_cbuffer_if_needed(reblurSharedCb_gi, reblurSharedConstants, "ReblurSharedConstantsCB_gi");
@@ -2051,6 +2055,24 @@ void denoise_gi(const GIDenoiser &params)
       reblurDiffusePerfTemporalStabilization->dispatch(tilesWidth * 2, tilesHeight, 1);
     else
       reblurDiffuseTemporalStabilization->dispatch(tilesWidth * 2, tilesHeight, 1);
+  }
+
+  if (auto iter = params.textures.find(GIDenoiser::TextureNames::gi_validation); iter != params.textures.end())
+  {
+    TIME_D3D_PROFILE(reblur::validation);
+
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
+    d3d::set_tex(STAGE_CS, 0, normalRoughness);
+    d3d::set_tex(STAGE_CS, 1, viewZ);
+    d3d::set_tex(STAGE_CS, 2, motionVectors);
+    d3d::set_tex(STAGE_CS, 3, gi_data1);
+    d3d::set_tex(STAGE_CS, 4, gi_data2);
+    d3d::set_tex(STAGE_CS, 5, ptgi_tex_unfiltered);
+    d3d::set_tex(STAGE_CS, 6, ptgi_tex_unfiltered);
+    d3d::set_rwtex(STAGE_CS, 0, iter->second, 0, 0);
+
+    // The validation shader runs 16x16 threads, one group covers a whole tile.
+    reblurValidation->dispatch(tilesWidth, tilesHeight, 1);
   }
 
   d3d::set_const_buffer(STAGE_CS, 0, nullptr);

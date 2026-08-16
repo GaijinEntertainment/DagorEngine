@@ -18,8 +18,7 @@
 #include "demandClearBitArray.h"
 
 
-#define ASYNC_RESOURCES                         "render"
-#define REQUEST_RESOURCES_CAN_RECREATE_ENTITIES 1
+#define ASYNC_RESOURCES "render"
 
 static constexpr int MINIMUM_FREE_INDICES = 1 << ecs::ENTITY_GENERATION_BITS;
 
@@ -1624,14 +1623,14 @@ bool EntityManager::createQueuedEntitiesOOL()
           }
           if (entityResourcesLoaded || validateResources(eid, archetype, ce.templ, ce.compInit)) //-V1051
           {
-#if REQUEST_RESOURCES_CAN_RECREATE_ENTITIES
             if (ce.templ == INVALID_TEMPLATE_INDEX) //-V547
             {
-              // this mean that validateResources caused recreation of this entity!
+              // this means that something caused recreation of this entity!
+              // reset isLoading to redo resolve and request resources
+              ce.isLoading = false;
               --it;
               continue;
             }
-#endif
             ce.currentlyCreating = true;
             createEntityInternal(eid, ce.templ, eastl::move(ce.compInit), eastl::move(ce.compMap), eastl::move(ce.cb));
             if (firstLoading) // Otherwise it won't be destroyed until end of loading preceding entities

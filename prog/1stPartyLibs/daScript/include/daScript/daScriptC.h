@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 #if DAS_ENABLE_DLL
@@ -141,29 +142,37 @@ typedef void (das_interop_function_unaligned) ( das_context * ctx, das_node * no
 
 // Initialize all built-in modules and internal structures.
 // Must be called once before any other daslang C API call.
-DAS_CC_API void das_initialize();
+DAS_CC_API void das_initialize(void);
+// Register the built-in modules without finalizing module dependencies. Hosts
+// which statically link additional modules call their register_Module_* entry
+// points after this function and before das_initialize_finalize().
+DAS_CC_API void das_initialize_modules(void);
+// Finalize all modules registered in the current environment.
+DAS_CC_API void das_initialize_finalize(void);
 // Shut down the daslang runtime and free all internal structures and memory.
 // Must be called once when the host application is done with daslang.
-DAS_CC_API void das_shutdown();
+DAS_CC_API void das_shutdown(void);
 
 // --- Text output ---
 
 // Create a text writer that prints to stdout.
 // Use das_text_make_writer() instead if you need to capture output as a string.
-DAS_CC_API das_text_writer * das_text_make_printer();
+DAS_CC_API das_text_writer * das_text_make_printer(void);
 // Create a text writer that accumulates output in an internal string buffer.
 // Use das_text_make_printer() instead if you just want stdout output.
-DAS_CC_API das_text_writer * das_text_make_writer();
+DAS_CC_API das_text_writer * das_text_make_writer(void);
 // Release a text writer created by das_text_make_printer() or das_text_make_writer().
 DAS_CC_API void das_text_release ( das_text_writer * output );
 // Write a null-terminated string to a text writer.
 DAS_CC_API void das_text_output ( das_text_writer * output, char * text );
+// Write exactly text_length bytes. text need not be null-terminated.
+DAS_CC_API void das_text_output_n ( das_text_writer * output, const char * text, size_t text_length );
 
 // --- Module groups ---
 
 // Create a module group. A module group holds references to modules
 // that the compiler should use when resolving `require` statements.
-DAS_CC_API das_module_group * das_modulegroup_make ();
+DAS_CC_API das_module_group * das_modulegroup_make (void);
 // Add a module to a module group so that compiled scripts can `require` it.
 DAS_CC_API void das_modulegroup_add_module ( das_module_group* lib, das_module* mod );
 // Release a module group created by das_modulegroup_make().
@@ -187,16 +196,26 @@ DAS_CC_API int das_register_dynamic_modules(das_file_access *file_access,
                                          const char * const * load_module_paths,
                                          uint32_t num_load_module_paths,
                                          das_text_writer *tout);
+// Explicit-length counterpart. load_module_path_lengths must contain one
+// length for every entry in load_module_paths.
+DAS_CC_API int das_register_dynamic_modules_n(das_file_access *file_access,
+                                           const char *project_root,
+                                           size_t project_root_length,
+                                           const char * const *load_module_paths,
+                                           const size_t *load_module_path_lengths,
+                                           size_t num_load_module_paths,
+                                           das_text_writer *tout);
 
 // --- File access ---
 
 // Create a default file access that reads directly from the filesystem.
-DAS_CC_API das_file_access * das_fileaccess_make_default (  );
+DAS_CC_API das_file_access * das_fileaccess_make_default (void);
 // Create a file access backed by a .das_project file.
 // The project file is a daslang program that exports callback functions
 // controlling module resolution, permissions, and compilation policies.
 // See tutorial 06 (sandbox) for a complete example.
 DAS_CC_API das_file_access * das_fileaccess_make_project ( const char * project_file  );
+DAS_CC_API das_file_access * das_fileaccess_make_project_n ( const char * project_file, size_t project_file_length );
 // Release a file access created by das_fileaccess_make_default() or das_fileaccess_make_project().
 DAS_CC_API void das_fileaccess_release ( das_file_access * access );
 // Register a virtual file from a C string.
@@ -205,11 +224,18 @@ DAS_CC_API void das_fileaccess_release ( das_file_access * access );
 // If 'owns' is zero, the content is borrowed and the caller must keep file_content alive
 // for the lifetime of the file access.
 DAS_CC_API void das_fileaccess_introduce_file ( das_file_access * access, const char * file_name, const char * file_content, int owns );
+DAS_CC_API void das_fileaccess_introduce_file_n ( das_file_access * access,
+                                                  const char * file_name, size_t file_name_length,
+                                                  const char * file_content, size_t file_content_length,
+                                                  int owns );
 
 // Read a file from disk at 'disk_path' and cache it under the virtual path 'name'.
 // 'name' is what module resolution returns (e.g. "daslib/strings.das");
 // 'disk_path' is the actual location on the filesystem.
 DAS_CC_API void das_fileaccess_introduce_file_from_disk ( das_file_access * access, const char * name, const char * disk_path );
+DAS_CC_API void das_fileaccess_introduce_file_from_disk_n ( das_file_access * access,
+                                                            const char * name, size_t name_length,
+                                                            const char * disk_path, size_t disk_path_length );
 // Pre-load all standard library modules from getDasRoot()/daslib/ into the file access cache.
 // Typically called before das_fileaccess_lock() when setting up a sandbox.
 DAS_CC_API void das_fileaccess_introduce_daslib ( das_file_access * access );
@@ -219,6 +245,7 @@ DAS_CC_API void das_fileaccess_introduce_native_modules ( das_file_access * acce
 // Pre-load a single native module by its require-style path (e.g. "opengl/opengl_boost").
 // Returns 1 if the module file was found and cached, 0 otherwise.
 DAS_CC_API int das_fileaccess_introduce_native_module ( das_file_access * access, const char * req );
+DAS_CC_API int das_fileaccess_introduce_native_module_n ( das_file_access * access, const char * req, size_t req_length );
 
 // Lock the file access. While locked, getNewFileInfo() returns NULL for all
 // files not already in the cache, so only pre-introduced files can be accessed.
@@ -231,6 +258,7 @@ DAS_CC_API int das_fileaccess_is_locked ( das_file_access * access );
 // Copy the daslang root path into 'root'. At most 'maxbuf' bytes are written
 // (including the null terminator). The root path is used to locate daslib/ and other resources.
 DAS_CC_API void das_get_root ( char * root, int maxbuf );
+DAS_CC_API void das_get_root_n ( char * root, size_t maxbuf );
 
 // --- Compilation ---
 
@@ -238,6 +266,9 @@ DAS_CC_API void das_get_root ( char * root, int maxbuf );
 // Compiler diagnostics are written to 'tout'. The returned program is always
 // non-NULL; check das_program_err_count() to determine if compilation succeeded.
 DAS_CC_API das_program * das_program_compile ( char * program_file, das_file_access * access, das_text_writer * tout, das_module_group * libgroup );
+DAS_CC_API das_program * das_program_compile_n ( const char * program_file, size_t program_file_length,
+                                                 das_file_access * access, das_text_writer * tout,
+                                                 das_module_group * libgroup );
 // Release a compiled program.
 DAS_CC_API void das_program_release ( das_program * program );
 // Return the number of compilation errors. Zero means the program compiled successfully.
@@ -260,6 +291,7 @@ DAS_CC_API void das_error_output ( das_error * error, das_text_writer * tout );
 // Write a human-readable error description into 'text' (at most 'maxLength' bytes,
 // including the null terminator). Truncated if the message exceeds maxLength.
 DAS_CC_API void das_error_report ( das_error * error, char * text, int maxLength );
+DAS_CC_API void das_error_report_n ( das_error * error, char * text, size_t maxLength );
 
 // --- Context ---
 
@@ -271,7 +303,8 @@ DAS_CC_API das_context * das_context_make ( int stackSize );
 DAS_CC_API void das_context_release ( das_context * context );
 // Find an exported function by name in a simulated context.
 // Returns NULL if no function with that name exists.
-DAS_CC_API das_function * das_context_find_function ( das_context * context, char * name );
+DAS_CC_API das_function * das_context_find_function ( das_context * context, const char * name );
+DAS_CC_API das_function * das_context_find_function_n ( das_context * context, const char * name, size_t name_length );
 
 // --- Threading: environment ---
 // daScriptEnvironment is thread-local (TLS).  Every thread that touches
@@ -281,7 +314,7 @@ DAS_CC_API das_function * das_context_find_function ( das_context * context, cha
 // for a fully independent environment (Part B pattern).
 
 // Return the environment bound to the current thread, or NULL.
-DAS_CC_API das_environment * das_environment_get_bound ();
+DAS_CC_API das_environment * das_environment_get_bound (void);
 // Bind an environment on the current thread.  The worker thread must call
 // this before any other daslang API call when sharing the main thread's env.
 DAS_CC_API void das_environment_set_bound ( das_environment * env );
@@ -291,7 +324,7 @@ DAS_CC_API void das_environment_set_bound ( das_environment * env );
 // Must be created first on any worker thread that uses daslang.
 
 // Create a reuse-cache guard (call at thread start).
-DAS_CC_API das_reuse_cache_guard * das_reuse_cache_guard_create ();
+DAS_CC_API das_reuse_cache_guard * das_reuse_cache_guard_create (void);
 // Release a reuse-cache guard (call before thread exit).
 DAS_CC_API void das_reuse_cache_guard_release ( das_reuse_cache_guard * guard );
 
@@ -370,10 +403,19 @@ DAS_CC_API void das_context_eval_block_cmres_unaligned ( das_context * context, 
 // The returned handle must be populated with das_structure_add_field() and then
 // registered into a module with das_module_bind_structure().
 DAS_CC_API das_structure * das_structure_make ( das_module_group * lib, const char * name, const char * cppname, int sz, int al );
+DAS_CC_API das_structure * das_structure_make_n ( das_module_group * lib,
+                                                  const char * name, size_t name_length,
+                                                  const char * cppname, size_t cppname_length,
+                                                  size_t sz, size_t al );
 // Add a field to a structure created by das_structure_make().
 // 'offset' is offsetof() of the field in the C struct.
 // 'tname' is the field type in mangled-name format (see type_mangling.rst).
 DAS_CC_API void das_structure_add_field ( das_structure * st, das_module * mod, das_module_group * lib,  const char * name, const char * cppname, int offset, const char * tname );
+DAS_CC_API void das_structure_add_field_n ( das_structure * st, das_module * mod, das_module_group * lib,
+                                            const char * name, size_t name_length,
+                                            const char * cppname, size_t cppname_length,
+                                            size_t offset,
+                                            const char * tname, size_t tname_length );
 
 // --- Type binding: enumerations ---
 
@@ -382,30 +424,53 @@ DAS_CC_API void das_structure_add_field ( das_structure * st, das_module * mod, 
 // 'ext' is non-zero if the enum's underlying storage is int64 (otherwise int).
 // Populate with das_enumeration_add_value(), then register with das_module_bind_enumeration().
 DAS_CC_API das_enumeration * das_enumeration_make ( const char * name, const char * cppname, int ext );
+DAS_CC_API das_enumeration * das_enumeration_make_n ( const char * name, size_t name_length,
+                                                      const char * cppname, size_t cppname_length,
+                                                      int ext );
 // Add a named value to an enumeration created by das_enumeration_make().
 DAS_CC_API void das_enumeration_add_value ( das_enumeration * enu, const char * name, const char * cppName, int value );
+DAS_CC_API void das_enumeration_add_value_i64 ( das_enumeration * enu, const char * name, const char * cppName, int64_t value );
+DAS_CC_API void das_enumeration_add_value_n ( das_enumeration * enu,
+                                              const char * name, size_t name_length,
+                                              const char * cppName, size_t cppName_length,
+                                              int64_t value );
 
 // --- Modules ---
 
 // Create a new module with the given name.
 // After populating it with bindings, add it to a module group with das_modulegroup_add_module().
 DAS_CC_API das_module * das_module_create ( char * name );
+DAS_CC_API das_module * das_module_create_n ( const char * name, size_t name_length );
 // Find an already-registered module by name (e.g. "rtti_core", "$").
 // Returns NULL if no module with that name exists.
 DAS_CC_API das_module * das_module_find ( const char * name );
+DAS_CC_API das_module * das_module_find_n ( const char * name, size_t name_length );
 // Bind a C interop function (aligned, vec4f calling convention) to a module.
 // 'name' is the daslang function name, 'cppName' is the C symbol name.
 // 'sideffects' is a combination of SIDEEFFECTS_* flags.
 // 'args' is a mangled signature string describing argument and return types
 // (see type_mangling.rst).
 DAS_CC_API void das_module_bind_interop_function ( das_module * mod, das_module_group * lib, das_interop_function * fun, char * name, char * cppName, uint32_t sideffects, char* args );
+DAS_CC_API void das_module_bind_interop_function_n ( das_module * mod, das_module_group * lib, das_interop_function * fun,
+                                                     const char * name, size_t name_length,
+                                                     const char * cppName, size_t cppName_length,
+                                                     uint32_t sideffects,
+                                                     const char * args, size_t args_length );
 // Bind a C interop function (unaligned, vec4f_unaligned calling convention) to a module.
 // Same parameters as das_module_bind_interop_function(); use this variant when the
 // interop function uses vec4f_unaligned arguments and result.
 DAS_CC_API void das_module_bind_interop_function_unaligned ( das_module * mod, das_module_group * lib, das_interop_function_unaligned * fun, char * name, char * cppName, uint32_t sideffects, char* args );
+DAS_CC_API void das_module_bind_interop_function_unaligned_n ( das_module * mod, das_module_group * lib, das_interop_function_unaligned * fun,
+                                                               const char * name, size_t name_length,
+                                                               const char * cppName, size_t cppName_length,
+                                                               uint32_t sideffects,
+                                                               const char * args, size_t args_length );
 // Bind a type alias to a module. 'aname' is the alias name visible in daslang,
 // 'tname' is the target type in mangled-name format.
 DAS_CC_API void das_module_bind_alias ( das_module * mod, das_module_group * lib, char * aname, char * tname );
+DAS_CC_API void das_module_bind_alias_n ( das_module * mod, das_module_group * lib,
+                                          const char * aname, size_t aname_length,
+                                          const char * tname, size_t tname_length );
 // Register a structure (from das_structure_make()) into a module.
 DAS_CC_API void das_module_bind_structure ( das_module * mod, das_structure * st );
 // Register an enumeration (from das_enumeration_make()) into a module.
@@ -417,6 +482,7 @@ DAS_CC_API void das_module_bind_enumeration ( das_module * mod, das_enumeration 
 // Use this to return strings from interop functions; the returned pointer
 // is managed by the context and must not be freed by the caller.
 DAS_CC_API char * das_allocate_string ( das_context * context, char * str );
+DAS_CC_API char * das_allocate_string_n ( das_context * context, const char * str, size_t str_length );
 
 // --- Context heap ---
 // Raw allocation on the context's main heap. Used by the array/table helpers
@@ -634,7 +700,7 @@ DAS_CC_API das_table * das_argument_table_unaligned ( vec4f_unaligned * arg );
 // --- Result setters (aligned) ---
 // Pack a C value into vec4f for returning from an aligned interop function.
 
-DAS_CC_API vec4f das_result_void ();
+DAS_CC_API vec4f das_result_void (void);
 DAS_CC_API vec4f das_result_int ( int r );
 DAS_CC_API vec4f das_result_uint ( unsigned int r );
 DAS_CC_API vec4f das_result_int64 ( long long r );
@@ -690,7 +756,18 @@ typedef enum das_bool_policy {
     DAS_POLICY_STRICT_SMART_POINTERS,            // Strict smart pointer rules (var inscope, etc.)
     DAS_POLICY_RTTI,                             // Generate extended RTTI
     DAS_POLICY_NO_OPTIMIZATIONS,                 // Disable all optimizations
-    DAS_POLICY_NO_INFER_TIME_FOLDING             // Disable infer-time constant folding
+    DAS_POLICY_NO_INFER_TIME_FOLDING,            // Disable infer-time constant folding
+    DAS_POLICY_FAST_MATH,                        // Allow float optimizations with major bit differences (x*0, x-x, rcp division, reassociation)
+    DAS_POLICY_DISABLE_DSE,                      // Disable the dead-store-elimination pass
+    DAS_POLICY_DISABLE_CSE,                      // Disable the common-subexpression-elimination pass
+    DAS_POLICY_DISABLE_INLINE,                   // Disable [inline] splicing (calls stay regular calls; declaration-level contract checks - shape, recursion, @@ - still lint, call-site splice checks do not apply)
+    DAS_POLICY_DISABLE_AUTO_INLINE,              // Disable automatic inlining of block-literal call sites and invoke-of-literal devirtualization ([inline] splicing is unaffected)
+    DAS_POLICY_DISABLE_RUN,                      // Disable compile-time function evaluation (RunFolding of pure calls over constant arguments)
+    DAS_POLICY_LOG_OPTIMIZATION,                 // Log optimizer rewrites (per-pass fired/nothing lines, inline/devirt sites and declines)
+    DAS_POLICY_LOG_OPTIMIZATION_PASSES,          // Log the AST after every optimizer pass (verbose)
+    DAS_POLICY_FUSION,                           // Fuse interpreter nodes into wider superinstructions at simulate time (default: on)
+    DAS_POLICY_AUTO_INLINE_FUNCTIONS,            // Heuristic best-effort inlining of plain calls and operator sites of small same-module [inline]-shaped functions (default ON; silent declines; optimized builds only; cross-module inlining stays the explicit [inline] contract)
+    DAS_POLICY_DISABLE_TEMP_STRING_RECLAIM       // Disable the temp-string reclaim pass (fresh-string call results riding the 1-slot dispose queue)
 } das_bool_policy;
 
 // Integer policy fields (stack size, heap limits).
@@ -699,11 +776,13 @@ typedef enum das_int_policy {
     DAS_POLICY_MAX_HEAP_ALLOCATED,               // Max heap allocated in bytes (uint64, 0 = unlimited)
     DAS_POLICY_MAX_STRING_HEAP_ALLOCATED,         // Max string heap allocated in bytes (uint64, 0 = unlimited)
     DAS_POLICY_HEAP_SIZE_HINT,                   // Initial heap size hint in bytes (uint32)
-    DAS_POLICY_STRING_HEAP_SIZE_HINT             // Initial string heap size hint in bytes (uint32)
+    DAS_POLICY_STRING_HEAP_SIZE_HINT,            // Initial string heap size hint in bytes (uint32)
+    DAS_POLICY_AUTO_INLINE_COST,                 // auto_inline_functions node budget (int32, default 32)
+    DAS_POLICY_MAX_UNRESERVED_SIZE               // a growing array resize past this byte size without a prior reserve panics (uint64, default 64 MB)
 } das_int_policy;
 
 // Create a new policies object with default values.
-DAS_CC_API das_policies * das_policies_make();
+DAS_CC_API das_policies * das_policies_make(void);
 // Release a policies object.
 DAS_CC_API void das_policies_release ( das_policies * policies );
 // Set a boolean policy flag. Returns 1 on success, 0 if the flag is unknown.
@@ -714,6 +793,9 @@ DAS_CC_API int das_policies_set_int ( das_policies * policies, das_int_policy fi
 // Compile a daslang program with custom compilation policies.
 // Same as das_program_compile() but applies the given CodeOfPolicies.
 DAS_CC_API das_program * das_program_compile_policies ( char * program_file, das_file_access * access, das_text_writer * tout, das_module_group * libgroup, das_policies * policies );
+DAS_CC_API das_program * das_program_compile_policies_n ( const char * program_file, size_t program_file_length,
+                                                          das_file_access * access, das_text_writer * tout,
+                                                          das_module_group * libgroup, das_policies * policies );
 
 // --- Context variables ---
 // After simulation, global variables declared in daslang are accessible
@@ -721,6 +803,7 @@ DAS_CC_API das_program * das_program_compile_policies ( char * program_file, das
 
 // Look up a global variable by name. Returns its index, or -1 if not found.
 DAS_CC_API int das_context_find_variable ( das_context * context, const char * name );
+DAS_CC_API int das_context_find_variable_n ( das_context * context, const char * name, size_t name_length );
 // Get a raw pointer to the storage of a global variable at index 'idx'.
 // Cast to the appropriate C type (e.g. int32_t*, float*, char**).
 DAS_CC_API void * das_context_get_variable ( das_context * context, int idx );
@@ -740,9 +823,11 @@ DAS_CC_API int das_context_get_variable_size ( das_context * context, int idx );
 // Returns a handle to the serialized data; use das_serialized_data_release() to free it.
 // 'out_data' receives a pointer to the raw bytes, 'out_size' receives the byte count.
 DAS_CC_API das_serialized_data * das_program_serialize ( das_program * program, const void ** out_data, int64_t * out_size );
+DAS_CC_API das_serialized_data * das_program_serialize_n ( das_program * program, const void ** out_data, size_t * out_size );
 // Deserialize a program from a raw byte buffer.
 // Returns a new program handle that must be released with das_program_release().
 DAS_CC_API das_program * das_program_deserialize ( const void * data, int64_t size );
+DAS_CC_API das_program * das_program_deserialize_n ( const void * data, size_t size );
 // Release serialized data returned by das_program_serialize().
 DAS_CC_API void das_serialized_data_release ( das_serialized_data * blob );
 
@@ -801,7 +886,32 @@ typedef enum das_base_type {
     DAS_TYPE_TABLE,
     DAS_TYPE_BLOCK,
     DAS_TYPE_TUPLE,
-    DAS_TYPE_VARIANT
+    DAS_TYPE_VARIANT,
+    // 16/8-bit type lattice. The +2 gap skips two AST-only internal tags (fixed array,
+    // distinct) that never appear in runtime type info. byte = SIGNED int8, ubyte = uint8.
+    DAS_TYPE_FLOAT16 = DAS_TYPE_VARIANT + 3,
+    DAS_TYPE_HALF2,
+    DAS_TYPE_HALF3,
+    DAS_TYPE_HALF4,
+    DAS_TYPE_HALF8,
+    DAS_TYPE_SHORT2,
+    DAS_TYPE_SHORT3,
+    DAS_TYPE_SHORT4,
+    DAS_TYPE_SHORT8,
+    DAS_TYPE_USHORT2,
+    DAS_TYPE_USHORT3,
+    DAS_TYPE_USHORT4,
+    DAS_TYPE_USHORT8,
+    DAS_TYPE_BYTE2,
+    DAS_TYPE_BYTE3,
+    DAS_TYPE_BYTE4,
+    DAS_TYPE_BYTE8,
+    DAS_TYPE_BYTE16,
+    DAS_TYPE_UBYTE2,
+    DAS_TYPE_UBYTE3,
+    DAS_TYPE_UBYTE4,
+    DAS_TYPE_UBYTE8,
+    DAS_TYPE_UBYTE16
 } das_base_type;
 
 // --- Type introspection: flag constants ---

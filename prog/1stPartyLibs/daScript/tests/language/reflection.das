@@ -1,24 +1,29 @@
 options gen2
-require daslib/rtti
+require daslib/ast
 require strings
 require daslib/strings_boost
 require dastest/testing_boost public
 
-// note: this is var because we want "sample" global variable to show up
+// note: this is var because we want "sample" global variable to show up.
+// The sample is gen2 and declares it, so it compiles under a DEFAULT
+// CodeOfPolicies whichever way an embedding host pins version_2_syntax.
 var {
     sample = "
+options gen2
 require math
 require UnitTest
 
-let
+let \{
     one_two = 12
+\}
 
-enum TestEnum
+enum TestEnum \{
     foo
     bar
+\}
 
 [checkRange (foo=5)]
-struct TestStruct
+struct TestStruct \{
     a : int = 5
     b : string = \"something\"
     c : float[3][4]
@@ -29,19 +34,22 @@ struct TestStruct
     h : variant<i : int; f : float>
     fn : function<(a:int;b:float):string>
     lm : lambda<(a:int;b:float):string>
+\}
 
 [export]
-def bar ( blk : block<(a:int):float> )
+def bar(blk : block<(a:int):float>) \{
     pass
+\}
 
 [export]
-def main
+def main \{
     feint(\"hello world!\n\")
     return true
+\}
 "
 }
 
-def describeType(info) {
+def describeType(info) { // nolint:STYLE037 — one arm per reflected Type class; the ladder is the test
     var res : string
     if (info.basicType == Type.tHandle) {
         res = string(info.annotation.name)
@@ -129,8 +137,8 @@ def describeVariable(glob; extra = "") {
 }
 
 def describeStructure(sinfo) {
-    var anyAnn = false
-    structure_for_each_annotation(sinfo) <| $(ann; annArgs) {
+    var _anyAnn = false
+    structure_for_each_annotation(sinfo) $(ann; annArgs) {
         let argT = join([for (arg in annArgs); "{arg.name}{describeValue(get_annotation_argument_value(arg))}"], ",")
         feint("[{ann.name}({argT})]\n")
     }
@@ -152,7 +160,7 @@ def describeAnnotation(ann) {
         unsafe {
             let sann & = reinterpret<BasicStructureAnnotation&>(ann)
             feint("struct {sann.name} // {sann.fieldCount} {sann.cppName}\n")
-            basic_struct_for_each_field(sann) <| $(name, cppName, xtype, offset) {
+            basic_struct_for_each_field(sann) $(name, cppName, xtype, offset) {
                 feint("\t{name}:{describeType(xtype)} // {cppName} at {offset}\n")
             }
         }
@@ -167,22 +175,22 @@ def describeAnnotation(ann) {
 }
 
 def describeModule(mod) {
-    module_for_each_enumeration(mod) <| $(einfo) {
+    module_for_each_enumeration(mod) $(einfo) {
         describeEnumeration(einfo)
     }
-    module_for_each_structure(mod) <| $(sinfo) {
+    module_for_each_structure(mod) $(sinfo) {
         describeStructure(sinfo)
     }
-    module_for_each_annotation(mod) <| $(ann) {
+    module_for_each_annotation(mod) $(ann) {
         describeAnnotation(ann)
     }
-    module_for_each_function(mod) <| $(finfo) {
+    module_for_each_function(mod) $(finfo) {
         describeFunction(finfo)
     }
-    module_for_each_generic(mod) <| $(finfo) {
+    module_for_each_generic(mod) $(finfo) {
         describeFunction(finfo)
     }
-    module_for_each_global(mod) <| $(glob) {
+    module_for_each_global(mod) $(glob) {
         describeVariable(glob)
     }
 }
@@ -194,11 +202,11 @@ def describeModule(mod) {
 [test]
 def test_compile_sample(t : T?) {
     var compiled_ok = false
-    compile("sample", sample, CodeOfPolicies()) <| $(ok; prog; errors) {
+    compile("sample", sample, CodeOfPolicies()) $(ok; prog; errors) {
         if (ok) {
             compiled_ok = true
             let thisMod = get_this_module(prog)
-            program_for_each_module(prog) <| $(mod) {
+            program_for_each_module(prog) $(mod) {
                 if (mod == thisMod) {
                     describeModule(mod)
                 }
@@ -220,12 +228,12 @@ def test_dollar_module(t : T?) {
 [test]
 def test_context_reflection(t : T?) {
     var fcount = 0
-    context_for_each_function() <| $(finfo) {
+    context_for_each_function() $(finfo) {
         describeFunction(finfo)
         fcount++
     }
     var vcount = 0
-    context_for_each_variable() <| $(vinfo) {
+    context_for_each_variable() $(vinfo) {
         describeVariable(vinfo)
         vcount++
     }
@@ -238,20 +246,20 @@ def test_registered_modules_safe(t : T?) {
     // iterate registered modules — enums, structs, annotations, functions, globals
     // skip generics: module_for_each_generic can crash on some module RTTI
     var modCount = 0
-    program_for_each_registered_module() <| $(mod) {
-        module_for_each_enumeration(mod) <| $(einfo) {
+    program_for_each_registered_module() $(mod) {
+        module_for_each_enumeration(mod) $(einfo) {
             describeEnumeration(einfo)
         }
-        module_for_each_structure(mod) <| $(sinfo) {
+        module_for_each_structure(mod) $(sinfo) {
             describeStructure(sinfo)
         }
-        module_for_each_annotation(mod) <| $(ann) {
+        module_for_each_annotation(mod) $(ann) {
             describeAnnotation(ann)
         }
-        module_for_each_function(mod) <| $(finfo) {
+        module_for_each_function(mod) $(finfo) {
             describeFunction(finfo)
         }
-        module_for_each_global(mod) <| $(glob) {
+        module_for_each_global(mod) $(glob) {
             describeVariable(glob)
         }
         modCount++

@@ -537,6 +537,9 @@ static const char *type_name(int i)
 #undef SWITCH_NAME
 
 static int pos_chan_cvt_err = 0, chan_cvt_err = 0;
+static int uv_range_err = 0;
+static float uv_range_max_abs = 0.f;
+static bool g_uv_validate = false;
 
 static __forceinline int convert_vertex(uint8_t *p, Color4 val, uint32_t mod, uint32_t type, const Color4 &mul, const Color4 &ofs,
   int node_idUse)
@@ -807,6 +810,26 @@ static void process_channel_data(Mesh &m, ShaderMeshData::RElem &re, const Shade
     case SCUSAGE_TC:
       if (desc[channel].ui < 0 || desc[channel].ui >= NUMMESHTCH)
         DAG_FATAL("%s: chan[%d]: unknown tc channel %d", re.mat->getShaderClassName(), channel, desc[channel].ui);
+      // Enormous or non-finite UVs break rendering
+      if (g_uv_validate)
+      {
+        for (Point2 &uv : m.tvert[desc[channel].ui])
+        {
+          const bool brokenX = !(fabsf(uv.x) <= 1e4f); // inverted to check for NaNs
+          const bool brokenY = !(fabsf(uv.y) <= 1e4f);
+          if (DAGOR_UNLIKELY(brokenX || brokenY))
+          {
+            float finiteX = check_finite(uv.x) ? uv.x : eastl::numeric_limits<float>::max();
+            float finiteY = check_finite(uv.y) ? uv.y : eastl::numeric_limits<float>::max();
+            if (brokenX)
+              uv.x = eastl::clamp(finiteX, 0.f, 1.f);
+            if (brokenY)
+              uv.y = eastl::clamp(finiteY, 0.f, 1.f);
+            uv_range_err++;
+            uv_range_max_abs = eastl::max(uv_range_max_abs, eastl::max(fabsf(finiteX), fabsf(finiteY)));
+          }
+        }
+      }
       count = m.getTVert(desc[channel].ui).size();
       type = MeshData::CHT_FLOAT2;
       vert_data = (const uint8_t *)m.getTVert(desc[channel].ui).data();
@@ -1299,6 +1322,15 @@ static float calculateTextureScale(Mesh &m, int startf, int numf, const ShaderCh
 void ShaderMeshData::reset_channel_cvt_errors() { pos_chan_cvt_err = chan_cvt_err = 0; }
 int ShaderMeshData::get_channel_cvt_errors() { return chan_cvt_err; }
 int ShaderMeshData::get_channel_cvt_critical_errors() { return pos_chan_cvt_err; }
+
+void ShaderMeshData::reset_uv_range_errors()
+{
+  uv_range_err = 0;
+  uv_range_max_abs = 0.f;
+}
+int ShaderMeshData::get_uv_range_errors() { return uv_range_err; }
+float ShaderMeshData::get_uv_range_max_abs() { return uv_range_max_abs; }
+bool ShaderMeshData::exchange_uv_validation(bool on) { return eastl::exchange(g_uv_validate, on); }
 
 // save
 void ShaderMeshData::RElem::save(mkbindump::BinDumpSaveCB &cwr, ShaderMeshDataSaveCB &mdcb)

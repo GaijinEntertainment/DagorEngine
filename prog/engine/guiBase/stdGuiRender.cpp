@@ -6,6 +6,7 @@
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderMesh.h>
 #include <3d/dag_materialData.h>
+#include <3d/dag_preRotation.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_shaderConstants.h>
@@ -1159,6 +1160,8 @@ GuiContext::GuiContext() : viewportList(midmem)
   rollState = ROLL_ALL_STATES;
 
   isInRender = false;
+
+  prerotateAngle = 0;
 }
 
 GuiContext::~GuiContext() { close(); }
@@ -1173,8 +1176,7 @@ void GuiContext::close()
 
 void GuiContext::defaultState()
 {
-  vertexTransform.resetViewTm();
-  calcInverseVertexTransform();
+  resetViewTm();
   guiState.reset();
   extState().reset();
 
@@ -1476,6 +1478,46 @@ void GuiContext::setTarget()
   {
     d3d::GpuAutoLock acquire;
     d3d::getview(viewX, viewY, viewW, viewH, viewN, viewF);
+    prerotateAngle = 0;
+    if (prerotation::frame_angle())
+    {
+      Driver3dRenderTarget rt;
+      d3d::get_render_target(rt);
+      if (rt.isColorUsed(0))
+      {
+        BaseTexture *tex = rt.getColor(0).tex;
+        prerotateAngle = prerotation::angle_for_target(tex ? tex : d3d::get_backbuffer_tex());
+      }
+    }
+  }
+  if (prerotateAngle) // -V547
+  {
+    int tw, th;
+    d3d::get_target_size(tw, th);
+    int l = viewX, t = viewY, w = viewW, h = viewH;
+    if (prerotateAngle == 90)
+    {
+      l = viewY;
+      t = tw - viewX - viewW;
+      w = viewH;
+      h = viewW;
+    }
+    else if (prerotateAngle == 180)
+    {
+      l = tw - viewX - viewW;
+      t = th - viewY - viewH;
+    }
+    else if (prerotateAngle == 270)
+    {
+      l = th - viewY - viewH;
+      t = viewX;
+      w = viewH;
+      h = viewW;
+    }
+    viewX = l;
+    viewY = t;
+    viewW = w;
+    viewH = h;
   }
 
   // int screen size
@@ -1498,10 +1540,11 @@ void GuiContext::setTarget()
   screenScaleRcp = P2::ONE;
 }
 
-void GuiContext::setTarget(int screen_width, int screen_height, int left, int top)
+void GuiContext::setTarget(int screen_width, int screen_height, int left, int top, int prerotate_angle)
 {
   screenWidth = screen_width;
   screenHeight = screen_height;
+  prerotateAngle = prerotate_angle;
 
   viewX = left;
   viewY = top;
@@ -1623,7 +1666,7 @@ void GuiContext::renderChunk(int chunk_id)
 
   int objectBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_OBJECT);
 
-  renderer->renderChunk(chunk_id, targetW, targetH);
+  renderer->renderChunk(chunk_id, targetW, targetH, prerotateAngle);
 
   ShaderGlobal::setBlock(objectBlock, ShaderGlobal::LAYER_OBJECT);
 
@@ -1657,7 +1700,7 @@ void GuiContext::endChunkImm()
   d3d::setview(0, 0, targetW, targetH, 0, 1);
 
   int objectBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_OBJECT);
-  renderer->renderChunk(currentChunk, targetW, targetH);
+  renderer->renderChunk(currentChunk, targetW, targetH, prerotateAngle);
   ShaderGlobal::setBlock(objectBlock, ShaderGlobal::LAYER_OBJECT);
 
   d3d::setview(viewX, viewY, viewW, viewH, viewN, viewF);

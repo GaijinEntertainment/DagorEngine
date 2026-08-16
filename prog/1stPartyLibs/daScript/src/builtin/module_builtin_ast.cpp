@@ -10,42 +10,18 @@
 #include "daScript/misc/das_common.h"
 #include "daScript/simulate/aot_builtin_ast.h"
 #include "daScript/simulate/aot_builtin_string.h"
+#include "daScript/simulate/fs_file_info.h"
 #include "daScript/misc/performance_time.h"
 #include "daScript/misc/gc_node.h"
 
 MAKE_TYPE_FACTORY(StringBuilderWriter, StringBuilderWriter)
 
 #include "module_builtin_ast.h"
+
+// get_file_access lives in the compiler lib (ast_parse.cpp); it compiles the pak.
+das::FileAccessPtr get_file_access ( char * pak );
+
 namespace das {
-
-    int adapt_field_offset ( const char * fName, const StructInfo * info ) {
-        for ( uint32_t i=0, is=info->count; i!=is; ++i ) {
-            if ( strcmp(info->fields[i]->name,fName)==0 ) {
-                return info->fields[i]->offset;
-            }
-        }
-        DAS_VERIFYF(0,"mapping %s not found. not fully implemented derived class %s", fName, info->name);
-        return 0;
-    }
-
-    int adapt_field_offset_ex ( const char * fName, const StructInfo * info, uint32_t & i ) {
-        for ( uint32_t is=info->count; i!=is; ++i ) {
-            if ( strcmp(info->fields[i]->name,fName)==0 ) {
-                return info->fields[i]->offset;
-            }
-        }
-        DAS_VERIFYF(0,"mapping %s not found. not fully implemented derived class %s", fName, info->name);
-        return 0;
-    }
-
-    char * adapt_field ( const char * fName, char * pClass, const StructInfo * info ) {
-        return pClass + adapt_field_offset(fName,info);
-    }
-
-    Func adapt ( const char * funcName, char * pClass, const StructInfo * info ) {
-        char * field = adapt_field(funcName, pClass, info);
-        return field ? *(Func*)field : Func((void *)nullptr);
-    }
 
     bool addModuleFunction ( Module * module, FunctionPtr & _func, Context * context, LineInfoArg * lineInfo ) {
         if ( !module ) context->throw_error_at(lineInfo, "expecting module, not null");
@@ -352,6 +328,11 @@ namespace das {
         prog->error(message ? message : "macro error","","",at,CompilationError::runtime_macro);
     }
 
+    void ast_sticky_error ( ProgramPtr prog, const LineInfo & at, const char * message, Context * context, LineInfoArg * lineInfo ) {
+        if ( !prog ) context->throw_error_at(lineInfo,"program can't be null (expecting compiling_program())");
+        prog->stickyError(message ? message : "macro error","","",at,CompilationError::runtime_macro);
+    }
+
     void ast_performance_warning ( ProgramPtr prog, const LineInfo & at, const char * message, Context * context, LineInfoArg * lineInfo ) {
         if ( !prog ) context->throw_error_at(lineInfo,"program can't be null (expecting compiling_program())");
         prog->error(message ? message : "performance warning","","",at,CompilationError::runtime_macro_performance);
@@ -379,7 +360,8 @@ namespace das {
         if ( !tab->data ) return;
         char * values = tab->data;
         char * keys = tab->keys;
-        for ( uint32_t index=0, indexs=tab->capacity; index!=indexs; index++, keys+=keyStride, values+=valueStride ) {
+        // counters must be 64-bit: Table::capacity is uint64_t (a 32-bit index truncates past 4G slots)
+        for ( uint64_t index=0, indexs=tab->capacity; index!=indexs; index++, keys+=keyStride, values+=valueStride ) {
             if ( tableLiveSlot(*tab, index) ) {
                 das_invoke<void>::invoke<void *,void *>(context,at,blk,(void*)keys,(void*)values);
             }
@@ -390,22 +372,43 @@ namespace das {
         auto arr = (Array *) _arr;
         if ( !arr->data ) return;
         char * values = arr->data;
-        for ( uint32_t index=0, indexs=arr->size; index!=indexs; index++, values+=stride ) {
+        // counters must be 64-bit: Array::size is uint64_t (a 32-bit index truncates past 4G elements)
+        for ( uint64_t index=0, indexs=arr->size; index!=indexs; index++, values+=stride ) {
             das_invoke<void>::invoke<void *>(context,at,blk,(void*)values);
         }
     }
 
-    int32_t any_array_size ( void * _arr ) {
-        return int32_t(((Array *) _arr)->size);
+    // Array::size / Table::size are uint64_t. The 32-bit accessors panic past INT_MAX instead of
+    // silently truncating; callers that can handle 4G+ elements use the long_ counterparts below.
+    int32_t any_array_size ( void * _arr, Context * context, LineInfoArg * at ) {
+        uint64_t sz = ((Array *) _arr)->size;
+        if ( sz > uint64_t(INT32_MAX) ) context->throw_error_at(at, "any_array_size: array size %llu exceeds INT_MAX; use any_array_long_size", (unsigned long long)sz);
+        return int32_t(sz);
     }
 
-    int32_t any_table_size ( void * _tab ) {
-        return int32_t(((Table *) _tab)->size);
+    int32_t any_table_size ( void * _tab, Context * context, LineInfoArg * at ) {
+        uint64_t sz = ((Table *) _tab)->size;
+        if ( sz > uint64_t(INT32_MAX) ) context->throw_error_at(at, "any_table_size: table size %llu exceeds INT_MAX; use any_table_long_size", (unsigned long long)sz);
+        return int32_t(sz);
+    }
+
+    int64_t any_array_long_size ( void * _arr ) {
+        return int64_t(((Array *) _arr)->size);
+    }
+
+    int64_t any_table_long_size ( void * _tab ) {
+        return int64_t(((Table *) _tab)->size);
     }
 
     void ast_gc_guard ( const TBlock<void> & block, Context * context, LineInfoArg * at ) {
-        gc_guard scope;
-        das_invoke<void>::invoke(context,at,block);
+        bool ok;
+        {
+            gc_guard scope;
+            ok = context->runWithCatch([&]() {
+                das_invoke<void>::invoke(context,at,block);
+            });
+        }
+        if ( !ok ) context->rethrow();
     }
 
     // Build fn->body inside `block` on a fresh scoped gc root; on exit, promote the body's
@@ -415,11 +418,17 @@ namespace das {
     // at fn->body, not fn: fn already lives on the enclosing root, so fn->gc_collect would hit
     // the gc_owner==target early-out and collect nothing.
     void ast_gc_collect_scope ( FunctionPtr fn, const TBlock<void> & block, Context * context, LineInfoArg * at ) {
-        gc_guard scope;
-        das_invoke<void>::invoke(context,at,block);
-        if ( fn && fn->body ) {
-            fn->body->gc_collect(scope.saved_thread_root, &scope.guard_root);
+        bool ok;
+        {
+            gc_guard scope;
+            ok = context->runWithCatch([&]() {
+                das_invoke<void>::invoke(context,at,block);
+            });
+            if ( fn && fn->body ) {
+                fn->body->gc_collect(scope.saved_thread_root, &scope.guard_root);
+            }
         }
+        if ( !ok ) context->rethrow();
     }
 
     // Free a SINGLE orphaned AST expression node mid-compile, instead of waiting for the
@@ -767,6 +776,11 @@ namespace das {
         return module->findStructure(name);
     }
 
+    Enumeration * module_find_enumeration ( const Module* module, const char * name, Context * context, LineInfoArg * at ) {
+        if ( !module ) context->throw_error_at(at, "expecting module");
+        return module->findEnum(name);
+    }
+
     void * das_get_builtin_function_address ( Function * fn, Context * context, LineInfoArg * at ) {
         if ( !fn ) context->throw_error_at(at, "expecting function");
         if ( !fn->builtIn ) context->throw_error_at(at, "expecting built-in interop function");
@@ -825,10 +839,21 @@ namespace das {
     }
 
     template <typename F>
-    static auto apply_to_vec(void* vec, string_view tstr, F apply) {
+    static auto apply_to_vec(void* vec, TypeDecl * type, F apply) {
+        auto tstr = type->describe();
+        if (tstr == "ast_core::MakeFieldDecl?") {
+            // MakeStruct IS-A vector<MakeFieldDeclPtr> via multiple inheritance; the vector
+            // subobject is not at offset 0, the cast chain performs the base adjustment.
+            return apply(static_cast<vector<MakeFieldDeclPtr>*>((MakeStruct*)vec));
+        }
         if (tstr == "string") {
             return apply(static_cast<vector<const char *>*>(vec));
-        } else if (tstr == "$::das_string") {
+        }
+        if (type->baseType == Type::tPointer) {
+            // post-gc_node every AST node vector is a plain vector of raw pointers
+            return apply(static_cast<vector<void*>*>(vec));
+        }
+        if (tstr == "$::das_string") {
             return apply(static_cast<vector<string>*>(vec));
         } else if (tstr == "ast_core::CaptureEntry") {
             return apply(static_cast<vector<CaptureEntry>*>(vec));
@@ -842,11 +867,6 @@ namespace das {
             return apply(static_cast<vector<AnnotationArgument>*>(vec));
         } else if (tstr == "rtti_core::LineInfo") {
             return apply(static_cast<vector<LineInfo>*>(vec));
-        } else if (tstr == "ast::MakeStruct*") {
-            return apply(static_cast<vector<MakeStructPtr>*>(vec));
-        } else if (tstr == "ast::MakeFieldDecl*") {
-            auto vec2 = (MakeStruct*)(vec); // todo: hack, multiple inheritance breaks order in memory.
-            return apply(static_cast<vector<MakeFieldDeclPtr>*>(vec2));
         } else if (tstr == "ast_core::EnumEntry") {
             return apply(static_cast<vector<Enumeration::EnumEntry>*>(vec));
         }
@@ -855,24 +875,28 @@ namespace das {
     }
 
     void* getVectorPtrAtIndex(void* vec, TypeDecl *type, int idx, Context * /*context*/, LineInfoArg * /*at*/) {
-        auto tstr = type->describe();
         auto get_at = [idx](auto *vec) {
             return static_cast<void*>(&vec->at(idx));
         };
-        return apply_to_vec(vec, tstr, get_at);
+        return apply_to_vec(vec, type, get_at);
     }
 
     int32_t getVectorLength(void* vec, TypeDecl * type, Context * /*context*/, LineInfoArg * /*at*/) {
         auto get_size = [](auto *vec) {
             return vec->size();
         };
-        return (int) apply_to_vec(vec, type->describe(), get_size);
+        return (int) apply_to_vec(vec, type, get_size);
     }
 
     uint32_t getHandledTypeFieldOffset ( TypeAnnotationPtr annotation, char * name, Context * context, LineInfoArg * at ) {
         if ( !name ) context->throw_error_at(at, "expecting field name");
         if ( !annotation ) context->throw_error_at(at, "expecting type annotation");
         return annotation->getFieldOffset(name);
+    }
+
+    uint32_t getHandledTypeSize ( TypeAnnotationPtr annotation, Context * context, LineInfoArg * at ) {
+        if ( !annotation ) context->throw_error_at(at, "expecting type annotation");
+        return uint32_t(annotation->getSizeOf());
     }
 
     bool addModuleRequire ( Module * module, Module * reqModule, bool publ ) {
@@ -1136,6 +1160,102 @@ namespace das {
         return mod->findFunctionByMangledNameHash(mnh);
     }
 
+    // compile-from-source builtins. The impl calls the compiler entry points
+    // (parseDaScript/compileDaScript) which live in the compiler lib, so these
+    // and their bindings live here in the ast module (compiler) rather than in
+    // the rtti module (runtime).
+    void rtti_builtin_compile ( char * modName, char * str, const CodeOfPolicies & cop,
+            const TBlock<void,bool,smart_ptr<Program>,const string> & block, Context * context, LineInfoArg * at ) {
+        return rtti_builtin_compile_ex(modName, str, cop, true, block, context, at);
+    }
+
+    void rtti_builtin_compile_ex ( char * modName, char * str, const CodeOfPolicies & cop, bool exportAll,
+            const TBlock<void,bool,smart_ptr<Program>,const string> & block, Context * context, LineInfoArg * at ) {
+        str = str ? str : ((char *)"");
+        TextWriter issues;
+        uint32_t str_len = stringLengthSafe(*context, str);
+        auto access = make_smart<FileAccess>();
+        auto fileInfo = make_unique<TextFileInfo>((char *) str, uint32_t(str_len), false);
+        access->setFileInfo(modName, das::move(fileInfo));
+        ModuleGroup dummyLibGroup;
+        auto program = parseDaScript(modName, "", access, issues, dummyLibGroup, exportAll, false, cop);
+        if ( program ) {
+            if (program->failed()) {
+                for (auto & err : program->errors) {
+                    issues << reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
+                }
+                string istr = issues.str();
+                vec4f args[3] = {
+                    cast<bool>::from(false),
+                    cast<smart_ptr<Program>>::from(program),
+                    cast<string *>::from(&istr)
+                };
+                context->invoke(block, args, nullptr, at);
+            } else {
+                string istr = issues.str();
+                vec4f args[3] = {
+                    cast<bool>::from(true),
+                    cast<smart_ptr<Program>>::from(program),
+                    cast<string *>::from(&istr)
+                };
+                context->invoke(block, args, nullptr, at);
+            }
+        } else {
+            context->throw_error_at(at, "rtti_compile internal error, something went wrong");
+        }
+    }
+
+#if !DAS_NO_FILEIO
+    void rtti_builtin_compile_file ( char * modName, smart_ptr<FileAccess> access, ModuleGroup* module_group, const CodeOfPolicies & cop,
+            const TBlock<void,bool,smart_ptr<Program>,const string> & block, Context * context, LineInfoArg * at ) {
+        TextWriter issues;
+        if ( !access ) access = make_smart<FsFileAccess>();
+        auto program = compileDaScript(modName, access, issues, *module_group, cop);
+        if ( program ) {
+            if (program->failed()) {
+                for (auto & err : program->errors) {
+                    issues << reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
+                }
+                string istr = issues.str();
+                vec4f args[3] = {
+                    cast<bool>::from(false),
+                    cast<smart_ptr<Program>>::from(program),
+                    cast<string *>::from(&istr)
+                };
+                context->invoke(block, args, nullptr, at);
+            } else {
+                string istr = issues.str();
+                vec4f args[3] = {
+                    cast<bool>::from(true),
+                    cast<smart_ptr<Program>>::from(program),
+                    cast<string *>::from(&istr)
+                };
+                daScriptEnvironment::getBound()->g_Program = program;
+                context->invoke(block, args, nullptr, at);
+                daScriptEnvironment::getBound()->g_Program.reset();
+            }
+        } else {
+            context->throw_error_at(at, "rtti_compile internal error, something went wrong");
+        }
+    }
+#else
+    void rtti_builtin_compile_file(  char *, smart_ptr<FileAccess>, ModuleGroup*, const CodeOfPolicies &,
+            const TBlock<void, bool, smart_ptr<Program>, const string> &, Context * context, LineInfoArg * at ) {
+        context->throw_error_at(at, "not supported with DAS_NO_FILEIO");
+    }
+#endif
+
+#if !DAS_NO_FILEIO
+    smart_ptr<FileAccess> makeFileAccess( char * pak, Context *, LineInfoArg * ) {
+        return ::get_file_access(pak);
+    }
+#else
+    smart_ptr<FileAccess> makeFileAccess( char *, Context * context, LineInfoArg * at ) {
+        context->throw_error_at(at, "not supported with DAS_NO_FILEIO");
+        return nullptr;
+    }
+#endif
+
     Module_Ast::Module_Ast() : Module("ast_core") {
         DAS_PROFILE_SECTION("Module_Ast");
         ModuleLibrary lib(this);
@@ -1153,6 +1273,18 @@ namespace das {
     }
 
     void Module_Ast::registerFunctions(ModuleLibrary & lib){
+        addExtern<DAS_BIND_FUN(makeFileAccess)>(*this, lib, "make_file_access",
+            SideEffects::modifyExternal, "makeFileAccess")
+                ->args({"project","context","at"});
+        addExtern<DAS_BIND_FUN(rtti_builtin_compile)>(*this, lib, "compile",
+            SideEffects::modifyExternal, "rtti_builtin_compile")
+                ->args({"module_name","codeText","codeOfPolicies","block","context","line"});
+        addExtern<DAS_BIND_FUN(rtti_builtin_compile_ex)>(*this, lib, "compile",
+            SideEffects::modifyExternal, "rtti_builtin_compile_ex")
+                ->args({"module_name","codeText","codeOfPolicies","exportAll","block","context","line"});
+        addExtern<DAS_BIND_FUN(rtti_builtin_compile_file)>(*this, lib, "compile_file",
+            SideEffects::modifyExternal, "rtti_builtin_compile_file")
+                ->args({"module_name","fileAccess","moduleGroup","codeOfPolicies","block","context","line"});
         addExtern<DAS_BIND_FUN(thisProgram)>(*this, lib,  "this_program",
             SideEffects::accessExternal, "thisProgram")
                 ->arg("context");
@@ -1254,28 +1386,28 @@ namespace das {
                 ->args({"module","structure"});
         addExtern<DAS_BIND_FUN(ast_describe_typedecl)>(*this, lib,  "describe_typedecl",
             SideEffects::none, "ast_describe_typedecl")
-                ->args({"type","extra","contracts","module","context","lineinfo"});
+                ->args({"type","extra","contracts","module","context","lineinfo"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(ast_describe_typedecl_cpp)>(*this, lib,  "describe_typedecl_cpp",
             SideEffects::none, "ast_describe_typedecl_cpp")
-                ->args({"type","substitueRef","skipRef","skipConst","redundantConst", "choose_smart_ptr","context","lineinfo"});
+                ->args({"type","substitueRef","skipRef","skipConst","redundantConst", "choose_smart_ptr","context","lineinfo"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(ast_describe_expression)>(*this, lib,  "describe_expression",
             SideEffects::none, "ast_describe_expression")
-                ->args({"expression","context","lineinfo"});
+                ->args({"expression","context","lineinfo"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(ast_add_ptr_ref_expression)>(*this, lib,  "add_ptr_ref",
             SideEffects::none, "ast_add_ptr_ref_expression")
                 ->args({"expression"});
         addExtern<DAS_BIND_FUN(ast_describe_function)>(*this, lib,  "describe_function",
             SideEffects::none, "ast_describe_function")
-                ->args({"function","context","lineinfo"});
+                ->args({"function","context","lineinfo"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(ast_describe_program)>(*this, lib,  "describe_program",
             SideEffects::none, "ast_describe_program")
-                ->args({"program","context","lineinfo"});
+                ->args({"program","context","lineinfo"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(ast_find_bitfield_name)>(*this, lib,  "find_bitfield_name",
             SideEffects::none, "ast_find_bitfield_name")
-                ->args({"bit","value","context","lineinfo"});
+                ->args({"bit","value","context","lineinfo"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(ast_find_enum_name)>(*this, lib,  "find_enum_name",
             SideEffects::none, "ast_find_enum_name")
-                ->args({"enum","value","context","lineinfo"});
+                ->args({"enum","value","context","lineinfo"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(ast_find_enum_value)>(*this, lib,  "find_enum_value",
             SideEffects::none, "ast_find_enum_value")
                 ->args({"enum","value"});
@@ -1284,19 +1416,19 @@ namespace das {
                 ->args({"structPtr","field","context","lineinfo"});
         addExtern<DAS_BIND_FUN(get_mangled_name)>(*this, lib,  "get_mangled_name",
             SideEffects::none, "get_mangled_name")
-                ->args({"function","context","line"});
+                ->args({"function","context","line"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(get_mangled_name_t)>(*this, lib,  "get_mangled_name",
             SideEffects::none, "get_mangled_name_t")
-                ->args({"type","context","line"});
+                ->args({"type","context","line"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(das_get_builtin_function_address)>(*this, lib,  "get_builtin_function_address",
             SideEffects::none, "das_get_builtin_function_address")
                 ->args({"fn","context","at"});
         addExtern<DAS_BIND_FUN(get_mangled_name_v)>(*this, lib,  "get_mangled_name",
             SideEffects::none, "get_mangled_name_v")
-                ->args({"variable","context","line"});
+                ->args({"variable","context","line"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(get_mangled_name_b)>(*this, lib,  "get_mangled_name",
             SideEffects::none, "get_mangled_name_b")
-                ->args({"variable","context","line"});
+                ->args({"variable","context","line"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(get_expression_annotation)>(*this, lib,  "get_expression_annotation",
             SideEffects::none, "get_expression_annotation")
                 ->args({"expr","context","line"});
@@ -1307,7 +1439,7 @@ namespace das {
         // type conversion functions
         addExtern<DAS_BIND_FUN(ast_das_to_string)>(*this, lib,  "das_to_string",
             SideEffects::none, "ast_das_to_string")
-                ->args({"type","context","at"});
+                ->args({"type","context","at"})->setTempStringResult();
         // clone
         addExtern<DAS_BIND_FUN(clone_expression)>(*this, lib,  "clone_expression",
             SideEffects::none, "clone_expression")
@@ -1354,9 +1486,15 @@ namespace das {
                 ->args({"array","stride","block","context","line"});
         addExtern<DAS_BIND_FUN(any_array_size)>(*this, lib,  "any_array_size",
             SideEffects::none, "any_array_size")
-                ->arg("array");
+                ->args({"array","context","line"});
         addExtern<DAS_BIND_FUN(any_table_size)>(*this, lib,  "any_table_size",
             SideEffects::none, "any_table_size")
+                ->args({"table","context","line"});
+        addExtern<DAS_BIND_FUN(any_array_long_size)>(*this, lib,  "any_array_long_size",
+            SideEffects::none, "any_array_long_size")
+                ->arg("array");
+        addExtern<DAS_BIND_FUN(any_table_long_size)>(*this, lib,  "any_table_long_size",
+            SideEffects::none, "any_table_long_size")
                 ->arg("table");
         addExtern<DAS_BIND_FUN(getUnderlyingValueType)>(*this, lib,  "get_underlying_value_type",
             SideEffects::none, "getUnderlyingValueType")
@@ -1364,6 +1502,9 @@ namespace das {
         addExtern<DAS_BIND_FUN(getHandledTypeFieldOffset)>(*this, lib,  "get_handled_type_field_offset",
             SideEffects::none, "getHandledTypeFieldOffset")
                 ->args({"type","field","context","line"});
+        addExtern<DAS_BIND_FUN(getHandledTypeSize)>(*this, lib,  "get_handled_type_size",
+            SideEffects::none, "getHandledTypeSize")
+                ->args({"type","context","line"});
         addExtern<DAS_BIND_FUN(getHandledTypeFieldType)>(*this, lib,  "get_handled_type_field_type",
             SideEffects::none, "getHandledTypeFieldType")
                 ->args({"type","field","context","line"});
@@ -1474,13 +1615,16 @@ namespace das {
         // errors
         addExtern<DAS_BIND_FUN(ast_error)>(*this, lib,  "macro_error",
             SideEffects::modifyArgumentAndExternal, "ast_error")
-                ->args({"porogram","at","message","context","line"});
+                ->args({"program","at","message","context","line"});
+        addExtern<DAS_BIND_FUN(ast_sticky_error)>(*this, lib,  "macro_sticky_error",
+            SideEffects::modifyArgumentAndExternal, "ast_sticky_error")
+                ->args({"program","at","message","context","line"});
         addExtern<DAS_BIND_FUN(ast_performance_warning)>(*this, lib,  "macro_performance_warning",
             SideEffects::modifyArgumentAndExternal, "ast_performance_warning")
-                ->args({"porogram","at","message","context","line"});
+                ->args({"program","at","message","context","line"});
         addExtern<DAS_BIND_FUN(ast_style_warning)>(*this, lib,  "macro_style_warning",
             SideEffects::modifyArgumentAndExternal, "ast_style_warning")
-                ->args({"porogram","at","message","context","line"});
+                ->args({"program","at","message","context","line"});
         // class
         addExtern<DAS_BIND_FUN(makeClassRtti)>(*this, lib,  "builtin_ast_make_class_rtti",
             SideEffects::modifyArgumentAndExternal, "makeClassRtti")
@@ -1500,6 +1644,9 @@ namespace das {
         addExtern<DAS_BIND_FUN(module_find_structure)>(*this, lib,  "module_find_structure",
             SideEffects::accessExternal, "module_find_structure")
                 ->args({"program","name","context","at"});
+        addExtern<DAS_BIND_FUN(module_find_enumeration)>(*this, lib,  "module_find_enumeration",
+            SideEffects::accessExternal, "module_find_enumeration")
+                ->args({"module","name","context","at"});
         // used variables and functions
         addExtern<DAS_BIND_FUN(get_use_global_variables)>(*this, lib,  "get_use_global_variables",
             SideEffects::invoke, "get_use_global_variables")
@@ -1525,7 +1672,7 @@ namespace das {
                 ->args({"fun"});
         addExtern<DAS_BIND_FUN(get_aot_hash_comment_fn)>(*this, lib,  "get_aot_hash_comment",
             SideEffects::none, "get_aot_hash_comment_fn")
-                ->args({"fun","context","line"});
+                ->args({"fun","context","line"})->setTempStringResult();
         // infer
         addExtern<DAS_BIND_FUN(inferGenericTypeEx)>(*this, lib,  "infer_generic_type",
             SideEffects::none, "inferGenericTypeEx")
@@ -1573,10 +1720,10 @@ namespace das {
             ->args({"helper","blk", "context", "at"});
         addExtern<DAS_BIND_FUN(debug_helper_find_type_cppname)>(*this, lib,  "debug_helper_find_type_cppname",
                                                            SideEffects::modifyExternal, "debug_helper_find_type_cppname")
-            ->args({"helper","type_info", "context", "at"});
+            ->args({"helper","type_info", "context", "at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(debug_helper_find_struct_cppname)>(*this, lib,  "debug_helper_find_struct_cppname",
                                                            SideEffects::modifyExternal, "debug_helper_find_struct_cppname")
-            ->args({"helper","struct_info", "context", "at"});
+            ->args({"helper","struct_info", "context", "at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(macro_aot_infix)>(*this, lib,  "macro_aot_infix",
                                                            SideEffects::modifyArgument, "macro_aot_infix")
             ->args({"macro","ss", "expr"});
@@ -1610,10 +1757,10 @@ namespace das {
             ->args({"macro","expr"});
         addExtern<DAS_BIND_FUN(getAotArgumentSuffix)>(*this, lib,  "get_aot_arg_suffix",
                                                   SideEffects::modifyExternal, "getAotArgumentSuffix")
-            ->args({"func","call", "argIndex","context","at"});
+            ->args({"func","call", "argIndex","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(getAotArgumentPrefix)>(*this, lib,  "get_aot_arg_prefix",
                                                   SideEffects::modifyExternal, "getAotArgumentPrefix")
-            ->args({"func","call", "argIndex","context","at"});
+            ->args({"func","call", "argIndex","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(aotFuncPrefix)>(*this, lib,  "get_func_aot_prefix",
                                                   SideEffects::modifyExternal, "aotFuncPrefix")
             ->args({"ann","stg", "call","context","at"});
@@ -1622,7 +1769,7 @@ namespace das {
             ->args({"ann","structure", "args", "stg","context","at"});
         addExtern<DAS_BIND_FUN(getAotName)>(*this, lib,  "get_aot_name",
                                                   SideEffects::modifyExternal, "getAotName")
-            ->args({"func","call","context","at"});
+            ->args({"func","call","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(aotBody)>(*this, lib,  "write_aot_body",
                                                   SideEffects::modifyExternal, "aotBody")
             ->args({"structure", "st", "args", "writer","context","at"});
@@ -1646,7 +1793,7 @@ namespace das {
             ->args({"ann", "ss", "name","context","at"});
         addExtern<DAS_BIND_FUN(stringBuilderStr)>(*this, lib,  "string_builder_str",
                                                         SideEffects::modifyArgumentAndExternal, "stringBuilderStr")
-            ->args({"ss","context","at"});
+            ->args({"ss","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(stringBuilderClear)>(*this, lib,  "string_builder_clear",
                                                         SideEffects::modifyArgument, "stringBuilderClear")
             ->args({"ss"});

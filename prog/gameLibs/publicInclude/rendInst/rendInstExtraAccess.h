@@ -85,6 +85,8 @@ void prefetchNode(riex_handle_t handle);
 
 bool isNodeVisible(riex_handle_t id, uint32_t res_idx, const mat44f *&mat_out, uint32_t &hash);
 bool isNodeAlive(riex_handle_t id, vec4f &bsphere, float &pool_rad);
+bool isNodeAllocated(riex_handle_t id);
+bool isRIGenExtraPlacedInTiledScenes(int res_idx);
 
 float getCullDistSqMul();
 struct AllRendinstExtraScenesLockImpl;

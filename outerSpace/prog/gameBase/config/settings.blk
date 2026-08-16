@@ -136,6 +136,7 @@ game_das_script_thread_init:t=""
 game_das_sandbox_project:t=""
 
 vulkan {
+  guardVulkanAllocations:b=yes
   vendor {
     AMD {
       driverProps {

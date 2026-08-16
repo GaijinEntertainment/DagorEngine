@@ -200,17 +200,9 @@ BVH_INLINE void VECTORCALL add_riExtra_instance(mat43f transform, vec4f pX, vec4
   desc.blasGpuAddress = object.blas.getGPUAddress();
 
   context_id->riExtraInstances[thread_ix].push_back(convert_instance(desc));
-
-  if (hashVal)
-  {
-    auto packedHash = perInstanceData.push_back_uninitialized();
-    memcpy(packedHash, &hashVal, sizeof(hashVal));
-  }
-  else
-  {
-    auto packedHash = perInstanceData.push_back_uninitialized();
-    memset(packedHash, 0, sizeof(hashVal));
-  }
+  auto packedHash = static_cast<PerInstanceData *>(perInstanceData.push_back_uninitialized());
+  packedHash->x = hashVal;
+  packedHash->y = 0;
 }
 
 BVH_INLINE void VECTORCALL add_riExtra_instance(ContextId context_id, uint64_t object_id, mat43f transform, TreeInfo *tree_info,

@@ -33,6 +33,7 @@ GeomNodeTree::~GeomNodeTree()
     memfree(data.data(), midmem);
 }
 
+
 void GeomNodeTree::copyDataFrom(const GeomNodeTree &from)
 {
   const intptr_t dataSz = from.data.size();
@@ -45,6 +46,7 @@ void GeomNodeTree::copyDataFrom(const GeomNodeTree &from)
   invalidTmOfs = from.invalidTmOfs;
   lastUnimportantCount = from.lastUnimportantCount;
   setWtmOfs(from.wofs); // node arrays derive from data+numNodes, so no pointer fixup is needed
+  markPoseChanged();    // content replacement: bump the TARGET's own generation (never inherit the source's)
 }
 
 GeomNodeTree &GeomNodeTree::operator=(const GeomNodeTree &from)
@@ -393,6 +395,7 @@ GeomNodeTree *GeomNodeTree::load(IGenLoad &_cb)
   }
 
   tree->invalidateWtm();
+  tree->markPoseChanged(); // content established: same bump rule as copy-assign
   return tree;
 }
 

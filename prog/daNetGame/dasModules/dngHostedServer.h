@@ -13,14 +13,17 @@
 #include "main/hostedServerLauncher.h"
 
 
+#if DAGOR_HOSTED_INTERNAL_SERVER
+void hosted_server_signal_ready();
+void hosted_server_disable_auto_ready();
+#endif
+
 namespace bind_dascript
 {
 
 #if DAGOR_HOSTED_INTERNAL_SERVER
-extern "C" void hosted_server_signal_ready();
-extern "C" void hosted_server_disable_auto_ready();
-inline void signal_hosted_server_ready() { hosted_server_signal_ready(); }
-inline void disable_auto_hosted_server_ready() { hosted_server_disable_auto_ready(); }
+inline void signal_hosted_server_ready() { ::hosted_server_signal_ready(); }
+inline void disable_auto_hosted_server_ready() { ::hosted_server_disable_auto_ready(); }
 #else
 inline void signal_hosted_server_ready() {}
 inline void disable_auto_hosted_server_ready() {}
@@ -46,8 +49,9 @@ inline void request_start_hosted_server(const das::TArray<char *> &cmds,
   // so they cannot contain any `-config:*` -- engine settings overrides go through the typed
   // parameters, and project code can't sneak in privileged flags (allowUnsafeDasCode etc.)
   // bypassing the parent-state gate.
+  static constexpr const char kEnableSerializationFlag[] = "-config:game_das_enable_serialization";
   dag::Vector<eastl::string> argv;
-  argv.reserve(cmds.size + 4);
+  argv.reserve(cmds.size + 5);
   if (main_das_path && *main_das_path)
     argv.emplace_back(main_das_path);
   if (circuit && *circuit)
@@ -60,6 +64,13 @@ inline void request_start_hosted_server(const das::TArray<char *> &cmds,
     argv.emplace_back("-config:debug/allowUnsafeDasCode:b=yes");
   if (manual_ready)
     argv.emplace_back("-config:debug/hostedServerManualReady:b=yes");
+  // Host owns this policy (from host settings); reject project cmds that would clobber it.
+  const bool enable_serialization = dgs_get_settings()->getBool("game_das_enable_serialization", false);
+  {
+    eastl::string s = kEnableSerializationFlag;
+    s += enable_serialization ? ":b=yes" : ":b=no";
+    argv.emplace_back(eastl::move(s));
+  }
   for (uint32_t i = 0; i < cmds.size; ++i)
   {
     const char *c = cmds[i] ? cmds[i] : "";
@@ -67,11 +78,11 @@ inline void request_start_hosted_server(const das::TArray<char *> &cmds,
     // is controlled by the parent (allowUnsafeDasCode, hostedServerManualReady, etc.) and
     // must go through the typed params. Other `-config:*` (tickrate, scene, gameExecutionMode)
     // is legitimate game-side tuning; pass through unchanged.
-    if (strncmp(c, "-config:debug/", 14) == 0)
+    if (strncmp(c, "-config:debug/", 14) == 0 || strncmp(c, kEnableSerializationFlag, sizeof(kEnableSerializationFlag) - 1) == 0)
     {
       ctx->throw_error_at(at,
-        "request_start_hosted_server: project-supplied -config:debug/* is not allowed ('%s'); "
-        "privileged debug flags must go through the typed parameters",
+        "request_start_hosted_server: project-supplied '%s' is not allowed; "
+        "privileged host flags must go through the typed parameters / host settings",
         c);
       return;
     }

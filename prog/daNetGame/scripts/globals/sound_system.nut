@@ -1,3 +1,4 @@
+from "types" import String, Float, Integer
 let sound = require_optional("sound")
 if (sound != null)
   return sound
@@ -10,16 +11,16 @@ return freeze({
   sound_release_event = @(_evh) null
   sound_is_playing = @(_evh) null
   sound_start = @(_evh) null
-  sound_init_event = @(event, path) assert(type(event)=="string") && assert(type(path)=="string")
+  sound_init_event = @(event, path) assert(event instanceof String) && assert(path instanceof String)
   sound_keyoff = @(_evh) null
-  sound_set_volume = @(_eh, volume) assert(type(volume)=="float")
+  sound_set_volume = @(_eh, volume) assert(volume instanceof Float)
   sound_play_oneshot = @(_evt) null
   sound_set_fixed_time_speed = @(_time) null
-  sound_get_length = @(path) assert(type(path)=="string")
-  sound_set_timeline_pos = @(_evh, pos) assert(type(pos)=="integer")
+  sound_get_length = @(path) assert(path instanceof String)
+  sound_set_timeline_pos = @(_evh, pos) assert(pos instanceof Integer)
   sound_get_timeline_pos = @(_evh) null
 
-  sound_play = @(soundEventName, _volume_or_params = null) assert(type(soundEventName)=="string")
+  sound_play = @(soundEventName, _volume_or_params = null) assert(soundEventName instanceof String)
 
   INVALID_SOUND_HANDLE = 0
 

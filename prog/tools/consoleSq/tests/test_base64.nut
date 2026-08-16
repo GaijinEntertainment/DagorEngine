@@ -1,4 +1,4 @@
-// Squirrel module under test: base64 (registered by base64.cpp)
+// Quirrel module under test: base64 (registered by base64.cpp)
 
 from "base64" import encodeString, decodeString, encodeUrlString, decodeUrlString, encodeJson, encodeBlob, decodeBlob
 from "iostream" import blob
@@ -43,7 +43,7 @@ println("Section 2 PASSED")
 
 
 // ============================================================
-// Section 3: encodeJson with various Squirrel objects
+// Section 3: encodeJson with various Quirrel objects
 // ============================================================
 println("--- Section 3: encodeJson with table and array ---")
 

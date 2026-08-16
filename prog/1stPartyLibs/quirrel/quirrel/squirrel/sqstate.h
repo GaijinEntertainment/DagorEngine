@@ -83,6 +83,10 @@ public:
     }
     char* GetScratchPad(SQInteger size);
     SQInteger GetMetaMethodIdxByName(const SQObjectPtr &name);
+#if SQ_STORE_DOC_OBJECTS
+    void RemoveDocObjects(const void *obj);
+    void CopyDocObjects(const void *from, const void *to);
+#endif
 #ifndef NO_GARBAGE_COLLECTOR
     SQInteger CollectGarbage(SQVM *vm);
     void RunMark(SQVM *vm,SQCollectable **tchain);

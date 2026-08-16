@@ -1,5 +1,7 @@
 options gen2
 
+module cpp_goto_definition
+
 require cpp_common public
 require daslib/strings_boost public
 require daslib/fio public

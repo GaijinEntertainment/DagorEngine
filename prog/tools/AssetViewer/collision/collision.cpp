@@ -510,9 +510,8 @@ void CollisionPlugin::drawObjects(IGenViewportWnd *wnd)
     Point2 pos;
     real z;
 
-    // a SPHERE node's bounding sphere already carries the placement; every other type pairs
-    // its stored bsphere with the tm that places it (exporter-combined nodes bake verts AND
-    // serialize an IDENT tm, so composing is a no-op there, never a double-apply)
+    // a SPHERE node's bounding sphere already carries the placement; every other type stays
+    // stored-frame (box bspheres were never baked) and needs getNodeTm composed
     const CollisionNode &annNode = allNodes[i];
     const BSphere3 annBSphere = collisionRes->getNodeBSphere(i);
     Point3 pos3 = annNode.type == COLLISION_NODE_TYPE_SPHERE ? annBSphere.c : collisionRes->getNodeTm(i) * annBSphere.c;
@@ -936,12 +935,15 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
     {
       E3DCOLOR color = customColor ? customColor.value() : E3DCOLOR_MAKE(255, 0, 255, alpha);
       Capsule nodeCapsule;
-      collision_res.getNodeCapsule(i, nodeCapsule);
-      if (draw_solid)
-        draw_debug_solid_capsule(nodeCapsule, TMatrix::IDENT, color);
+      // Fails for the zero-vert marker and leaves the capsule unassigned: nothing to draw.
+      if (collision_res.getNodeCapsule(i, nodeCapsule))
+      {
+        if (draw_solid)
+          draw_debug_solid_capsule(nodeCapsule, TMatrix::IDENT, color);
 
-      set_cached_debug_lines_wtm(TMatrix::IDENT);
-      draw_cached_debug_capsule_w(nodeCapsule, color);
+        set_cached_debug_lines_wtm(TMatrix::IDENT);
+        draw_cached_debug_capsule_w(nodeCapsule, color);
+      }
     }
     else if (node.type == COLLISION_NODE_TYPE_MESH)
     {

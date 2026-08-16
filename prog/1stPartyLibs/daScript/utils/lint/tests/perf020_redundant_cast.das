@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // PERF020: T(x) where x is already T (workhorse type) is a no-op cast — drop it.
 //
 // Problem:
@@ -114,4 +115,16 @@ def good_double_to_float(a : double) : float {
 
 def good_vector_ctor(x, y : float) : float2 {
     return float2(x, y)                                     // 2-arg ctor — single-arg gate excludes
+}
+
+// A generic's one source line serves every instance: the cast below is a no-op where TT binds
+// float and the required widen where it binds float16, so the verdict is not actionable and the
+// rule stays silent inside instantiated bodies. (dasLLAMA's GPU kernels read a KV element this
+// way — one score-fill generic over the f16 and f32 mirrors.)
+def widen_elem(a : auto(TT)) : float {
+    return float(a)                                         // no PERF020 — generic instance
+}
+
+def calls_both_instances(f : float; h : float16) : float {
+    return widen_elem(f) + widen_elem(h)
 }

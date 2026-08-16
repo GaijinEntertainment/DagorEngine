@@ -23,7 +23,7 @@ def class_info(cl) : StructInfo const? {
         }
     } static_elif (typeinfo is_lambda(cl)) {
         unsafe {
-            var l = reinterpret<int8 ??> addr(cl)
+            var l = reinterpret<int8 ??>(addr(cl))
             if (l == null) {
                 return null
             }

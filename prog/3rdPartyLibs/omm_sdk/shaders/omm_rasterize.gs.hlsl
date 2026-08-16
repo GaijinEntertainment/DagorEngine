@@ -73,7 +73,7 @@ void DoAABBTest(uint i_microTriIndex, triangle VSOutput Input[3])
 				float2 uv = float2(x, y) * g_GlobalConstants.InvTexSize;
 
 				const float2 halfTexel = 0;// 0.5 * g_GlobalConstants.InvTexSize;
-				const float4 alpha = t_alphaTexture.GatherAlpha(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), uv.xy + halfTexel, 0);
+				const float4 alpha = OMM_ALPHA_GATHER_A(uv.xy + halfTexel);
 
 				const float min_a = min(alpha.x, min(alpha.y, min(alpha.z, alpha.w)));
 				const float max_a = max(alpha.x, max(alpha.y, max(alpha.z, alpha.w)));

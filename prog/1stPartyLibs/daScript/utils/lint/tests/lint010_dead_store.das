@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // LINT010: value stored in local variable is never read (dead store)
 //
 // Problem:

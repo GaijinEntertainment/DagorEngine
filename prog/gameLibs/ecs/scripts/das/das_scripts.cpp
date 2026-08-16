@@ -419,7 +419,7 @@ bool Scripts::processLoadedScript(LoadedScript &script, const das::string &fname
   {
     for (QueryData &queryData : script.queries)
     {
-      queryData.desc->base.resolveUnresolved(scriptMgr); // try to resolve asap
+      queryData.desc->base.ensureResolved(scriptMgr); // try to resolve asap
       queryData.desc->query = scriptMgr->createQuery(ecs::NamedQueryDesc(queryData.name.c_str(),
         queryData.desc->base.getSlice(BaseEsDesc::RW_END), queryData.desc->base.getSlice(BaseEsDesc::RO_END),
         queryData.desc->base.getSlice(BaseEsDesc::RQ_END), queryData.desc->base.getSlice(BaseEsDesc::NO_END)));
@@ -429,7 +429,7 @@ bool Scripts::processLoadedScript(LoadedScript &script, const das::string &fname
     {
       if (ecs::ecs_query_handle_t(queryData.desc->query) == ecs::INVALID_QUERY_HANDLE_VAL)
       {
-        queryData.desc->base.resolveUnresolved(scriptMgr); // try to resolve asap
+        queryData.desc->base.ensureResolved(scriptMgr); // try to resolve asap
         queryData.desc->query = scriptMgr->createQuery(ecs::NamedQueryDesc(queryData.name.c_str(),
           queryData.desc->base.getSlice(BaseEsDesc::RW_END), queryData.desc->base.getSlice(BaseEsDesc::RO_END),
           queryData.desc->base.getSlice(BaseEsDesc::RQ_END), queryData.desc->base.getSlice(BaseEsDesc::NO_END)));

@@ -5,6 +5,9 @@
 #include <sqrat.h>
 #include <string.h>
 #include <stdio.h>
+#include <sqvm.h>
+#include <sqstate.h>
+#include <sqtable.h>
 
 namespace
 {
@@ -27,6 +30,22 @@ static SQInteger nativevec_ctor(HSQUIRRELVM vm)
   if (top >= 4) { SQFloat f; sq_getfloat(vm, 4, &f); self->z = (float)f; }
   if (top >= 5) { SQInteger i; sq_getinteger(vm, 5, &i); self->w = (int32_t)i; }
   return 0;
+}
+
+// Bound to two slots at once, so that the decl string of each slot can be checked
+// against the other one
+static SQInteger test_aliased(HSQUIRRELVM vm)
+{
+  sq_pushinteger(vm, 42);
+  return 1;
+}
+
+// doc_objects is keyed by object address, so entries of dead objects would be
+// invisible to a script test without this
+static SQInteger test_doc_entry_count(HSQUIRRELVM vm)
+{
+  sq_pushinteger(vm, _table(_ss(vm)->doc_objects)->CountUsed());
+  return 1;
 }
 
 static SQInteger test_raw_cmp(HSQUIRRELVM vm)
@@ -102,6 +121,9 @@ void register_test_natives(SqModules *module_mgr)
   Sqrat::Table exports(vm);
   exports.Bind("NativeVec", cls);
   exports.SquirrelFunc("raw_cmp", test_raw_cmp, 3, "...");
+  exports.SquirrelFuncDeclString(test_aliased, "aliased_first(): int", "doc of the first slot");
+  exports.SquirrelFuncDeclString(test_aliased, "aliased_second(x: int): int", "doc of the second slot");
+  exports.SquirrelFunc("doc_entry_count", test_doc_entry_count, 1, ".", "doc set without a decl string");
   exports.SquirrelFunc("reserve_stack", test_reserve_stack, -1, ".n");
   exports.SquirrelFunc("ud_with_delegate", test_ud_with_delegate, 1, ".");
   exports.Func("identity_i64", test_identity_i64);

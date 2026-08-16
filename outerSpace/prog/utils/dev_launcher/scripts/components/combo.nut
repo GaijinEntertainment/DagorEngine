@@ -15,7 +15,7 @@ function listItem(text, action, is_current, _params={}) {
 
     return {
       behavior = [Behaviors.Button, Behaviors.Marquee]
-      size = [flex(), SIZE_TO_CONTENT]
+      size = const [flex(), SIZE_TO_CONTENT]
       xmbNode
       watch = stateFlags
 
@@ -59,7 +59,7 @@ let boxCtor = kwarg(function(text, stateFlags=null, disabled=false, group=null) 
       text
       key = text
       color
-      size = [flex(), SIZE_TO_CONTENT]
+      size = const [flex(), SIZE_TO_CONTENT]
     }
 
 
@@ -76,7 +76,7 @@ let boxCtor = kwarg(function(text, stateFlags=null, disabled=false, group=null) 
     }
 
     return {
-      size = [flex(), SIZE_TO_CONTENT]
+      size = const [flex(), SIZE_TO_CONTENT]
       flow = FLOW_HORIZONTAL
       padding = [style.NORMAL_FONT_SIZE/5, style.NORMAL_FONT_SIZE/2]
       valign = ALIGN_CENTER
@@ -162,10 +162,10 @@ function findCurOption(opts, wdata){
 function popupWrapper(popupContent, dropDirDown) {
   let align = dropDirDown ? ALIGN_TOP : ALIGN_BOTTOM
   let children = [
-    {size = [flex(), ph(100)]}
+    {size = const [flex(), ph(100)]}
     //{size = [flex(), hdpx(20)]}
     popupContent
-  ].append({rendObj = ROBJ_BOX borderRadius = [0,0,hdpx(6),hdpx(6)] fillColor = Color(0,0,0,80), size = [flex(), hdpx(10)]})
+  ].append({rendObj = ROBJ_BOX borderRadius = [0,0,hdpx(6),hdpx(6)] fillColor = Color(0,0,0,80), size = const [flex(), hdpx(10)]})
 
   if (!dropDirDown)
     children.reverse()
@@ -186,8 +186,8 @@ function popupWrapper(popupContent, dropDirDown) {
 
 function dropdownBgOverlay(onClick) {
   return {
-    pos = [-9000, -9000]
-    size = [19999, 19999]
+    pos = const [-9000, -9000]
+    size = const [19999, 19999]
     behavior = Behaviors.ComboPopup
     color = Color(0,0,0, 100)
     rendObj = ROBJ_SOLID
@@ -233,7 +233,7 @@ function combobox(watches, options, tooltip=null) {
     //let onDetachPopup = @() onCloseDropDown(xmbNode)
 
     let popupContent = {
-      size = [flex(), SIZE_TO_CONTENT]
+      size = const [flex(), SIZE_TO_CONTENT]
       rendObj = ROBJ_BOX
       fillColor = comboStyle.popupBgColor
       borderColor = comboStyle.popupBdColor
@@ -248,7 +248,7 @@ function combobox(watches, options, tooltip=null) {
         flow = FLOW_VERTICAL
         children
         gap = comboStyle?.itemGap
-        size = [flex(), SIZE_TO_CONTENT]
+        size = const [flex(), SIZE_TO_CONTENT]
         maxHeight = itemHeight*10.5 + itemGapHt*9 //this is ugly workaround with overflow of combobox size
         //we need something much more clever - we need understand how close we to the bottom\top of the screen and set limit to make all elements visible
       }
@@ -315,7 +315,7 @@ function mkCombo(value, allValues, title, tooltip = null) {
   return function() {
     return {
       flow = FLOW_HORIZONTAL
-      size = [flex(), SIZE_TO_CONTENT]
+      size = const [flex(), SIZE_TO_CONTENT]
       valign = ALIGN_CENTER
       children = [
         title == null ? null :
@@ -324,7 +324,7 @@ function mkCombo(value, allValues, title, tooltip = null) {
           color = style.LABEL_TXT
           text = title
         }
-        {size = [flex(),0]}
+        {size = const [flex(),0]}
         combobox({value}, allValues, toolTip)
       ]
     }

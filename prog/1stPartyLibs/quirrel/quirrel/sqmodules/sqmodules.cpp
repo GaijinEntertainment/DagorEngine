@@ -793,6 +793,18 @@ void SqModules::callAndClearUnloadHandlers(bool is_closing)
     else
       SQRAT_ASSERT(0);
   }
+
+  for (ModuleUnloadCallback cb : onModuleUnloadNative)
+    cb(sqvm, is_closing);
+}
+
+
+void SqModules::addModuleUnloadCallback(ModuleUnloadCallback cb)
+{
+  auto it = SQRAT_STD::find_if(onModuleUnloadNative.begin(), onModuleUnloadNative.end(),
+    [cb](ModuleUnloadCallback f) { return f == cb; });
+  if (it == onModuleUnloadNative.end())
+    onModuleUnloadNative.push_back(cb);
 }
 
 

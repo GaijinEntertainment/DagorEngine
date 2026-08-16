@@ -4,6 +4,7 @@ include "gui_aces_helpers.dshl"
 include "gbuffer.dshl"
 include "gui_aces_common.dshl"
 include "flexible_scale_rasterization.dshl"
+include "pre_rotation_inc.dshl"
 
 float4 gui_to_scene_point_to_eye = (0, 0, 0, 0);
 
@@ -40,6 +41,7 @@ shader gui_aces
   DECL_POSTFX_TC_VS_DEP()
   USE_ATEST_1()
   USE_GUI_ACES_HELPERS()
+  USE_PRE_ROTATION(vs)
 
   INIT_LOAD_DEPTH_GBUFFER()
   USE_LOAD_DEPTH_GBUFFER()
@@ -200,6 +202,7 @@ shader gui_aces
 ##endif
       output.color = BGRA_SWIZZLE(input.color);
       OGL_SET_SCREEN_POSITION(output, output.pos);
+      output.pos.xy = apply_pre_rotation(output.pos.xy);
 
       return output;
     }

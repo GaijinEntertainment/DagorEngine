@@ -26,7 +26,6 @@ render_settings {
   render_settings__screenSpaceWeatherEffects:b=true // graphics
   render_settings__lensFlares:b=yes
   render_settings__scopeImageQuality:i=0
-  render_settings__scopeFakeUpscaleAvailable:b=false
   render_settings__scopeDisableMotionBlur:b=false // graphics
 
   render_settings__upscaleSamplingTex:b=true // render feature

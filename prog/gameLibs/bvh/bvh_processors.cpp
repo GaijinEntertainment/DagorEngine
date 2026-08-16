@@ -528,6 +528,10 @@ bool TreeVertexProcessor::process(ContextId context_id, Sbuffer *source, int sou
     TMatrix4_vec4 worldTm;
     v_mat43_transpose_to_mat44((mat44f &)worldTm, args.worldTm);
 
+    // Without the pivot textures the pivoted variant would sample an invalid bindless slot.
+    if (args.tree.ppPositionBindless == MeshMeta::INVALID_TEXTURE || args.tree.ppDirectionBindless == MeshMeta::INVALID_TEXTURE)
+      args.tree.isPivoted = false;
+
     VariantKey variantKey = packVariants(args.tree.isPosInstance, args.tree.isPivoted);
     auto &dispatchData = dispatchDataMapping[variantKey][processed_buffer.get()];
 
@@ -566,8 +570,6 @@ bool TreeVertexProcessor::process(ContextId context_id, Sbuffer *source, int sou
       args.tree.groundBendTangentOffset, args.tree.groundBendNormalOffset);
     params.ground_snap_normal_offset = args.tree.groundSnapNormalOffset;
     params.ground_snap_limit = args.tree.groundSnapLimit;
-    G_ASSERTF(!args.tree.isPivoted || (args.tree.ppPositionBindless != 0xFFFFFFFF && args.tree.ppDirectionBindless != 0xFFFFFFFF),
-      "Pivoted tree has invalid bindless pivot textures!");
     params.pp_pos_tex_slot = args.tree.ppPositionBindless;
     params.pp_dir_tex_slot = args.tree.ppDirectionBindless;
     params.source_slot = source_buffer_bindless;

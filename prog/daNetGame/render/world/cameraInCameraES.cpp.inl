@@ -133,22 +133,6 @@ static void process_lens_activation_state(const bool feature_enabled_for_scope,
   camcam__iFrame = camcam__lens_render_active ? camcam__iFrame + 1 : -1;
 }
 
-static inline bool check_if_scope_disables_camcam(const ecs::EntityId entity_with_scope)
-{
-  const bool hasWeaponWithScopeInHands = static_cast<bool>(entity_with_scope);
-  if (!hasWeaponWithScopeInHands)
-    return true;
-
-  bool scopeDisablesCamCam = false;
-  check_if_scope_disables_camcam_ecs_query(*g_entity_mgr, entity_with_scope,
-    [&scopeDisablesCamCam](const bool gunmod__lensOnlyZoomDisabled) {
-      if (gunmod__lensOnlyZoomDisabled)
-        scopeDisablesCamCam = gunmod__lensOnlyZoomDisabled;
-    });
-
-  return scopeDisablesCamCam;
-}
-
 bool activate_view()
 {
   ShaderGlobal::set_float(var::camera_in_camera_active, 0.0f);
@@ -260,7 +244,7 @@ ViewportEllipse calc_viewport_ellipse(
 }
 } // namespace
 
-void update_transforms(const CameraParams &main_view, const CameraParams &prev_main_view, const CameraParams &lens_view)
+void update_transforms(const CameraParams &cockpit_view, const CameraParams &prev_cockpit_view, const CameraParams &lens_view)
 {
   const AimRenderingData aimData = get_aim_rendering_data();
   const DynamicRenderableSceneInstance *scene = get_scope_lens(aimData);
@@ -269,18 +253,18 @@ void update_transforms(const CameraParams &main_view, const CameraParams &prev_m
 
   const TMatrix &lensWtm = scene->getNodeWtm(aimData.lensNodeId);
   const TMatrix &lensPrevWtm = scene->getPrevNodeWtm(aimData.lensNodeId);
-  const float viewportScale = main_view.noJitterPersp.wk / main_view.noJitterPersp.hk;
+  const float viewportScale = cockpit_view.noJitterPersp.wk / cockpit_view.noJitterPersp.hk;
 
   const float lensBoundingSphereRadius = aimData.lensBoundingSphereRadius;
   const ViewportEllipse curFrameEllipse =
-    calc_viewport_ellipse(lensBoundingSphereRadius, lensWtm, main_view.viewRotJitterProjTm, viewportScale);
+    calc_viewport_ellipse(lensBoundingSphereRadius, lensWtm, cockpit_view.viewRotJitterProjTm, viewportScale);
   const ViewportEllipse prevFrameEllipse =
-    calc_viewport_ellipse(lensBoundingSphereRadius, lensPrevWtm, prev_main_view.viewRotJitterProjTm, viewportScale);
+    calc_viewport_ellipse(lensBoundingSphereRadius, lensPrevWtm, prev_cockpit_view.viewRotJitterProjTm, viewportScale);
 
   const Point4 curFrameAxes{curFrameEllipse.xAxis.x, curFrameEllipse.xAxis.y, curFrameEllipse.yAxis.x, curFrameEllipse.yAxis.y};
   const Point4 prevFrameAxes{prevFrameEllipse.xAxis.x, prevFrameEllipse.xAxis.y, prevFrameEllipse.yAxis.x, prevFrameEllipse.yAxis.y};
 
-  const Point4 uvRemapping = calc_uv_remapping(main_view, lens_view);
+  const Point4 uvRemapping = calc_uv_remapping(cockpit_view, lens_view);
 
   ShaderGlobal::set_float4(var::camera_in_camera_prev_vp_ellipse_center, prevFrameEllipse.center);
   ShaderGlobal::set_float4(var::camera_in_camera_prev_vp_ellipse_xy_axes, prevFrameAxes);
@@ -325,7 +309,7 @@ static bool get_current_frame_lens_wtm(const AimRenderingData &aim_data, const C
   return found;
 }
 
-OcclusionMaskApplier::NearPlaneWithHoleTaskData get_near_plane_masking_task(const CameraParams &main_view)
+OcclusionMaskApplier::NearPlaneWithHoleTaskData get_near_plane_masking_task(const CameraParams &cockpit_view)
 {
   if (!is_lens_render_active())
     return {};
@@ -333,12 +317,12 @@ OcclusionMaskApplier::NearPlaneWithHoleTaskData get_near_plane_masking_task(cons
   const AimRenderingData aimData = get_aim_rendering_data();
 
   TMatrix lensWtm;
-  if (!get_current_frame_lens_wtm(aimData, main_view, lensWtm))
+  if (!get_current_frame_lens_wtm(aimData, cockpit_view, lensWtm))
     return {};
 
-  const float viewportScale = main_view.noJitterPersp.wk / main_view.noJitterPersp.hk;
+  const float viewportScale = cockpit_view.noJitterPersp.wk / cockpit_view.noJitterPersp.hk;
   const ViewportEllipse ve =
-    calc_viewport_ellipse(aimData.lensBoundingSphereRadius, lensWtm, main_view.viewRotJitterProjTm, viewportScale);
+    calc_viewport_ellipse(aimData.lensBoundingSphereRadius, lensWtm, cockpit_view.viewRotJitterProjTm, viewportScale);
 
   OcclusionEllipse out;
   out.axes = v_make_vec4f(ve.xAxis.x, ve.xAxis.y, ve.yAxis.x, ve.yAxis.y);
@@ -348,7 +332,7 @@ OcclusionMaskApplier::NearPlaneWithHoleTaskData get_near_plane_masking_task(cons
   out.cellBox = v_make_vec4f((ve.center.x - ve.halfExtent.x) * OcclusionZBuffer::WIDTH,
     (ve.center.y - ve.halfExtent.y) * invScale * OcclusionZBuffer::HEIGHT, (ve.center.x + ve.halfExtent.x) * OcclusionZBuffer::WIDTH,
     (ve.center.y + ve.halfExtent.y) * invScale * OcclusionZBuffer::HEIGHT);
-  return {out, main_view.znear};
+  return {out, cockpit_view.znear};
 }
 
 static void set_uv_remapping_shvar(const bool is_main_view)
@@ -557,10 +541,8 @@ static void camcam_preprocess_prev_frame_weapon_es(const ecs::UpdateStageInfoAct
   const bool hasCamCam = renderer_has_feature(CAMERA_IN_CAMERA);
   const AimRenderingData aimData = get_aim_rendering_data();
 
-  const bool scopeDisablesCamCam = camera_in_camera::check_if_scope_disables_camcam(aimData.entityWithScopeLensEid);
-  const bool featureEnabledForScope = hasCamCam && !scopeDisablesCamCam;
-
-  camcam__lens_only_zoom_enabled = featureEnabledForScope;
+  const bool hasWeaponWithScopeInHands = static_cast<bool>(aimData.entityWithScopeLensEid);
+  camcam__lens_only_zoom_enabled = hasCamCam && hasWeaponWithScopeInHands;
 }
 
 ECS_TAG(render)

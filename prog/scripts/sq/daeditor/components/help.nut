@@ -4,7 +4,7 @@ let {makeVertScroll} = require("%daeditor/components/scrollbar.nut")
 let textButton = require("textButton.nut")
 
 
-let helpText = @"
+const helpText = @"
 Tab - Find entity (by name, by group, select/deselect)
 P - Property panel
 
@@ -80,7 +80,7 @@ let help = @(showHelp) function(){
   return {
     hplace = ALIGN_CENTER
     vplace = ALIGN_CENTER
-    size = [sw(50), sh(80)]
+    size = const [sw(50), sh(80)]
     watch = showHelp
     rendObj = ROBJ_WORLD_BLUR
     fillColor = colors.ControlBg

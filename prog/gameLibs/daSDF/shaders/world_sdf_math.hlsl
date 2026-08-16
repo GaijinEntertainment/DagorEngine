@@ -1,4 +1,4 @@
-uint world_sdf_num_cascades() {return world_sdf_res.w;}
+uint world_sdf_num_cascades() {return min(uint(world_sdf_res.w), uint(MAX_WORLD_SDF_CLIPS));}
 float2 get_decode_world_sdf_distance(uint clip)
 {
   return float2(2,-1)*(sample_world_sdf_lt(clip).w*MAX_WORLD_SDF_VOXELS_BAND);

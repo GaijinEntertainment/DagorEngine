@@ -61,15 +61,15 @@ struct BitStreamWalker : das::DataWalker
   void beforeStructureField(char *, das::StructInfo *, char *, das::VarInfo *vi, bool) override
   {
     // TODO: allow @compressed for nested arrays, like array<array<int>>
-    if (vi->annotation_arguments != nullptr)
+    if (vi->annotation_argument_count != 0)
     {
       const bool typeIsCompressible = isCompressible(vi);
       const bool typeIsPackable = isPackableUnitVector(vi);
       const bool typeIsQuantizedPos = typeIsPackable; // currently only float3 is supported
-      auto *annArgs = reinterpret_cast<das::AnnotationArguments *>(vi->annotation_arguments);
-      for (das::AnnotationArgument &ann : *annArgs)
+      for (uint32_t ai = 0; ai < vi->annotation_argument_count; ++ai)
       {
-        if (ann.name == "packedUnitVector")
+        const das::AnnotationArgumentInfo &ann = vi->annotation_arguments[ai];
+        if (strcmp(ann.name, "packedUnitVector") == 0)
         {
           if (!typeIsPackable)
           {
@@ -92,7 +92,7 @@ struct BitStreamWalker : das::DataWalker
           }
           break;
         }
-        if (ann.name == "compressed")
+        if (strcmp(ann.name, "compressed") == 0)
         {
           if (!typeIsCompressible)
           {
@@ -109,7 +109,7 @@ struct BitStreamWalker : das::DataWalker
           compressNext = ann.bValue;
           break;
         }
-        if (typeIsQuantizedPos && ann.name == "quantizedPos")
+        if (typeIsQuantizedPos && strcmp(ann.name, "quantizedPos") == 0)
         {
           if (DAGOR_UNLIKELY(ann.type != das::Type::tInt))
           {

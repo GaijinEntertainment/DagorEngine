@@ -292,6 +292,7 @@ static ShaderMaterial *find_entity_shader_material(const IObjEntity *entity, con
     return nullptr;
 
   ShaderMaterialProperties *shaderMatProps = ShaderMaterialProperties::create(shaderClass, mat_data);
+  G_ASSERT(shaderMatProps->stvar.size() == shaderClass->localVars.size());
 
   Tab<ShaderMaterial *> usedMats;
   PERFORM_FOR_ENTITY_LOD_SCENE(const_cast<IObjEntity *>(entity), gatherUsedMat(usedMats), lod, CHECK);
@@ -299,11 +300,20 @@ static ShaderMaterial *find_entity_shader_material(const IObjEntity *entity, con
   ShaderMaterial *result = nullptr;
   for (ShaderMaterial *mat : usedMats)
   {
+    // Only a material with the same shader class shares our stvar indexing.
+    // isEqualWithoutTex() would also reject these anyway.
+    if (mat->native().props.stvar.size() != shaderClass->localVars.size() || mat->native().props.sclass != shaderClass)
+      continue;
+
     for (int varId = 0; varId < shaderClass->localVars.size(); ++varId)
     {
       if (should_skip_var((const char *)shBinDump().varMap[shaderClass->localVars.v[varId].nameId]))
         shaderMatProps->stvar[varId].c4() = mat->native().props.stvar[varId].c4();
     }
+
+    // d3dm.power is not used anywhere, and riDesc.bin/dynModelDesc.bin do not store it, so a model built
+    // with separateModelMatToDescBin loads it as 1 instead of the source value.
+    shaderMatProps->d3dm.power = mat->native().props.d3dm.power;
 
     // We can't compare textures because atest texture is formed from diffuse's alpha channel.
     // So slot for it isn't set when you construct ShaderMaterialProperties.
@@ -775,6 +785,7 @@ void EntityMaterialEditor::begin(DagorAsset *asset, IObjEntity *asset_entity)
 
   assetSrcFolderPath = asset->getFolderPath();
   assetName = asset->getName();
+  reportedShaderMaterialMatchError = false;
 
   if (appBlk.isEmpty())
   {
@@ -1240,11 +1251,24 @@ void EntityMaterialEditor::updateAssetShaderMaterialInternal(int lod, int mat_id
   ShaderMaterial *&curMatShader = matDataPerLod[lod].matShaders[mat_id];
 
   Tab<ShaderMaterial *> oldMat(framemem_ptr()), newMat(framemem_ptr());
-  // Duplicate materials to recreate shader elems so the changes will appear.
-  PERFORM_FOR_ENTITY_LOD_SCENE(entity, duplicateMat(curMatShader, oldMat, newMat), lod, CHECK);
-  curMatShader = newMat.size() ? newMat.back() : nullptr;
+  if (curMatShader)
+  {
+    // Duplicate materials to recreate shader elems so the changes will appear.
+    PERFORM_FOR_ENTITY_LOD_SCENE(entity, duplicateMat(curMatShader, oldMat, newMat), lod, CHECK);
+    curMatShader = newMat.size() ? newMat.back() : nullptr;
+  }
+
   if (!curMatShader)
+  {
+    if (!reportedShaderMaterialMatchError)
+    {
+      reportedShaderMaterialMatchError = true;
+
+      logerr("Could not update shader material '%s' in '%s' (LOD %d, material index %d), edits will not be visible.",
+        matProps.matName.c_str(), assetName.c_str(), lod, mat_id);
+    }
     return;
+  }
 
   for (int varId = 0; varId < (int)matProps.vars.size() - MAT_SPECIAL_VAR_COUNT; ++varId)
   {

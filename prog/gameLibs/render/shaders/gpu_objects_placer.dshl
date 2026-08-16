@@ -113,8 +113,10 @@ macro USE_GPU_OBJECTS_DATA()
     );
   }
   hlsl(cs) {
-    float4 biom_indexes[32] :register(c60);
-    float4 biom_indexes_lastreg :register(c92);
+    #include "gpuObjects/gpu_objects_const.hlsli"
+
+    float4 biom_indexes[MAX_GPU_OBJECT_BIOMES] :register(c60);
+    float4 biom_indexes_lastreg :register(c92); // must stay c60 + MAX_GPU_OBJECT_BIOMES
 
     struct GpuObjectsIndirectParams
     {
@@ -932,15 +934,17 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
 ##if gpu_objects_is_grass == no
         uint sampledBiom = getBiomeIndex(worldPos);
 ##endif
-        int i = 0;
+        ##assert(gpu_objects_biomes_count <= MAX_GPU_OBJECT_BIOMES, "[%s:%.f] gpu_objects: biome count (%.f) exceeds max (%.f)", _FILE_, __LINE__, gpu_objects_biomes_count, MAX_GPU_OBJECT_BIOMES);
         LOOP
-        for (; i < gpu_objects_biomes_count; ++i)
+        for (int i = 0; i < min(gpu_objects_biomes_count, MAX_GPU_OBJECT_BIOMES); ++i)
         {
-          placeAllowed = (sampledBiom == biom_indexes[i].x);
-          if (placeAllowed)
+          if (sampledBiom == biom_indexes[i].x)
+          {
+            placeAllowed = true;
+            seedMultiplier = biom_indexes[i].y;
             break;
+          }
         }
-        seedMultiplier = biom_indexes[i].y;
       }
       ##if shore_distance_field_tex != NULL
         BRANCH

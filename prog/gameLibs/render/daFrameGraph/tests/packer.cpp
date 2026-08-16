@@ -240,3 +240,140 @@ TEST_CASE("Randomized recompilation with pinning")
 
   CHECK(prevHeapSize == state.output.heapSize);
 }
+
+// Optional resources share the heap with the mandatory ones, so they have to
+// be checked against both groups.
+static void validate_optional(const TestState &state)
+{
+  REQUIRE(state.output.optionalOffsets.size() == state.input.optionalResources.size());
+
+  for (uint32_t i = 0; i < state.input.optionalResources.size(); ++i)
+  {
+    const auto &res = state.input.optionalResources[i];
+    const auto offset = state.output.optionalOffsets[i];
+
+    if (res.size == 0)
+    {
+      CHECK(offset == dafg::PackerOutput::NOT_ALLOCATED);
+      continue;
+    }
+
+    // Leaving an optional resource unplaced is always a valid outcome
+    if (!isOffsetValid(offset))
+      continue;
+
+    CHECK(offset % res.align == 0);
+    CHECK(offset + res.size <= state.output.heapSize);
+
+    const auto checkNoOverlap = [&](const dafg::PackerInput::Resource &other, uint64_t otherOffset) {
+      if (!isOffsetValid(otherOffset) || segmentsDisjoint({res.start, res.end}, {other.start, other.end}))
+        return;
+
+      CHECK((offset + res.size <= otherOffset || otherOffset + other.size <= offset));
+    };
+
+    for (uint32_t j = 0; j < state.input.resources.size(); ++j)
+      checkNoOverlap(state.input.resources[j], state.output.offsets[j]);
+    for (uint32_t j = i + 1; j < state.input.optionalResources.size(); ++j)
+      checkNoOverlap(state.input.optionalResources[j], state.output.optionalOffsets[j]);
+  }
+}
+
+TEST_CASE("Optional fills a gap")
+{
+  TestState state = init_test();
+
+  state.input.timelineSize = 10;
+  state.input.maxHeapSize = UINT64_MAX;
+
+  // Both are alive at the start of the timeline and hence cannot alias, so
+  // the shorter one leaves a hole for the rest of the timeline.
+  state.resources = {
+    {0, 10, 1000, 1, dafg::PackerInput::NO_PIN},
+    {0, 5, 1000, 1, dafg::PackerInput::NO_PIN},
+  };
+
+  dag::Vector<dafg::PackerInput::Resource> optional = {{5, 10, 1000, 1, dafg::PackerInput::NO_PIN}};
+  state.input.optionalResources = optional;
+
+  pack(state);
+  validate_optional(state);
+
+  CHECK(isOffsetValid(state.output.optionalOffsets[0]));
+  // The optional resource went into the hole instead of growing the heap
+  CHECK(state.output.heapSize == 2000);
+}
+
+TEST_CASE("Optional does not fit")
+{
+  TestState state = init_test();
+
+  state.input.timelineSize = 10;
+  state.input.maxHeapSize = 1000;
+
+  state.resources = {{0, 10, 1000, 1, dafg::PackerInput::NO_PIN}};
+
+  dag::Vector<dafg::PackerInput::Resource> optional = {{0, 10, 1000, 1, dafg::PackerInput::NO_PIN}};
+  state.input.optionalResources = optional;
+
+  pack(state);
+  validate_optional(state);
+
+  CHECK(state.output.optionalOffsets[0] == dafg::PackerOutput::NOT_SCHEDULED);
+  // Mandatory resources are not disturbed by an optional one that did not fit
+  CHECK(state.output.offsets[0] == 0);
+  CHECK(state.output.heapSize == 1000);
+}
+
+TEST_CASE("Zero size optional")
+{
+  TestState state = init_test();
+
+  state.input.timelineSize = 10;
+  state.input.maxHeapSize = UINT64_MAX;
+
+  state.resources = {{0, 10, 1000, 1, dafg::PackerInput::NO_PIN}};
+
+  dag::Vector<dafg::PackerInput::Resource> optional = {{0, 5, 0, 1, dafg::PackerInput::NO_PIN}};
+  state.input.optionalResources = optional;
+
+  pack(state);
+  validate_optional(state);
+
+  CHECK(state.output.optionalOffsets[0] == dafg::PackerOutput::NOT_ALLOCATED);
+}
+
+TEST_CASE("Randomized with optional")
+{
+  TestState state = init_test();
+
+  static constexpr uint32_t ALIGNMENT = 8;
+
+  uint32_t timelineSize = GENERATE(10, 100);
+  uint32_t resourceCount = GENERATE(10, 100, 500);
+
+  for (uint32_t i = 0; i < resourceCount; ++i)
+  {
+    uint32_t start = dagor_random::rnd_int(0, timelineSize - 1);
+    uint32_t end = dagor_random::rnd_int(0, timelineSize - 1);
+    uint32_t size = dagor_random::rnd_int(4096, 8192);
+    state.resources.push_back({start, end, size, ALIGNMENT, dafg::PackerInput::NO_PIN});
+  }
+
+  dag::Vector<dafg::PackerInput::Resource> optional;
+  for (uint32_t i = 0; i < resourceCount; ++i)
+  {
+    // Optional resources are never allowed to wrap around
+    uint32_t start = dagor_random::rnd_int(0, timelineSize - 2);
+    uint32_t end = dagor_random::rnd_int(start + 1, timelineSize - 1);
+    uint32_t size = dagor_random::rnd_int(4096, 8192);
+    optional.push_back({start, end, size, ALIGNMENT, dafg::PackerInput::NO_PIN});
+  }
+  state.input.optionalResources = optional;
+
+  state.input.timelineSize = timelineSize;
+  state.input.maxHeapSize = resourceCount * dagor_random::rnd_int(1024, 4096);
+
+  pack(state);
+  validate_optional(state);
+}

@@ -14,6 +14,8 @@
 
 #include "driver.h"
 #include "globals.h"
+#include "frontend.h"
+#include "swapchain.h"
 #include "vulkan_loader.h"
 #include "vulkan_device.h"
 #include "vulkan_instance.h"
@@ -202,6 +204,7 @@ bool FSRVulkan::initUpscaling(const FSR::ContextArgs &args)
   desc.maxRenderSize.height = args.maxRenderHeight ? args.maxRenderHeight : args.outputHeight;
   desc.displaySize.width = args.outputWidth;
   desc.displaySize.height = args.outputHeight;
+  desc.preRotation = args.applyPreRotation ? drv3d_vulkan::Frontend::swapchain.getAppPreRotationAngle() : 0;
   desc.backendInterface = g_state.backendInterface;
   desc.fpMessage = message_callback;
 
@@ -268,6 +271,7 @@ bool FSRVulkan::doApplyUpscaling(const FSR::UpscalingPlatformArgs &args, void *c
   desc.cameraFar = args.farPlane;
   desc.cameraFovAngleVertical = args.fovY;
   desc.viewSpaceToMetersFactor = 1.0f;
+  desc.preRotation = args.applyPreRotation ? drv3d_vulkan::Frontend::swapchain.getAppPreRotationAngle() : 0;
 
   arm::FfxmErrorCode err = arm::ffxmFsr2ContextDispatch(const_cast<arm::FfxmFsr2Context *>(&g_state.context), &desc);
   if (err != arm::FFXM_OK)

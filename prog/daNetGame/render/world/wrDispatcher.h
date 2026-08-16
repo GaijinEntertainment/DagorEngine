@@ -54,6 +54,7 @@ struct WRDispatcher
 
   static struct CameraParams &getCurrentCameraParams();
   static const CameraParams &getPreviousCameraParams();
+  static const CameraParams &getCurrentCockpitCameraParams();
   static int getTemporalShadowFramesCount();
   static void updateTransformations(const DPoint3 &move,
     const TMatrix4_vec4 &jittered_cam_pos_to_unjittered_history_clip,

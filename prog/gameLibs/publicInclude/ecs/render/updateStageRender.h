@@ -78,7 +78,7 @@ struct UpdateStageInfoRender : public ecs::Event, public TransformHolder
   ECS_INSIDE_EVENT_DECL(UpdateStageInfoRender, ::ecs::EVCAST_BROADCAST | ::ecs::EVFLG_PROFILE);
   UpdateStageInfoRender(uint32_t hints_, const Frustum &culling, const TMatrix &itm, const TMatrix &view_tm, const TMatrix4 &proj_tm,
     const Point3 &main_cam, vec4f neg_rounded_cam_pos, vec4f neg_remainder_cam_pos, Occlusion *occl, int render_pass = RENDER_UNKNOWN,
-    dynrend::ContextId async_animchar_ctx = dynrend::ContextId::INVALID, TexStreamingContext tex_context = TexStreamingContext(0)) :
+    dynrend::ContextId async_animchar_ctx = dynrend::ContextId::Invalid, TexStreamingContext tex_context = TexStreamingContext(0)) :
     ECS_EVENT_CONSTRUCTOR(UpdateStageInfoRender),
     TransformHolder(view_tm, proj_tm),
     cullingFrustum(culling),

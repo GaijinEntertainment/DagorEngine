@@ -12,9 +12,9 @@ let buttonStyleOff = { off = true,
                        textStyle = { normal = { color = Color(120,120,120,255) }, hover = { color = Color(120,120,120,255) } },
                        boxStyle  = { normal = { fillColor = Color(0,0,0,120)}, hover = {fillColor = Color(0,0,0,120) } } }
 
-let panelW = hdpx(230)
-let rowDiv = { size = [panelW, hdpx(5)] }
-let tooltipDX = -hdpx(20)
+const panelW = hdpx(230)
+let rowDiv = { size = const [panelW, hdpx(5)] }
+const tooltipDX = -hdpx(20)
 
 function clearToolboxOptions(tb_shown, tb_state) {
   tb_state.options = []
@@ -69,7 +69,7 @@ function mkToolboxTooltip(tt_obj, tt_text, dx, tb_state) {
   if (typeof tt_text != "string")
     return null
   return @() {
-    size = [0,0]
+    size = const [0,0]
     watch = [tb_state.tooltipShow]
     children = tb_state.tooltipShow.get() && tb_state.tooltipElem == tt_obj ? {
       pos = [dx, 0]
@@ -94,7 +94,7 @@ function mkToolboxTooltip(tt_obj, tt_text, dx, tb_state) {
 }
 
 let mkOptionsRow = @(opts, content, tooltip1, tooltip2) {
-  size = [panelW, SIZE_TO_CONTENT]
+  size = const [panelW, SIZE_TO_CONTENT]
   children = [
     tooltip1
     tooltip2
@@ -134,7 +134,7 @@ function mkToolboxPanelContent(tb_shown, tb_state) {
     pos = [tb_state.px, tb_state.py]
     hplace = ALIGN_RIGHT
     vplace = ALIGN_TOP
-    size = [panelW, SIZE_TO_CONTENT]
+    size = const [panelW, SIZE_TO_CONTENT]
 
     cursor = cursors.normal
 
@@ -148,7 +148,7 @@ function mkToolboxPanelContent(tb_shown, tb_state) {
         borderColor = Color(120,120,120, 160)
         fillColor = Color(40,40,40, 160)
 
-        size = [panelW, SIZE_TO_CONTENT]
+        size = const [panelW, SIZE_TO_CONTENT]
         padding = hdpx(10)
 
         cursor = cursors.normal

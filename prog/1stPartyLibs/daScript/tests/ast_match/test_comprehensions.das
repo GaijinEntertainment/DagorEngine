@@ -2,6 +2,9 @@ options gen2
 options indenting = 4
 options rtti
 options no_coverage
+// the post-inference tests pin the compiled comprehension shell (invoke of the
+// comprehension generator) - auto block inlining legitimately dissolves it
+options disable_auto_inline
 
 require daslib/ast
 require daslib/rtti
@@ -76,7 +79,7 @@ def test_array_comprehension_capture_subexpr(t : T?) {
         let r = qmatch(expr, [for (x in range(10)); $e(sub)])
         t |> success(r.matched, "should match with $e capture on subexpr")
         if (r.matched) {
-            t |> equal(string(sub.__rtti), "ExprOp2")
+            t |> equal(sub.__rtti, "ExprOp2")
         }
     }
 }
@@ -255,13 +258,13 @@ def test_local_function_not_lambda(t : T?) {
 
 [export]
 def target_with_local_fn() {
-    var f = @@(x : int) { return x + 1; }
+    let f = @@(x : int) { return x + 1; }
     feint("{f}")
 }
 
 [export]
 def target_with_local_fn_wrong() {
-    var f = @@(x : int) { return x - 1; }
+    let f = @@(x : int) { return x - 1; }
     feint("{f}")
 }
 
@@ -274,7 +277,7 @@ def test_local_fn_post_inference(t : T?) {
             return
         }
         let r = qmatch_function(func) $() {
-            var f = @@(x : int) { return x + 1; }
+            let f = @@(x : int) { return x + 1; }
             feint("{f}")
         }
         t |> success(r.matched, "should match post-inference local function via ExprAddr")
@@ -289,7 +292,7 @@ def test_local_fn_post_inference_wrong_body(t : T?) {
             return
         }
         let r = qmatch_function(func) $() {
-            var f = @@(x : int) { return x - 1; }
+            let f = @@(x : int) { return x - 1; }
             feint("{f}")
         }
         t |> success(!r.matched, "wrong body in local function should fail")
@@ -305,19 +308,19 @@ def test_local_fn_capture_body(t : T?) {
         }
         var body_expr : ExpressionPtr
         let r = qmatch_function(func) $() {
-            var f = @@(x : int) { $e(body_expr); }
+            let f = @@(x : int) { $e(body_expr); }
             feint("{f}")
         }
         t |> success(r.matched, "should match with $e capture on local fn body")
         if (r.matched) {
-            t |> equal(string(body_expr.__rtti), "ExprReturn")
+            t |> equal(body_expr.__rtti, "ExprReturn")
         }
     }
 }
 
 [export]
 def target_with_local_fn_two_args() {
-    var f = @@(a : int; b : float) { return float(a) + b; }
+    let f = @@(a : int; b : float) { return float(a) + b; }
     feint("{f}")
 }
 
@@ -329,7 +332,7 @@ def test_local_fn_match_two_args(t : T?) {
             return
         }
         let r = qmatch_function(func) $() {
-            var f = @@(a : int; b : float) { return float(a) + b; }
+            let f = @@(a : int; b : float) { return float(a) + b; }
             feint("{f}")
         }
         t |> success(r.matched, "should match local fn with two args")
@@ -345,7 +348,7 @@ def test_local_fn_capture_var_name(t : T?) {
         }
         var vname : string
         let r = qmatch_function(func) $() {
-            var $i(vname) = @@(x : int) { return x + 1; }
+            let $i(vname) = @@(x : int) { return x + 1; }
             feint("{f}")
         }
         t |> success(r.matched, "should match with $i capture on let variable name")
@@ -359,19 +362,19 @@ def test_local_fn_capture_var_name(t : T?) {
 
 [export]
 def target_comp_array() {
-    var a <- [for (x in range(10)); x * x]
+    let a <- [for (x in range(10)); x * x]
     feint("{a}")
 }
 
 [export]
 def target_comp_table() {
-    var t <- {for (x in range(10)); x => x * x}
+    let t <- {for (x in range(10)); x => x * x}
     feint("{t}")
 }
 
 [export]
 def target_comp_where() {
-    var a <- [for (x in range(10)); x * x; where x > 3]
+    let a <- [for (x in range(10)); x * x; where x > 3]
     feint("{a}")
 }
 
@@ -384,7 +387,7 @@ def test_comp_array_post_inference(t : T?) {
             return
         }
         let r = qmatch_function(func) $() {
-            var a <- [for (x in range(10)); x * x]
+            let a <- [for (x in range(10)); x * x]
             feint("{a}")
         }
         t |> success(r.matched, "should match post-inference array comprehension")
@@ -400,7 +403,7 @@ def test_comp_table_post_inference(t : T?) {
             return
         }
         let r = qmatch_function(func) $() {
-            var t <- {for (x in range(10)); x => x * x}
+            let t <- {for (x in range(10)); x => x * x}
             feint("{t}")
         }
         t |> success(r.matched, "should match post-inference table comprehension")
@@ -416,7 +419,7 @@ def test_comp_where_post_inference(t : T?) {
             return
         }
         let r = qmatch_function(func) $() {
-            var a <- [for (x in range(10)); x * x; where x > 3]
+            let a <- [for (x in range(10)); x * x; where x > 3]
             feint("{a}")
         }
         t |> success(r.matched, "should match post-inference comprehension with where")
@@ -431,7 +434,7 @@ def test_comp_wrong_body_post_inference(t : T?) {
             return
         }
         let r = qmatch_function(func) $() {
-            var a <- [for (x in range(10)); x + x]
+            let a <- [for (x in range(10)); x + x]
             feint("{a}")
         }
         t |> success(!r.matched, "wrong subexpr should fail post-inference")
@@ -447,7 +450,7 @@ def test_comp_capture_post_inference(t : T?) {
         }
         var sub_expr : ExpressionPtr
         let r = qmatch_function(func) $() {
-            var a <- [for (x in range(10)); $e(sub_expr)]
+            let a <- [for (x in range(10)); $e(sub_expr)]
             feint("{a}")
         }
         t |> success(r.matched, "should match with $e capture on comprehension subexpr")
@@ -466,7 +469,7 @@ def test_comp_capture_iterator_post_inference(t : T?) {
         }
         var iter_name : string
         let r = qmatch_function(func) $() {
-            var a <- [for ($i(iter_name) in range(10)); $i(iter_name) * $i(iter_name)]
+            let a <- [for ($i(iter_name) in range(10)); $i(iter_name) * $i(iter_name)]
             feint("{a}")
         }
         t |> success(r.matched, "should match with $i capture on iterator name")

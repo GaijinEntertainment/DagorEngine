@@ -44,6 +44,7 @@ macro DAGI_SKY_VIS_SW_TRILINEAR(code)
     uint dagi_sky_vis_get_best_enclosing_clip_border_skip(float3 worldPos, out float3 coordF, uint skip, float border)
     {
       uint i = 0;
+      uint clipCount = dagi_sky_vis_get_searched_clip_count();
       LOOP
       do {
         if (i == skip)
@@ -54,7 +55,7 @@ macro DAGI_SKY_VIS_SW_TRILINEAR(code)
         if (all(coordLt >= border && coordLt < float3(dagi_sky_vis_get_clip_size().xxy)-border))
           return i;
         ++i;// moving that to while () causes invalid shader compilation on dx11
-      } while (i < dagi_sky_vis_get_clip_count());
+      } while (i < clipCount);
       return DAGI_MAX_SKY_VIS_CLIPS;
     }
 

@@ -231,6 +231,9 @@ inline bool rayhitRendInstsNormalized(const Point3 &from, const Point3 &dir, flo
   return rayhitRendInstsNormalized(from, dir, t, 0.0f, ray_mat_id, ri_desc);
 }
 
+bool rayhitRIExtraOnlyNormalized(const Point3 &from, const Point3 &dir, float t, int ray_mat_id, RendInstDesc *out_ri_desc = nullptr,
+  float min_size = 0.f);
+
 struct ForeachCB
 {
   virtual void executeForTm(RendInstGenData * /* rgl */, const RendInstDesc & /* ri_desc */, const TMatrix & /* tm */) {}

@@ -5,7 +5,26 @@
 #include <render/lights/omniLight.h>
 #include <render/lights/spotLight.h>
 
-BaseLightsManager::BaseLightsManager(const char *type_prefix) : typePrefix(type_prefix) {}
+BaseLightsManager::BaseLightsManager(const char *name) : name(name) { photometryTextures = IesTextureCollection::acquireRef(); }
+
+bool BaseLightsManager::isGPUManagementEnabled() const
+{
+  return sceneManagedLightsBuffer && sceneManagedLightsCountBuffer && sceneRenderLightsBuffer;
+}
+
+BaseLightsManager::~BaseLightsManager()
+{
+  if (photometryTextures)
+  {
+    IesTextureCollection::releaseRef();
+    photometryTextures = nullptr;
+  }
+}
+
+IesTextureCollection::PhotometryData BaseLightsManager::getPhotometryData(int texId) const
+{
+  return photometryTextures->getTextureData(texId);
+}
 
 void BaseLightsManager::resizeDynamicShadowIds(uint32_t light_id)
 {
@@ -49,7 +68,7 @@ uint32_t BaseLightsManager::allocateShadowVolume(uint32_t light_id, ShadowCaster
 {
   G_ASSERT(shadowSystem);
   G_ASSERTF_RETURN(light_id >= dynamicLightsShadowsIds.size() || dynamicLightsShadowsIds[light_id] == INVALID_SHADOW_VOLUME_ID,
-    INVALID_SHADOW_VOLUME_ID, "%s light %d already has shadow", typePrefix, light_id);
+    INVALID_SHADOW_VOLUME_ID, "%s light %d already has shadow", name.c_str(), light_id);
   resizeDynamicShadowIds(light_id);
   const auto shadowId = shadowSystem->allocateVolume(casters, hint_dynamic, quality, priority, max_size_srl, render_gpu_objects);
   if (shadowId < 0)
@@ -64,7 +83,7 @@ bool BaseLightsManager::isShadowVolumeAllocated(uint32_t light_id) const { retur
 void BaseLightsManager::destroyShadowVolume(uint32_t light_id)
 {
   G_ASSERT(shadowSystem);
-  G_ASSERTF_RETURN(isShadowVolumeAllocated(light_id), , "%s shadow for light %d not found", typePrefix, light_id);
+  G_ASSERTF_RETURN(isShadowVolumeAllocated(light_id), , "%s shadow for light %d not found", name.c_str(), light_id);
   shadowSystem->destroyVolume(getShadowId(light_id));
   if (light_id < dynamicLightsShadowsIds.size())
     dynamicLightsShadowsIds[light_id] = INVALID_SHADOW_VOLUME_ID;
@@ -83,8 +102,15 @@ bool BaseLightsManager::isShadowClose(uint32_t light_id, const Point3 &view_pos,
   return v_test_vec_x_lt_0(bounding);
 }
 
+Sbuffer *BaseLightsManager::getSceneManagedLightsBuffer() { return sceneManagedLightsBuffer.getBuf(); }
+
+Sbuffer *BaseLightsManager::getSceneManagedLightsCountBuffer() { return sceneManagedLightsCountBuffer.getBuf(); }
+
+Sbuffer *BaseLightsManager::getSceneRenderLightsBuffer() { return sceneRenderLightsBuffer.getBuf(); }
+
 template <>
-bool LightsManager<OmniLight>::isInvalidatingShadowsNeed(const OmniLight &old_light, const OmniLight &new_light)
+bool LightsManager<OmniLight, RenderOmniLight, OmniLightMaskType, MAX_SCENE_OMNI_LIGHTS>::isInvalidatingShadowsNeed(
+  const OmniLight &old_light, const OmniLight &new_light)
 {
   return !are_approximately_equal(old_light.pos_radius, new_light.pos_radius, eastl::numeric_limits<float>::epsilon()) ||
          !are_approximately_equal(old_light.shadowNearFarClippingPlanesPad, new_light.shadowNearFarClippingPlanesPad,
@@ -95,7 +121,8 @@ bool LightsManager<OmniLight>::isInvalidatingShadowsNeed(const OmniLight &old_li
 }
 
 template <>
-bool LightsManager<SpotLight>::isInvalidatingShadowsNeed(const SpotLight &old_light, const SpotLight &new_light)
+bool LightsManager<SpotLight, RenderSpotLight, SpotLightMaskType, MAX_SCENE_SPOT_LIGHTS>::isInvalidatingShadowsNeed(
+  const SpotLight &old_light, const SpotLight &new_light)
 {
   return !are_approximately_equal(old_light.pos_radius, new_light.pos_radius, eastl::numeric_limits<float>::epsilon()) ||
          !are_approximately_equal(old_light.shadowNearFarClippingPlanes, new_light.shadowNearFarClippingPlanes,

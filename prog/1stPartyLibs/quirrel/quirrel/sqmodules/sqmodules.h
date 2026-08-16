@@ -71,6 +71,7 @@ public:
 
   typedef bool (*BeforeImportModuleCallback)(SqModules *sq_modules, const char *module_name);
   typedef void (*SQOnCompileFileCb)(HSQUIRRELVM, const char *);
+  typedef void (*ModuleUnloadCallback)(HSQUIRRELVM vm, bool is_closing);
 
   struct Module
   {
@@ -102,6 +103,10 @@ public:
   void resetStaticMemos();
 
   bool addNativeModule(const char *module_name, const Sqrat::Object &exports, const char *module_doc_string = nullptr);
+
+  // called before each reload runs the new modules, and from the dtor with is_closing.
+  // Kept across reloads, unlike the script handlers of on_module_unload(); dups ignored
+  void addModuleUnloadCallback(ModuleUnloadCallback cb);
 
   void registerTypesLib();
   void registerMathLib();
@@ -192,6 +197,7 @@ private:
 
   vector<string> runningScripts;
   vector<Sqrat::Object> onModuleUnload;
+  vector<ModuleUnloadCallback> onModuleUnloadNative;
   HSQUIRRELVM sqvm = nullptr;
 
   ISqModulesFileAccess *fileAccess = nullptr;

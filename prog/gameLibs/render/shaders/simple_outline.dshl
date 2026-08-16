@@ -2,6 +2,8 @@ include "shader_global.dshl"
 
 float4 simple_outline_color;
 texture simple_outline_color_rt;
+// Outline thickness in pixels (box kernel radius).
+float simple_outline_width = 1;
 
 shader simple_outline_final_render
 {
@@ -17,6 +19,7 @@ shader simple_outline_final_render
   (ps) {
     simple_outline_color@f4 = simple_outline_color;
     color_rt@tex2d = simple_outline_color_rt;
+    simple_outline_width@f1 = simple_outline_width;
   }
 
   hlsl(ps) {
@@ -25,15 +28,16 @@ shader simple_outline_final_render
       float4 pos = GET_SCREEN_POS(input.pos);
       int2 ipos = int2(pos.xy);
 
-      float4 color = texelFetchOffset(color_rt, ipos, 0, int2(0, 0));
-      if (color.a == 0.0)
+      if (color_rt.Load(int3(ipos, 0)).a == 0.0)
       {
-        if (texelFetchOffset(color_rt, ipos, 0, int2(-1, 0)).a != 0.0
-          || texelFetchOffset(color_rt, ipos, 0, int2(1, 0)).a != 0.0
-          || texelFetchOffset(color_rt, ipos, 0, int2(0, -1)).a != 0.0
-          || texelFetchOffset(color_rt, ipos, 0, int2(0, 1)).a != 0.0)
+        int w = int(simple_outline_width + 0.5);
+        LOOP for (int dx = -w; dx <= w; ++dx)
+        LOOP for (int dy = -w; dy <= w; ++dy)
         {
-          return simple_outline_color;
+          if (dx == 0 && dy == 0)
+            continue;
+          if (color_rt.Load(int3(ipos + int2(dx, dy), 0)).a != 0.0)
+            return simple_outline_color;
         }
       }
 

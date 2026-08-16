@@ -4,7 +4,7 @@
 //perceptual-space accumulation: with exposure 0 the tonemap pair is an exact
 //identity (rcp(l*0+1)==1), so the runtime clouds_taa_exposure var toggles it
 #ifndef TAA_IN_HDR_SPACE
-#define TAA_IN_HDR_SPACE 1
+#define TAA_IN_HDR_SPACE 0
 #endif
 #define TAA_BRIGHTNESS_SCALE 1.
 #define TAA_CLOUDS_FRAMES 16

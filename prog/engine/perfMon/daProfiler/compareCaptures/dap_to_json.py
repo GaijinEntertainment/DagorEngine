@@ -40,6 +40,9 @@ U64_MARK = 0xFFFFFFFFFFFFFFFF
 # The 9 default lock/wait tokens and every DA_PROFILE_WAIT scope set this bit.
 DESC_FLAG_IS_WAIT = 1
 
+FRAME_NO_TAGS = ('Frame', 'CPU Frame')
+GPU_CLOCK_TAG = 'GPU MHz'
+
 FORMAT_VERSION = 1
 
 # The CPU/GPU-split bracket scopes (compare_captures.GPU_WAIT_PARENTS): low_latency or
@@ -119,6 +122,7 @@ class Cap:
         self.events = defaultdict(list)   # tid -> [(start, end, name, isgpu, src, isWait)]
         self.frame_ms = []           # from SummaryPack (cross-check)
         self.frametags = {}          # frame.start tick -> frameNo
+        self.gpu_clock = []          # (gpu root event tick, MHz)
         self.gpu_ds = []             # (time, dp, rt, ps, ins, rp, tri)
         self.samples = []            # (tick, tid, [addrs])
         self.symbols = {}            # addr -> (fun, file, line)
@@ -244,15 +248,19 @@ def parse_eventframe(r, cap, descs, desc_meta, threads):
     r.i64(); r.i64()                 # trailer start, end
 
 
-def parse_tags(r, cap):
+def parse_tags(r, cap, descs):
     r.i32(); r.i32()                 # board, thread index
     while True:                      # frame tags
         tick = r.u64()
         if tick == U64_MARK:
             break
-        r.vlq_u()                    # description
+        d = r.vlq_u()                # description
         val = r.i32()
-        cap.frametags.setdefault(tick, val)
+        nm = descs[d] if 0 <= d < len(descs) else ''
+        if nm in FRAME_NO_TAGS:
+            cap.frametags.setdefault(tick, val)
+        elif nm == GPU_CLOCK_TAG:
+            cap.gpu_clock.append((tick, val))
     while True:                      # GPU draw-stat tags
         t = r.u64()
         if t == U64_MARK:
@@ -358,7 +366,7 @@ def parse_segment(raw, cap):
         elif typ == T_EventFrame:
             parse_eventframe(sub, cap, descs, desc_meta, threads)
         elif typ == T_TagsPack:
-            parse_tags(sub, cap)
+            parse_tags(sub, cap, descs)
         elif typ == T_UniqueName:
             cap.meta['uniqueName'] = sub.sstr()
         elif typ == T_CallstackPack:
@@ -534,6 +542,11 @@ def finalize(cap, top_scopes, min_incl_ms, want_perframe, scope_filter):
         frames['frameNo'] = frame_no
     if has_gpu:
         frames['gpuUs'] = [int(round(v * to_us)) for v in gpu_ticks]
+    if has_gpu and cap.gpu_clock:
+        clock_mhz = [0] * frame_count
+        for (t, mhz) in cap.gpu_clock:
+            clock_mhz[bucket(t)] = mhz
+        frames['gpuClockMhz'] = clock_mhz
 
     # GPU draw stats: each event's ds is a per-event delta, so a nested scope's
     # counts are already included in its ancestors. Only depth-0 (root) events span

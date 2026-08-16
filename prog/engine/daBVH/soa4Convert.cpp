@@ -55,8 +55,9 @@ struct Builder
   }
 
   // A source stackless leaf (header at src_leaf_hdr) qualifies for the short 4-byte body iff its W2/W3
-  // carry nothing beyond flipA -- exactly what writeDoubleQuadLeaf emits for every singleton (no quad
-  // B) -- its apex is re-pointable, and the whole span fits the 23-bit short base (shortEnabled).
+  // carry nothing beyond flipA -- what writeDoubleQuadLeaf emits for a singleton (no quad B) whose
+  // user bits are 0 -- its apex is re-pointable, and the whole span fits the 23-bit short base
+  // (shortEnabled). A stamped singleton keeps the full body: the short form has nowhere to put W3.
   bool leafIsShort(int src_leaf_hdr) const
   {
     return shortEnabled && (ld32(src, src_leaf_hdr + 20) & ~QUAD_FLIPA_FLAG) == 0 && ld32(src, src_leaf_hdr + 24) == 0 &&

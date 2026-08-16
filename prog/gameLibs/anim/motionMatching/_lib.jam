@@ -2,3 +2,7 @@ if $(HaveRenderer) = yes {
   gamePulls += framework_motionMatching_pull gameLibs_motionMatching_DAS_pull_AOT MotionMatchingModule_pull ;
   UseProgLibs += gameLibs/anim/motionMatching ;
 }
+
+# We need controller on dedicated too, otherwise there will be logerr about unknown BlendNode class
+gamePulls += FootLockerIKCtrl_pull ;
+UseProgLibs += gameLibs/anim/footLockerIKCtrl ;

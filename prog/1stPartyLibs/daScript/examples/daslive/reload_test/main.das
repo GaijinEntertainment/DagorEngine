@@ -1,5 +1,8 @@
 options gen2
+options persistent_heap
+options gc
 
+require live/live_gc
 require live_host
 
 var frame_count : int = 0
@@ -49,9 +52,7 @@ def update() {
     if (frame_count == 10 && reload_count == 0) {
         // First run: store some data and request reload
         print("update: frame {frame_count}, storing test data and requesting reload\n")
-        var check : array<uint8>
-        check |> push(uint8(0xAB))
-        check |> push(uint8(0xCD))
+        let check <- [uint8(0xAB), uint8(0xCD)]
         live_store_bytes("data_check", check)
         request_reload(false)
     } elif (frame_count == 10 && reload_count == 1) {
@@ -82,6 +83,7 @@ def main() {
     init()
     for (_i in range(20)) {
         update()
+        maybe_collect_gc()
     }
     shutdown()
 }

@@ -35,7 +35,8 @@
     "prog/gameLibs/daRg/_doc/behaviors.rst",
     "prog/gameLibs/daRg/_doc/render_objects.rst",
     "prog/gameLibs/daRg/_doc/animations.rst",
-    "prog/gameLibs/daRg/_doc/layout.rst"
+    "prog/gameLibs/daRg/_doc/layout.rst",
+    "prog/gameLibs/daRg/_doc/stateful_components.rst"
   ],
   "chapter_title": "daRG Framework", //displayed title, optional
   "extensions": [".cpp"], //optional, list of extensions of files

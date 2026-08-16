@@ -179,6 +179,9 @@ public:
         ret->_env = _env;
         if(ret->_env) __ObjAddRef(ret->_env);
         ret->_name = _name;
+#if SQ_STORE_DOC_OBJECTS
+        _opt_ss(this)->CopyDocObjects(this, ret);
+#endif
         _COPY_VECTOR(ret->_outervalues,_outervalues,_noutervalues);
         ret->_result_type_mask = _result_type_mask;
         ret->_typecheck.copy(_typecheck);
@@ -190,6 +193,9 @@ public:
     }
     ~SQNativeClosure()
     {
+#if SQ_STORE_DOC_OBJECTS
+        _ss(this)->RemoveDocObjects(this);
+#endif
         __ObjRelease(_env);
         REMOVE_FROM_CHAIN(&_ss(this)->_gc_chain,this);
     }

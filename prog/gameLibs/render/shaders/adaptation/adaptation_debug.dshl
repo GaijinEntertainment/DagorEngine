@@ -12,7 +12,7 @@ shader AdaptationSamplesDebug
   blend_src = 1;
   blend_dst = isa;
 
-  PROJECT_ADAPTATION_SAMPLE_TC_FUNCTION(vs)
+  ADAPTATION_SAMPLE_TC_FUNCTION(vs)
 
   (vs) {
     max_sample_index@f1 = adaptation_debug_max_sample_index;

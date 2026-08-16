@@ -60,7 +60,7 @@ def test_sprint_containers(t : T?) {
         t |> equal(js != null, true)
     }
     t |> run("empty array") @(t : T?) {
-        var a : array<int>
+        let a : array<int>
         let json = sprint_json(a, false)
         var error : string
         var js = read_json(json, error)
@@ -68,7 +68,7 @@ def test_sprint_containers(t : T?) {
         t |> equal(js != null, true)
     }
     t |> run("table") @(t : T?) {
-        var tab <- { "x" => 1 }
+        let tab <- { "x" => 1 }
         let json = sprint_json(tab, false)
         var error : string
         var js = read_json(json, error)
@@ -76,7 +76,7 @@ def test_sprint_containers(t : T?) {
         t |> equal(js?.x ?? -1, 1)
     }
     t |> run("empty table") @(t : T?) {
-        var tab : table<string; int>
+        let tab : table<string; int>
         let json = sprint_json(tab, false)
         var error : string
         var js = read_json(json, error)
@@ -102,7 +102,7 @@ struct SimpleStruct {
 [test]
 def test_sprint_struct(t : T?) {
     t |> run("basic struct") @(t : T?) {
-        var s = SimpleStruct(x = 42, name = "hello")
+        let s = SimpleStruct(x = 42, name = "hello")
         let json = sprint_json(s, false)
         // verify fields are present
         var error : string
@@ -183,6 +183,56 @@ def test_sprint_class(t : T?) {
 }
 
 // ============================================================
+//  sprint_json: callables (class methods, lambdas)
+//  regression: a class method / lambda field is a function pointer with no
+//  JSON value, and JsonWriter emitted "name": with nothing after it, producing
+//  invalid JSON that read_json rejected and that dropped the whole object.
+//  Now function/block values serialize to null.
+// ============================================================
+
+class MethodClass {
+    hp : int
+    def heal() {}
+}
+
+struct LambdaFieldStruct {
+    x : int
+    fn : lambda<(a : int) : int>
+}
+
+[test]
+def test_sprint_callables(t : T?) {
+    t |> run("class method field is skipped, json stays valid") @(t : T?) {
+        var a = new MethodClass(hp = 7)
+        let json = sprint_json(a, false)        // pointer form, as reported
+        var error : string
+        var js = read_json(json, error)
+        t |> equal(error, "")                   // was "{\"hp\":7,\"heal\":}" — invalid
+        t |> equal(js?.hp ?? 0, 7)              // sibling data field survives
+        t |> equal(find(json, "heal") < 0, true) // method omitted entirely, not "heal":null
+        unsafe { delete a; }
+    }
+    t |> run("struct with initialized lambda field is valid json") @(t : T?) {
+        var b = LambdaFieldStruct(x = 3)
+        b.fn <- @(a : int) : int => a + 1
+        let json = sprint_json(b, false)
+        var error : string
+        var js = read_json(json, error)
+        t |> equal(error, "")
+        t |> equal(js?.x ?? 0, 3)
+        unsafe { delete b.fn; }
+    }
+    t |> run("standalone lambda is valid json") @(t : T?) {
+        var lam <- @(a : int) : int => a * 2
+        let json = sprint_json(lam, false)
+        var error : string
+        var js = read_json(json, error)
+        t |> equal(error, "")                   // {"__lambda":null,"__finalize":null}
+        unsafe { delete lam; }
+    }
+}
+
+// ============================================================
 //  sprint_json: null pointer
 // ============================================================
 
@@ -202,13 +252,13 @@ def test_sprint_null(t : T?) {
 def test_sprint_pretty(t : T?) {
     if (jit_enabled()) return ;
     t |> run("pretty has newlines") @(t : T?) {
-        var s = SimpleStruct(x = 1, name = "a")
+        let s = SimpleStruct(x = 1, name = "a")
         let json = sprint_json(s, true)
         // human-readable format has newlines
         t |> equal(find(json, "\n") >= 0, true)
     }
     t |> run("compact has no newlines") @(t : T?) {
-        var s = SimpleStruct(x = 1, name = "a")
+        let s = SimpleStruct(x = 1, name = "a")
         let json = sprint_json(s, false)
         // NOTE: Under JIT, sprint_json(struct, false) may produce pretty-printed
         // output for certain struct layouts.  SimpleStruct appears unaffected,
@@ -236,7 +286,7 @@ struct OptionalFields {
 [test]
 def test_annotation_optional(t : T?) {
     t |> run("default values are omitted") @(t : T?) {
-        var s <- OptionalFields(uninitialized name = "test")
+        let s <- OptionalFields(uninitialized name = "test")
         let json = sprint_json(s, false)
         var error : string
         var js = read_json(json, error)
@@ -253,7 +303,7 @@ def test_annotation_optional(t : T?) {
         t |> equal(find(json, "opt_ptr") < 0, true)
     }
     t |> run("non-default values are present") @(t : T?) {
-        var s <- OptionalFields(uninitialized
+        let s <- OptionalFields(uninitialized
             name = "test",
             opt_bool = true,
             opt_int = 42,
@@ -285,7 +335,7 @@ struct EnumFields {
 [test]
 def test_annotation_enum_as_int(t : T?) {
     t |> run("normal enum is string") @(t : T?) {
-        var s = EnumFields(normal = Color.green, as_int = Color.blue)
+        let s = EnumFields(normal = Color.green, as_int = Color.blue)
         let json = sprint_json(s, false)
         var error : string
         var js = read_json(json, error)
@@ -293,7 +343,7 @@ def test_annotation_enum_as_int(t : T?) {
         t |> equal(js?.normal ?? "", "green")
     }
     t |> run("enum_as_int is integer") @(t : T?) {
-        var s = EnumFields(normal = Color.red, as_int = Color.blue)
+        let s = EnumFields(normal = Color.red, as_int = Color.blue)
         let json = sprint_json(s, false)
         var error : string
         var js = read_json(json, error)
@@ -301,7 +351,7 @@ def test_annotation_enum_as_int(t : T?) {
         t |> equal(js?.as_int ?? -1, 2)     // blue = 2
     }
     t |> run("enum_as_int zero") @(t : T?) {
-        var s = EnumFields(normal = Color.red, as_int = Color.red)
+        let s = EnumFields(normal = Color.red, as_int = Color.red)
         let json = sprint_json(s, false)
         var error : string
         var js = read_json(json, error)
@@ -327,7 +377,7 @@ def test_annotation_embed(t : T?) {
     // pretty-printed output with newlines instead of compact JSON.
     // See test_sprint_jit_compact_bug below.
     t |> run("embedded array") @(t : T?) {
-        var s = EmbedFields(name = "test", data = "[1,2,3]")
+        let s = EmbedFields(name = "test", data = "[1,2,3]")
         let json = sprint_json(s, false)
         // data should be embedded as raw JSON, not quoted
         var error : string
@@ -337,7 +387,7 @@ def test_annotation_embed(t : T?) {
         t |> equal(js?.data is _array, true)
     }
     t |> run("embedded object") @(t : T?) {
-        var s = EmbedFields(name = "test", data = "\{\"x\":1\}")
+        let s = EmbedFields(name = "test", data = "\{\"x\":1\}")
         let json = sprint_json(s, false)
         var error : string
         var js = read_json(json, error)
@@ -346,7 +396,7 @@ def test_annotation_embed(t : T?) {
         t |> equal(js?.data?.x ?? -1, 1)
     }
     t |> run("embedded string is reparsed") @(t : T?) {
-        var s = EmbedFields(name = "test", data = "[1,2,3]")
+        let s = EmbedFields(name = "test", data = "[1,2,3]")
         let json = sprint_json(s, false)
         // the entire output should be valid JSON
         var error : string
@@ -368,13 +418,13 @@ struct UnescapeFields {
 [test]
 def test_annotation_unescape(t : T?) {
     t |> run("normal string escapes backslash") @(t : T?) {
-        var s = UnescapeFields(normal = "C:\\Users\\test", raw = "C:\\Users\\test")
+        let s = UnescapeFields(normal = "C:\\Users\\test", raw = "C:\\Users\\test")
         let json = sprint_json(s, false)
         // normal field should have escaped backslashes: C:\\Users\\test
         t |> equal(find(json, "C:\\\\Users\\\\test") >= 0, true)
     }
     t |> run("unescape preserves raw") @(t : T?) {
-        var s = UnescapeFields(normal = "hello", raw = "C:\\Users\\test")
+        let s = UnescapeFields(normal = "hello", raw = "C:\\Users\\test")
         let json = sprint_json(s, false)
         // raw field should NOT have double backslashes — just single: C:\Users\test
         // Note: @unescape produces non-standard JSON (unescaped backslashes), so
@@ -397,7 +447,7 @@ struct RenameFields {
 [test]
 def test_annotation_rename(t : T?) {
     t |> run("renamed fields in sprint_json") @(t : T?) {
-        var s = RenameFields(_type = "widget", _class = 5, normal = true)
+        let s = RenameFields(_type = "widget", _class = 5, normal = true)
         let json = sprint_json(s, false)
         var error : string
         var js = read_json(json, error)
@@ -424,7 +474,7 @@ def test_annotation_rename(t : T?) {
         var error : string
         var js = read_json("\{ \"type\": \"item\", \"class\": 7, \"normal\": true \}", error)
         t |> equal(error, "")
-        var s = from_JV(js, type<RenameFields>)
+        let s = from_JV(js, type<RenameFields>)
         t |> equal(s._type, "item")
         t |> equal(s._class, 7)
         t |> equal(s.normal, true)
@@ -443,7 +493,7 @@ struct BareRenameFields {
 [test]
 def test_annotation_rename_bare(t : T?) {
     t |> run("bare @rename strips underscore in sprint_json") @(t : T?) {
-        var s = BareRenameFields(_bare = 42, normal = "ok")
+        let s = BareRenameFields(_bare = 42, normal = "ok")
         let json = sprint_json(s, false)
         // Validate via parsed JSON — bare @rename strips leading underscore
         var error : string
@@ -461,7 +511,7 @@ def test_annotation_rename_bare(t : T?) {
         var error : string
         var js = read_json("\{ \"bare\": 7, \"normal\": \"yes\" \}", error)
         t |> equal(error, "")
-        var s = from_JV(js, type<BareRenameFields>)
+        let s = from_JV(js, type<BareRenameFields>)
         t |> equal(s._bare, 7)
         t |> equal(s.normal, "yes")
     }
@@ -489,7 +539,7 @@ def test_combined_annotations(t : T?) {
     // NOTE: @embed assertion uses parsed JSON instead of substring match
     // due to JIT bug with sprint_json compact mode — see test_sprint_jit_compact_bug.
     t |> run("all annotations together") @(t : T?) {
-        var s = CombinedAnnotations(
+        let s = CombinedAnnotations(
             _label = "test",
             pri = TestLevel.high,
             payload = "[1,2]",
@@ -507,7 +557,7 @@ def test_combined_annotations(t : T?) {
         t |> equal(js?.payload is _array, true)
     }
     t |> run("optional on enum does not skip (enum type not checked)") @(t : T?) {
-        var s = CombinedAnnotations(
+        let s = CombinedAnnotations(
             _label = "test",
             pri = TestLevel.low,        // low = 0
             payload = "[]",
@@ -523,7 +573,7 @@ def test_combined_annotations(t : T?) {
 [test]
 def test_sprint_jit_compact_bug(t : T?) {
     t |> run("compact mode should not contain newlines") @(t : T?) {
-        var s = CombinedAnnotations(
+        let s = CombinedAnnotations(
             _label = "test",
             pri = TestLevel.high,
             payload = "[1,2]",

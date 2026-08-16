@@ -37,6 +37,7 @@
 #include <daECS/scene/scene.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <util/dag_strUtil.h>
+#include "compDesc.h"
 #include "queryExpression.h"
 #include "timers.h"
 #include <dasModules/aotECSGlobalTags.h>
@@ -181,13 +182,13 @@ static bool pop_component_val(HSQUIRRELVM vm, SQInteger idx, EntityComponentRef 
 static bool pop_comp_val(HSQUIRRELVM vm, SQInteger idx, ChildComponent &comp, const char *comp_name, ecs::component_type_t type,
   String &err_msg);
 
-template <typename ObjClass, typename ArrClass, bool readonly>
+template <typename ObjClass, typename ArrClass, bool readonly, bool persistent = false>
 static SQInteger comp_obj_get_all(HSQUIRRELVM vm, const ecs::Object &obj);
 
-template <typename ObjClass, typename ArrClass, bool readonly>
+template <typename ObjClass, typename ArrClass, bool readonly, bool persistent = false>
 static SQInteger comp_arr_get_all(HSQUIRRELVM vm, const ecs::Array &arr);
 
-template <typename ArrClass, bool readonly>
+template <typename ArrClass, bool readonly, bool persistent = false>
 static SQInteger comp_list_get_all(HSQUIRRELVM vm, const ArrClass &arr);
 
 class ObjectRO : public Object
@@ -303,20 +304,11 @@ struct ScriptCompDesc
   const char *getCompName() const { return !key.IsNull() ? sq_objtostring(&const_cast<Sqrat::Object &>(key).GetObject()) : ""; }
 };
 
-struct CompListTypeInfo
-{
-  ecs::component_type_t type = 0;
-  ecs::type_index_t typeId = ecs::INVALID_COMPONENT_TYPE_INDEX;
-  uint16_t size = 0;
-};
-
 struct CompListDescHolder
 {
   Tab<ecs::ComponentDesc> esCompsRw, esCompsRo, esCompsRq, esCompsNo;
   Tab<ScriptCompDesc> componentsRw, componentsRo, componentsRq, componentsNo;
-  Tab<CompListTypeInfo> componentTypeInfo;
-  ecs::component_index_t lastComponentsCount = 0;
-  bool componentTypeInfoResolved = false;
+  sq::QueryCompTypes compTypes;
 
   CompListDescHolder(IMemAlloc *m = tmpmem_ptr()) :
     esCompsRw(m),
@@ -327,7 +319,7 @@ struct CompListDescHolder
     componentsRo(m),
     componentsRq(m),
     componentsNo(m),
-    componentTypeInfo(m)
+    compTypes(m)
   {}
 
   void resetScriptRefs()
@@ -439,7 +431,7 @@ class SqBindingHelper
 public:
   template <bool readonly>
   static void put_components_to_table(const QueryView &qv, uint32_t idInChunk, uint32_t start, uint32_t count,
-    Tab<ScriptCompDesc> &script_desc, dag::ConstSpan<CompListTypeInfo> type_info, Sqrat::Table &comp_tbl)
+    Tab<ScriptCompDesc> &script_desc, dag::ConstSpan<sq::CompTypeInfo> type_info, Sqrat::Table &comp_tbl)
   {
     G_ASSERT(count == script_desc.size());
     HSQUIRRELVM vm = comp_tbl.GetVM();
@@ -447,14 +439,13 @@ public:
     for (uint32_t ic = 0; ic < count; ++ic)
     {
       auto &desc = script_desc[ic];
-      uint8_t *__restrict untypedData = (uint8_t *__restrict)qv.getComponentUntypedData(ic + start);
+      const sq::CompTypeInfo typeInfo = type_info[ic + start];
+      uint8_t *__restrict untypedData = sq::comp_row_data(qv, ic + start, idInChunk, typeInfo);
       if (!untypedData)
       {
         comp_tbl.SetValue(desc.key, desc.defVal);
         continue;
       }
-      const CompListTypeInfo typeInfo = type_info[ic + start];
-      untypedData += idInChunk * typeInfo.size;
       if (desc.isNativeComponent()) // || typeType == OT_NULL for generics
       {
         int prevTop = sq_gettop(vm);
@@ -481,7 +472,7 @@ public:
   }
 
   static void apply_rw_components_from_table(const QueryView &qv, uint32_t idInChunk, uint32_t start, uint32_t count,
-    Tab<ScriptCompDesc> &script_desc, dag::ConstSpan<CompListTypeInfo> type_info, Sqrat::Table &comp_tbl)
+    Tab<ScriptCompDesc> &script_desc, dag::ConstSpan<sq::CompTypeInfo> type_info, Sqrat::Table &comp_tbl)
   {
     G_ASSERT(count == script_desc.size());
     if (!count)
@@ -494,11 +485,10 @@ public:
       auto &desc = script_desc[ic];
       if (!desc.isNativeComponent()) // we can't apply anything except predefined types
         continue;
-      uint8_t *__restrict untypedData = (uint8_t *__restrict)qv.getComponentUntypedData(ic + start);
+      const sq::CompTypeInfo typeInfo = type_info[ic + start];
+      uint8_t *__restrict untypedData = sq::comp_row_data(qv, ic + start, idInChunk, typeInfo);
       if (!untypedData)
         continue;
-      const CompListTypeInfo typeInfo = type_info[ic + start];
-      untypedData += idInChunk * typeInfo.size;
 
       sq_pushobject(vm, comp_tbl.GetObject());
       sq_pushobject(vm, desc.key.GetObject());
@@ -528,6 +518,11 @@ public:
   static void sq_es_on_update(const UpdateStageInfo &info, const QueryView &__restrict components);
   static void sq_es_on_update_empty(const UpdateStageInfo &info, const QueryView &__restrict components);
 
+  static EntityComponentRef make_component_ref(void *data, component_type_t type, type_index_t type_id)
+  {
+    return EntityComponentRef(data, type, type_id, INVALID_COMPONENT_INDEX);
+  }
+
   template <typename Array>
   static ecs::EntityComponentRef get_entity_component_ref(const Array &arr, size_t i)
   {
@@ -556,7 +551,7 @@ inline void call_event_func(const Event &evt, Fun fun)
   fun(const_cast<Event *>(&evt)); // static cast to avoid extra instance copy
 }
 
-static bool load_component_desc(const Sqrat::Array &comps, Tab<ScriptCompDesc> &out_script_comps,
+static bool load_component_desc(const Sqrat::Array &comps, const char *list_label, Tab<ScriptCompDesc> &out_script_comps,
   Tab<ecs::ComponentDesc> &out_ecs_comps, String &err_msg);
 enum FilterResult
 {
@@ -701,35 +696,10 @@ static void ecs_scripts_call(Sqrat::Table &compTbl, CompListDescHolder &compList
     components.getRwCount(), compListDesc.componentsRw.size());
   G_ASSERTF(components.getRoCount() == compListDesc.componentsRo.size() + 1, "RO components count mismatch %d vs %d",
     components.getRoCount(), compListDesc.componentsRo.size());
-  auto &dataComponents = components.manager().getDataComponents();
-  if (!compListDesc.componentTypeInfoResolved && dataComponents.size() > compListDesc.lastComponentsCount)
-  {
-    compListDesc.lastComponentsCount = dataComponents.size();
-    compListDesc.componentTypeInfoResolved = true;
-    compListDesc.componentTypeInfo.resize(components.getComponentsCount());
-    const ecs::component_index_t *cindices = components.manager().queryComponents(components.getQueryId());
-    for (size_t ei = compListDesc.componentTypeInfo.size(), i = 0; i < ei; ++i, ++cindices)
-    {
-      ecs::component_index_t cidx = *cindices;
-      ecs::DataComponent dt = dataComponents.getComponentById(cidx);
-      const ecs::type_index_t typeId = dt.componentType;
-      compListDesc.componentTypeInfo[i].type = dt.componentTypeName;
-      compListDesc.componentTypeInfo[i].typeId = typeId;
-      if (typeId != ecs::INVALID_COMPONENT_TYPE_INDEX)
-      {
-        const ecs::ComponentType typeInfo = g_entity_mgr->getComponentTypes().getTypeInfo(typeId);
-        compListDesc.componentTypeInfo[i].size = typeInfo.size;
-      }
-      else
-      {
-        compListDesc.componentTypeInfo[i].size = 0;
-        compListDesc.componentTypeInfoResolved = false;
-      }
-    }
-  }
+  compListDesc.compTypes.update(components, 0, components.getComponentsCount());
 
   const uint32_t eidCompId = components.getRoStart() + components.getRoCount() - 1;
-  G_ASSERT(components.getRoCount() && compListDesc.componentTypeInfo[eidCompId].type == ecs::ComponentTypeInfo<ecs::EntityId>::type);
+  G_ASSERT(components.getRoCount() && compListDesc.compTypes[eidCompId].type == ecs::ComponentTypeInfo<ecs::EntityId>::type);
   for (uint32_t i = components.begin(), ei = components.end(); i < ei; ++i)
   {
     ecs::EntityId eid = ((const ecs::EntityId *)components.getComponentUntypedData(eidCompId))[i];
@@ -738,9 +708,9 @@ static void ecs_scripts_call(Sqrat::Table &compTbl, CompListDescHolder &compList
       continue;
 
     SqBindingHelper::put_components_to_table<false>(components, i, components.getRwStart(), components.getRwCount(),
-      compListDesc.componentsRw, compListDesc.componentTypeInfo, compTbl);
+      compListDesc.componentsRw, compListDesc.compTypes.all(), compTbl);
     SqBindingHelper::put_components_to_table<true>(components, i, components.getRoStart(), components.getRoCount() - 1,
-      compListDesc.componentsRo, compListDesc.componentTypeInfo, compTbl);
+      compListDesc.componentsRo, compListDesc.compTypes.all(), compTbl);
 
     CallbackResult cbRes;
 
@@ -750,7 +720,7 @@ static void ecs_scripts_call(Sqrat::Table &compTbl, CompListDescHolder &compList
     }
 
     SqBindingHelper::apply_rw_components_from_table(components, i, components.getRwStart(), components.getRwCount(),
-      compListDesc.componentsRw, compListDesc.componentTypeInfo, compTbl);
+      compListDesc.componentsRw, compListDesc.compTypes.all(), compTbl);
 
     if (cbRes == CB_STOP)
       break;
@@ -976,17 +946,7 @@ void SqBindingHelper::sq_es_on_update_empty(const UpdateStageInfo &info, const Q
 }
 
 
-static ecs::component_type_t get_component_type(uint32_t type_hash, const char *comp_name)
-{
-  ecs::component_index_t componentId = g_entity_mgr->getDataComponents().findComponentId(type_hash);
-  if (componentId != ecs::INVALID_COMPONENT_INDEX)
-    return g_entity_mgr->getDataComponents().getComponentById(componentId).componentTypeName;
-
-  logerr("can't auto detect component <%s> type, as this component is not existent yet", comp_name);
-  return ecs::ComponentTypeInfo<ecs::auto_type>::type;
-}
-
-static bool load_component_desc(const Sqrat::Array &comps, Tab<ScriptCompDesc> &out_script_comps,
+static bool load_component_desc(const Sqrat::Array &comps, const char *list_label, Tab<ScriptCompDesc> &out_script_comps,
   Tab<ecs::ComponentDesc> &out_ecs_comps, String &err_msg)
 {
   out_script_comps.resize(0);
@@ -1004,83 +964,30 @@ static bool load_component_desc(const Sqrat::Array &comps, Tab<ScriptCompDesc> &
 
   for (int iComp = 0; iComp < nComp; ++iComp)
   {
-    ScriptCompDesc &scriptCompDesc = script_comps[iComp];
-    Sqrat::Object co = comps.GetSlot(iComp);
-    if (co.GetType() == OT_STRING)
-    {
-      scriptCompDesc.key = co;
-      scriptCompDesc.native = true;
-      scriptCompDesc.script = false;
-      // todo: check if script component native
-      ecs::component_type_t componentType = ecs::ComponentTypeInfo<ecs::auto_type>::type;
-      // debug("component = %s", sq_objtostring(&co.GetObject()));
-      ecs_comps[iComp] = ecs::ComponentDesc(ECS_HASH_SLOW(scriptCompDesc.getCompName()), componentType, 0);
-      continue;
-    }
-    else if (co.GetType() == OT_ARRAY)
-    {
-      Sqrat::Array arr = comps.GetSlot(iComp);
-      G_ASSERT(arr.Length() >= 1);
-      int ecsCompFlags = 0;
-      scriptCompDesc.key = arr.GetSlot(SQInteger(0));
-      if (scriptCompDesc.key.GetType() != OT_STRING)
-      {
-        err_msg.printf(0, "first comp element expected to be component name (string), instead got %X", scriptCompDesc.key.GetType());
-        return false;
-      }
-      HashedConstString compName = ECS_HASH_SLOW(scriptCompDesc.getCompName());
-      int arrLen = arr.Length();
-      if (arrLen > 2)
-      {
-        scriptCompDesc.defVal = arr.GetSlot(SQInteger(2));
-        ecsCompFlags = CDF_OPTIONAL;
-      }
-      if (arrLen > 1)
-      {
-        SQObjectType typeType = arr.GetSlot(1).GetType();
-        if (typeType == OT_TABLE)
-        {
-          scriptCompDesc.native = false;
-          scriptCompDesc.script = true;
-          ecs_comps[iComp] = ecs::ComponentDesc(compName, compName.hash, ecsCompFlags);
-        }
-        else if (typeType == OT_INTEGER)
-        {
-          scriptCompDesc.native = true;
-          scriptCompDesc.script = false;
-          ecs_comps[iComp] = ecs::ComponentDesc(compName,
-            arr.GetSlot(1).Cast<SQInteger>(), // predefined types
-            ecsCompFlags);
-        }
-        else if (typeType == OT_CLASS || typeType == OT_NULL)
-        {
-          scriptCompDesc.native = true;
-          scriptCompDesc.script = false;
-          ecs::component_type_t componentType = get_component_type(compName.hash, compName.str);
-
-          ecs_comps[iComp] = ecs::ComponentDesc(compName, componentType, ecsCompFlags);
-        }
-        else
-        {
-          err_msg.printf(0, "Unexpected component <%s> type field type %X", compName.str, typeType);
-          return false;
-        }
-      }
-      else // (arrLen == 1)
-      {
-        scriptCompDesc.native = true;
-        ecs::component_type_t componentType = ecs::ComponentTypeInfo<ecs::auto_type>::type;
-        // todo: check if script component native
-        ecs_comps[iComp] = ecs::ComponentDesc(ECS_HASH_SLOW(scriptCompDesc.getCompName()), componentType, 0);
-      }
-    }
-    else
-    {
-      err_msg.printf(0, "component must be string or array, instead got %X", co.GetType());
+    sq::ParsedComp parsed;
+    if (!sq::parse_comp_entry(comps.GetSlot(iComp), iComp, list_label, parsed, err_msg))
       return false;
-    }
 
-    // debug("ecs_comps[%d] = %s(0x%X)", iComp, compName.str, );
+    ScriptCompDesc &scriptCompDesc = script_comps[iComp];
+    scriptCompDesc.key = parsed.key;
+    scriptCompDesc.defVal = parsed.defVal;
+    scriptCompDesc.script = parsed.typeSlot == sq::CompTypeSlot::SCRIPT_COMP;
+    scriptCompDesc.native = !scriptCompDesc.script;
+
+    const HashedConstString compName = ECS_HASH_SLOW(parsed.getName());
+    component_type_t componentType = ComponentTypeInfo<auto_type>::type;
+    switch (parsed.typeSlot)
+    {
+      case sq::CompTypeSlot::OMITTED: break; // todo: check if script component native
+      case sq::CompTypeSlot::EXPLICIT: componentType = parsed.type; break;
+      case sq::CompTypeSlot::SCRIPT_COMP: componentType = compName.hash; break;
+      case sq::CompTypeSlot::FROM_REGISTRY:
+        componentType = sq::registered_comp_type(compName.hash);
+        if (componentType == ComponentTypeInfo<auto_type>::type)
+          logerr("can't auto detect component <%s> type, as this component is not existent yet", compName.str);
+        break;
+    }
+    ecs_comps[iComp] = ecs::ComponentDesc(compName, componentType, parsed.hasDefVal ? CDF_OPTIONAL : 0);
   }
 
   out_script_comps.swap(script_comps);
@@ -1264,10 +1171,10 @@ static SQInteger register_entity_system(HSQUIRRELVM vm)
     [&esData](event_type_t evType, Sqrat::Function &&f) { esData->onEvent[evType] = eastl::move(f); });
 
   String errMsg;
-  if (!load_component_desc(comps_rw, esData->componentsRw, esData->esCompsRw, errMsg) ||
-      !load_component_desc(comps_ro, esData->componentsRo, esData->esCompsRo, errMsg) ||
-      !load_component_desc(comps_rq, esData->componentsRq, esData->esCompsRq, errMsg) ||
-      !load_component_desc(comps_no, esData->componentsNo, esData->esCompsNo, errMsg))
+  if (!load_component_desc(comps_rw, "comps_rw", esData->componentsRw, esData->esCompsRw, errMsg) ||
+      !load_component_desc(comps_ro, "comps_ro", esData->componentsRo, esData->esCompsRo, errMsg) ||
+      !load_component_desc(comps_rq, "comps_rq", esData->componentsRq, esData->esCompsRq, errMsg) ||
+      !load_component_desc(comps_no, "comps_no", esData->componentsNo, esData->esCompsNo, errMsg))
   {
     return sq_throwerror(vm, errMsg);
   }
@@ -1319,28 +1226,48 @@ static inline void push_array_val(HSQUIRRELVM vm, const EntityComponentRef &comp
     Sqrat::PushVar(vm, comp.getNullable<TypeRW>());
 }
 
-static void push_comp_val(HSQUIRRELVM vm, const char *comp_name, const EntityComponentRef comp, CompAccess access)
+// pushes types whose script value is a self-contained copy of the component
+// (safe to outlive it); returns false for types whose script form borrows
+// the component memory - those are handled by the caller
+static bool push_comp_val_copyable(HSQUIRRELVM vm, const EntityComponentRef &comp)
 {
-  int prevTop = sq_gettop(vm);
-  G_UNUSED(prevTop);
-
   switch (comp.getUserType())
   {
     case ecs::ComponentTypeInfo<ecs::string>::type:
     {
       auto &str = comp.get<ecs::string>();
       sq_pushstring(vm, str.c_str(), str.length());
+      return true;
     }
-    break;
-    case ecs::ComponentTypeInfo<ecs::EntityId>::type: sq_pushinteger(vm, (ecs::entity_id_t)comp.get<ecs::EntityId>()); break;
-    case ecs::ComponentTypeInfo<int>::type: sq_pushinteger(vm, comp.get<int>()); break;
-    case ecs::ComponentTypeInfo<uint8_t>::type: sq_pushinteger(vm, comp.get<uint8_t>()); break;
-    case ecs::ComponentTypeInfo<uint16_t>::type: sq_pushinteger(vm, comp.get<uint16_t>()); break;
-    case ecs::ComponentTypeInfo<int64_t>::type: sq_pushinteger(vm, comp.get<int64_t>()); break;
-    case ecs::ComponentTypeInfo<uint64_t>::type: sq_pushinteger(vm, comp.get<uint64_t>()); break;
-    case ecs::ComponentTypeInfo<float>::type: sq_pushfloat(vm, comp.get<float>()); break;
-    case ecs::ComponentTypeInfo<bool>::type: sq_pushbool(vm, comp.get<bool>()); break;
+    case ecs::ComponentTypeInfo<ecs::EntityId>::type: sq_pushinteger(vm, (ecs::entity_id_t)comp.get<ecs::EntityId>()); return true;
+    case ecs::ComponentTypeInfo<int>::type: sq_pushinteger(vm, comp.get<int>()); return true;
+    case ecs::ComponentTypeInfo<uint8_t>::type: sq_pushinteger(vm, comp.get<uint8_t>()); return true;
+    case ecs::ComponentTypeInfo<uint16_t>::type: sq_pushinteger(vm, comp.get<uint16_t>()); return true;
+    case ecs::ComponentTypeInfo<int64_t>::type: sq_pushinteger(vm, comp.get<int64_t>()); return true;
+    case ecs::ComponentTypeInfo<uint64_t>::type: sq_pushinteger(vm, comp.get<uint64_t>()); return true;
+    case ecs::ComponentTypeInfo<float>::type: sq_pushfloat(vm, comp.get<float>()); return true;
+    case ecs::ComponentTypeInfo<bool>::type: sq_pushbool(vm, comp.get<bool>()); return true;
+#define COMMON_COMP(type_name) \
+  case ecs::ComponentTypeInfo<type_name>::type: Sqrat::Var<type_name>::push(vm, comp.get<type_name>()); return true
+      COMMON_LIST
+#undef COMMON_COMP
+    default: return false;
+  }
+}
 
+static void push_comp_val(HSQUIRRELVM vm, const char *comp_name, const EntityComponentRef comp, CompAccess access)
+{
+  int prevTop = sq_gettop(vm);
+  G_UNUSED(prevTop);
+
+  if (push_comp_val_copyable(vm, comp))
+  {
+    G_ASSERT(sq_gettop(vm) == prevTop + 1);
+    return;
+  }
+
+  switch (comp.getUserType())
+  {
     case ecs::ComponentTypeInfo<ecs::Object>::type:
     {
       if (access == COMP_ACCESS_READONLY)
@@ -1411,10 +1338,6 @@ static void push_comp_val(HSQUIRRELVM vm, const char *comp_name, const EntityCom
       }
       break;
     }
-#define COMMON_COMP(type_name) \
-  case ecs::ComponentTypeInfo<type_name>::type: Sqrat::Var<type_name>::push(vm, comp.get<type_name>()); break
-      COMMON_LIST
-#undef COMMON_COMP
     case TYPE_NULL:
     default:
       auto res = native_component_bindings.find(comp.getUserType());
@@ -2240,7 +2163,7 @@ static SQInteger recreate_entity(HSQUIRRELVM vm)
   auto &obj = *objVar.value;
 
 
-template <typename ObjClass, typename ArrClass, bool readonly>
+template <typename ObjClass, typename ArrClass, bool readonly, bool persistent>
 static SQInteger comp_obj_get_all(HSQUIRRELVM vm, const ecs::Object &obj)
 {
   sq_newtable(vm);
@@ -2251,17 +2174,29 @@ static SQInteger comp_obj_get_all(HSQUIRRELVM vm, const ecs::Object &obj)
     switch (ctype)
     {
       case ecs::ComponentTypeInfo<ecs::Object>::type:
-        comp_obj_get_all<ObjClass, ArrClass, readonly>(vm, it.second.get<ecs::Object>());
+        comp_obj_get_all<ObjClass, ArrClass, readonly, persistent>(vm, it.second.get<ecs::Object>());
         break;
       case ecs::ComponentTypeInfo<ecs::Array>::type:
-        comp_arr_get_all<ObjClass, ArrClass, readonly>(vm, it.second.get<ecs::Array>());
+        comp_arr_get_all<ObjClass, ArrClass, readonly, persistent>(vm, it.second.get<ecs::Array>());
         break;
 #define DECL_LIST_TYPE(lt, t) \
-  case ecs::ComponentTypeInfo<ecs::lt>::type: comp_list_get_all<ecs::lt, readonly>(vm, it.second.get<ecs::lt>()); break;
+  case ecs::ComponentTypeInfo<ecs::lt>::type: comp_list_get_all<ecs::lt, readonly, persistent>(vm, it.second.get<ecs::lt>()); break;
         ECS_DECL_LIST_TYPES
 #undef DECL_LIST_TYPE
       default:
-        push_comp_val(vm, it.first.data(), it.second.getEntityComponentRef(), readonly ? COMP_ACCESS_READONLY : COMP_ACCESS_READWRITE);
+        // a persistent copy must not hold borrowed instances (custom native
+        // bindings): only self-contained child values pass
+        if (persistent)
+        {
+          if (!push_comp_val_copyable(vm, it.second.getEntityComponentRef()))
+          {
+            LOGERR_ONCE("child <%s> type 0x%X is not supported for persistent script mirroring", it.first.data(), ctype);
+            sq_pushnull(vm);
+          }
+        }
+        else
+          push_comp_val(vm, it.first.data(), it.second.getEntityComponentRef(),
+            readonly ? COMP_ACCESS_READONLY : COMP_ACCESS_READWRITE);
         break;
     }
     G_VERIFY(SQ_SUCCEEDED(sq_rawset(vm, -3)));
@@ -2632,7 +2567,7 @@ static SQInteger comp_arr_pop(HSQUIRRELVM vm)
   return 0;
 }
 
-template <typename ObjClass, typename ArrClass, bool readonly>
+template <typename ObjClass, typename ArrClass, bool readonly, bool persistent>
 static SQInteger comp_arr_get_all(HSQUIRRELVM vm, const ecs::Array &arr)
 {
   auto len = arr.size();
@@ -2644,17 +2579,27 @@ static SQInteger comp_arr_get_all(HSQUIRRELVM vm, const ecs::Array &arr)
     switch (type)
     {
       case ecs::ComponentTypeInfo<ecs::Object>::type:
-        comp_obj_get_all<ObjClass, ArrClass, readonly>(vm, arr[i].get<ecs::Object>());
+        comp_obj_get_all<ObjClass, ArrClass, readonly, persistent>(vm, arr[i].get<ecs::Object>());
         break;
       case ecs::ComponentTypeInfo<ecs::Array>::type:
-        comp_arr_get_all<ObjClass, ArrClass, readonly>(vm, arr[i].get<ecs::Array>());
+        comp_arr_get_all<ObjClass, ArrClass, readonly, persistent>(vm, arr[i].get<ecs::Array>());
         break;
 #define DECL_LIST_TYPE(lt, t) \
-  case ecs::ComponentTypeInfo<ecs::lt>::type: comp_list_get_all<ecs::lt, readonly>(vm, arr[i].get<ecs::lt>()); break;
+  case ecs::ComponentTypeInfo<ecs::lt>::type: comp_list_get_all<ecs::lt, readonly, persistent>(vm, arr[i].get<ecs::lt>()); break;
         ECS_DECL_LIST_TYPES
 #undef DECL_LIST_TYPE
       default:
-        push_comp_val(vm, "n/a", arr[i].getEntityComponentRef(), readonly ? COMP_ACCESS_READONLY : COMP_ACCESS_READWRITE);
+        // see comp_obj_get_all: no borrowed instances in persistent copies
+        if (persistent)
+        {
+          if (!push_comp_val_copyable(vm, arr[i].getEntityComponentRef()))
+          {
+            LOGERR_ONCE("array item type 0x%X is not supported for persistent script mirroring", type);
+            sq_pushnull(vm);
+          }
+        }
+        else
+          push_comp_val(vm, "n/a", arr[i].getEntityComponentRef(), readonly ? COMP_ACCESS_READONLY : COMP_ACCESS_READWRITE);
         break;
     }
     G_VERIFY(SQ_SUCCEEDED(sq_rawset(vm, -3)));
@@ -2662,7 +2607,7 @@ static SQInteger comp_arr_get_all(HSQUIRRELVM vm, const ecs::Array &arr)
   return 1;
 }
 
-template <typename ArrClass, bool readonly>
+template <typename ArrClass, bool readonly, bool persistent>
 static SQInteger comp_list_get_all(HSQUIRRELVM vm, const ArrClass &arr)
 {
   auto len = arr.size();
@@ -2670,8 +2615,15 @@ static SQInteger comp_list_get_all(HSQUIRRELVM vm, const ArrClass &arr)
   for (int i = 0; i < len; ++i)
   {
     sq_pushinteger(vm, i);
-    push_comp_val(vm, "n/a", SqBindingHelper::get_entity_component_ref(arr, i),
-      readonly ? COMP_ACCESS_READONLY : COMP_ACCESS_READWRITE);
+    const EntityComponentRef itemRef = SqBindingHelper::get_entity_component_ref(arr, i);
+    // see comp_obj_get_all: a persistent copy holds no borrowed instances
+    if (!persistent)
+      push_comp_val(vm, "n/a", itemRef, readonly ? COMP_ACCESS_READONLY : COMP_ACCESS_READWRITE);
+    else if (!push_comp_val_copyable(vm, itemRef))
+    {
+      LOGERR_ONCE("list item type 0x%X is not supported for persistent script mirroring", itemRef.getUserType());
+      sq_pushnull(vm);
+    }
     G_VERIFY(SQ_SUCCEEDED(sq_rawset(vm, -3)));
   }
   return 1;
@@ -2702,6 +2654,220 @@ static SQInteger comp_list_get_all(HSQUIRRELVM vm)
 
 namespace sq
 {
+// a component holding T directly or via SharedComponent<T> reads the same
+// from script; getNullable is type-checked, so at most one branch matches
+template <typename T>
+static const T *get_plain_or_shared(const EntityComponentRef &ref)
+{
+  if (const T *plain = ref.getNullable<T>())
+    return plain;
+  const ecs::SharedComponent<T> *shared = ref.getNullable<ecs::SharedComponent<T>>();
+  return shared ? shared->get() : nullptr;
+}
+
+void push_comp_val_copy(HSQUIRRELVM vm, const char *comp_name, const void *comp_data, ecs::component_type_t type,
+  ecs::type_index_t type_id)
+{
+  const int prevTop = sq_gettop(vm);
+  G_UNUSED(prevTop);
+
+  if (!comp_data)
+    sq_pushnull(vm); // absent (optional) component mirrors as null for all types
+  else
+  {
+    const EntityComponentRef ref = SqBindingHelper::make_component_ref(const_cast<void *>(comp_data), type, type_id);
+    // Complex types that copyable rejects are deep-copied into plain quirrel
+    // containers: the pushed value may outlive the component (unlike the
+    // CompObject/CompArray/List refs script ES callbacks see, which are only
+    // valid during the call)
+    if (!push_comp_val_copyable(vm, ref))
+      switch (type)
+      {
+        case ecs::ComponentTypeInfo<ecs::Object>::type:
+        case ecs::ComponentTypeInfo<ecs::SharedComponent<ecs::Object>>::type:
+        {
+          if (const ecs::Object *obj = get_plain_or_shared<ecs::Object>(ref))
+            comp_obj_get_all<ecs::ObjectRO, ecs::ArrayRO, /*RO*/ true, /*persistent*/ true>(vm, *obj);
+          else
+            sq_pushnull(vm);
+          break;
+        }
+        case ecs::ComponentTypeInfo<ecs::Array>::type:
+        case ecs::ComponentTypeInfo<ecs::SharedComponent<ecs::Array>>::type:
+        {
+          if (const ecs::Array *arr = get_plain_or_shared<ecs::Array>(ref))
+            comp_arr_get_all<ecs::ObjectRO, ecs::ArrayRO, /*RO*/ true, /*persistent*/ true>(vm, *arr);
+          else
+            sq_pushnull(vm);
+          break;
+        }
+#define DECL_LIST_TYPE(lt, t)                                                  \
+  case ecs::ComponentTypeInfo<ecs::lt>::type:                                  \
+  case ecs::ComponentTypeInfo<ecs::SharedComponent<ecs::lt>>::type:            \
+  {                                                                            \
+    if (const ecs::lt *list = get_plain_or_shared<ecs::lt>(ref))               \
+      comp_list_get_all<ecs::lt, /*RO*/ true, /*persistent*/ true>(vm, *list); \
+    else                                                                       \
+      sq_pushnull(vm);                                                         \
+    break;                                                                     \
+  }
+          ECS_DECL_LIST_TYPES
+#undef DECL_LIST_TYPE
+        default:
+          // custom native bindings push borrowed instances and unknown types push a
+          // placeholder string; neither may outlive the component, so refuse them
+          LOGERR_ONCE("component <%s> type 0x%X is not supported for persistent script mirroring", comp_name, type);
+          sq_pushnull(vm);
+          break;
+      }
+  }
+
+  // the INativeComputedSource contract is exactly one value per pull, and
+  // this is the only place that builds it
+  G_ASSERT(sq_gettop(vm) == prevTop + 1);
+}
+
+static bool comp_val_equal_ref(HSQUIRRELVM vm, const HSQOBJECT &val, const EntityComponentRef &ref);
+
+static bool comp_obj_equal(HSQUIRRELVM vm, const HSQOBJECT &val, const ecs::Object &obj)
+{
+  if (sq_type(val) != OT_TABLE)
+    return false;
+  sq_pushobject(vm, val);
+  bool eq = sq_getsize(vm, -1) == (SQInteger)obj.size();
+  for (auto it = obj.begin(), e = obj.end(); eq && it != e; ++it)
+  {
+    sq_pushstring(vm, it->first.data(), it->first.length());
+    if (SQ_FAILED(sq_rawget(vm, -2)))
+    {
+      eq = false;
+      break;
+    }
+    HSQOBJECT child;
+    G_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &child)));
+    sq_poptop(vm); // the table still holds it
+    eq = comp_val_equal_ref(vm, child, it->second.getEntityComponentRef());
+  }
+  sq_poptop(vm);
+  return eq;
+}
+
+template <typename Arr>
+static bool comp_arr_items_equal(HSQUIRRELVM vm, const HSQOBJECT &val, const Arr &arr)
+{
+  if (sq_type(val) != OT_ARRAY)
+    return false;
+  sq_pushobject(vm, val);
+  bool eq = sq_getsize(vm, -1) == (SQInteger)arr.size();
+  for (uint32_t i = 0, n = (uint32_t)arr.size(); eq && i < n; ++i)
+  {
+    sq_pushinteger(vm, i);
+    if (SQ_FAILED(sq_rawget(vm, -2)))
+    {
+      eq = false;
+      break;
+    }
+    HSQOBJECT child;
+    G_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, -1, &child)));
+    sq_poptop(vm); // the array still holds it
+    eq = comp_val_equal_ref(vm, child, SqBindingHelper::get_entity_component_ref(arr, i));
+  }
+  sq_poptop(vm);
+  return eq;
+}
+
+// what equal means for the real-typed cases below: a fresh push would be
+// indistinguishable. Padding, should any of these types grow some, only costs a rebuild
+template <typename T>
+static bool same_bits(const T &a, const T &b)
+{
+  return memcmp(&a, &b, sizeof(T)) == 0; //-V1014
+}
+
+// mirrors push_comp_val_copyable/push_comp_val_copy case by case
+static bool comp_val_equal_ref(HSQUIRRELVM vm, const HSQOBJECT &val, const EntityComponentRef &ref)
+{
+  switch (ref.getUserType())
+  {
+    case ecs::ComponentTypeInfo<ecs::string>::type:
+    {
+      if (sq_type(val) != OT_STRING)
+        return false;
+      // both sides carry their length, so compare by it rather than as C strings
+      sq_pushobject(vm, val);
+      const char *s = nullptr;
+      SQInteger len = 0;
+      G_VERIFY(SQ_SUCCEEDED(sq_getstringandsize(vm, -1, &s, &len)));
+      const ecs::string &str = ref.get<ecs::string>();
+      const bool eq = (size_t)len == str.length() && memcmp(s, str.c_str(), str.length()) == 0;
+      sq_poptop(vm);
+      return eq;
+    }
+    case ecs::ComponentTypeInfo<ecs::EntityId>::type:
+      return sq_isinteger(val) && sq_objtointeger(&val) == (SQInteger)(ecs::entity_id_t)ref.get<ecs::EntityId>();
+    case ecs::ComponentTypeInfo<int>::type: return sq_isinteger(val) && sq_objtointeger(&val) == (SQInteger)ref.get<int>();
+    case ecs::ComponentTypeInfo<uint8_t>::type: return sq_isinteger(val) && sq_objtointeger(&val) == (SQInteger)ref.get<uint8_t>();
+    case ecs::ComponentTypeInfo<uint16_t>::type: return sq_isinteger(val) && sq_objtointeger(&val) == (SQInteger)ref.get<uint16_t>();
+    case ecs::ComponentTypeInfo<int64_t>::type: return sq_isinteger(val) && sq_objtointeger(&val) == (SQInteger)ref.get<int64_t>();
+    case ecs::ComponentTypeInfo<uint64_t>::type: return sq_isinteger(val) && sq_objtointeger(&val) == (SQInteger)ref.get<uint64_t>();
+    case ecs::ComponentTypeInfo<float>::type:
+    {
+      if (!sq_isfloat(val))
+        return false;
+      // compare in the pushed type: == calls every NaN different and both zeros same
+      const SQFloat pushed = sq_objtofloat(&val), current = (SQFloat)ref.get<float>();
+      return same_bits(pushed, current);
+    }
+    case ecs::ComponentTypeInfo<bool>::type: return sq_isbool(val) && (sq_objtobool(&val) != SQFalse) == ref.get<bool>();
+
+#define COMMON_COMP(TypeName)                                          \
+  case ecs::ComponentTypeInfo<TypeName>::type:                         \
+  {                                                                    \
+    if (!Sqrat::ClassType<TypeName>::IsObjectOfClass(&val))            \
+      return false;                                                    \
+    sq_pushobject(vm, val);                                            \
+    const TypeName *inst = Sqrat::Var<const TypeName *>(vm, -1).value; \
+    sq_poptop(vm);                                                     \
+    return inst && same_bits(*inst, ref.get<TypeName>());              \
+  }
+      COMMON_LIST
+#undef COMMON_COMP
+
+    case ecs::ComponentTypeInfo<ecs::Object>::type:
+    case ecs::ComponentTypeInfo<ecs::SharedComponent<ecs::Object>>::type:
+    {
+      const ecs::Object *obj = get_plain_or_shared<ecs::Object>(ref);
+      return obj ? comp_obj_equal(vm, val, *obj) : sq_type(val) == OT_NULL;
+    }
+    case ecs::ComponentTypeInfo<ecs::Array>::type:
+    case ecs::ComponentTypeInfo<ecs::SharedComponent<ecs::Array>>::type:
+    {
+      const ecs::Array *arr = get_plain_or_shared<ecs::Array>(ref);
+      return arr ? comp_arr_items_equal(vm, val, *arr) : sq_type(val) == OT_NULL;
+    }
+#define DECL_LIST_TYPE(lt, t)                                                     \
+  case ecs::ComponentTypeInfo<ecs::lt>::type:                                     \
+  case ecs::ComponentTypeInfo<ecs::SharedComponent<ecs::lt>>::type:               \
+  {                                                                               \
+    const ecs::lt *list = get_plain_or_shared<ecs::lt>(ref);                      \
+    return list ? comp_arr_items_equal(vm, val, *list) : sq_type(val) == OT_NULL; \
+  }
+      ECS_DECL_LIST_TYPES
+#undef DECL_LIST_TYPE
+    default:
+      // never equal: push refuses unsupported types with a logerr, and comparing
+      // its null result equal would keep that diagnostic from ever running
+      return false;
+  }
+}
+
+bool comp_val_equal(HSQUIRRELVM vm, const HSQOBJECT &val, const void *comp_data, ecs::component_type_t type, ecs::type_index_t type_id)
+{
+  if (!comp_data)
+    return sq_type(val) == OT_NULL; // push_comp_val_copy mirrors absent data as null
+  return comp_val_equal_ref(vm, val, SqBindingHelper::make_component_ref(const_cast<void *>(comp_data), type, type_id));
+}
+
 SQInteger push_event_field(HSQUIRRELVM vm, ecs::Event *event, ecs::EventsDB::event_id_t event_id, int idx)
 {
   const ecs::EventsDB &eventsDB = g_entity_mgr->getEventsDb();
@@ -3248,10 +3414,10 @@ SqQuery::SqQuery(const Sqrat::Object &qname, const Sqrat::Object &comps_desc, co
   Sqrat::Array compsNo = comps_desc.RawGetSlot("comps_no");
 
   String errMsg;
-  if (!load_component_desc(compsRw, compListDesc.componentsRw, compListDesc.esCompsRw, errMsg) ||
-      !load_component_desc(compsRo, compListDesc.componentsRo, compListDesc.esCompsRo, errMsg) ||
-      !load_component_desc(compsRq, compListDesc.componentsRq, compListDesc.esCompsRq, errMsg) ||
-      !load_component_desc(compsNo, compListDesc.componentsNo, compListDesc.esCompsNo, errMsg))
+  if (!load_component_desc(compsRw, "comps_rw", compListDesc.componentsRw, compListDesc.esCompsRw, errMsg) ||
+      !load_component_desc(compsRo, "comps_ro", compListDesc.componentsRo, compListDesc.esCompsRo, errMsg) ||
+      !load_component_desc(compsRq, "comps_rq", compListDesc.componentsRq, compListDesc.esCompsRq, errMsg) ||
+      !load_component_desc(compsNo, "comps_no", compListDesc.componentsNo, compListDesc.esCompsNo, errMsg))
   {
     logerr("SqQuery '%s' components description error: %s", sqname, errMsg.c_str());
     dump_sq_callstack_in_log(comps_desc.GetVM());
@@ -3960,6 +4126,8 @@ void shutdown_ecs_sq_script(HSQUIRRELVM vm)
 void update_ecs_sq_timers(float dt, float rt_dt) { ecs::sq::update_timers(dt, rt_dt); }
 
 void start_es_loading() { ecs::ecs_is_in_init_phase = true; }
+
+bool is_es_loading() { return ecs::ecs_is_in_init_phase; }
 
 void end_es_loading()
 {

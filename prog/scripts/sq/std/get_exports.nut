@@ -1,6 +1,7 @@
 from "dagor.system" import get_arg_value_by_name, get_all_arg_values_by_name
 from "dagor.fs" import scan_folder
 from "json.nut" import saveJson
+from "types" import Table
 
 
 function get_all_exports_for_file(fpath){
@@ -95,7 +96,7 @@ if (__name__ == "__main__"){
       res[fpath] <- make_module_description(get_all_exports_for_file(fpath))
     if (outFname==null) {
       foreach (f, module_info in res) {
-        let info = type(module_info) != "table"
+        let info = !(module_info instanceof Table)
           ? ""
           : "  ".join(module_info.reduce(@(r, _, k) r.append($"{k}"), []))
         println($"File:'{f}'\n{info}\n")

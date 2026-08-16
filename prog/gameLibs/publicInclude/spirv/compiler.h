@@ -72,8 +72,12 @@ enum class CompileFlags : uint32_t
   ENABLE_MESH_SHADER = 1 << 8,
   VALIDATE_GLOBAL_CONSTS_OFFSET_ORDER = 1 << 9,
   // accept scalar block layout (DX-packed structs) for structured/uniform buffers; the consuming
-  // device must enable the scalarBlockLayout feature. Used by runtime HLSL compiles (editor texgen).
-  USE_SCALAR_LAYOUT = 1 << 10
+  // device must enable the scalarBlockLayout feature. For texgen's DX-packed buffers (e.g. the
+  // ParticleInstance structured buffer) when compiled for Vulkan.
+  USE_SCALAR_LAYOUT = 1 << 10,
+  // suppress DXC's -Wconversion (implicit vector truncation), so HLSL that FXC compiled silently -- e.g.
+  // texgen's shader_editor nodes assigning a float3 tc to a float2 -- also compiles to SPIR-V. Editor opt-in.
+  NO_CONVERSION_WARNINGS = 1 << 11,
 };
 
 inline CompileFlags &operator|=(CompileFlags &self, CompileFlags o)

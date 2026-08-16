@@ -501,7 +501,27 @@ static FfxmErrorCode createPipelineStates(FfxmFsr2Context_Private* context)
 static FfxmErrorCode createResourceFromDescription(FfxmFsr2Context_Private* context, const FfxmInternalResourceDescription* resDesc)
 {
 	const FfxmResourceType resourceType = resDesc->type;
-    const FfxmResourceDescription resourceDescription = { resourceType, resDesc->format, resDesc->width, resDesc->height, 1, resDesc->mipCount, FFXM_RESOURCE_FLAGS_NONE, resDesc->usage };
+    uint32_t width = resDesc->width;
+    uint32_t height = resDesc->height;
+    if (context->contextDescription.preRotation == 90 || context->contextDescription.preRotation == 270)
+    {
+        switch (resDesc->id)
+        {
+            case FFXM_FSR2_RESOURCE_IDENTIFIER_INTERNAL_UPSCALED_COLOR_1:
+            case FFXM_FSR2_RESOURCE_IDENTIFIER_INTERNAL_UPSCALED_COLOR_2:
+            case FFXM_FSR2_RESOURCE_IDENTIFIER_LOCK_STATUS_1:
+            case FFXM_FSR2_RESOURCE_IDENTIFIER_LOCK_STATUS_2:
+            case FFXM_FSR2_RESOURCE_IDENTIFIER_LUMA_HISTORY_1:
+            case FFXM_FSR2_RESOURCE_IDENTIFIER_LUMA_HISTORY_2:
+            case FFXM_FSR2_RESOURCE_IDENTIFIER_INTERNAL_TEMPORAL_REACTIVE_1:
+            case FFXM_FSR2_RESOURCE_IDENTIFIER_INTERNAL_TEMPORAL_REACTIVE_2:
+                width = resDesc->height;
+                height = resDesc->width;
+                break;
+            default: break;
+        }
+    }
+    const FfxmResourceDescription resourceDescription = { resourceType, resDesc->format, width, height, 1, resDesc->mipCount, FFXM_RESOURCE_FLAGS_NONE, resDesc->usage };
     const FfxmResourceStates initialState = (resDesc->usage == FFXM_RESOURCE_USAGE_READ_ONLY) ? FFXM_RESOURCE_STATE_COMPUTE_READ : (resDesc->usage == FFXM_RESOURCE_USAGE_RENDERTARGET) ? FFXM_RESOURCE_STATE_PIXEL_WRITE : FFXM_RESOURCE_STATE_UNORDERED_ACCESS;
     const FfxmCreateResourceDescription createResourceDescription = { FFXM_HEAP_TYPE_DEFAULT, resourceDescription, initialState, resDesc->initDataSize, resDesc->initData, resDesc->name, resDesc->id };
 	return context->contextDescription.backendInterface.fpCreateResource(&context->contextDescription.backendInterface, &createResourceDescription, context->effectContextId, &context->srvResources[resDesc->id]);
@@ -1094,6 +1114,7 @@ static FfxmErrorCode fsr2Dispatch(FfxmFsr2Context_Private* context, const FfxmFs
     context->constants.maxRenderSize[1] = int32_t(context->contextDescription.maxRenderSize.height);
     context->constants.inputColorResourceDimensions[0] = resourceDescInputColor.width;
     context->constants.inputColorResourceDimensions[1] = resourceDescInputColor.height;
+    context->constants.preRotation = params->preRotation;
 
     // compute the horizontal FOV for the shader from the vertical one.
     const float aspectRatio = (float)params->renderSize.width / (float)params->renderSize.height;
@@ -1247,16 +1268,19 @@ static FfxmErrorCode fsr2Dispatch(FfxmFsr2Context_Private* context, const FfxmFs
 
     scheduleDispatch(context, params, &context->pipelineLock, dispatchSrcX, dispatchSrcY);
 
+    const bool preRotSwapWH = (context->contextDescription.preRotation == 90 || context->contextDescription.preRotation == 270);
+    const uint32_t nativeW = preRotSwapWH ? context->contextDescription.displaySize.height : context->contextDescription.displaySize.width;
+    const uint32_t nativeH = preRotSwapWH ? context->contextDescription.displaySize.width : context->contextDescription.displaySize.height;
+
     const bool sharpenEnabled = params->enableSharpening;
 	scheduleFragment(context, params, sharpenEnabled ? &context->pipelineAccumulateSharpen : &context->pipelineAccumulate,
-					 context->contextDescription.displaySize.width, context->contextDescription.displaySize.height);
+					 nativeW, nativeH);
 
     // RCAS
     if (sharpenEnabled) {
 
         // Run RCAS
-        scheduleFragment(context, params, &context->pipelineRCAS, context->contextDescription.displaySize.width,
-						 context->contextDescription.displaySize.height);
+        scheduleFragment(context, params, &context->pipelineRCAS, nativeW, nativeH);
     }
 
     context->resourceFrameIndex = (context->resourceFrameIndex + 1) % FSR2_MAX_QUEUED_FRAMES;

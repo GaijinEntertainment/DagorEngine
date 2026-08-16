@@ -133,6 +133,8 @@ private:
 
   NodeScheduler cullingScheduler;
 
+  ResourceLifetimeCalculator resourceLifetimeCalculator;
+
   BarrierScheduler barrierScheduler; //-V730_NOINIT
 
   BadResolutionTracker badResolutionTracker{intermediateGraph};
@@ -192,11 +194,14 @@ private:
   auto buildIrGraph(const ResourcesChanged &resources_changed, const NodesChanged &nodes_changed);
   void colorPasses(const IrNodesChanged &irNodesChanged);
   IrNodesChanged scheduleNodes(const IrNodesChanged &irNodesChanged, const IrResourcesChanged &irResourcesChanged);
-  IrResourcesChanged scheduleBarriers(const IrNodesChanged &nodesChanged, const IrResourcesChanged &resourcesChanged);
+  IrResourcesChanged calculateResourceLifetimes();
+  void scheduleBarriers(const IrNodesChanged &nodesChanged, const IrResourcesChanged &resourcesChanged,
+    const IrResourcesChanged &lifetimeChangedResources);
   void cacheUntrackedReleaseBarriers();
   void recalculateStateDeltas(const IrNodesChanged &nodesChanged, const IrResourcesChanged &resourcesChanged);
   void updateAutoResolutions();
   void scheduleResources(const IrResourcesChanged &lifetimeChangedResources);
+  void applyAliasSyncStages(const ResourceSchedule &schedule, const BadResolutionTracker::Corrections &corrections);
   void updateHistory();
   void updateVisualization(const NodesChanged &nodes_changed);
   BlockProviderMap applyRefinedBlockBindings(int curr_frame, int prev_frame);

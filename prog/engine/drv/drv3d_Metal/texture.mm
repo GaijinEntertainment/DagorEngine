@@ -1140,23 +1140,6 @@ namespace drv3d_metal
     return 1;
   }
 
-  int Texture::calcBaseLevel(int w, int h)
-  {
-    int base_level = 0;
-
-    int wdt = width;
-    int hgt = height;
-
-    while (wdt != w && hgt != h)
-    {
-      wdt = wdt >> 1;
-      hgt = hgt >> 1;
-      base_level++;
-    }
-
-    return base_level;
-  }
-
   void Texture::setBaseLevel(int base_level)
   {
     if (start_level != base_level)

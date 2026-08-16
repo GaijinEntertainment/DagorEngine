@@ -65,7 +65,10 @@ void CollisionGeometryFeeder::addRasterizationTasks(const CollisionResource &col
   // Non-resident covered nodes still rasterize through the raw loop below).
   const CollisionResource::Grid &occlGrid = coll_res.getBlasGrid(CollisionNode::TRACEABLE);
   bool blasTaskSubmitted = false;
-  if (!occlGrid.blasData.empty())
+  // bind-grid bytes are valid only while every grid member holds its seed pose (same latch the
+  // SWRT feeder gates on): a setNodeTm-posed member must not rasterize at its bind placement --
+  // that is wrong CULLING, not just overdraw. Resident nodes then drop in the loop below.
+  if (!occlGrid.blasData.empty() && coll_res.getDefaultInstance().isGridResidentPoseAtBind())
   {
     bool anyTransparentResident = false;
     uint32_t blasTriCount = 0;
@@ -141,6 +144,10 @@ void CollisionGeometryFeeder::addRasterizationTasks(const CollisionResource &col
       continue;
     if (!node->checkBehaviorFlags(CollisionNode::TRACEABLE) || node->checkBehaviorFlags(CollisionNode::FLAG_TRANSPARENT))
       continue;
+    // a mirrored/singular live pose hides the node from CPU traces; rasterizing it would be
+    // wrong CULLING (flipped frustum), not conservative overdraw -- same gate as the SWRT feeder
+    if (!coll_res.getDefaultInstance().isNodeTraceable(node->nodeIndex))
+      continue;
     // Covered by the whole-grid RenderBlasSOA4 task above: nothing to emit here (emitting again would
     // double-rasterize). Membership in blasNodeRanges is the key: a node in this grid's ranges has
     // its triangles in the submitted task, whatever its post-dup vert span (no 65536 ceiling now).
@@ -149,6 +156,10 @@ void CollisionGeometryFeeder::addRasterizationTasks(const CollisionResource &col
       continue;
     if (coll_res.isGridResident(*node))
     {
+      // posed grid member (cleared latch): the bind BLAS bytes are stale and the raw verts were
+      // dropped at load, so the occluder is dropped -- conservative overdraw, never wrong culling
+      if (!coll_res.getDefaultInstance().isGridResidentPoseAtBind())
+        continue;
       // Resident node with NO covering RenderBlasSOA4 task: its raw verts were dropped at load and the
       // async task struct needs pointers that outlive this call, so the occluder is dropped --
       // conservative overdraw, never wrong culling. Occluders are rendinst traceable collision after
@@ -176,7 +187,7 @@ void CollisionGeometryFeeder::addRasterizationTasks(const CollisionResource &col
     raw2local.col2 = v_make_vec4f(0.f, 0.f, sz, 0.f);
     raw2local.col3 = v_perm_xyzd(chunk.bmin, v_splats(1.0f));
     mat44f rawToClip;
-    if ((node->flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) == CollisionNode::IDENT)
+    if (coll_res.isIdentNode(ni))
       v_mat44_mul43(rawToClip, worldviewproj, raw2local);
     else
     {

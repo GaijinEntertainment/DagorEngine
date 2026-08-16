@@ -431,8 +431,6 @@ void finish_rendering_ui()
 
     SCOPE_RENDER_TARGET;
 
-    d3d::set_depth(nullptr, DepthAccess::RW);
-
     {
       int sw, sh;
       d3d::get_screen_size(sw, sh);

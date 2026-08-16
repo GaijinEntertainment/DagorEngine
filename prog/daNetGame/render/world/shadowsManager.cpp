@@ -309,7 +309,9 @@ void ShadowsManager::initCombineShadowsNode()
   if (!shadowInfoProvider.hasRenderFeature(FeatureRenderFlags::COMBINED_SHADOWS))
   {
     combineShadowsNode = dafg::register_node("combine_shadows_node", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
-      registry.orderMeAfter("prepare_lights_node");
+      registry.readBlob("after_prepare_lights_node_token");
+      read_all_camera_view_tokens(registry.root(), {"after_gtao_node_token", "after_ssao_node_token", "after_ssr_node_token"});
+
       auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
       return [this, cameraHndl]() { updateCsmData(cameraHndl.ref()); };
     });
@@ -332,7 +334,8 @@ void ShadowsManager::initCombineShadowsNode()
       });
 
     combineShadowsNode = dafg::register_node("combine_shadows_node", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
-      registry.orderMeAfter("prepare_lights_node");
+      registry.readBlob("after_prepare_lights_node_token");
+      read_all_camera_view_tokens(registry.root(), {"after_gtao_node_token", "after_ssao_node_token", "after_ssr_node_token"});
       registry.readBlob<OrderingToken>("rtsm_token").optional();
       read_gbuffer(registry);
       read_gbuffer_depth(registry);
@@ -368,7 +371,8 @@ void ShadowsManager::initCombineShadowsNode()
       });
 
     combineShadowsNode = dafg::register_node("combine_shadows_node", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
-      registry.orderMeAfter("prepare_lights_node");
+      registry.readBlob("after_prepare_lights_node_token");
+      read_all_camera_view_tokens(registry.root(), {"after_gtao_node_token", "after_ssao_node_token", "after_ssr_node_token"});
       registry.readBlob<OrderingToken>("rtsm_token").optional();
       read_gbuffer(registry);
       registry.bindTexPs("far_downsampled_depth", "downsampled_far_depth_tex");
@@ -404,7 +408,8 @@ void ShadowsManager::initCombineShadowsNode()
     });
 
   combineShadowsNode = dafg::register_node("combine_shadows_node", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
-    registry.orderMeAfter("prepare_lights_node");
+    registry.readBlob("after_prepare_lights_node_token");
+    read_all_camera_view_tokens(registry.root(), {"after_gtao_node_token", "after_ssao_node_token", "after_ssr_node_token"});
     registry.readBlob<OrderingToken>("rtsm_token").optional();
     read_gbuffer(registry);
     read_gbuffer_depth(registry);

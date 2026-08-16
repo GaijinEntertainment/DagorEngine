@@ -38,6 +38,10 @@ interval resolve_motion_vectors: no < 1, yes;
 int normal_repacking_needed = 0;
 interval normal_repacking_needed : no < 1, yes;
 
+int downsample_far_normals = 0;
+interval downsample_far_normals : no < 1, yes;
+assume_if_not_assumed downsample_far_normals = no;
+
 // Dumy macro for samples
 define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
 endmacro
@@ -83,6 +87,10 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
     if (has_normal == yes)
     {
       hlsl { #define HAS_NORMAL 1 }
+      if (downsample_far_normals == yes)
+      {
+        hlsl { #define HAS_FAR_NORMAL 1 }
+      }
       INIT_LOAD_GBUFFER_BASE(code)
       hlsl {#define decodeEmissionColor(a) half3(0,0,0)}
       USE_LOAD_GBUFFER_BASE(code, false)
@@ -168,15 +176,27 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
       float  closeDepth;
       float  checkerDepth;
       float4 normal;
+      #if HAS_FAR_NORMAL
+        float4 farNormal;
+      #endif
       motion_type motion;
     };
 
     #if NEED_NORMAL_REPACKING
-      RWTexture2D<unorm float4> normal_gbuf_to_merge : register(u5);
+      // The far normals output takes u5 (a render target in the PS variant, the far_normal
+      // UAV in the CS one), so this moves up. C++ picks it in normal_merge_uav_slot.
+      #if HAS_FAR_NORMAL
+        RWTexture2D<unorm float4> normal_gbuf_to_merge : register(u6);
+      #else
+        RWTexture2D<unorm float4> normal_gbuf_to_merge : register(u5);
+      #endif
     #endif
 
     #define depth_min(a,b) max(a,b)
     #define depth_max(a,b) min(a,b)
+
+    // Gather components map to quad texels as x=(0,1), y=(1,1), z=(1,0), w=(0,0)
+    int quad_gather_idx(int2 ofst) { return ofst.y ? ofst.x : 3 - ofst.x; }
 
     DSOutput downsample2x(int2 scr, float2 tc)
     {
@@ -224,6 +244,10 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
       int2 nrmTcOfst = depthToCheck == src0 ? int2(0,0) : (depthToCheck == src1 ? int2(1,0) : (depthToCheck == src2 ? int2(0,1) : int2(1,1)));
       int2 depthTargetScr = scr + nrmTcOfst;
 
+      #if HAS_FAR_NORMAL
+        int2 farNrmOfst = farDepth == src0 ? int2(0,0) : (farDepth == src1 ? int2(1,0) : (farDepth == src2 ? int2(0,1) : int2(1,1)));
+      #endif
+
       #if NEED_NORMAL_REPACKING
           float3 readNormal;
           float2 gatherTc = scr * rendering_res.zw;
@@ -243,8 +267,7 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
               texture2DAt(normal_gbuf_to_merge, scr + nOffset) = float4(encodedNormal, texture2DAt(normal_gbuf_to_merge, scr + nOffset).zw);
             }
           }
-          // Gather components map to quad texels as x=(0,1), y=(1,1), z=(1,0), w=(0,0)
-          int correctIdx = nrmTcOfst.y ? nrmTcOfst.x : 3 - nrmTcOfst.x;
+          int correctIdx = quad_gather_idx(nrmTcOfst);
           readNormal = float3(normalXs[correctIdx], normalYs[correctIdx], normalZs[correctIdx]);
       #endif
 
@@ -254,8 +277,19 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
           half smoothness;
           loadPackedGbufferNormalSmoothness(depthTargetScr, normal, smoothness);
           result.normal = float4(normal*0.5+0.5, depthToCheck == 0 ? 0 : smoothness);
+          #if HAS_FAR_NORMAL
+            float3 farNrm;
+            half farSmoothness;
+            loadPackedGbufferNormalSmoothness(scr + farNrmOfst, farNrm, farSmoothness);
+            result.farNormal = float4(farNrm*0.5+0.5, farDepth == 0 ? 0 : farSmoothness);
+          #endif
         #else
           result.normal = float4(readNormal, loadSmoothness(depthTargetScr));
+          #if HAS_FAR_NORMAL
+            int farIdx = quad_gather_idx(farNrmOfst);
+            float3 farNrm = float3(normalXs[farIdx], normalYs[farIdx], normalZs[farIdx]);
+            result.farNormal = float4(farNrm, farDepth == 0 ? 0 : loadSmoothness(scr + farNrmOfst));
+          #endif
         #endif
 
       #endif
@@ -331,6 +365,9 @@ shader downsample_depth2x
       #if HAS_MOTION_VEC
         motion_rt_type motion : SV_Target4;
       #endif
+      #if HAS_FAR_NORMAL
+        float4 farNormal : SV_Target5;
+      #endif
     };
 
     ##if hardware.ps4 || hardware.ps5
@@ -373,6 +410,10 @@ shader downsample_depth2x
 
       #if HAS_MOTION_VEC
         result.motion = write_motion_to_rt(ds.motion);
+      #endif
+
+      #if HAS_FAR_NORMAL
+        result.farNormal = ds.farNormal;
       #endif
 
       return result;
@@ -420,6 +461,11 @@ shader downsample_depth2x_cs
           };
         }
       }
+      if (has_normal == yes && downsample_far_normals == yes) {
+        far_normal@uav : register(5) hlsl {
+          RWTexture2D< float4 > far_normal@uav;
+        };
+      }
     }
 
     hlsl(cs) {
@@ -452,6 +498,10 @@ shader downsample_depth2x_cs
 
         #if HAS_MOTION_VEC
           texture2DAt(motion, DTid.xy) = ds.motion;
+        #endif
+
+        #if HAS_FAR_NORMAL
+          texture2DAt(far_normal, DTid.xy) = ds.farNormal;
         #endif
       }
     }

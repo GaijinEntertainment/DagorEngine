@@ -51,7 +51,7 @@ static constexpr uint32_t PTR_SHORT_SHIFT = 26;       // internal word bits [29:
 static constexpr uint32_t SHORT_W1_FLIP = 1u << 23;   // short (4B) leaf body: W1 bit 23 = flipA, base truncated to 23 bits
 
 // Max SoA4 tree depth a converter or deserializer may accept (a real SAH BLAS never nests deeper).
-// It sizes rayClosest/rayAnyHit's fixed traversal stacks (4 slots per level, comfortably above the
+// It sizes traverseOrdered/traverseAny's fixed traversal stacks (4 slots per level, above the
 // <= 3 pushes a 4-wide node can make, with no overflow fallback), so a deeper tree must be REFUSED
 // at conversion/deserialize, never walked.
 static constexpr int MAX_TREE_DEPTH = BVH_MAX_BLAS_DEPTH;
@@ -150,6 +150,15 @@ static __forceinline QuadLeafFields leafFields(const uint8_t *data, const LeafLo
   return decodeQuadLeafFields(l.w0, w1raw & ~SHORT_W1_FLIP, (w1raw & SHORT_W1_FLIP) ? QUAD_FLIPA_FLAG : 0u, 0u);
 }
 
+// The leaf's user bits (QUAD_LEAF_USER_*) without the field decode, for filtering or reporting per
+// accepted leaf. Takes a resolved LeafLoc, not RayData::bestTriOffset: that member holds a raw
+// LeafRef in the SoA4 walkers (BestRefCb below) and a body offset only in the stackless ones, and a
+// short body has no W3 to read at all -- it is a value-0 leaf by construction.
+static __forceinline uint32_t leafUserBits(const uint8_t *data, const LeafLoc &l)
+{
+  return l.isShort ? 0u : ((((const uint32_t *)(data + l.bodyOfs))[2] >> QUAD_LEAF_USER_SHIFT) & QUAD_LEAF_USER_MASK);
+}
+
 // Fields-based twin of swblas_rayLeaf_SoA for short (4-byte) bodies: the quad-B-free fields are
 // synthesized by the caller; the apex base is resolved against body_ofs exactly like the full decode.
 template <bool CullCCW>
@@ -245,17 +254,17 @@ struct StopOnHitCb
   }
 };
 
-// Closest-hit over SoA4: load the node's N SoA child boxes (no transpose), one vector slab test, sort the
-// survivors near->far with the flat branchless network. Descend-first: the nearest surviving child
-// becomes the current node directly (no push/pop round trip); only the 2nd..Nth survivors are stacked.
-// Deferred culling compares whole packed keys against tKey = pack(r.t, 0), one 64-bit compare per pop
-// (dist == r.t sorts >= tKey, so the boundary is culled exactly like the float compare did).
-// N (2..4) comes from the pointer's tag.
-// HitCb contract matches the stackless walkers': cb(r, ref) returns true to stop the walk; a callback
-// that rejects a hit must restore r.t before returning false. The walk itself is the ray traversal
-// over r.data (the SoA4 buffer); r.bestTriOffset must be 0 on entry.
-template <bool CullCCW = false, class HitCb = BestRefCb>
-static bool rayClosest(RayData &r, RootRef root, const HitCb &cb = HitCb())
+// Ordered (near->far) walk. Loads the node's N SoA child boxes (no transpose), one vector slab test,
+// sorts the survivors near->far with the flat branchless network. Descend-first: the nearest
+// surviving child becomes the current node directly (no push/pop round trip); only the 2nd..Nth
+// survivors are stacked. Deferred culling compares whole packed keys against tKey = pack(r.t, 0),
+// one 64-bit compare per pop (dist == r.t sorts >= tKey, so the boundary is culled exactly like the
+// float compare did). N (2..4) comes from the pointer's tag.
+// LeafFn(r, data, ptr, tKey, rtV) runs per surviving leaf in distance order, and for a degenerate
+// root-leaf block (LEAF_ENTRY_FLAG separates them); true stops the walk, and it must republish
+// tKey/rtV whenever it shrinks r.t.
+template <class LeafFn>
+static __forceinline bool traverseOrdered(RayData &r, RootRef root, const LeafFn &leafFn)
 {
   const uint8_t *data = r.data;
   const vec4f ox = v_splat_x(r.rayOrigin), oy = v_splat_y(r.rayOrigin), oz = v_splat_z(r.rayOrigin);
@@ -273,14 +282,8 @@ static bool rayClosest(RayData &r, RootRef root, const HitCb &cb = HitCb())
       const uint32_t ptr = (uint32_t)cur;
       if (ptr & LEAF_ENTRY_FLAG) // deferred leaf: re-derive W0 and the inline body from the parent node
       {
-        const LeafLoc l = decodeLeafRef(data, ptr);
-        if (rayLeafAt<CullCCW>(r, l.bodyOfs, l.w0, l.isShort))
-        {
-          if (cb(r, (LeafRef)ptr))
-            return true;
-          tKey = swblas_packChildKey(r.t, 0); // r.t shrank
-          rtV = v_splats(r.t);
-        }
+        if (leafFn(r, data, ptr, tKey, rtV))
+          return true;
       }
       else if (ptr & TAG_MASK) // internal node
       {
@@ -321,31 +324,23 @@ static bool rayClosest(RayData &r, RootRef root, const HitCb &cb = HitCb())
       }
       else // degenerate whole-BLAS-is-one-leaf root block
       {
-        const int leaf = (int)(ptr & PTR_OFS_MASK);
-        if (swblas_rayLeaf_SoA<CullCCW, 8>(r, leaf + 4, *(const uint32_t *)(data + leaf)))
-        {
-          if (cb(r, makeRootLeafRef(ptr & PTR_OFS_MASK)))
-            return true;
-          tKey = swblas_packChildKey(r.t, 0); // r.t shrank
-          rtV = v_splats(r.t);
-        }
+        if (leafFn(r, data, ptr, tKey, rtV))
+          return true;
       }
     }
     if (!sp)
       break;
     cur = stack[--sp];
   }
-  return r.bestTriOffset != 0;
+  return false;
 }
 
-// Any-hit over SoA4: no sort (order is irrelevant for any-hit), leaf children are tested on the spot.
-// Descend-first: the first surviving child becomes the current node; the rest are stacked. Hit lanes
-// come from one signmask instead of a stored mask array. N (2..4) is the pointer tag.
-// The default callback stops at the first hit within r.t (shadow blocker). A filtering callback may
-// return false to reject a hit (restoring r.t) and the walk continues, same contract as the stackless
-// rayBLAS_Free. r.bestTriOffset must be 0 on entry; returns true only when a callback accepted a hit.
-template <bool CullCCW = false, class HitCb = StopOnHitCb>
-static bool rayAnyHit(RayData &r, RootRef root, const HitCb &cb = HitCb())
+// Unordered walk: no sort (every survivor is visited anyway), leaf children go to LeafFn on the
+// spot, hit lanes from one signmask. Descend-first: the first surviving child becomes the current
+// node, the rest are stacked. LeafFn(r, data, cur, nd, lane) gets the owning node to locate the
+// leaf, nd == nullptr marks the degenerate root-leaf block; true stops the walk.
+template <class LeafFn>
+static __forceinline bool traverseAny(RayData &r, RootRef root, const LeafFn &leafFn)
 {
   const uint8_t *data = r.data;
   const vec4f ox = v_splat_x(r.rayOrigin), oy = v_splat_y(r.rayOrigin), oz = v_splat_z(r.rayOrigin);
@@ -370,16 +365,12 @@ static bool rayAnyHit(RayData &r, RootRef root, const HitCb &cb = HitCb())
       unsigned leafHit = m & leafAll;
       if (leafHit)
       {
-        const int nodeOfs = (int)(cur & PTR_OFS_MASK);
-        const unsigned shortMask = (cur >> PTR_SHORT_SHIFT) & 15u;
         do
         {
           const int i = (int)__bsf_unsafe(leafHit);
           leafHit &= leafHit - 1;
-          const int bodyOfs = leafBodyOfs(nodeOfs, nd.N, leafAll, shortMask, i);
-          if (rayLeafAt<CullCCW>(r, bodyOfs, w[i], (shortMask >> i) & 1))
-            if (cb(r, makeLeafRef(cur, i)))
-              return true; // accepted blocker; a rejecting cb restored r.t and the walk continues
+          if (leafFn(r, data, cur, &nd, i))
+            return true;
         } while (leafHit);
       }
       unsigned mi = m & ~leafAll; // internal survivors
@@ -396,15 +387,84 @@ static bool rayAnyHit(RayData &r, RootRef root, const HitCb &cb = HitCb())
     }
     else // degenerate whole-BLAS-is-one-leaf root block
     {
-      const int leaf = (int)(cur & PTR_OFS_MASK);
-      if (swblas_rayLeaf_SoA<CullCCW, 8>(r, leaf + 4, *(const uint32_t *)(data + leaf)))
-        if (cb(r, makeRootLeafRef(cur & PTR_OFS_MASK)))
-          return true;
+      if (leafFn(r, data, cur, (const NodeSoA *)nullptr, 0))
+        return true;
     }
     if (!sp)
-      return r.bestTriOffset != 0; // covers callbacks that record hits but keep walking
+      break;
     cur = (uint32_t)stack[--sp];
   }
+  return false;
+}
+
+// Closest-hit: traverseOrdered plus the quad-leaf action. HitCb contract matches the stackless
+// walkers': cb(r, ref) returns true to stop the walk; one that rejects a hit must restore r.t before
+// returning false. Walks r.data (the SoA4 buffer); r.bestTriOffset must be 0 on entry.
+template <bool CullCCW = false, class HitCb = BestRefCb>
+static bool rayClosest(RayData &r, RootRef root, const HitCb &cb = HitCb())
+{
+  // A struct, not a lambda: a lambda's operator() would not inline the large leaf body into the walk.
+  struct QuadLeaf
+  {
+    const HitCb &cb;
+    __forceinline bool operator()(RayData &rr, const uint8_t *data, uint32_t ptr, uint64_t &tKey, vec4f &rtV) const
+    {
+      if (ptr & LEAF_ENTRY_FLAG)
+      {
+        const LeafLoc l = decodeLeafRef(data, ptr);
+        if (rayLeafAt<CullCCW>(rr, l.bodyOfs, l.w0, l.isShort))
+        {
+          if (cb(rr, (LeafRef)ptr))
+            return true;
+          tKey = swblas_packChildKey(rr.t, 0); // r.t shrank
+          rtV = v_splats(rr.t);
+        }
+        return false;
+      }
+      const int leaf = (int)(ptr & PTR_OFS_MASK);
+      if (swblas_rayLeaf_SoA<CullCCW, 8>(rr, leaf + 4, *(const uint32_t *)(data + leaf)))
+      {
+        if (cb(rr, makeRootLeafRef(ptr & PTR_OFS_MASK)))
+          return true;
+        tKey = swblas_packChildKey(rr.t, 0); // r.t shrank
+        rtV = v_splats(rr.t);
+      }
+      return false;
+    }
+  };
+  return traverseOrdered(r, root, QuadLeaf{cb}) || r.bestTriOffset != 0;
+}
+
+// Any-hit: traverseAny plus the quad-leaf action.
+// The default callback stops at the first hit within r.t (shadow blocker). A filtering callback may
+// return false to reject a hit (restoring r.t) and the walk continues, same contract as the stackless
+// rayBLAS_Free. r.bestTriOffset must be 0 on entry; returns true only when a callback accepted a hit.
+template <bool CullCCW = false, class HitCb = StopOnHitCb>
+static bool rayAnyHit(RayData &r, RootRef root, const HitCb &cb = HitCb())
+{
+  struct QuadLeaf // see rayClosest: a lambda here would not be inlined into the walk
+  {
+    const HitCb &cb;
+    __forceinline bool operator()(RayData &rr, const uint8_t *data, uint32_t cur, const NodeSoA *nd, int lane) const
+    {
+      if (nd)
+      {
+        const int nodeOfs = (int)(cur & PTR_OFS_MASK);
+        const unsigned shortMask = (cur >> PTR_SHORT_SHIFT) & 15u;
+        const int bodyOfs = leafBodyOfs(nodeOfs, nd->N, nd->leafMask(), shortMask, lane);
+        if (rayLeafAt<CullCCW>(rr, bodyOfs, nd->w()[lane], (shortMask >> lane) & 1))
+          if (cb(rr, makeLeafRef(cur, lane)))
+            return true; // accepted blocker; a rejecting cb restored r.t and the walk continues
+        return false;
+      }
+      const int leaf = (int)(cur & PTR_OFS_MASK);
+      if (swblas_rayLeaf_SoA<CullCCW, 8>(rr, leaf + 4, *(const uint32_t *)(data + leaf)))
+        if (cb(rr, makeRootLeafRef(cur & PTR_OFS_MASK)))
+          return true;
+      return false;
+    }
+  };
+  return traverseAny(r, root, QuadLeaf{cb}) || r.bestTriOffset != 0;
 }
 
 // Out-of-line entries (defined in soa4TraversalOOL.cpp) for callers that do not need a custom

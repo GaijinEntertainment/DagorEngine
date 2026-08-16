@@ -22,6 +22,7 @@ class NodeTracker;
 using DebugPassColoration = IdIndexedMapping<NodeNameId, PassColor>;
 
 void reset_texture_visualization();
+void debug_send_blob_data(NodeNameId node_id, ResNameId res_id, const BlobView &view);
 
 void debug_clear_resource_placements();
 void debug_clear_resource_barriers();

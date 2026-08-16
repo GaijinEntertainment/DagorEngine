@@ -462,6 +462,20 @@ static void invalidate_handle_cb(rendinst::riex_handle_t invalidate_handle)
 
 static void queue_ri_collision_for_debris(const mat44f &inst_tm, const bbox3f &local_bbox);
 
+static PhysMat::MatID get_destructable_physmat_for_ri(const rendinst::RendInstDesc &desc)
+{
+  PhysMat::MatID matId = PHYSMAT_INVALID;
+  if (const CollisionResource *collRes = rendinst::getRiGenCollisionResource(desc))
+    for (const CollisionNode &node : collRes->getAllNodes())
+      if ((node.behaviorFlags & CollisionNode::PHYS_COLLIDABLE) && node.physMatId >= 0)
+      {
+        matId = node.physMatId;
+        if (matId != PHYSMAT_DEFAULT)
+          break;
+      }
+  return matId;
+}
+
 struct AsyncFractureJob : cpujobs::IJob
 {
   volatile int isTermRequested = 0;
@@ -691,13 +705,8 @@ static bool perform_procedural_destruction(const rendinst::RendInstBufferData &b
   if (impactProfile.pos == Point3::ZERO)
     impactProfile.powerRange = Point2::ZERO;
   job->impactImpulse = impact_impulse;
-  if (const CollisionResource *collRes = rendinst::getRiGenCollisionResource(buffer.desc))
-    for (const CollisionNode &node : collRes->getAllNodes())
-      if ((node.behaviorFlags & CollisionNode::PHYS_COLLIDABLE) && node.physMatId >= 0)
-      {
-        job->physMatId = node.physMatId;
-        break;
-      }
+  if (const auto physMatId = get_destructable_physmat_for_ri(buffer.desc); physMatId != PHYSMAT_INVALID)
+    job->physMatId = physMatId;
   job->sentinelHandle = rendinst::addRIGenExtra44(buffer.desc.pool, buffer.tm, false /*has_collision*/, -1, -1,
     buffer.riExUserData[15], buffer.riExUserData.data());
   g_async_fracture_jobs.addJob(job);
@@ -1101,6 +1110,8 @@ void rendinstdestr::fill_ri_destructable_params(destructables::DestructableCreat
   params.timeToStartDisintegration = disintegrationParams.x;
   params.disintegrationDuration = disintegrationParams.y;
   params.disintegrationScale = disintegrationParams.z;
+  if (const auto physMatId = get_destructable_physmat_for_ri(desc); physMatId != PHYSMAT_INVALID)
+    params.riPhysMatId = physMatId;
 }
 
 
@@ -1248,7 +1259,7 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
       if (destr) //-V1051
       {
         if (impulse.lengthSq() > 0.f)
-          destr->addImpulse(*phys_world, pos, impulse);
+          destr->applyInitialImpulse(*phys_world, mainTm, bbox, pos, impulse);
       }
     }
   }
@@ -1383,7 +1394,7 @@ void rendinstdestr::destroyRiExtra(rendinst::riex_handle_t riex_handle, const TM
     if (destr && impulse.lengthSq() > 0.f)
     {
       G_ASSERTF(lengthSq(impulse) < sqr(MAX_RI_DESTROY_IMPULSE), "Bad destroy rendInst impulse %@", impulse);
-      destr->addImpulse(*phys_world, impulse_pos, impulse);
+      destr->applyInitialImpulse(*phys_world, transform, rendinst::getRIGenBBox(desc), impulse_pos, impulse);
     }
   }
 }

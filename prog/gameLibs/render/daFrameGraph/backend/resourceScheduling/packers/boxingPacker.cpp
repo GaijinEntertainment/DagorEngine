@@ -2151,7 +2151,7 @@ struct BoxingPacker
     }
 
     if (jobs.empty())
-      return PackerOutput{calculatedOffsets, 0};
+      return PackerOutput{.offsets = calculatedOffsets, .heapSize = 0};
 
     const auto loads = calculate_loads(jobs, jobHeights, timepointCount);
     const auto maxLoad = *eastl::max_element(loads.begin(), loads.end());
@@ -2421,7 +2421,7 @@ struct AdhocBoxingPacker
     }
 
     if (jobs.empty())
-      return PackerOutput{calculatedOffsets, 0};
+      return PackerOutput{.offsets = calculatedOffsets, .heapSize = 0};
 
     const auto rawResult = adhoc_cdsa(jobs, jobHeights, timepointCount);
 

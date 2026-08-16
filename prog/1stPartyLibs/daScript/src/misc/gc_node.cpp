@@ -1,6 +1,7 @@
 #include "daScript/misc/platform.h"
 #include "daScript/misc/gc_node.h"
 #include "daScript/misc/crash_handler.h"
+#include "daScript/misc/env_cfg.h"
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -136,6 +137,9 @@ namespace das {
     // when a specific gc_id is assigned. Useful for tracing where a leaked node was born.
 
     static uint64_t gc_init_break_on_id() {
+        if ( auto env = get_dasenv_gc_break_on_id() ) {
+            return strtoull(env, nullptr, 0);
+        }
         return 0;
     }
 

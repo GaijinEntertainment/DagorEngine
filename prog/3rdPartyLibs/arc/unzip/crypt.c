@@ -32,7 +32,11 @@
 
 #ifdef _WIN32
 #  include <windows.h>
-#  include <wincrypt.h>
+#  if _TARGET_XBOX
+#    include <bcrypt.h>
+#  else
+#    include <wincrypt.h>
+#  endif
 #else
 #  include <sys/stat.h>
 #  include <fcntl.h>
@@ -99,10 +103,15 @@ int cryptrand(unsigned char *buf, unsigned int len)
     static unsigned calls = 0;
     int rlen = 0;
 #ifdef _WIN32
-    HCRYPTPROV provider;
     unsigned __int64 pentium_tsc[1];
-    int result = 0;
 
+#if _TARGET_XBOX
+    /* legacy CryptoAPI (CryptAcquireContext/CryptGenRandom) is not available on Xbox GDK */
+    if (BCryptGenRandom(NULL, buf, (ULONG)len, BCRYPT_USE_SYSTEM_PREFERRED_RNG) == 0)
+        return len;
+#else
+    HCRYPTPROV provider;
+    int result = 0;
 
     if (CryptAcquireContext(&provider, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT))
     {
@@ -111,6 +120,7 @@ int cryptrand(unsigned char *buf, unsigned int len)
         if (result)
             return len;
     }
+#endif
 
     for (rlen = 0; rlen < (int)len; ++rlen)
     {

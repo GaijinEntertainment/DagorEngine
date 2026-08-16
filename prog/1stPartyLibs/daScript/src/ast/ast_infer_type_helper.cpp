@@ -79,7 +79,7 @@ namespace das {
     string InferTypes::describeFunction(const Function *fun) const {
         return verbose ? fun->describe() : "";
     }
-    void InferTypes::verifyType(const TypeDeclPtr &decl, bool allowExplicit, bool classMethod) const {
+    void InferTypes::verifyType(const TypeDeclPtr &decl, bool allowExplicit, bool classMethod, bool allowTemplate) const {
         // TODO: enable and cleanup
         if (decl->isExplicit && !allowExplicit) {
             /*
@@ -118,7 +118,7 @@ namespace das {
                               ptrType->at, CompilationError::invalid_annotation_type);
                     }
                 }
-                verifyType(ptrType);
+                verifyType(ptrType, false, false, allowTemplate);
             } else {
                 if (decl->smartPtr) {
                     error("can't declare a void smart pointer", "", "",
@@ -127,7 +127,7 @@ namespace das {
             }
         } else if (decl->baseType == Type::tIterator) {
             if (auto ptrType = decl->firstType) {
-                verifyType(ptrType);
+                verifyType(ptrType, false, false, allowTemplate);
             }
         } else if (decl->baseType == Type::tFixedArray) {
             if (decl->fixedDim <= 0) {
@@ -155,7 +155,19 @@ namespace das {
                     error("can't declare an array of void: '" + describeType(decl) + "'", "", "",
                           decl->at, CompilationError::invalid_array);
                 }
-                verifyType(elemType);
+                verifyType(elemType, false, false, allowTemplate);
+            }
+        } else if (decl->baseType == Type::tDistinct) {
+            auto underlying = decl->firstType;
+            if (!underlying) {
+                error("distinct type is missing its underlying type: '" + describeType(decl) + "'", "", "",
+                      decl->at, CompilationError::invalid_distinct_type);
+            } else if (underlying->baseType == Type::tDistinct) {
+                error("distinct type can't be defined in terms of another distinct type: '" + describeType(decl) + "'", "", "",
+                      decl->at, CompilationError::invalid_distinct_type);
+            } else if (!underlying->isAutoOrAlias() && !underlying->isWorkhorseType()) {
+                error("distinct type underlying type must be a workhorse type: '" + describeType(decl) + "'", "", "",
+                      decl->at, CompilationError::invalid_distinct_type);
             }
         } else if (decl->baseType == Type::tArray) {
             if (auto arrayType = decl->firstType) {
@@ -175,7 +187,7 @@ namespace das {
                     error("can't have array of non-trivial type: '" + describeType(arrayType) + "'", "", "",
                           arrayType->at, CompilationError::invalid_array_type);
                 }
-                verifyType(arrayType);
+                verifyType(arrayType, false, false, allowTemplate);
             }
         } else if (decl->baseType == Type::tTable) {
             if (auto keyType = decl->firstType) {
@@ -187,11 +199,14 @@ namespace das {
                     error("table key can't be declared as a reference: '" + describeType(keyType) + "'", "", "",
                           keyType->at, CompilationError::invalid_table);
                 }
-                if (!(keyType->isWorkhorseType() || (keyType->baseType == Type::tHandle && !keyType->annotation->isRefType()))) {
+                if (keyType->baseType == Type::tDistinct) {
+                    error("distinct type can't be a table key: '" + describeType(keyType) + "'", "", "",
+                          keyType->at, CompilationError::invalid_table_type);
+                } else if (!(keyType->isWorkhorseType() || (keyType->baseType == Type::tHandle && !keyType->annotation->isRefType()))) {
                     error("table key has to be declared as a basic 'hashable' type: '" + describeType(keyType) + "'", "", "",
                           keyType->at, CompilationError::invalid_table_type);
                 }
-                verifyType(keyType);
+                verifyType(keyType, false, false, allowTemplate);
             }
             if (auto valueType = decl->secondType) {
                 if (valueType->isAutoOrAlias()) {
@@ -206,7 +221,7 @@ namespace das {
                     error("can't have table value of non-trivial type: '" + describeType(valueType) + "'", "", "",
                           valueType->at, CompilationError::invalid_table_type);
                 }
-                verifyType(valueType);
+                verifyType(valueType, false, false, allowTemplate);
             }
         } else if (decl->baseType == Type::tBlock || decl->baseType == Type::tFunction || decl->baseType == Type::tLambda) {
             if (auto resultType = decl->firstType) {
@@ -214,14 +229,14 @@ namespace das {
                     error("not a valid return type: '" + describeType(resultType) + "'", "", "",
                           resultType->at, CompilationError::invalid_result_type);
                 }
-                verifyType(resultType);
+                verifyType(resultType, false, false, allowTemplate);
             }
             for (auto &argType : decl->argTypes) {
                 if (!classMethod && (argType->ref && argType->isRefType())) {
                     error("can't pass a boxed type by a reference: '" + describeType(argType) + "'", "", "",
                           argType->at, CompilationError::invalid_argument_type);
                 }
-                verifyType(argType, true);
+                verifyType(argType, true, false, allowTemplate);
             }
         } else if (decl->baseType == Type::tTuple) {
             for (auto &argType : decl->argTypes) {
@@ -237,7 +252,7 @@ namespace das {
                     error("invalid tuple element type: '" + describeType(argType) + "'", "", "",
                           argType->at, CompilationError::invalid_tuple_type);
                 }
-                verifyType(argType);
+                verifyType(argType, false, false, allowTemplate);
             }
         } else if (decl->baseType == Type::tVariant) {
             for (auto &argType : decl->argTypes) {
@@ -253,7 +268,16 @@ namespace das {
                     error("invalid variant element type: '" + describeType(argType) + "'", "", "",
                           argType->at, CompilationError::invalid_variant_type);
                 }
-                verifyType(argType);
+                verifyType(argType, false, false, allowTemplate);
+            }
+        } else if (decl->baseType == Type::tStructure) {
+            // A template structure has no concrete layout, so it can't be used where
+            // a real value would live (parameter, variable, field, result). It IS legal
+            // inside type<>/typeinfo introspection, which is how the typemacro machinery
+            // reads a template's fields to instantiate it -- those sites pass allowTemplate.
+            if (!allowTemplate && decl->structType && decl->structType->isTemplate) {
+                error("can't use template structure " + decl->structType->name + " without instantiation", "", "",
+                        decl->at, CompilationError::invalid_structure_template);
             }
         }
     }
@@ -286,7 +310,8 @@ namespace das {
                 return false; });
         if (rT)
             return rT;
-        TypeDeclPtr mtd = program->makeTypeDeclaration(LineInfo(), name);
+        TypeDeclPtr mtd = program->makeTypeDeclaration(LineInfo(), name,
+            moduleScope.empty() ? nullptr : moduleScope.back());
         return (!mtd || mtd->isAlias()) ? nullptr : mtd;
     }
     TypeDeclPtr InferTypes::findAlias(const string &name, bool *constUnderDim) const {
@@ -326,7 +351,8 @@ namespace das {
                 return false; });
         if (rT)
             return rT;
-        TypeDeclPtr mtd = program->makeTypeDeclaration(LineInfo(), name);
+        TypeDeclPtr mtd = program->makeTypeDeclaration(LineInfo(), name,
+            moduleScope.empty() ? nullptr : moduleScope.back());
         return (!mtd || mtd->isAlias()) ? nullptr : mtd;
     }
 
@@ -607,6 +633,7 @@ namespace das {
     ExprWith *InferTypes::hasMatchingWith(const string &fieldName) const {
         for (auto it = with.rbegin(), its = with.rend(); it != its; ++it) {
             auto eW = *it;
+            if (!eW->with) continue;    // module flavor opens no field scope
             if (auto eWT = eW->with->type) {
                 StructurePtr pSt = nullptr;
                 if (eWT->isStructure()) {
@@ -634,6 +661,7 @@ namespace das {
     ExpressionPtr InferTypes::promoteToProperty(ExprVar *expr, ExpressionPtr right) {
         for (auto it = with.rbegin(), its = with.rend(); it != its; ++it) {
             auto eW = *it;
+            if (!eW->with) continue;    // module flavor opens no field scope
             if (auto eWT = eW->with->type) {
                 StructurePtr pSt = nullptr;
                 if (eWT->isStructure()) {
@@ -1007,6 +1035,19 @@ namespace das {
                 return true; }, moduleName);
         return result;
     }
+    // a return value that never resolves must fail loudly: errors are cleared and
+    // re-reported every pass, so this only sticks if infer converges — where the old
+    // silent skip let the return simulate with a garbage value (wrong code, no diagnostic)
+    void InferTypes::reportUnresolvedReturnValue(ExprReturn *expr) {
+        if (expr->subexpr->rtti_isBlock() && !static_cast<ExprBlock *>(expr->subexpr)->isClosure) {
+            // the known producer: a statement macro (e.g. `match`) folded in value position
+            error("can't return a block", "'match' is a statement, not an expression - write it as a statement and return from its arms", "",
+                  expr->at, CompilationError::invalid_result);
+        } else {
+            error("return subexpression type is not resolved", "", "",
+                  expr->at, CompilationError::not_resolved_yet_expression_type);
+        }
+    }
     bool InferTypes::inferReturnType(TypeDeclPtr &resType, ExprReturn *expr) {
         if (expr->subexpr && expr->subexpr->type && expr->subexpr->type->isVoid()) {
             error("returning void value", "", "",
@@ -1114,7 +1155,10 @@ namespace das {
         }
     }
     bool InferTypes::isConstExprFunc(Function *fun) const {
-        return (fun->sideEffectFlags == 0) && (fun->builtIn) && (fun->result->isFoldable());
+        if ( fun->sideEffectFlags != 0 || !fun->builtIn || !fun->result->isFoldable() ) return false;
+        // BuiltInFunction::noFolding - a bound function whose body may not be callable where the
+        // compiler runs (the AOT compiler stubs C++ bound bodies) must not fold at infer time either
+        return !static_cast<const BuiltInFunction *>(fun)->noFolding;
     }
     ExpressionPtr InferTypes::getConstExpr(Expression *expr) {
         if (expr->rtti_isConstant() && expr->type && expr->type->isFoldable()) {
@@ -1146,6 +1190,55 @@ namespace das {
                     if (variable->init->rtti_isConstant()) {
                         variable->access_fold = true;
                         return variable->init->clone();
+                    } else if (constExprFolding.count(variable) == 0) {
+                        // a const global's init EXPRESSION only folds in place when infer-time
+                        // folding is on; under lint/IDE profiles (no_optimizations) it stays an
+                        // op tree, so compute the value on the side — static_if over such a
+                        // global must resolve identically in every compile profile. The in-flight
+                        // set breaks init cycles (A = B + 1; B = A + 1): a revisited global reads
+                        // as non-constant and the standard init-loop diagnostic reports it.
+                        constExprFolding.insert(variable);
+                        auto foldedInit = getConstExpr(variable->init);
+                        constExprFolding.erase(variable);
+                        if (foldedInit) {
+                            variable->access_fold = true;
+                            return foldedInit;
+                        }
+                    }
+                }
+            }
+        }
+        if (expr->rtti_isOp1()) {
+            // fold a pure builtin operator over a constant operand on a DETACHED clone —
+            // never in place, so profiles that keep source shapes for lint rules still see
+            // the original expression. mirrors the in-place fold in InferTypes::visit(ExprOp1).
+            auto op1 = static_cast<ExprOp1 *>(expr);
+            if (op1->func && op1->subexpr->type && isConstExprFunc(op1->func)) {
+                if (auto scc = getConstExpr(op1->subexpr)) {
+                    auto cloned = expr->clone();
+                    auto clonedOp = static_cast<ExprOp1 *>(cloned);
+                    clonedOp->subexpr = scc;
+                    auto folded = evalAndFold(clonedOp);
+                    if (folded && folded->rtti_isConstant()) {
+                        return folded;
+                    }
+                }
+            }
+        }
+        if (expr->rtti_isOp2()) {
+            // two-operand twin of the ExprOp1 arm above, mirroring InferTypes::visit(ExprOp2)
+            auto op2 = static_cast<ExprOp2 *>(expr);
+            if (op2->func && op2->left->type && op2->right->type && isConstExprFunc(op2->func)) {
+                auto lcc = getConstExpr(op2->left);
+                auto rcc = lcc ? getConstExpr(op2->right) : nullptr;
+                if (lcc && rcc) {
+                    auto cloned = expr->clone();
+                    auto clonedOp = static_cast<ExprOp2 *>(cloned);
+                    clonedOp->left = lcc;
+                    clonedOp->right = rcc;
+                    auto folded = evalAndFold(clonedOp);
+                    if (folded && folded->rtti_isConstant()) {
+                        return folded;
                     }
                 }
             }
@@ -1238,6 +1331,12 @@ namespace das {
             if (typ->secondType && (typ->secondType->constant || !isPodDelete(typ->secondType, dep, hasHeap)))
                 return false;
             hasHeap = true;
+        } else if (typ->baseType == Type::tFixedArray) {
+            // a fixed array's elements are live at init - their pod-delete-ness (and heap) counts.
+            // without this branch Foo[4] fell through to 'true' with hasHeap untouched, so a struct
+            // holding array<int>[4] read as no-heap and force_inscope_pod never collected it
+            if (typ->firstType && (typ->firstType->constant || !isPodDelete(typ->firstType, dep, hasHeap)))
+                return false;
         } else if (typ->baseType == Type::tPointer) {
             return !typ->needDelete(); // pointer is good if we don't need to delete
         } else if (typ->baseType == Type::tIterator || typ->baseType == Type::tBlock || typ->baseType == Type::tLambda || typ->baseType == Type::tFunction) {
@@ -1267,6 +1366,15 @@ namespace das {
         auto c2m = new ExprCall(var->at, "clone_to_move");
         c2m->arguments.push_back(var->init);
         return c2m;
+    }
+
+    ExpressionPtr InferTypes::promoteStringInitToClone(const VariablePtr &var) {
+        reportAstChanged();
+        var->init_via_clone = false;
+        var->init_via_move = false;
+        auto cloneString = new ExprCall(var->at, "clone_string");
+        cloneString->arguments.push_back(var->init);
+        return cloneString;
     }
     bool InferTypes::canRelaxAssign(Expression *init) const {
         if (!relaxedAssign)

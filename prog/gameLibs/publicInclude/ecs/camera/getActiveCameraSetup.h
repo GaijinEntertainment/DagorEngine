@@ -26,6 +26,7 @@ struct CameraSetup
 
   float fovSettings = 90.f;
   float fov = 90.f;
+  float cockpitFov = -1.0f;
   float znear = 0.1f;
   float zfar = 5000.f;
 

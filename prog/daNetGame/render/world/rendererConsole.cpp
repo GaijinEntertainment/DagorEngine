@@ -47,6 +47,7 @@
 
 #include <gui/dag_visualLog.h>
 #include <shaders/dag_shaderDbg.h>
+#include <util/dag_delayedAction.h>
 
 float get_camera_fov();
 extern void set_up_show_shadows_entity(int show_shadows);
@@ -272,12 +273,19 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
     // assume that mode string is null terminated
     showGbufferModes.emplace_back(mode.data());
   }
+  for (eastl::string_view mode : gbuffer_debug_composition_options)
+    showGbufferModes.emplace_back(mode.data());
   CONSOLE_CHECK_NAME_WITH_OPTIONS("render", "show_gbuffer", 1, 3, showGbufferModes)
   {
-    setDebugGbufferMode(argc > 1 ? argv[1] : nullptr);
+    setDebugGbufferMode(argc > 1 ? argv[1] : nullptr, true);
     ShaderGlobal::set_float(get_shader_variable_id("gbuf_debug_scale"), argc > 2 ? console::to_real(argv[2]) : 1.f);
-    set_up_show_gbuffer_entity();
-    console::print("usage: show_gbuffer (%s)", getDebugGbufferUsage().c_str());
+    // Additional game job may own the entity manager when render.show_gbuffer is executed.
+    // Defer this call so that it is executed on main thread after the additional game job has finished.
+    delayed_call([] { set_up_show_gbuffer_entity(); });
+    eastl::string composed;
+    for (eastl::string_view mode : gbuffer_debug_composition_options)
+      composed.append(" ").append(mode.data(), mode.size());
+    console::print("usage: show_gbuffer (%s) or composed view (%s)", getDebugGbufferUsage().c_str(), composed.c_str());
   }
   CONSOLE_CHECK_NAME("render", "show_depth_above", 1, 2)
   {
@@ -307,21 +315,21 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
     console::print("usage: show_gbuffer_with_vectors (%s) [vectors count = 1000] [vectors scale = 0.05]",
       getDebugGbufferWithVectorsUsage().c_str());
   }
-  CONSOLE_CHECK_NAME("render", "show_shadows", 1, 2)
+  eastl::vector<console::CommandOptions> showShadowsOptions = {
+    "static", "csm", "csm_cascades", "contact", "combine", "clouds", "static_cascades", "ssss", "vsm", "grid"};
+  CONSOLE_CHECK_NAME_WITH_OPTIONS("render", "show_shadows", 1, 2, showShadowsOptions)
   {
-    const eastl::array<eastl::string, 9> options = {
-      "static", "csm", "csm_cascades", "contact", "combine", "clouds", "static_cascades", "ssss", "vsm"};
     int show_shadows = -1;
     if (argc > 1)
     {
       int fnd = -2, next_found = -2;
-      for (int i = 0; i < options.size(); ++i)
-        if (stricmp(options[i].c_str(), argv[1]) == 0)
+      for (int i = 0; i < showShadowsOptions.size(); ++i)
+        if (stricmp(showShadowsOptions[i].name, argv[1]) == 0)
         {
           fnd = i;
           break;
         }
-        else if (strstr(options[i].c_str(), argv[1]) == options[i].c_str())
+        else if (strstr(showShadowsOptions[i].name, argv[1]) == showShadowsOptions[i].name.c_str())
         {
           next_found = next_found == -2 || show_shadows == next_found ? i : next_found;
         }
@@ -332,8 +340,8 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
     }
     set_up_show_shadows_entity(show_shadows);
     String str;
-    for (int i = 0; i < options.size(); ++i)
-      str.aprintf(128, " %s", options[i]);
+    for (int i = 0; i < showShadowsOptions.size(); ++i)
+      str.aprintf(128, " %s", showShadowsOptions[i].name);
     console::print("usage: show_shadows (%s), %d", str.str(), show_shadows);
   }
   CONSOLE_CHECK_NAME("render", "debug_indoor_probes_on_screen", 1, 2)
@@ -488,6 +496,10 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
       changed.addNameId(argv[1]);
       get_world_renderer()->onSettingsChanged(changed, false); // won't cause videomode change anyway
     }
+  }
+  CONSOLE_CHECK_NAME("render", "reset_convergence_markers", 1, 1)
+  {
+    ((WorldRenderer *)get_world_renderer())->resetConvergenceMarkers();
   }
   CONSOLE_CHECK_NAME("skies", "switchVolumetricAndPanoramicClouds", 1, 1)
   {

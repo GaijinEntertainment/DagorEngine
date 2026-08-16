@@ -1,4 +1,5 @@
 options gen2
+options disable_auto_inline    // this test pins lint diagnostics; splicing would reshape them
 expect 30500:3, 30508, 30510, 30512:2, 30513
 
 require dastest/testing_boost public

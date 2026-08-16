@@ -27,7 +27,6 @@ typedef Coroutines = array<Coroutine>
 [macro_function]
 def private verify_inside_coroutine(prog : ProgramPtr; call : ExprCallMacro?&) : bool {
     //! Verifies that a call macro is being used inside a [coroutine] or [async] annotated function.
-    //! Returns true if valid, false if not (and emits macro_error).
     if (call.inFunction == null) return true
     for (ann in call.inFunction.annotations) {
         if (ann.annotation.name == "coroutine" || ann.annotation.name == "async") return true
@@ -38,12 +37,7 @@ def private verify_inside_coroutine(prog : ProgramPtr; call : ExprCallMacro?&) :
 
 [call_macro(name="yeild_from")]
 class private YieldFrom : AstCallMacro {
-    //! This macro converts yield_from(THAT) expression into::
-    //!
-    //!     for t in THAT
-    //!         yield t
-    //!
-    //! The idea is that coroutine or generator can continuously yield from another sub-coroutine or generator.
+    //! This macro converts a ``yeild_from(THAT)`` expression into equivalent inline code.
     def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : Expression? {
         //! Visits the yeild_from macro call and rewrites it into a for-yield loop.
         macro_verify(call.arguments |> length == 1, prog, call.at, "expecting yeild_from(iterator)")
@@ -75,12 +69,7 @@ class private CoContinue : AstCallMacro {
 
 [call_macro(name="co_await")]
 class private CoAwait : AstCallMacro {
-    //! This macro converts co_await(sub_coroutine) into::
-    //!
-    //!     for t in subroutine
-    //!         yield t
-    //!
-    //! The idea is that coroutine or generator can wait for a sub-coroutine to finish.
+    //! This macro converts ``co_await(sub_coroutine)`` into equivalent inline code.
     def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : Expression? {
         //! Visits the co_await macro call and rewrites it into a for-yield loop over the sub-coroutine.
         macro_verify(call.arguments |> length == 1, prog, call.at, "expecting co_await(subroutine)")
@@ -97,10 +86,6 @@ class private CoAwait : AstCallMacro {
 [function_macro(name="coroutine")]
 class private CoroutineMacro : AstFunctionAnnotation {
     //! This macro converts coroutine function into generator, adds return false.
-    //! Daslang implementation of coroutine is generator based. Function is converted into a state machine,
-    //! which can be resumed and suspended. The function is converted into a generator.
-    //! Generator yields bool if its a void coroutine, and yields the return type otherwise.
-    //! If return type is specified coroutine can serve as an advanced form of a generator.
     def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
         //! Transforms the annotated function into a generator-based coroutine.
         var retT : TypeDeclPtr

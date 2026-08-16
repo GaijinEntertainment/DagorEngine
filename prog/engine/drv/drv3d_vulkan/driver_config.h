@@ -67,6 +67,9 @@ struct DriverConfig
   // this means there is too much pipes or we trashed cache by something like caching all variants of various configs
   // or we must allow system to handle bigger file sizes
   uint32_t pipelineCacheMaxSizeMb;
+  // controls default stage of weak defined signal waits
+  // can be usefull on ARM to overlap hidden tiling work
+  VkPipelineStageFlags signalWaitStage;
 
   struct
   {
@@ -103,6 +106,7 @@ struct DriverConfig
     bool headless : 1;
     // enable pre rotation in swapchain on android
     bool preRotation : 1;
+    bool appHandledPreRotation : 1;
     // record command caller stack for each replay command
     bool recordCommandCaller : 1;
     // allow DMA buffer lock path (i.e. mapped memory non-staging writes)
@@ -160,6 +164,9 @@ struct DriverConfig
     bool stageRubThroughCpu : 1;
     // use vulkan memory allocation callbacks to track memory consumption
     bool useCustomAllocationCallbacks : 1;
+    // route host allocations through a guarded allocator (redzones, double-free and
+    // over/underrun detection) to catch driver host-heap corruption at its source
+    bool guardVulkanAllocations : 1;
     // do not use QFOT barriers, possible with maintenance 9 or with NV because,
     // but better to keep such logic data driven
     bool ignoreQueueFamilyOwnershipTransferBarriers : 1;
@@ -190,6 +197,8 @@ struct DriverConfig
     bool sampledDepthReadOnlyLayout : 1;
     // delay copy to destination buffer for compaction queries
     bool delayCompactionSizeCopy : 1;
+    // records internal GPU work that is not attributed by GPU profiler markers normally
+    bool recordInternalGPUWorkTimestamps : 1;
   };
 
   struct DeviceBits

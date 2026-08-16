@@ -11,6 +11,11 @@ namespace dafg
 {
 void reset_texture_visualization() { clear_visualization_node(); }
 
+void debug_send_blob_data(NodeNameId node_id, ResNameId res_id, const BlobView &view)
+{
+  Runtime::get().getVisualizerPtr()->sendBlobData(node_id, res_id, view);
+}
+
 void debug_clear_resource_placements() { Runtime::get().getVisualizerPtr()->clearResourcePlacements(); }
 
 void debug_clear_resource_barriers() { Runtime::get().getVisualizerPtr()->clearResourceBarriers(); }

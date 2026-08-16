@@ -94,6 +94,17 @@ def test_variant(t : T?) {
     }
     t |> success(paniced)
 
+    // r2v `as` read (value consumed directly, e.g. in arithmetic) must check the index too
+    var paniced_r2v = false
+    try {
+        let y = (u as i_value) + 1u                                 // will assert, because u is f_value
+        feint("{y}")
+    } recover {
+        paniced_r2v = true
+    }
+    t |> success(paniced_r2v)
+    t |> equal((u as f_value) + 1.0, 2.0)
+
     unsafe {
         t |> equal(u.f_value, 1.0)
     }
@@ -101,7 +112,7 @@ def test_variant(t : T?) {
     t |> equal(u as i_value, 0x40000000)
     u = U_F(f_value = 1.0)
 
-    var t2 = [U_F(i_value=1u), U_F(f_value=2.0)]
+    let t2 = [U_F(i_value=1u), U_F(f_value=2.0)]
     t |> equal(length(t2), 2)
     t |> success(t2[0] is i_value && t2[0] as i_value == 1u)
     t |> success(t2[1] is f_value && t2[1] as f_value == 2.0)
@@ -124,7 +135,7 @@ def test_variant(t : T?) {
         set_variant_index(x, 1)
         x.a <- [for (tt in range(10)); tt]
     }
-    var y := x
+    let y := x
     t |> success(y is a)
     for (tt in range(10)) {
         t |> equal(y as a[tt], tt)

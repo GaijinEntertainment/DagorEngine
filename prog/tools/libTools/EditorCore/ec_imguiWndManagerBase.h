@@ -101,68 +101,35 @@ public:
 
   void setMenuArea(void *handle, hdpi::Px width, hdpi::Px height) override {}
 
-  void addAccelerator(unsigned cmd_id, ImGuiKeyChord key_chord) override
+  void addAccelerator(unsigned cmd_id, ImGuiKeyChord key_chord) override { addAcceleratorInternal(cmd_id, key_chord); }
+
+  void addAccelerator(unsigned cmd_id, const char *editor_command_id) override { addAcceleratorInternal(cmd_id, editor_command_id); }
+
+  void addViewportAccelerator(unsigned cmd_id, ImGuiKeyChord key_chord, bool allow_repeat) override
   {
-    Accelerator accelerator(cmd_id, key_chord);
-    accelerators.push_back(eastl::move(accelerator));
+    addAcceleratorInternal(cmd_id, key_chord, allow_repeat, /*viewport_accelerator = */ true);
   }
 
-  void addAccelerator(unsigned cmd_id, const char *editor_command_id) override
+  void addViewportAccelerator(unsigned cmd_id, const char *editor_command_id, bool allow_repeat) override
   {
-    const EditorCommand *command = ec_editor_commands.getCommand(editor_command_id);
-    if (!command)
-      return;
-
-    for (int i = 0; i < command->getHotkeyCount(); ++i)
-    {
-      Accelerator accelerator(cmd_id, command->getKeyChord(i));
-      accelerators.push_back(eastl::move(accelerator));
-    }
-
-    ec_editor_commands.setCommandCmdId(editor_command_id, cmd_id);
+    addAcceleratorInternal(cmd_id, editor_command_id, allow_repeat, /*viewport_accelerator = */ true);
   }
 
-  void addViewportAccelerator(unsigned cmd_id, ImGuiKeyChord key_chord, bool allow_repeat = false) override
-  {
-    Accelerator accelerator(cmd_id, key_chord, allow_repeat);
-    viewportAccelerators.push_back(eastl::move(accelerator));
-  }
+  void clearAccelerators() override { accelerators.clear(); }
 
-  void addViewportAccelerator(unsigned cmd_id, const char *editor_command_id, bool allow_repeat = false) override
-  {
-    const EditorCommand *command = ec_editor_commands.getCommand(editor_command_id);
-    if (!command)
-      return;
-
-    for (int i = 0; i < command->getHotkeyCount(); ++i)
-    {
-      Accelerator accelerator(cmd_id, command->getKeyChord(i), allow_repeat);
-      viewportAccelerators.push_back(eastl::move(accelerator));
-    }
-
-    ec_editor_commands.setCommandCmdId(editor_command_id, cmd_id);
-  }
-
-  void clearAccelerators() override
-  {
-    accelerators.clear();
-    viewportAccelerators.clear();
-  }
-
-  unsigned processImguiAccelerator() override
+  unsigned processImguiAccelerator(bool has_active_viewport, bool &viewport_accelerator) override
   {
     for (const Accelerator &accelerator : accelerators)
+    {
+      if (accelerator.viewportAccelerator && !has_active_viewport)
+        continue;
+
       if (ImGui::Shortcut(accelerator.keyChord, accelerator.inputFlags | ImGuiInputFlags_RouteGlobal))
+      {
+        viewport_accelerator = accelerator.viewportAccelerator;
         return accelerator.cmdId;
-
-    return 0;
-  }
-
-  unsigned processImguiViewportAccelerator(ImGuiID viewport_id) override
-  {
-    for (const Accelerator &accelerator : viewportAccelerators)
-      if (ImGui::Shortcut(accelerator.keyChord, accelerator.inputFlags, viewport_id))
-        return accelerator.cmdId;
+      }
+    }
 
     return 0;
   }
@@ -170,7 +137,8 @@ public:
 private:
   struct Accelerator
   {
-    Accelerator(unsigned cmd_id, ImGuiKeyChord key_chord, bool allow_repeat = false) : cmdId(cmd_id), keyChord(key_chord)
+    Accelerator(unsigned cmd_id, ImGuiKeyChord key_chord, bool allow_repeat = false, bool viewport_accelerator = false) :
+      cmdId(cmd_id), keyChord(key_chord), viewportAccelerator(viewport_accelerator)
     {
       G_ASSERT(cmd_id != 0);
 
@@ -182,10 +150,29 @@ private:
     unsigned cmdId;
     ImGuiKeyChord keyChord;
     ImGuiInputFlags inputFlags;
+    bool viewportAccelerator;
   };
+
+  void addAcceleratorInternal(unsigned cmd_id, ImGuiKeyChord key_chord, bool allow_repeat = false, bool viewport_accelerator = false)
+  {
+    Accelerator accelerator(cmd_id, key_chord, allow_repeat, viewport_accelerator);
+    accelerators.push_back(eastl::move(accelerator));
+  }
+
+  void addAcceleratorInternal(unsigned cmd_id, const char *editor_command_id, bool allow_repeat = false,
+    bool viewport_accelerator = false)
+  {
+    const EditorCommand *command = ec_editor_commands.getCommand(editor_command_id);
+    if (!command)
+      return;
+
+    for (int i = 0; i < command->getHotkeyCount(); ++i)
+      addAcceleratorInternal(cmd_id, command->getKeyChord(i), allow_repeat, viewport_accelerator);
+
+    ec_editor_commands.setCommandCmdId(editor_command_id, cmd_id);
+  }
 
   dag::Vector<void *> windows;
   dag::Vector<IWndManagerWindowHandler *> handlers;
   dag::Vector<Accelerator> accelerators;
-  dag::Vector<Accelerator> viewportAccelerators;
 };

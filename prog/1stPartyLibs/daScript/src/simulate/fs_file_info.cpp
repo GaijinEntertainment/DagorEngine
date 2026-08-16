@@ -91,8 +91,8 @@ namespace das {
         createFileSystems();
     }
 
-    FsFileAccess::FsFileAccess ( const string & pak, const FileAccessPtr & access )
-        : ModuleFileAccess (pak, access) {
+    FsFileAccess::FsFileAccess ( const string & pak, const smart_ptr<Program> & program )
+        : ModuleFileAccess (pak, program) {
         createFileSystems();
     }
 
@@ -235,7 +235,15 @@ namespace das {
 
     ModuleInfo FsFileAccess::getModuleInfo ( const string & req, const string & from ) const {
         if (!failed()) {
-            return ModuleFileAccess::getModuleInfo(req, from);
+            // A project's module_get() owns resolution, but an empty result means
+            // "I don't handle this require" -- fall through to the default mount-aware
+            // resolution below (daslib / native modules / dynamic modules / extraRoots)
+            // rather than reporting a missing prerequisite. This lets a project file
+            // override a single module and delegate everything else by returning ("","","").
+            ModuleInfo info = ModuleFileAccess::getModuleInfo(req, from);
+            if ( !info.fileName.empty() ) {
+                return info;
+            }
         }
 #if !defined(DAS_NO_FILEIO)
         // file-path mode: trigger on .das or .das_project suffix + ./, ../, %/ prefix

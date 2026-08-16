@@ -43,6 +43,7 @@
 #include <render/world/wrDispatcher.h>
 #include <render/world/shadowsManager.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
+#include <render/world/bvh.h>
 
 
 ECS_REGISTER_EVENT(AnimcharRenderAsyncEvent)
@@ -77,11 +78,14 @@ extern ShaderBlockIdHolder dynamicTransSceneBlockId, dynamicSceneBlockId, dynami
 
 using namespace dynrend;
 
-static void update_animchar_lods(
-  bool *animchar__switched_lod, DynamicRenderableSceneInstance *scene, const vec4f &animchar_bsph, const vec4f camPos)
+static void update_animchar_lods(bool *animchar__switched_lod,
+  DynamicRenderableSceneInstance *scene,
+  const vec4f &animchar_bsph,
+  const vec4f camPos,
+  float lod_dist_mul)
 {
   const int curLodNo = scene->getCurrentLodNo();
-  const int newLodNo = scene->chooseLodByDistSq(v_extract_x(v_length3_sq_x(v_sub(camPos, animchar_bsph))));
+  const int newLodNo = scene->chooseLodByDistSq(v_extract_x(v_length3_sq_x(v_sub(camPos, animchar_bsph))), lod_dist_mul);
 
   if (animchar__switched_lod)
     *animchar__switched_lod = curLodNo != newLodNo;
@@ -139,6 +143,7 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
   }
 
   vec4f dirFromSunV = v_ldu(&stg.dirFromSun.x);
+  const bool bvhDoEarlyOcclusionCulling = bvh_do_early_occlusion_culling();
 
   animchar_render_objects_prepare_ecs_query(manager,
     [&](AnimV20::AnimcharRendComponent &animchar_render, const AnimcharNodesMat44 &animchar_node_wtm,
@@ -211,7 +216,17 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
       DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
       G_ASSERT_RETURN(scene != nullptr, );
 
-      update_animchar_lods(animchar__switched_lod, scene, animchar_bsph, camPos);
+      float lodDistMul = 1;
+      if (bvhDoEarlyOcclusionCulling)
+      {
+        if (stg.mainCullingFrustum.testSphereB(animchar_bsph, v_splat_w(animchar_bsph)) &&
+            (!stg.mainOcclusion || stg.mainOcclusion->isVisibleSphere(animchar_bsph, v_splat_w(animchar_bsph))))
+          animchar_visbits |= VISFLG_BVH_MAIN_VISIBLE;
+        else
+          lodDistMul = get_bvh_animchar_lod_dist_mul();
+      }
+
+      update_animchar_lods(animchar__switched_lod, scene, animchar_bsph, camPos, lodDistMul);
       update_geom_tree(animchar_render, animchar_node_wtm, stg.negRoundedCamPos, stg.negRemainderCamPos);
     });
 
@@ -233,7 +248,7 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
         DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
         G_ASSERT_RETURN(scene != nullptr, );
 
-        update_animchar_lods(animchar__switched_lod, scene, animchar_bsph, camPos);
+        update_animchar_lods(animchar__switched_lod, scene, animchar_bsph, camPos, 1);
         update_geom_tree(animchar_render, animchar_node_wtm, stg.negRoundedCamPos, stg.negRemainderCamPos);
       });
   }
@@ -273,11 +288,12 @@ void preprocess_visible_animchars_in_frustum(
   const UpdateStageInfoBeforeRender &stg,
   const Frustum &frustum,
   const vec3f &eye_pos,
-  AnimcharVisbits custom_flag_to_add)
+  AnimcharVisbits custom_flag_to_add,
+  float lod_dist_mul)
 {
   preprocess_visible_animchars_in_frustum_ecs_query(*g_entity_mgr,
     [&](AnimV20::AnimcharRendComponent &animchar_render, const AnimcharNodesMat44 &animchar_node_wtm, const vec4f &animchar_bsph,
-      animchar_visbits_t &animchar_visbits, bool animchar_render__enabled, bool *animchar__switched_lod = nullptr) {
+      animchar_visbits_t &animchar_visbits, bool animchar_render__enabled = true, bool *animchar__switched_lod = nullptr) {
       if (!animchar_render__enabled || !(animchar_visbits & VISFLG_WITHIN_RANGE))
         return;
       // animchar_bsph is already calculated if the animchar is within range
@@ -291,7 +307,7 @@ void preprocess_visible_animchars_in_frustum(
         DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
         G_ASSERT_RETURN(scene != nullptr, );
 
-        update_animchar_lods(animchar__switched_lod, scene, animchar_bsph, eye_pos);
+        update_animchar_lods(animchar__switched_lod, scene, animchar_bsph, eye_pos, lod_dist_mul);
         animchar_visbits |= VISFLG_LOD_CHOSEN;
       }
 
@@ -423,7 +439,8 @@ static void animchar_render_opaque_async_es(const AnimcharRenderAsyncEvent &stg,
   ContextId ctx = stg.ctx;
 
   const animchar_visbits_t add_vis_bits = stg.add_vis_bits;
-  const animchar_visbits_t check_bits = stg.check_bits;
+  const animchar_visbits_t require_any_vis_bits = stg.require_any_vis_bits;
+  const animchar_visbits_t reject_if_any_vis_bits = stg.reject_if_any_vis_bits;
   // for shadows we use imprecise 'just sphere' culling.
   // we can test box, but usually sphere is good enough
   const auto needPreviousMatrices = stg.needPrevious ? NeedPreviousMatrices::Yes : NeedPreviousMatrices::No;
@@ -444,8 +461,10 @@ static void animchar_render_opaque_async_es(const AnimcharRenderAsyncEvent &stg,
         return;
 
       // Check visibility
-      if (!(interlocked_relaxed_load(animchar_visbits) & check_bits) ||
-          !stg.cullingFrustum.testSphereB(animchar_bsph, v_splat_w(animchar_bsph)) ||
+      const animchar_visbits_t visbits = interlocked_relaxed_load(animchar_visbits);
+      const bool hasValidVisbits = (visbits & require_any_vis_bits) && !(visbits & reject_if_any_vis_bits);
+
+      if (!hasValidVisbits || !stg.cullingFrustum.testSphereB(animchar_bsph, v_splat_w(animchar_bsph)) ||
           (occlusion && !occlusion->isVisibleBox(animchar_attaches_bbox ? animchar_attaches_bbox->bmin : animchar_bbox.bmin,
                           animchar_attaches_bbox ? animchar_attaches_bbox->bmax : animchar_bbox.bmax)))
         return;
@@ -476,7 +495,7 @@ static void render_dynrend_ctx(ContextId ctx, int block)
 // If eid is valid, it will only render that entity. Otherwise all entities.
 static void animchar_render_opaque(ecs::EntityId eid, const UpdateStageInfoRender &stg)
 {
-  if ((stg.hints & stg.RENDER_MAIN) && stg.asyncAnimcharCtx != ContextId::INVALID)
+  if ((stg.hints & stg.RENDER_MAIN) && dynrend::is_valid_context(stg.asyncAnimcharCtx))
   {
     TIME_D3D_PROFILE(animchar_render_sync);
     TMatrix vtm = stg.viewTm;
@@ -489,16 +508,25 @@ static void animchar_render_opaque(ecs::EntityId eid, const UpdateStageInfoRende
   }
   TIME_D3D_PROFILE(animchar_render);
 
-  const uint32_t mainHints = (stg.RENDER_MAIN | stg.RENDER_COLOR);
-  const animchar_visbits_t add_vis_bits = (stg.hints & (mainHints | stg.RENDER_SHADOW)) == mainHints
-                                            ? VISFLG_MAIN_VISIBLE | VISFLG_MAIN_CAMERA_RENDERED
-                                          : stg.hints & stg.RENDER_SHADOW ? VISFLG_CSM_SHADOW_RENDERED
-                                                                          : 0;
-  const animchar_visbits_t check_bits =
-    (stg.hints & UpdateStageInfoRender::RENDER_MAIN)
-      ? ((stg.hints & UpdateStageInfoRender::RENDER_SHADOW) ? VISFLG_MAIN_AND_SHADOW_VISIBLE
-                                                            : (VISFLG_MAIN_AND_SHADOW_VISIBLE | VISFLG_MAIN_VISIBLE))
-      : VISFLG_WITHIN_RANGE | VISFLG_COCKPIT_VISIBLE;
+  const bool stgMain = (stg.hints & UpdateStageInfoRender::RENDER_MAIN) != 0;
+  const bool stgShadow = (stg.hints & UpdateStageInfoRender::RENDER_SHADOW) != 0;
+  const bool stgColor = (stg.hints & UpdateStageInfoRender::RENDER_COLOR) != 0;
+
+  // clang-format off
+  const animchar_visbits_t add_vis_bits =
+    stgMain && stgColor && !stgShadow ? VISFLG_MAIN_VISIBLE | VISFLG_MAIN_CAMERA_RENDERED :
+                            stgShadow ? VISFLG_CSM_SHADOW_RENDERED
+                                      : 0;
+
+  const animchar_visbits_t require_any_vis_bits =
+    stgMain ?
+      VISFLG_MAIN_AND_SHADOW_VISIBLE | (stgShadow ? 0 : VISFLG_MAIN_VISIBLE) :
+      VISFLG_WITHIN_RANGE            | VISFLG_COCKPIT_VISIBLE ;
+
+  // clang-format on
+  const animchar_visbits_t reject_if_any_vis_bits = stgMain && !stgShadow ? VISFLG_COCKPIT_VISIBLE : 0;
+
+
   // for shadows we use imprecise 'just sphere' culling.
   // we can test box, but usually sphere is good enough
 
@@ -528,7 +556,9 @@ static void animchar_render_opaque(ecs::EntityId eid, const UpdateStageInfoRende
                        const bbox3f *animchar_attaches_bbox, const AnimV20::AnimcharRendComponent &animchar_render,
                        const ecs::Point4List *additional_data, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters,
                        const ecs::Tag *invisibleUpdatableAnimchar, bool animchar__renderPriority) {
-    if (!(animchar_visbits & check_bits) || !stg.cullingFrustum.testSphereB(animchar_bsph, v_splat_w(animchar_bsph)) ||
+    const bool hasValidVisbits = (animchar_visbits & require_any_vis_bits) && !(animchar_visbits & reject_if_any_vis_bits);
+
+    if (!hasValidVisbits || !stg.cullingFrustum.testSphereB(animchar_bsph, v_splat_w(animchar_bsph)) ||
         (occlusion && !occlusion->isVisibleBox(animchar_attaches_bbox ? animchar_attaches_bbox->bmin : animchar_bbox.bmin,
                         animchar_attaches_bbox ? animchar_attaches_bbox->bmax : animchar_bbox.bmax)))
       return;

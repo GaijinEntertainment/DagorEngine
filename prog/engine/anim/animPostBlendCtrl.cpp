@@ -551,7 +551,7 @@ void AnimPostBlendAlignCtrl::createNode(AnimationGraph &graph, const DataBlock &
 
   Point3 euler = blk.getPoint3("rot_euler", Point3(0, 0, 0)) * PI / 180;
 
-  v_mat33_make_rot_cw_zyx(node->tmRot, v_neg(v_ldu(&euler.x)));
+  v_mat33_make_rot_cw_zyx(node->tmRot, v_neg(v_ldu_p3_safe(&euler.x)));
 
   node->useLocal = blk.getBool("useLocal", false);
 
@@ -2458,7 +2458,7 @@ void AnimPostBlendNodeLookatCtrl::createNode(AnimationGraph &graph, const DataBl
   AnimPostBlendNodeLookatCtrl *node = new AnimPostBlendNodeLookatCtrl(graph, pname ? pname : var_name.c_str());
 
   Point3 euler = blk.getPoint3("rot_euler", Point3(0, 0, 0)) * PI / 180;
-  v_mat33_make_rot_cw_zyx(node->tmRot, v_neg(v_ldu(&euler.x)));
+  v_mat33_make_rot_cw_zyx(node->tmRot, v_neg(v_ldu_p3_safe(&euler.x)));
   v_mat33_inverse(node->itmRot, node->tmRot);
 
   node->leftTm = blk.getBool("leftTm", true);
@@ -3265,14 +3265,14 @@ void AnimPostBlendCompoundRotateShift::createNode(AnimationGraph &graph, const D
 
   Point3 euler = blk.getPoint3("preRotEuler", Point3(0, 0, 0)) * PI / 180;
   Point3 scale = blk.getPoint3("preScale", Point3(1, 1, 1));
-  v_mat33_make_rot_cw_zyx(node->tmRot[0], v_neg(v_ldu(&euler.x)));
+  v_mat33_make_rot_cw_zyx(node->tmRot[0], v_neg(v_ldu_p3_safe(&euler.x)));
   node->tmRot[0].col0 = v_mul(node->tmRot[0].col0, v_splats(scale.x));
   node->tmRot[0].col1 = v_mul(node->tmRot[0].col1, v_splats(scale.y));
   node->tmRot[0].col2 = v_mul(node->tmRot[0].col2, v_splats(scale.z));
 
   euler = blk.getPoint3("postRotEuler", Point3(0, 0, 0)) * PI / 180;
   scale = blk.getPoint3("postScale", Point3(1, 1, 1));
-  v_mat33_make_rot_cw_zyx(node->tmRot[1], v_neg(v_ldu(&euler.x)));
+  v_mat33_make_rot_cw_zyx(node->tmRot[1], v_neg(v_ldu_p3_safe(&euler.x)));
   node->tmRot[1].col0 = v_mul(node->tmRot[1].col0, v_splats(scale.x));
   node->tmRot[1].col1 = v_mul(node->tmRot[1].col1, v_splats(scale.y));
   node->tmRot[1].col2 = v_mul(node->tmRot[1].col2, v_splats(scale.z));
@@ -3654,7 +3654,7 @@ void AnimPostBlendHumanAimCtrl::process(AnimGraphStateHolder &st, real wt, GeomN
   if (pitchVarId != -1)
     offset.z = st.getParam(pitchVarId) * DEG_TO_RAD;
 
-  v = v_ldu_p3(&offset.x);
+  v = v_ldu_p3_safe(&offset.x);
   v_mat33_make_rot_cw_zyx(m, v);
   v_mat44_mul33(newNodeWtm, newNodeWtm, m);
 
@@ -3665,7 +3665,7 @@ void AnimPostBlendHumanAimCtrl::process(AnimGraphStateHolder &st, real wt, GeomN
     offset.y = st.getParam(offsetYVar);
   if (offsetZVar != -1)
     offset.z = st.getParam(offsetZVar);
-  v = v_ldu_p3(&offset.x);
+  v = v_ldu_p3_safe(&offset.x);
   v = v_madd(v, offsetMul, offsetAdd);
   v = v_mat44_mul_vec3v(newNodeWtm, v);
   // Apply weapon specific weapon offsets as different weapons might want to put root node in different places relative to rotation
@@ -3697,7 +3697,7 @@ void AnimPostBlendHumanAimCtrl::createNode(AnimationGraph &graph, const DataBloc
 
   Point3 p;
   p = blk.getPoint3("rotateAroundNodeOffset", Point3(0.0f, 0.0f, 0.0f));
-  node->rotateAroundNodeOffset = v_ldu(&p.x);
+  node->rotateAroundNodeOffset = v_ldu_p3_safe(&p.x);
 
   node->pitchVarId = graph.addParamIdEx(blk.getStr("pitchVar", nullptr), AnimGraphStateHolder::PT_ScalarParam);
   node->yawVarId = graph.addParamIdEx(blk.getStr("yawVar", nullptr), AnimGraphStateHolder::PT_ScalarParam);
@@ -3707,9 +3707,9 @@ void AnimPostBlendHumanAimCtrl::createNode(AnimationGraph &graph, const DataBloc
   node->offsetYVar = graph.addParamIdEx(blk.getStr("offsetYVar", nullptr), AnimGraphStateHolder::PT_ScalarParam);
   node->offsetZVar = graph.addParamIdEx(blk.getStr("offsetZVar", nullptr), AnimGraphStateHolder::PT_ScalarParam);
   p = blk.getPoint3("offsetMul", Point3(1.0f, 1.0f, 1.0f));
-  node->offsetMul = v_ldu(&p.x);
+  node->offsetMul = v_ldu_p3_safe(&p.x);
   p = blk.getPoint3("offsetAdd", Point3(0.0f, 0.0f, 0.0f));
-  node->offsetAdd = v_ldu(&p.x);
+  node->offsetAdd = v_ldu_p3_safe(&p.x);
 
   // allocate state variable
   String varName = String("var") + name;
@@ -3787,6 +3787,17 @@ void AnimPostBlendTwoBonesIK::process(AnimGraphStateHolder &st, real wt, GeomNod
       flex_direction = v_neg(flex_direction);
     }
 
+    if (rec[i].rotateFlexDirectionParamId >= 0)
+    {
+      vec3f axis = v_sub(end_wtm.col3, start_wtm.col3);
+      if (v_extract_x(v_length3_sq_x(axis)) > 1e-5f)
+      {
+        axis = v_norm3(axis);
+        vec4f angle = v_splats(st.getParam(rec[i].rotateFlexDirectionParamId) * DEG_TO_RAD);
+        flex_direction = v_quat_mul_vec3(v_quat_from_unit_vec_ang(axis, angle), flex_direction);
+      }
+    }
+
     solve_2bones_ik(start_wtm, middle_wtm, end_wtm, target_wtm, nodes[i].len0, nodes[i].len1, flex_direction, rec[i].maxReachScale);
 
     if (rec[i].forceReachTarget)
@@ -3835,6 +3846,7 @@ void AnimPostBlendTwoBonesIK::createNode(AnimationGraph &graph, const DataBlock 
       const char *startNodeName = b.getStr("start", NULL);
       const char *middleNodeName = b.getStr("middle", NULL);
       const char *endNodeName = b.getStr("end", NULL);
+      const char *rotateFlexVarName = b.getStr("rotateFlexDirectionVar", NULL);
       if (startNodeName && middleNodeName && endNodeName)
       {
         IKRec &r = node->rec.push_back();
@@ -3847,6 +3859,8 @@ void AnimPostBlendTwoBonesIK::createNode(AnimationGraph &graph, const DataBlock 
         r.flexDirection = b.getPoint3("flexDirection", Point3(0, 0, 0));
         r.useCustomFlexDirection = r.flexDirection.lengthSq() > 0.f;
         r.flexLocalToNodeName = b.getStr("flexLocalToNode", NULL);
+        r.rotateFlexDirectionParamId =
+          rotateFlexVarName ? graph.addParamIdEx(rotateFlexVarName, AnimGraphStateHolder::PT_ScalarParam) : -1;
       }
       else
       {

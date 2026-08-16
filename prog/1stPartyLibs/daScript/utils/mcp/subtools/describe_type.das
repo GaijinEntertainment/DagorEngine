@@ -53,7 +53,7 @@ def write_struct_detail(var w : StringBuilderWriter; value; mod : Module?) {
 
 def write_handled_type_detail(var w : StringBuilderWriter; value : Annotation const; mod : Module?) {
     write(w, "handled {value.name}")
-    var ann = unsafe(reinterpret<BasicStructureAnnotation?> value)
+    var ann = unsafe(reinterpret<BasicStructureAnnotation?>(value))
     basic_struct_for_each_parent(*ann) $(parent) {
         write(w, " : {parent.name}")
     }

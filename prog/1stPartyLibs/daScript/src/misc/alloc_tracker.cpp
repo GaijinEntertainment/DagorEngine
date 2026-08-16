@@ -514,12 +514,16 @@ static void dump_alloc_leaks_atexit() {
         return;
     }
     uint64_t leaked = dump_alloc_leaks(stderr);
+    // The lexer's per-NAME-token strings are a bounded compile-time
+    // retention, not a runtime leak; let embedders opt out of this dump.
+#if !defined(DAS_DONT_REPORT_LEXER_LEAKS)
     dump_lexer_string_leaks(stderr);
+#endif
     if (leaked > 0) {
         // Surface leaks as non-zero exit so CI / scripts can detect.
         // _Exit skips remaining atexit handlers (already dumped what we need).
         fflush(stderr);
-        // std::_Exit(1);
+        // std::_Exit(1);   // dagor: leak dump is informational, must not fail the build tools
     }
 }
 

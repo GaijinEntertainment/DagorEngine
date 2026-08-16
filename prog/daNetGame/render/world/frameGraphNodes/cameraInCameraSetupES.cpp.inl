@@ -33,14 +33,14 @@ eastl::fixed_vector<dafg::NodeHandle, 2, false> makeCameraInCameraSetupNodes()
   nodes.emplace_back(dafg::register_node("lens_camera_provider_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     auto lensCameraHndl = registry.createBlob<CameraParams>("lens_area_camera").withHistory().handle();
     auto prevLensCameraHndl = registry.readBlobHistory<CameraParams>("lens_area_camera").handle();
-    auto mainCameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
-    auto prevMainCameraHndl = registry.readBlobHistory<CameraParams>("current_camera").handle();
+    auto cockpitCameraHndl = registry.readBlob<CameraParams>("current_cockpit_camera").handle();
+    auto prevCockpitCameraHndl = registry.readBlobHistory<CameraParams>("current_cockpit_camera").handle();
 
-    return [lensCameraHndl, prevLensCameraHndl, mainCameraHndl, prevMainCameraHndl]() {
+    return [lensCameraHndl, prevLensCameraHndl, cockpitCameraHndl, prevCockpitCameraHndl]() {
       if (!camera_in_camera::is_lens_render_active())
         return;
 
-      const auto &camera = mainCameraHndl.ref();
+      const auto &camera = cockpitCameraHndl.ref();
       auto *wr = static_cast<WorldRenderer *>(get_world_renderer());
 
       auto &lensCamera = lensCameraHndl.ref();
@@ -58,7 +58,7 @@ eastl::fixed_vector<dafg::NodeHandle, 2, false> makeCameraInCameraSetupNodes()
 
       lensCamera.viewVecs = calc_view_vecs(lensCamera.viewTm, lensCamera.jitterProjTm);
 
-      camera_in_camera::update_transforms(mainCameraHndl.ref(), prevMainCameraHndl.ref(), lensCamera);
+      camera_in_camera::update_transforms(cockpitCameraHndl.ref(), prevCockpitCameraHndl.ref(), lensCamera);
     };
   }));
 

@@ -22,7 +22,6 @@ module delegate shared private
 
 require daslib/macro_boost
 require daslib/typemacro_boost
-require strings
 
 // ── helpers ────────────────────────────────────────────────────────────
 

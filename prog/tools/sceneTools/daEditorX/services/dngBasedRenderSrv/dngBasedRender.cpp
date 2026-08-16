@@ -13,6 +13,7 @@
 #include <EditorCore/ec_wndPublic.h>
 #include <EditorCore/ec_shaders.h>
 #include <libTools/renderViewports/cachedViewports.h>
+#include <propPanel/commonWindow/dialogManager.h>
 #include <dafxToolsHelper/dafxToolsHelper.h>
 
 #include <landMesh/lmeshManager.h>
@@ -77,6 +78,7 @@
 #include <ecs/camera/getActiveCameraSetup.h>
 #include <ecs/weather/skiesSettings.h>
 #include <ecs/render/updateStageRender.h>
+#include <render/debugGbuffer.h>
 #include <render/hdrRender.h>
 #include <render/tdrGpu.h>
 #include <render/antialiasing.h>
@@ -179,6 +181,7 @@ static constexpr float GRASS_REINIT_COOLDOWN_SEC = 0.1f;
 using dng_based_render::rendSrv;
 
 static bool render_enabled = false;
+static bool present_suppressed = false;
 static float wireframeZBias = 0.1;
 static bool enable_wireframe = false;
 static bool prevIsOrtho = false;
@@ -191,7 +194,6 @@ static DataBlock app_ecs_blk;
 class DngBasedRenderScene : public DagorGameScene
 {
 public:
-  int dbgShowType = -1;
   shaders::RenderStateId defaultRenderStateId;
   shaders::RenderStateId alphaWriterRenderStateId;
   shaders::RenderStateId depthMaskRenderStateId;
@@ -334,6 +336,8 @@ public:
     d3d::clearview(CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 0, 0);
     renderUI(clientRectWidth, clientRectHeight);
   }
+
+  bool canPresentAndReset() override { return !present_suppressed || PropPanel::is_any_modal_dialog_open(); }
 
   BaseTexture *getRenderBuffer() { return dng_based_render::get_final_target().getTex2D(); }
   D3DRESID getRenderBufferId() { return dng_based_render::get_final_target().getTexId(); }
@@ -613,6 +617,7 @@ public:
   Tab<int> dbgShowTypeVal;
   int dbgShowType;
   UniqueTex nullTex;
+  UniqueTex earthSizeTex;
 
   DngBasedRenderService() : dynScene(NULL)
   {
@@ -689,9 +694,11 @@ public:
       hlp->init();
     ec_init_stat3d();
     dynScene->initDngBasedRender();
+    setupEarthSizeTexture();
   }
   void term() override
   {
+    earthSizeTex.close();
     dagor_select_game_scene(nullptr);
     del_it(dynScene);
     if (auto *hlp = EDITORCORE->queryEditorInterface<IRenderHelperService>())
@@ -699,6 +706,31 @@ public:
   }
 
   void enableRender(bool enable) override { render_enabled = enable; }
+
+  void suppressScenePresent(bool suppress) override { present_suppressed = suppress; }
+
+  void setupEarthSizeTexture()
+  {
+    static ShaderVariableInfo earthSizeTexVarId("earthSize_tex", true);
+    static ShaderVariableInfo earthSizeSmpVarId("earthSize_tex_samplerstate", true);
+    static ShaderVariableInfo worldToEarthVarId("world_to_earth_tex", true);
+    static ShaderVariableInfo earthTcBoundsVarId("earth_tc_bounds", true);
+    if (earthSizeTexVarId == -1 || earthSizeSmpVarId == -1 || worldToEarthVarId == -1 || earthTcBoundsVarId == -1)
+      return;
+
+    // force (0, 0, 0, 1) value for shader to get desired visual
+    earthSizeTex = dag::create_tex(nullptr, 1, 1, TEXCF_CLEAR_ON_CREATE | TEXFMT_R8, 1, "earth_size_tex");
+    if (earthSizeTex)
+      earthSizeTexVarId.set_texture(earthSizeTex.getTexId());
+
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    earthSizeSmpVarId.set_sampler(d3d::request_sampler(smpInfo));
+
+    worldToEarthVarId.set_float4(0, 0, 0, 0);
+    earthTcBoundsVarId.set_float4(0, 0, 0, 0);
+  }
 
   void setupEditorLandmesh()
   {
@@ -733,6 +765,11 @@ public:
 
     setupEditorLandmesh();
 
+    // the DNG scene is an empty level with no micro_details block, and loading it resets the
+    // land micro detail shadervars, so the editor's ones have to be put back after the switch
+    if (IHmapService *hmlService = EDITORCORE->queryEditorInterface<IHmapService>())
+      hmlService->reloadLandMicroDetails();
+
     dagor_select_game_scene(dynScene);
   }
 
@@ -755,9 +792,13 @@ public:
   {
     if (auto *wr = get_world_renderer())
       wr->beforeDeviceReset(full_reset);
+
+    earthSizeTex.close();
   }
   void afterD3DReset(bool full_reset) override
   {
+    setupEarthSizeTexture();
+
     hdrrender::update_globals();
     if (auto *wr = get_world_renderer())
       wr->afterDeviceReset(full_reset);
@@ -800,7 +841,6 @@ public:
     if (t < 0 || t >= dbgShowTypeNm.size())
       return false;
     dbgShowType = t;
-    dynScene->dbgShowType = dbgShowTypeVal[t];
 
     static const eastl::hash_map<eastl::string_view, eastl::string_view> modeMap = {{"diffuse", "diffuseColor"},
       {"specular", "specularColor"}, {"normal", "normal"}, {"smoothness", "smoothness"}, {"base_color", "baseColor"},
@@ -808,10 +848,26 @@ public:
       {"final_ao", "finalAO"}, {"preshadow", "preshadow"}, {"translucency", "translucency"}, {"depth", "depth"}, {"ssr", "ssr"},
       {"ssr_strength", "ssrStrength"}};
 
-    String cmd("render.show_gbuffer");
+    eastl::string_view mode;
     if (dbgShowTypeVal[t] >= 0)
+    {
       if (auto it = modeMap.find(dbgShowTypeNm[t]); it != modeMap.end())
-        cmd.aprintf(0, " %s", it->second);
+        mode = it->second;
+      else
+        logwarn("dbgShow mode <%s> has no render.show_gbuffer equivalent, the final image is shown instead", dbgShowTypeNm[t]);
+    }
+
+    // render.show_gbuffer switches the active mode off when it is asked for again, so request it only
+    // when it differs: the radio group reports a change even for a click on the already selected item
+    const DebugGbufferMode curMode = get_debug_gbuffer_mode();
+    const eastl::string curModeNm = curMode == DebugGbufferMode::None ? eastl::string() : getDebugGbufferModeName(curMode);
+    const bool sameMode = eastl::string_view(curModeNm.c_str(), curModeNm.length()) == mode;
+    if (sameMode && show_gbuffer_composition == DebugGbufferComposition::Single)
+      return true;
+
+    String cmd("render.show_gbuffer");
+    if (!mode.empty())
+      cmd.aprintf(0, " %.*s", (int)mode.length(), mode.data());
     console::command(cmd);
 
     return true;
@@ -1031,6 +1087,14 @@ static void dng_create_world()
   g_entity_mgr->broadcastEventImmediate(EventSkiesLoaded{});
 }
 
+static void sync_dafx_helper_globals()
+{
+  dafx_helper_globals::ctx = acesfx::get_dafx_context();
+  dafx_helper_globals::cull_id = acesfx::get_cull_id();
+  dafx_helper_globals::cull_fom_id = acesfx::get_cull_fom_id();
+  dafx_helper_globals::context_is_owned = false;
+}
+
 static void dng_based_render::act_scene()
 {
   using namespace game_scene;
@@ -1046,6 +1110,7 @@ static void dng_based_render::act_scene()
   else if (empty_world_created && is_level_loaded())
     empty_world_created = false;
 
+  sync_dafx_helper_globals();
   gamescripts::update_deferred();
 
   uint64_t startTime = profile_ref_ticks();
@@ -1144,12 +1209,7 @@ static void dng_based_render::before_draw_scene(int dt_realtime_usec, float dt_g
       changed.addNameId("graphics/fxTarget");
       wr->onSettingsChanged(changed, false);
     }
-    // set actual dafx context to be used in tools code
-    dafx_helper_globals::ctx = acesfx::get_dafx_context();
-    dafx_helper_globals::cull_id = acesfx::get_cull_id();
-    dafx_helper_globals::cull_fom_id = acesfx::get_cull_fom_id();
-    dafx_helper_globals::context_is_owned = false;
-
+    sync_dafx_helper_globals();
     phys_fetch_sim_res(true);
   }
 }

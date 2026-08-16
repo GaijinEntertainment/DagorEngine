@@ -688,6 +688,15 @@ It returns an array of two numbers: [width, height]
 It is slow (the function creates a separate scene for the given components
 and calculates its layout) and should no be used in real time.
 
+Use ``calc_content_size(component)`` to get the content extent of the same
+component instead of its own size. It also returns [width, height], and it is
+the same value that ``elem_ref.getContentWidth()`` / ``getContentHeight()``
+report for a live element: the extent used by ``SIZE_TO_CONTENT`` and by
+scrolling. The two functions differ only when the component's own size does not
+follow its content, for example a fixed or ``flex()`` size, or a size limited by
+``minWidth`` / ``maxHeight``. Then ``calc_comp_size`` returns the box and
+``calc_content_size`` returns what is inside it, which can be larger.
+
 Use ``calc_str_box()`` function to calculate the size of rendered text string.
 It can take two forms ``calc_str_box(text, [params])`` or ``calc_str_box(params)``.
 ``text`` is a string.

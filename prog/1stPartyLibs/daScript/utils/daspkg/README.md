@@ -1,6 +1,6 @@
 # daspkg — daslang package manager
 
-Package manager for [daslang](https://dascript.org/). Installs, updates, builds, and manages daslang modules from git repositories or a central package index.
+Package manager for [daslang](https://daslang.io/). Installs, updates, builds, and manages daslang modules from git repositories or a central package index.
 
 ## Quick start
 
@@ -38,7 +38,7 @@ daslang utils/daspkg/main.das -- install --global dasImgui
 | `build` | Build all C/C++ packages (cmake) |
 | `check` | Verify installed packages are present |
 | `doctor` | Check environment (git, cmake, gh) |
-| `release [--out <dir>]` | Bundle project as a redistributable standalone |
+| `release [--out <dir>] [--paranoid \| --quick]` | Bundle project as a redistributable standalone. Release ALWAYS mints the tune sidecar; `--quick` is the only mode that inherits a complete existing one |
 | `introduce [url]` | Submit a package to the index via PR |
 | `withdraw <name>` | Remove a package from the index via PR |
 
@@ -56,6 +56,8 @@ All package commands accept `--global` / `-g` to operate on global modules.
 | `--json` | Machine-readable JSON output (`search`, `list`, `check`) |
 | `--branch <name>`, `-b <name>` | Install from a git branch (e.g. `master`) instead of a tag |
 | `--out <path>` | Output directory for `release` (default: current directory) |
+| `--paranoid` | During `release`, tune with the paranoid budget: 3x the rounds and a 1% noise-gate ceiling. There is no fast race mode — a cheap race measures nothing |
+| `--quick` | During `release`, accept a complete existing sidecar instead of re-minting (an incomplete or stale scope still mints — an exe never ships unmeasured). Forgetting it costs one re-mint, never correctness |
 
 ## Global modules
 
@@ -112,7 +114,18 @@ def dependencies(version : string) {
 def build() {
     cmake_build()       // or: custom_build("make all"), or: no_build()
 }
+
+[export]
+def release() {
+    release_main("main.das")
+    release_include("assets/**")                 // release-owned; refreshed every time
+    release_include_if_missing("app.toml")       // user-owned after initialization
+}
 ```
+
+Use `release_include_if_missing` for editable deployment files. They are copied only when absent,
+excluded from `.daspkg_release.manifest`, and preserved even when upgrading from an older manifest
+that previously treated the same path as release-owned.
 
 All functions except `package()` are optional. A repo without `.das_package` gets a "dumb clone" — no version resolution, no deps, no build.
 
@@ -190,6 +203,8 @@ The global lock file (`{das_root}/modules/.daspkg_global.lock`) uses the same fo
 The **package runner** compiles `.das_package` scripts in-process using `compile_file` + `simulate` + `invoke_in_context`. It calls exported functions and reads state from `daslib/daspkg` module globals via `get_context_global_variable`.
 
 ## Tests
+
+Review gates live in [CODEREVIEW.md](CODEREVIEW.md) — run the unit suite on every change.
 
 | File | Count | Type |
 |------|-------|------|

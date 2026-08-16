@@ -325,7 +325,7 @@ void update_gpu_tasks(Context &ctx, const eastl::vector<int> &workers, bool gpu_
     if (!buf)
     {
       eastl::string name;
-      name.append_sprintf("dafx_simulation_dispatch_buffer_%d", i);
+      name.append_sprintf("dafx_simulation_dispatch_buffer_%d%s", i, ctx.cfg.gpu_res_suffix.c_str());
       buf = &ctx.computeDispatchBuffers.push_back();
       if (!create_gpu_cb_res(*buf, sizeof(DispatchDesc), DAFX_BUCKET_GROUP_SIZE, name.c_str()))
         return;

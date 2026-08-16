@@ -6,6 +6,7 @@ options strict_smart_pointers = true
 
 module package_runner shared public
 
+require daslib/ast
 require daslib/debugger
 require daslib/fio
 require daslib/daspkg public
@@ -32,11 +33,21 @@ struct PackageBuildInfo {
 struct PackageReleaseInfo {
     name : string
     main_script : string
+    wasm_main_script : string
     include_globs : array<string>
+    include_if_missing_globs : array<string>
     exclude_globs : array<string>
     forced_modules : array<string>
     native_dlls : array<string>
     bundle_id : string
+    emcc_args : array<string>
+    embed_paths : array<string>
+    web_shell : string
+    wasm_build_command : string
+    wasm_archives : array<string>
+    requires_jit : bool
+    include_symbols : bool
+    external_files : array<string>
 }
 
 
@@ -54,7 +65,7 @@ def run_das_package_meta(das_package_path : string; var meta : PackageMeta) : bo
             meta.license = clone_string(src.license)
             meta.min_sdk = clone_string(src.min_sdk)
             for (t in src.tags) {
-                meta.tags |> push_clone(clone_string(t))
+                meta.tags |> push(clone_string(t))
             }
         }
     }
@@ -111,19 +122,39 @@ def run_das_package_release(das_package_path : string; var info : PackageRelease
             let src = unsafe(reinterpret<ReleaseSpec?>(p))
             info.name = clone_string(src.name)
             info.main_script = clone_string(src.main_script)
+            info.wasm_main_script = clone_string(src.wasm_main_script)
             for (g in src.include_globs) {
-                info.include_globs |> push_clone(clone_string(g))
+                info.include_globs |> push(clone_string(g))
+            }
+            for (g in src.include_if_missing_globs) {
+                info.include_if_missing_globs |> push(clone_string(g))
             }
             for (g in src.exclude_globs) {
-                info.exclude_globs |> push_clone(clone_string(g))
+                info.exclude_globs |> push(clone_string(g))
             }
             for (m in src.forced_modules) {
-                info.forced_modules |> push_clone(clone_string(m))
+                info.forced_modules |> push(clone_string(m))
             }
             for (d in src.native_dlls) {
-                info.native_dlls |> push_clone(clone_string(d))
+                info.native_dlls |> push(clone_string(d))
             }
             info.bundle_id = clone_string(src.bundle_id)
+            for (a in src.emcc_args) {
+                info.emcc_args |> push(clone_string(a))
+            }
+            for (e in src.embed_paths) {
+                info.embed_paths |> push(clone_string(e))
+            }
+            info.web_shell = clone_string(src.web_shell)
+            info.wasm_build_command = clone_string(src.wasm_build_command)
+            for (a in src.wasm_archives) {
+                info.wasm_archives |> push(clone_string(a))
+            }
+            info.requires_jit = src.requires_jit
+            info.include_symbols = src.include_symbols
+            for (e in src.external_files) {
+                info.external_files |> push(clone_string(e))
+            }
         }
     }
     return ok

@@ -39,17 +39,20 @@ struct FxStatType
   enum
   {
     Instances = 0,
+    Particles,
     SimulatedElems,
     DrawCalls,
-    Tris,
+    ModfxTris,
+    SparksTris,
     ElemSizes,
     Count,
   };
 };
 
-G_STATIC_ASSERT(FxStatType::Count == 5);
-static const char *fx_stat_names[FxStatType::Count] = {"instances", "simulated elems", "draw calls", "tris", "element sizes"};
-static bool displayed_fx_stats[FxStatType::Count] = {true, true, true, true, true};
+G_STATIC_ASSERT(FxStatType::Count == 7);
+static const char *fx_stat_names[FxStatType::Count] = {
+  "instances", "particles", "simulated elems", "draw calls", "modfx tris", "sparks tris", "element sizes"};
+static bool displayed_fx_stats[FxStatType::Count] = {true, true, true, true, true, true, true};
 
 static int get_fx_stat_index_by_name(const char *name)
 {
@@ -254,13 +257,15 @@ void AssetViewerViewportWindow::paint(int w, int h)
       switch (i)
       {
         case FxStatType::Instances: statText.printf(64, "fx instances: %d", fxStats.instances); break;
+        case FxStatType::Particles: statText.printf(64, "fx particles: %d", fxStats.totalParticles); break;
         case FxStatType::SimulatedElems:
           statText.printf(64, "fx cpu elems: %d", fxStats.cpuElemProcessed);
           drawLine(statText);
           statText.printf(64, "fx gpu elems: %d", fxStats.gpuElemProcessed);
           break;
         case FxStatType::DrawCalls: statText.printf(64, "fx draw calls: %d", fxStats.drawCalls); break;
-        case FxStatType::Tris: statText.printf(64, "fx tris %d/%d", fxStats.visibleTriangles, fxStats.renderedTriangles); break;
+        case FxStatType::ModfxTris: statText.printf(64, "modfx tris: %d", fxStats.modfxTris); break;
+        case FxStatType::SparksTris: statText.printf(64, "sparks tris: %d", fxStats.sparksTris); break;
         case FxStatType::ElemSizes:
           statText.printf(96, "param ren: %d, sim: %d", fxStats.paramRenSize, fxStats.paramSimSize);
           drawLine(statText);

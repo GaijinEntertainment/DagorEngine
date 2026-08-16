@@ -275,6 +275,8 @@ bool rendinst::prepareExtraVisibilityInternal(RiGenVisibility &vbase, mat44f_cre
         vbase.riex.approxInvDensities[lod].resize(poolInfo.size());
         for (auto &pool : poolInfo)
         {
+          if (pool.poolIdx == TiledScenePoolInfo::INVALID_POOL)
+            continue;
           if (riExtra[pool.poolIdx].elemMask[lod].plod)
           {
             const auto r = riExtra[pool.poolIdx].bsphRad();

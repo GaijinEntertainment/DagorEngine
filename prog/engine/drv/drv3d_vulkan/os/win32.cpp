@@ -138,6 +138,9 @@ VkExtent2D drv3d_vulkan::get_window_client_rect_extent(void *window)
   return {static_cast<uint32_t>(rc.right - rc.left), static_cast<uint32_t>(rc.bottom - rc.top)};
 }
 
+void drv3d_vulkan::os_present_window_lock() {}
+void drv3d_vulkan::os_present_window_unlock() {}
+
 void drv3d_vulkan::os_restore_display_mode()
 {
   if (displayModeModified)

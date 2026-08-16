@@ -176,7 +176,7 @@ void BinSceneViewPlugin::registerMenuAccelerators()
 {
   IWndManager &wndManager = *DAGORED2->getWndManager();
 
-  wndManager.addViewportAccelerator(CM_SHOW_PANEL, EditorCommandIds::SHOW_PANEL);
+  wndManager.addAccelerator(CM_SHOW_PANEL, EditorCommandIds::SHOW_PANEL);
 }
 
 

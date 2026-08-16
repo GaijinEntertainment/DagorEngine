@@ -5,6 +5,7 @@ from "%sqstd/functools.nut" import Set
 from "%sqstd/string.nut" import tostring_r
 from "math" import min
 from "daRg" import sh, sw, calc_comp_size, gui_scene, Color, flex
+from "types" import Array, Function
 /*
 //===== DARG specific methods=====
   this function create element that has internal basic stateFlags (S_HOVER S_ACTIVE S_DRAG)
@@ -15,7 +16,7 @@ function watchElemState(builder, params={}) {
   return function() {
     let desc = builder(stateFlags.get())
     local watch = desc?.watch ?? []
-    if (type(watch) != "array")
+    if (!(watch instanceof Array))
       watch = [watch]
     desc.watch <- [stateFlags].extend(watch)
     desc.onElemState <- onElemState
@@ -109,10 +110,10 @@ function mkAsyncImage(picture, placeholder, imageProps = {}) {
   let imageLoading = Watched(picture != null && picture.prefetch())
 
   local watch = imageProps?.watch ?? []
-  if (type(watch) != "array")
+  if (!(watch instanceof Array))
     watch = [watch]
   local behavior = imageProps?.behavior ?? []
-  if (type(behavior) != "array")
+  if (!(behavior instanceof Array))
     behavior = [behavior]
 
   return @() imageProps.__merge({
@@ -131,7 +132,7 @@ function mkAsyncImage(picture, placeholder, imageProps = {}) {
 function isDargComponent(comp): bool {
 //better to have natived daRg function to check if it is valid component!
   local c = comp
-  if (type(c) == "function") {
+  if (c instanceof Function) {
     let info = c.getfuncinfos()
     if (info?.parameters && info.parameters.len() > 1)
       return false
@@ -174,7 +175,7 @@ function wrap(elems, params=wrapParams) {
   let height = params?.height ?? SIZE_TO_CONTENT
   let width = params?.width ?? SIZE_TO_CONTENT
   let dimensionLim = isFlowHor ? width : height
-  assert(type(elems)=="array", "elems should be array")
+  assert(elems instanceof Array, "elems should be array")
   assert(type(dimensionLim) in {float=1,integer=1}, @() "can't flow over {0} non numeric type".subst(isFlowHor ? "width" :"height"))
   let hgap = params?.hGap ?? wrapParams?.hGap
   let vgap = params?.vGap ?? wrapParams?.vGap

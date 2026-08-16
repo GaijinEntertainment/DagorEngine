@@ -31,7 +31,7 @@ def public getStackValue(var vm : SQVM?; idx : int64; cb : block<(res : auto(T)?
     let itemType = sq_gettype(vm, idx)
     if (itemType != tagSQObjectType.OT_NULL) {
         return _::getStackValue(vm, idx) <| $(res2 : T) {
-            cb |> invoke(unsafe(reinterpret<T? const> unsafe(addr(res2))))
+            cb |> invoke(unsafe(reinterpret<T? const>(unsafe(addr(res2)))))
         }
     } else {
         cb |> invoke(null)
@@ -176,7 +176,7 @@ def public pushValue(var vm : SQVM?; val : uint16) { sq_pushinteger(vm, int64(va
 def public pushValue(var vm : SQVM?; val : uint64) { sq_pushinteger(vm, int64(val)); }
 def public pushValue(var vm : SQVM?; val : float) { sq_pushfloat(vm, val); }
 def public pushValue(var vm : SQVM?; val : bool) { sq_pushbool(vm, val ? 1ul : 0ul); }
-def public pushValue(var vm : SQVM?; val : string) { sq_pushstring(vm, val, int64(length(val))); }
+def public pushValue(var vm : SQVM?; val : string) { sq_pushstring(vm, val, long_length(val)); }
 
 [expect_any_struct(val)]
 def public pushValue(var vm : SQVM?; val : auto) {

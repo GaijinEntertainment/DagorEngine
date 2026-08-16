@@ -16,7 +16,7 @@ class MidBase : GrandBase {
 class Leaf : MidBase {
     def operator delete {
         // 30308: cast skips MidBase — not the chain call
-        delete cast<GrandBase> self
+        delete cast<GrandBase>(self)
     }
 }
 

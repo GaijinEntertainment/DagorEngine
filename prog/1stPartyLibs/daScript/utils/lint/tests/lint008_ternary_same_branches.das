@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // LINT008: Both branches of ternary `?:` are equivalent
 //
 // Problem:

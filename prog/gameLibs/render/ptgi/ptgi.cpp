@@ -6,6 +6,7 @@
 #include <drv/3d/dag_bindless.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <shaders/dag_computeShaders.h>
+#include <shaders/dag_postFxRenderer.h>
 #include <bvh/bvh.h>
 #include <perfMon/dag_statDrv.h>
 #include <image/dag_texPixel.h>
@@ -57,6 +58,7 @@ static int ptgi_bindless_slotVarId = -1;
 static int ptgi_boostVarId = -1;
 static int ptgi_boost_rangeVarId = -1;
 static int ptgi_use_rrVarId = -1;
+static int ptgi_validation_textureVarId = -1;
 static int downsampled_close_depth_texVarId = -1;
 
 static float ray_length = 100;
@@ -66,9 +68,13 @@ static float roughness_factor = -25.0;
 static float boost = 0;
 static float boost_range = 0;
 static int max_stabilized_frame_num = denoiser::GIDenoiser::MAX_HISTORY_FRAME_NUM;
+static bool anti_firefly = true;
+static bool show_validation = false;
 
 BaseTexture *denoised_gi_for_debug = nullptr;
 BaseTexture *decoded_denoised_gi_for_debug = nullptr;
+static BaseTexture *validation_texture_ptr = nullptr;
+static PostFxRenderer *validation_renderer = nullptr;
 
 void get_required_persistent_texture_descriptors(denoiser::TexInfoMap &persistent_textures)
 {
@@ -119,6 +125,10 @@ void initialize(bool half_res)
   ptgi_boostVarId = get_shader_variable_id("ptgi_boost");
   ptgi_boost_rangeVarId = get_shader_variable_id("ptgi_boost_range");
   ptgi_use_rrVarId = get_shader_variable_id("ptgi_use_rr");
+  ptgi_validation_textureVarId = get_shader_variable_id("ptgi_validation_texture");
+
+  // The game recreates the persistent textures around initialize.
+  validation_texture_ptr = nullptr;
 
   denoiser::resolution_config.initPTGI(half_res);
   ShaderGlobal::set_int(ptgi_res_mulVarId, half_res ? 2 : 1);
@@ -142,10 +152,16 @@ void teardown()
   denoiser::resolution_config.closePTGI();
   safe_delete(trace);
   safe_delete(decode);
+  safe_delete(validation_renderer);
   turn_off();
 }
 
-void turn_off() { ShaderGlobal::set_int(ptgi_bindless_slotVarId, -1); }
+void turn_off()
+{
+  ShaderGlobal::set_int(ptgi_bindless_slotVarId, -1);
+  // The texture is owned by the game; drop the reference until the next render.
+  validation_texture_ptr = nullptr;
+}
 
 inline int divide_up(int x, int y) { return (x + y - 1) / y; }
 
@@ -159,6 +175,7 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *depth, 
   auto denoised_gi = textures.find(denoiser::GIDenoiser::TextureNames::denoised_gi);
   auto gi_value = textures.find(denoiser::GIDenoiser::TextureNames::ptgi_tex_unfiltered);
   auto decoded_denoised_gi = textures.find(TextureNames::decoded_denoised_gi);
+  auto validation = textures.find(denoiser::GIDenoiser::TextureNames::gi_validation);
   auto normal_roughness =
     textures.find(denoiser::resolution_config.ptgi.isHalfRes ? denoiser::TextureNames::denoiser_half_normal_roughness
                                                              : denoiser::TextureNames::denoiser_normal_roughness);
@@ -172,10 +189,12 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *depth, 
   {
     denoised_gi_for_debug = basetex_or_null(denoised_gi);
     decoded_denoised_gi_for_debug = basetex_or_null(decoded_denoised_gi);
+    validation_texture_ptr = basetex_or_null(validation);
   }
   else
   {
     denoised_gi_for_debug = decoded_denoised_gi_for_debug = nullptr;
+    validation_texture_ptr = nullptr;
   }
 
   Point4 hitDistParams = Point4(ray_length, distance_factor, scatter_factor, roughness_factor);
@@ -186,6 +205,7 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *depth, 
   params.checkerboard = checkerboard;
   params.halfResolution = denoiser::resolution_config.ptgi.isHalfRes;
   params.maxStabilizedFrameNum = max_stabilized_frame_num;
+  params.antiFirefly = anti_firefly;
 
   IPoint2 resolution =
     denoiser::resolution_config.ptgi.isHalfRes ? denoiser::resolution_config.dynRes.halfRes : denoiser::resolution_config.dynRes.res;
@@ -281,6 +301,21 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *depth, 
 #endif
 }
 
+bool is_validation_layer_enabled() { return show_validation; }
+
+void render_validation_layer()
+{
+  if (!show_validation || !validation_texture_ptr)
+    return;
+
+  if (!validation_renderer)
+    validation_renderer = new PostFxRenderer("ptgi_validation_renderer");
+
+  ShaderGlobal::set_texture(ptgi_validation_textureVarId, validation_texture_ptr);
+  validation_renderer->render();
+  ShaderGlobal::set_texture(ptgi_validation_textureVarId, nullptr);
+}
+
 #if DAGOR_DBGLEVEL > 0
 static void imguiWindow()
 {
@@ -296,6 +331,8 @@ static void imguiWindow()
   ImGui::SliderFloat("Scatter factor", &scatter_factor, scatter_factor_min, scatter_factor_max);
   ImGui::SliderFloat("Roughness factor", &roughness_factor, roughness_factor_min, roughness_factor_max);
   ImGui::SliderInt("Max stabilized frames", &max_stabilized_frame_num, 0, denoiser::GIDenoiser::MAX_HISTORY_FRAME_NUM);
+  ImGui::Checkbox("Anti firefly", &anti_firefly);
+  ImGui::Checkbox("Show validation layer", &show_validation);
 
   if (decoded_denoised_gi_for_debug)
   {

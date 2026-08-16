@@ -676,6 +676,13 @@ struct DeviceDriverCapabilitiesBase
    **/
   bool hasWaveOps : 1;
   /**
+   * \capbrief supports SM 6.1 style barycentrics: both SV_Barycentrics and per-vertex attribute
+   * reads (GetAttributeAtVertex) work in pixel shaders. On \ps4 and \ps5 per-vertex reads map to
+   * PSSL GetParameterP0/1/2 (see hardware_defines.dshl).
+   * \platformtable{hasBarycentrics,c,c,c,a,c,c,r,r,c,r,r}
+   */
+  bool hasBarycentrics : 1;
+  /**
    * \capbrief hasPersistentShaderHandles indicates that shader handles of pipeline objects, that are used for shader binding tables,
    * are persistent and are the same for derived pipelines and pipelines that use the same shader from the same shader library.
    * \platformtable{hasPersistentShaderHandles,c,c,c,a,r,r,c,r,r,r,r}
@@ -929,6 +936,8 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasPipelineStatisticsQuery = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers }
   static constexpr bool hasEnhancedResourceBarriers = false;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasBarycentrics}
+  static constexpr bool hasBarycentrics = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for \scarlett
@@ -982,6 +991,8 @@ struct DeviceDriverCapabilitiesScarlett : DeviceDriverCapabilitiesXboxOne
   static constexpr bool hasPersistentShaderHandles = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers}
   static constexpr bool hasEnhancedResourceBarriers = true;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasBarycentrics}
+  static constexpr bool hasBarycentrics = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1145,6 +1156,8 @@ struct DeviceDriverCapabilitiesPS4 : DeviceDriverCapabilitiesBase
   static constexpr bool hasPipelineStatisticsQuery = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers }
   static constexpr bool hasEnhancedResourceBarriers = false;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasBarycentrics}
+  static constexpr bool hasBarycentrics = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1311,6 +1324,8 @@ struct DeviceDriverCapabilitiesIOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasPipelineStatisticsQuery = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers }
   static constexpr bool hasEnhancedResourceBarriers = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarycentrics}
+  static constexpr bool hasBarycentrics = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1460,6 +1475,8 @@ struct DeviceDriverCapabilitiesTVOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasPipelineStatisticsQuery = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers }
   static constexpr bool hasEnhancedResourceBarriers = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarycentrics}
+  static constexpr bool hasBarycentrics = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1616,8 +1633,8 @@ struct DeviceDriverCapabilitiesNintendoSwitch : DeviceDriverCapabilitiesBase
   static constexpr bool hasBarrierNone = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPipelineStatisticsQuery }
   static constexpr bool hasPipelineStatisticsQuery = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers }
-  static constexpr bool hasEnhancedResourceBarriers = false;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers }
+  static constexpr bool hasEnhancedResourceBarriers = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1714,8 +1731,8 @@ struct DeviceDriverCapabilitiesAndroid : DeviceDriverCapabilitiesBase
   static constexpr bool hasBarrierNone = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPipelineStatisticsQuery }
   static constexpr bool hasPipelineStatisticsQuery = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers }
-  static constexpr bool hasEnhancedResourceBarriers = false;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers }
+  static constexpr bool hasEnhancedResourceBarriers = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1855,6 +1872,8 @@ struct DeviceDriverCapabilitiesMacOSX : DeviceDriverCapabilitiesBase
   static constexpr bool hasPipelineStatisticsQuery = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers }
   static constexpr bool hasEnhancedResourceBarriers = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarycentrics}
+  static constexpr bool hasBarycentrics = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1945,8 +1964,8 @@ struct DeviceDriverCapabilitiesLinux : DeviceDriverCapabilitiesBase
   static constexpr bool hasBarrierNone = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPipelineStatisticsQuery }
   static constexpr bool hasPipelineStatisticsQuery = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers }
-  static constexpr bool hasEnhancedResourceBarriers = false;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers }
+  static constexpr bool hasEnhancedResourceBarriers = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for

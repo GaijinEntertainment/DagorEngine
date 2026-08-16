@@ -9,6 +9,7 @@
 //
 // Total expected 50503 hits: 1.
 options gen2
+options disable_auto_inline    // this fixture pins LINT013 diagnostics; splicing the call away would eat them
 
 require daslib/lint
 

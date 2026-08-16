@@ -29,7 +29,7 @@ Compile
   fsh:t = 5.0
   group_size_in_kb:i=128
   assume_vars {
-    supports_sh_6_1:i = 0
+    supports_barycentrics:i = 0
     sparkles_enable:i=1
     static_shadows_cascades:i=1
     particles_buffer_id:i=-1

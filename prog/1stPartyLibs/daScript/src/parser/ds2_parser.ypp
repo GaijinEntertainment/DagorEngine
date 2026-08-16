@@ -22,7 +22,6 @@
 
 #if defined(_MSC_VER) && !defined(__clang__)
     #if !defined(_DEBUG)
-        #pragma optimize( "", off )
         #pragma optimize( "s", on )
     #endif
 #endif
@@ -270,6 +269,29 @@
 %token  DAS_TUINT8          "uint8"
 %token  DAS_TINT16          "int16"
 %token  DAS_TUINT16         "uint16"
+%token  DAS_TFLOAT16        "float16"
+%token  DAS_THALF2          "half2"
+%token  DAS_THALF3          "half3"
+%token  DAS_THALF4          "half4"
+%token  DAS_THALF8          "half8"
+%token  DAS_TSHORT2         "short2"
+%token  DAS_TSHORT3         "short3"
+%token  DAS_TSHORT4         "short4"
+%token  DAS_TSHORT8         "short8"
+%token  DAS_TUSHORT2        "ushort2"
+%token  DAS_TUSHORT3        "ushort3"
+%token  DAS_TUSHORT4        "ushort4"
+%token  DAS_TUSHORT8        "ushort8"
+%token  DAS_TBYTE2          "byte2"
+%token  DAS_TBYTE3          "byte3"
+%token  DAS_TBYTE4          "byte4"
+%token  DAS_TBYTE8          "byte8"
+%token  DAS_TBYTE16         "byte16"
+%token  DAS_TUBYTE2         "ubyte2"
+%token  DAS_TUBYTE3         "ubyte3"
+%token  DAS_TUBYTE4         "ubyte4"
+%token  DAS_TUBYTE8         "ubyte8"
+%token  DAS_TUBYTE16        "ubyte16"
 %token  DAS_TTUPLE          "tuple"
 %token  DAS_TVARIANT        "variant"
 %token  DAS_GENERATOR       "generator"
@@ -335,6 +357,7 @@
 %token<ui64>    UNSIGNED_LONG_INTEGER   "unsigned long integer constant"
 %token<ui>      UNSIGNED_INT8           "unsigned int8 constant"
 %token<fd>      DAS_FLOAT               "floating point constant"
+%token<fd>      DAS_FLOAT16_CONST       "float16 constant"
 %token<d>       DOUBLE                  "double constant"
 %token<s>       NAME                    "name"
 
@@ -815,8 +838,8 @@ require_module_name
     ;
 
 optional_require_guard
-    :                       { $$ = nullptr; }
-    |   '?' NAME[g]         { $$ = $g; }
+    :                                       { $$ = nullptr; }
+    |   '?' require_module_name[g]          { $$ = $g; }
     ;
 
 require_module
@@ -1025,6 +1048,10 @@ for_variable_name_with_pos_list
         $$ = $list;
         delete $name;
     }
+    |   for_variable_name_with_pos_list[list] ',' MTAG_I '(' expr[subexpr] ')' {
+        $list->push_back(VariableNameAndPosition("``MACRO``TAG``","",tokAt(scanner,@subexpr),$subexpr));
+        $$ = $list;
+    }
     |   for_variable_name_with_pos_list[list] ',' NAME[name] DAS_AKA NAME[akaname] {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         das_checkName(scanner,*$akaname,tokAt(scanner,@akaname));
@@ -1073,13 +1100,35 @@ expression_while_loop
     }
     ;
 
-expression_with
+/* factored so both alternatives share ONE empty action nonterminal — a copy of the
+   mid-rule action per alternative would be a reduce/reduce conflict ahead of DAS_WITH */
+with_keyword_on
     :   {
         yyextra->das_keyword = true;
-    } DAS_WITH[loc] '(' expr[with] ')' optional_emit_semis expression_block[block] {
+    }
+    ;
+
+expression_with
+    :   with_keyword_on DAS_WITH[loc] '(' expr[with] ')' optional_emit_semis expression_block[block] {
         yyextra->das_keyword = false;
         auto pWith = new ExprWith(tokAt(scanner,@loc));
         pWith->with = $with;
+        pWith->body = $block;
+        $$ = pWith;
+    }
+    |   with_keyword_on DAS_WITH[loc] '(' DAS_MODULE require_module_name[name] ')' optional_emit_semis expression_block[block] {
+        yyextra->das_keyword = false;
+        auto pWith = new ExprWith(tokAt(scanner,@loc));
+        { // single-name targets honor `require foo as bar` aliases
+            auto ita = yyextra->das_module_alias.find(*$name);
+            if ( ita != yyextra->das_module_alias.end() ) *$name = ita->second;
+        }
+        pWith->moduleName = *$name;
+        delete $name;
+        if ( yyextra->g_Access ) { // .das_project may demand unsafe for this target module
+            auto fi = pWith->at.fileInfo;
+            pWith->moduleUnsafeByProject = yyextra->g_Access->isWithModuleUnsafe(pWith->moduleName, fi ? fi->name : "");
+        }
         pWith->body = $block;
         $$ = pWith;
     }
@@ -1122,6 +1171,7 @@ annotation_argument_name
     :   NAME[name]  { $$ = $name; }
     |   DAS_TYPE    { $$ = new string("type"); }
     |   DAS_IN      { $$ = new string("in"); }
+    |   DAS_DEFAULT { $$ = new string("default"); }
     ;
 
 annotation_argument
@@ -1446,6 +1496,29 @@ das_type_name
     |   DAS_TUINT8   { $$ = new string("uint8"); }
     |   DAS_TINT16   { $$ = new string("int16"); }
     |   DAS_TUINT16  { $$ = new string("uint16"); }
+    |   DAS_TFLOAT16 { $$ = new string("float16"); }
+    |   DAS_THALF2   { $$ = new string("half2"); }
+    |   DAS_THALF3   { $$ = new string("half3"); }
+    |   DAS_THALF4   { $$ = new string("half4"); }
+    |   DAS_THALF8   { $$ = new string("half8"); }
+    |   DAS_TSHORT2  { $$ = new string("short2"); }
+    |   DAS_TSHORT3  { $$ = new string("short3"); }
+    |   DAS_TSHORT4  { $$ = new string("short4"); }
+    |   DAS_TSHORT8  { $$ = new string("short8"); }
+    |   DAS_TUSHORT2 { $$ = new string("ushort2"); }
+    |   DAS_TUSHORT3 { $$ = new string("ushort3"); }
+    |   DAS_TUSHORT4 { $$ = new string("ushort4"); }
+    |   DAS_TUSHORT8 { $$ = new string("ushort8"); }
+    |   DAS_TBYTE2   { $$ = new string("byte2"); }
+    |   DAS_TBYTE3   { $$ = new string("byte3"); }
+    |   DAS_TBYTE4   { $$ = new string("byte4"); }
+    |   DAS_TBYTE8   { $$ = new string("byte8"); }
+    |   DAS_TBYTE16  { $$ = new string("byte16"); }
+    |   DAS_TUBYTE2  { $$ = new string("ubyte2"); }
+    |   DAS_TUBYTE3  { $$ = new string("ubyte3"); }
+    |   DAS_TUBYTE4  { $$ = new string("ubyte4"); }
+    |   DAS_TUBYTE8  { $$ = new string("ubyte8"); }
+    |   DAS_TUBYTE16 { $$ = new string("ubyte16"); }
     ;
 
 optional_template
@@ -1515,9 +1588,13 @@ expression_block_finally
     ;
 
 expression_block
-    :   {
+    /* the push_nesteds action sits AFTER '{' (mirroring expression_if_block) so the
+       hidden mid-rule symbol doesn't become @1 — an empty action carries a zero-width
+       between-token location, which used to leak into @$ and make every closure body
+       reported one column early via ast_makeBlock's tokAt(@block) */
+    :   '{' [bbegin] {
         yyextra->push_nesteds(DAS_EMIT_SEMICOLON);
-    } '{' [bbegin] expressions[block] {
+    } expressions[block] {
         yyextra->pop_nesteds();
     } '}' expression_block_finally[fin] {
         $$ = $block;
@@ -1539,8 +1616,10 @@ expr_call_pipe_no_bracket
             pCall->pipedCallArgument = true;
             $$ = $call;
         } else if ( $call->rtti_isNamedCall() ) {
-            das2_yyerror(scanner,"piped block can't be combined with named arguments",tokAt(scanner,@block),
-                CompilationError::cant_pipe);
+            // piped block on a named call: pad-aware resolution lands it on the block param
+            auto nc = (ExprNamedCall *) $call;
+            nc->nonNamedArguments.push_back($block);
+            nc->pipedCallArgument = true;
             $$ = $call;
         } else {
             das2_yyerror(scanner,"piped block requires a function call",tokAt(scanner,@block),
@@ -1555,8 +1634,10 @@ expr_call_pipe_no_bracket
             pCall->pipedCallArgument = true;
             $$ = $call;
         } else if ( $call->rtti_isNamedCall() ) {
-            das2_yyerror(scanner,"piped block can't be combined with named arguments",tokAt(scanner,@block),
-                CompilationError::cant_pipe);
+            // piped block on a named call: pad-aware resolution lands it on the block param
+            auto nc = (ExprNamedCall *) $call;
+            nc->nonNamedArguments.push_back($block);
+            nc->pipedCallArgument = true;
             $$ = $call;
         } else {
             das2_yyerror(scanner,"piped block requires a function call",tokAt(scanner,@block),
@@ -1571,14 +1652,23 @@ expr_call_pipe_no_bracket
             pCall->pipedCallArgument = true;
             $$ = $call;
         } else if ( $call->rtti_isNamedCall() ) {
-            das2_yyerror(scanner,"piped block can't be combined with named arguments",tokAt(scanner,@block),
-                CompilationError::cant_pipe);
+            // piped block on a named call: pad-aware resolution lands it on the block param
+            auto nc = (ExprNamedCall *) $call;
+            nc->nonNamedArguments.push_back($block);
+            nc->pipedCallArgument = true;
             $$ = $call;
         } else {
             das2_yyerror(scanner,"piped block requires a function call",tokAt(scanner,@block),
                 CompilationError::cant_pipe);
             $$ = $call;
         }
+    }
+    | expr_named_call[call] expr_full_block_assumed_piped[block] {
+        // free-function named call + piped block: pad-aware resolution lands it on the block param
+        auto nc = (ExprNamedCall *) $call;
+        nc->nonNamedArguments.push_back($block);
+        nc->pipedCallArgument = true;
+        $$ = $call;
     }
     ;
 
@@ -1798,6 +1888,7 @@ tuple_expansion_variable_declaration
         $$->init_via_move  = ($com & CorM_MOVE) !=0;
         $$->init_via_clone = ($com & CorM_CLONE) !=0;
         $$->isTupleExpansion = true;
+        $$->atEnd = tokAt(scanner,@init);
     }
     |   '(' tuple_expansion[list] ')' optional_ref[ref] copy_or_move_or_clone[com] expr[init] SEMICOLON {
         auto typeDecl = new TypeDecl(Type::autoinfer);
@@ -1807,6 +1898,7 @@ tuple_expansion_variable_declaration
         $$->init_via_move  = ($com & CorM_MOVE) !=0;
         $$->init_via_clone = ($com & CorM_CLONE) !=0;
         $$->isTupleExpansion = true;
+        $$->atEnd = tokAt(scanner,@init);
     }
     ;
 
@@ -1822,16 +1914,20 @@ expression_let
     }
     ;
 
+// The operand is REQUIRED to be parenthesized (self-delimiting, like DAS_UNSAFE below). The old
+// juxtaposition form `cast<T> expr` swallowed trailing binary operators into the operand —
+// `reinterpret<uint8?>(p) + 1` parsed as `reinterpret<uint8?>((p) + 1)`, silently doing the
+// arithmetic on p's original type (stride 0 for void?, i.e. dropping the add entirely).
 expr_cast
-    :   DAS_CAST[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[decl] '>' { yyextra->das_arrow_depth --; } expr_no_bracket[subexpr] {
+    :   DAS_CAST[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[decl] '>' { yyextra->das_arrow_depth --; } '(' expr[subexpr] ')' {
         $$ = new ExprCast(tokAt(scanner,@loc),$subexpr,$decl);
     }
-    |   DAS_UPCAST[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[decl] '>' { yyextra->das_arrow_depth --; } expr_no_bracket[subexpr] {
+    |   DAS_UPCAST[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[decl] '>' { yyextra->das_arrow_depth --; } '(' expr[subexpr] ')' {
         auto pCast = new ExprCast(tokAt(scanner,@loc),$subexpr,$decl);
         pCast->upcast = true;
         $$ = pCast;
     }
-    |   DAS_REINTERPRET[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[decl] '>' { yyextra->das_arrow_depth --; } expr_no_bracket[subexpr] {
+    |   DAS_REINTERPRET[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[decl] '>' { yyextra->das_arrow_depth --; } '(' expr[subexpr] ')' {
         auto pCast = new ExprCast(tokAt(scanner,@loc),$subexpr,$decl);
         pCast->reinterpret = true;
         $$ = pCast;
@@ -1959,7 +2055,8 @@ expr_full_block_assumed_piped
         $$ = ast_makeBlock(scanner,$bal,$annL,$clist,$list,$result,$block,tokAt(scanner,@block),tokAt(scanner,@annL),tokAt(scanner,@clist));
     }
     |   '{' expressions[block] '}' {
-        $$ = ast_makeBlock(scanner,0,nullptr,nullptr,nullptr,new TypeDecl(Type::autoinfer),$block,tokAt(scanner,@block),tokAt(scanner,@block),LineInfo());
+        // block span is brace-to-brace (@$), not the statements' span (@block)
+        $$ = ast_makeBlock(scanner,0,nullptr,nullptr,nullptr,new TypeDecl(Type::autoinfer),$block,tokAt(scanner,@$),tokAt(scanner,@$),LineInfo());
     }
     ;
 
@@ -1970,6 +2067,7 @@ expr_numeric_const
     |   UNSIGNED_LONG_INTEGER[const]          { $$ = new ExprConstUInt64(tokAt(scanner,@const),(uint64_t)$const); }
     |   UNSIGNED_INT8[const]                  { $$ = new ExprConstUInt8(tokAt(scanner,@const),(uint8_t)$const); }
     |   DAS_FLOAT[const]                      { $$ = new ExprConstFloat(tokAt(scanner,@const),(float)$const); }
+    |   DAS_FLOAT16_CONST[const]              { $$ = new ExprConstFloat16(tokAt(scanner,@const),(float)$const); }
     |   DOUBLE[const]                         { $$ = new ExprConstDouble(tokAt(scanner,@const),(double)$const); }
     ;
 
@@ -2011,6 +2109,14 @@ expr_named_call
         delete $name;
         $$ = nc;
     }
+    |   name_in_namespace[name] '(' expr_list[arguments] ',' make_struct_fields[list] ')' {
+        // bracket-less mixed named call: foo(pos..., name = value) -- named args are a strict suffix
+        auto nc = new ExprNamedCall(tokAt(scanner,@name),*$name);
+        nc->nonNamedArguments = sequenceToList($arguments);
+        nc->arguments = $list;
+        delete $name;
+        $$ = nc;
+    }
     ;
 
 /* a->b(args) is short for invoke(a.b, a, args)  */
@@ -2028,6 +2134,34 @@ expr_method_call_no_bracket
         pInvoke->arguments.insert ( pInvoke->arguments.end(), callArgs.begin(), callArgs.end() );
         delete $method_name;
         $$ = pInvoke;
+    }
+    |   expr_no_bracket[left] RARROW[loc] NAME[method_name] '(' '[' make_struct_fields[list] ']' ')' {
+        auto nc = new ExprNamedCall(tokAt(scanner,@method_name),*$method_name);
+        nc->methodCall = true;
+        nc->arguments = $list;
+        nc->nonNamedArguments.push_back($left);
+        delete $method_name;
+        $$ = nc;
+    }
+    |   expr_no_bracket[left] RARROW[loc] NAME[method_name] '(' expr_list[arguments] ',' make_struct_fields[list] ')' {
+        // bracket-less mixed named method call: a->m(pos..., name = value)
+        auto nc = new ExprNamedCall(tokAt(scanner,@method_name),*$method_name);
+        nc->methodCall = true;
+        nc->arguments = $list;
+        nc->nonNamedArguments.push_back($left);
+        auto callArgs = sequenceToList($arguments);
+        nc->nonNamedArguments.insert ( nc->nonNamedArguments.end(), callArgs.begin(), callArgs.end() );
+        delete $method_name;
+        $$ = nc;
+    }
+    |   expr_no_bracket[left] RARROW[loc] NAME[method_name] '(' make_struct_fields[list] ')' {
+        // bracket-less all-named method call, no positional: a->m(name = value)
+        auto nc = new ExprNamedCall(tokAt(scanner,@method_name),*$method_name);
+        nc->methodCall = true;
+        nc->arguments = $list;
+        nc->nonNamedArguments.push_back($left);
+        delete $method_name;
+        $$ = nc;
     }
     ;
 
@@ -2087,6 +2221,26 @@ expr_field_no_bracket
         $$ = pInvoke;
     }
     |   expr_no_bracket[left] '.'[loc] NAME[method_name] '(' '[' make_struct_fields[list] ']' ')' {
+        auto nc = new ExprNamedCall(tokAt(scanner,@method_name),*$method_name);
+        nc->methodCall = true;
+        nc->arguments = $list;
+        nc->nonNamedArguments.push_back($left);
+        delete $method_name;
+        $$ = nc;
+    }
+    |   expr_no_bracket[left] '.'[loc] NAME[method_name] '(' expr_list[arguments] ',' make_struct_fields[list] ')' {
+        // bracket-less mixed named method call: a.m(pos..., name = value)
+        auto nc = new ExprNamedCall(tokAt(scanner,@method_name),*$method_name);
+        nc->methodCall = true;
+        nc->arguments = $list;
+        nc->nonNamedArguments.push_back($left);
+        auto callArgs = sequenceToList($arguments);
+        nc->nonNamedArguments.insert ( nc->nonNamedArguments.end(), callArgs.begin(), callArgs.end() );
+        delete $method_name;
+        $$ = nc;
+    }
+    |   expr_no_bracket[left] '.'[loc] NAME[method_name] '(' make_struct_fields[list] ')' {
+        // bracket-less all-named method call, no positional: a.m(name = value)
         auto nc = new ExprNamedCall(tokAt(scanner,@method_name),*$method_name);
         nc->methodCall = true;
         nc->arguments = $list;
@@ -2248,6 +2402,14 @@ expr_no_bracket
     |   '*'[loc] expr_no_bracket[subexpr] %prec DEREF         { $$ = new ExprPtr2Ref(tokAt(scanner,@loc),$subexpr); }
     |   DAS_DEREF[loc] '(' expr[subexpr] ')'       { $$ = new ExprPtr2Ref(tokAt(scanner,@loc),$subexpr); }
     |   DAS_ADDR[loc] '(' expr[subexpr] ')'        { $$ = new ExprRef2Ptr(tokAt(scanner,@loc),$subexpr); }
+    |   DAS_ADDR[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[decl] '>' { yyextra->das_arrow_depth --; } '(' expr[subexpr] ')' {
+        auto pRef2Ptr = new ExprRef2Ptr(tokAt(scanner,@loc),$subexpr);
+        pRef2Ptr->generated = true;
+        auto pCast = new ExprCast(tokAt(scanner,@loc),pRef2Ptr,$decl);
+        pCast->reinterpret = true;
+        pCast->fromAddrSugar = true;
+        $$ = pCast;
+    }
     |   expr_generator[gen]                        { $$ = $gen; }
     |   expr_no_bracket[subexpr] QQ[loc] expr_no_bracket[dval]           { $$ = new ExprNullCoalescing(tokAt(scanner,@loc),$subexpr,$dval); }
     |   expr_no_bracket[subexpr] '?'[loc] expr_no_bracket[left] ':' expr_no_bracket[right] {
@@ -2683,6 +2845,10 @@ let_variable_name_with_pos_list
         $$ = $list;
         delete $name;
     }
+    |   let_variable_name_with_pos_list[list] ',' MTAG_I '(' expr[subexpr] ')' {
+        $list->push_back(VariableNameAndPosition("``MACRO``TAG``","",tokAt(scanner,@subexpr),$subexpr));
+        $$ = $list;
+    }
     |   let_variable_name_with_pos_list[list] ',' NAME[name] DAS_AKA NAME[akaname] {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         das_checkName(scanner,*$akaname,tokAt(scanner,@akaname));
@@ -2725,11 +2891,13 @@ variable_declaration_list
 let_variable_declaration    /* let x; is prohibited. this one can't have uninitialized variable which has no type */
     :   let_variable_name_with_pos_list[list] ':' type_declaration_no_options[typeDecl] SEMICOLON {
         $$ = new VariableDeclaration($list,$typeDecl,nullptr);
+        $$->atEnd = tokAt(scanner,@typeDecl);
     }
     |   let_variable_name_with_pos_list[list] ':' type_declaration_no_options[typeDecl] copy_or_move_or_clone[com] expr[init] SEMICOLON {
         $$ = new VariableDeclaration($list,$typeDecl,$init);
         $$->init_via_move  = ($com & CorM_MOVE) !=0;
         $$->init_via_clone = ($com & CorM_CLONE) !=0;
+        $$->atEnd = tokAt(scanner,@init);
     }
     |   let_variable_name_with_pos_list[list] optional_ref[ref] copy_or_move_or_clone[com] expr[init] SEMICOLON {
         auto typeDecl = new TypeDecl(Type::autoinfer);
@@ -2738,6 +2906,7 @@ let_variable_declaration    /* let x; is prohibited. this one can't have uniniti
         $$ = new VariableDeclaration($list,typeDecl,$init);
         $$->init_via_move  = ($com & CorM_MOVE) !=0;
         $$->init_via_clone = ($com & CorM_CLONE) !=0;
+        $$->atEnd = tokAt(scanner,@init);
     }
     ;
 
@@ -2905,6 +3074,23 @@ single_alias
 
 alias_declaration
     :   DAS_TYPEDEF single_alias SEMICOLON
+    |   DAS_TYPEDEF distinct_alias SEMICOLON
+    ;
+
+// `typedef [private|public] distinct Foo = int` - nominal newtype over a workhorse type.
+// `distinct` is NOT a keyword; the NAME is validated in the action, so the identifier
+// stays free everywhere else (daslib/linq's distinct() etc.)
+distinct_alias
+    :   optional_public_or_private_alias[pubA] NAME[kw] NAME[name] '=' type_declaration[tdecl] {
+        if ( *$kw != "distinct" ) {
+            das2_yyerror(scanner,"expected 'distinct', got '"+*$kw+"'",tokAt(scanner,@kw),
+                CompilationError::invalid_distinct_type);
+        } else {
+            ast_distinctDeclaration(scanner,$name,tokAt(scanner,@name),!$pubA,$tdecl);
+        }
+        delete $kw;
+        delete $name;
+    }
     ;
 
 optional_public_or_private_enum
@@ -3064,6 +3250,10 @@ variable_name_with_pos_list
         $$ = $list;
         delete $name;
     }
+    |   variable_name_with_pos_list[list] ',' MTAG_I '(' expr[subexpr] ')' {
+        $list->push_back(VariableNameAndPosition("``MACRO``TAG``","",tokAt(scanner,@subexpr),$subexpr));
+        $$ = $list;
+    }
     |   variable_name_with_pos_list[list] ',' NAME[name] DAS_AKA NAME[akaname] {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         das_checkName(scanner,*$akaname,tokAt(scanner,@akaname));
@@ -3095,6 +3285,29 @@ basic_type_declaration
     |   DAS_TFLOAT2     { $$ = Type::tFloat2; }
     |   DAS_TFLOAT3     { $$ = Type::tFloat3; }
     |   DAS_TFLOAT4     { $$ = Type::tFloat4; }
+    |   DAS_TFLOAT16    { $$ = Type::tFloat16; }
+    |   DAS_THALF2      { $$ = Type::tHalf2; }
+    |   DAS_THALF3      { $$ = Type::tHalf3; }
+    |   DAS_THALF4      { $$ = Type::tHalf4; }
+    |   DAS_THALF8      { $$ = Type::tHalf8; }
+    |   DAS_TSHORT2     { $$ = Type::tShort2; }
+    |   DAS_TSHORT3     { $$ = Type::tShort3; }
+    |   DAS_TSHORT4     { $$ = Type::tShort4; }
+    |   DAS_TSHORT8     { $$ = Type::tShort8; }
+    |   DAS_TUSHORT2    { $$ = Type::tUShort2; }
+    |   DAS_TUSHORT3    { $$ = Type::tUShort3; }
+    |   DAS_TUSHORT4    { $$ = Type::tUShort4; }
+    |   DAS_TUSHORT8    { $$ = Type::tUShort8; }
+    |   DAS_TBYTE2      { $$ = Type::tByte2; }
+    |   DAS_TBYTE3      { $$ = Type::tByte3; }
+    |   DAS_TBYTE4      { $$ = Type::tByte4; }
+    |   DAS_TBYTE8      { $$ = Type::tByte8; }
+    |   DAS_TBYTE16     { $$ = Type::tByte16; }
+    |   DAS_TUBYTE2     { $$ = Type::tUByte2; }
+    |   DAS_TUBYTE3     { $$ = Type::tUByte3; }
+    |   DAS_TUBYTE4     { $$ = Type::tUByte4; }
+    |   DAS_TUBYTE8     { $$ = Type::tUByte8; }
+    |   DAS_TUBYTE16    { $$ = Type::tUByte16; }
     |   DAS_TVOID       { $$ = Type::tVoid; }
     |   DAS_TRANGE      { $$ = Type::tRange; }
     |   DAS_TURANGE     { $$ = Type::tURange; }

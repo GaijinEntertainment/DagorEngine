@@ -44,6 +44,18 @@ ACT_RATE = 1000
 DARGBOX_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../tools/dargbox"))
 
 
+# exe lives in a per-arch subdir of tools/dargbox (see prog/tools/dargbox/jamfile)
+def default_dargbox_exe():
+    arch = (os.environ.get("PROCESSOR_ARCHITEW6432") or os.environ.get("PROCESSOR_ARCHITECTURE", "")).upper()
+    # arm64 hosts can run the x86_64 exe through emulation; the reverse cannot work
+    arch_dirs = ["windows-arm64", "windows-x86_64"] if arch == "ARM64" else ["windows-x86_64"]
+    for d in arch_dirs:
+        exe = os.path.join(d, "dargbox-dev.exe")
+        if os.path.exists(os.path.join(DARGBOX_DIR, exe)):
+            return exe
+    return os.path.join(arch_dirs[0], "dargbox-dev.exe")
+
+
 def run_scene(scene, stub, exe):
     cmd = [
         os.path.join(DARGBOX_DIR, exe),
@@ -101,7 +113,7 @@ def main():
     ap.add_argument("--stub", action="store_true", help="use null video driver (headless)")
     ap.add_argument("--runs", type=int, default=3)
     ap.add_argument("--out", default="bench_results.json")
-    ap.add_argument("--exe", default="dargbox-64-dev.exe", help="dargbox binary (use dargbox-64.exe for release timings)")
+    ap.add_argument("--exe", default=default_dargbox_exe(), help="dargbox binary, relative to tools/dargbox (use <arch>/dargbox.exe for release timings)")
     args = ap.parse_args()
 
     scenes = args.scenes if args.scenes else SCENES

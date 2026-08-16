@@ -8,14 +8,26 @@
  ******************** functions checks*******************
  ******************************************************************************/
 
+from "types" import Table, Array, String, Function, Integer, Float, Null, Bool, Class, Generator, UserData, Thread, WeakRef
+
 /**
   make common iteratee function
 */
 
-let isTable = @(v) type(v)=="table"
-let isArray = @(v) type(v)=="array"
-let isString = @(v) type(v)=="string"
-let isFunction = @(v) type(v)=="function"
+let isTable = @(v) v instanceof Table
+let isArray = @(v) v instanceof Array
+let isString = @(v) v instanceof String
+let isFunction = @(v) v instanceof Function
+let isInteger = @(v) v instanceof Integer
+let isFloat = @(v) v instanceof Float
+let isNull = @(v) v instanceof Null
+let isBool = @(v) v instanceof Bool
+// instanceof Instance does not match script class instances, keep the raw type check
+let isInstance = @(v) type(v) == "instance"
+let isGenerator = @(v) v instanceof Generator
+let isUserdata = @(v) v instanceof UserData
+let isThread = @(v) v instanceof Thread
+let isWeakref = @(v) v instanceof WeakRef
 
 function isDataBlock(obj): bool {
   //prefer this as it can handle any DataBlock binding and implementation
@@ -147,7 +159,7 @@ function tablesCombine(tbl1, tbl2, func=null, defValue = null, addParams = true)
   return res
 }
 
-function isEqual(val1, val2, customIsEqual={}){
+function isEqual(val1, val2, customIsEqual = const {}){
   if (val1 == val2)
     return true
   let valType = type(val1)
@@ -173,10 +185,9 @@ function isEqual(val1, val2, customIsEqual={}){
     if ("isEqual" in val1)
       return val1.isEqual(val2)
     foreach(classRef, func in customIsEqual) {
-      let t = type(classRef)
-      if (t=="function" && classRef(val1) && classRef(val2))
+      if (classRef instanceof Function && classRef(val1) && classRef(val2))
         return func(val1, val2)
-      if (t=="class" && val1 instanceof classRef && val2 instanceof classRef)
+      if (classRef instanceof Class && val1 instanceof classRef && val2 instanceof classRef)
         return func(val1, val2)
     }
     return false
@@ -190,7 +201,7 @@ function isEqual(val1, val2, customIsEqual={}){
  * instance that reports itself empty via a customIsEmpty entry or its own
  * isEmpty() method
  */
-function isEmpty(val, customIsEmpty = {}) {
+function isEmpty(val, customIsEmpty = const {}) {
   if (!val)
     return true
   let valType = type(val)
@@ -199,11 +210,14 @@ function isEmpty(val, customIsEmpty = {}) {
   if (valType == "instance") {
     if ("isEmpty" in val)
       return val.isEmpty()
+    if (isDataBlock(val))
+      return val.paramCount() && val.blockCount()
+    if ("len" in val && val.len instanceof Function)
+      return val.len()==0
     foreach(classRef, func in customIsEmpty) {
-      let t = type(classRef)
-      if (t=="function" && classRef(val))
+      if (classRef instanceof Function && classRef(val))
         return func(val)
-      if (t=="class" && val instanceof classRef)
+      if (classRef instanceof Class && val instanceof classRef)
         return func(val)
     }
   }
@@ -402,10 +416,10 @@ or
 
 function do_in_scope(obj, doFn){
   assert(
-    (type(obj)=="instance" || type(obj)=="table") &&  "__enter__" in obj && "__exit__" in obj,
+    (type(obj)=="instance" || obj instanceof Table) &&  "__enter__" in obj && "__exit__" in obj,
     "to support 'do_in_scope' object passed as first argument should implement '__enter__' and '__exit__' methods"
   )
-  assert(type(doFn) == "function", "function should be passed as second argument")
+  assert(doFn instanceof Function, "function should be passed as second argument")
 
   let scope = obj.__enter__()
   let defErr = {}
@@ -467,12 +481,6 @@ return freeze({
   unique_override
   arrayByRows
   chunk
-  isTable
-  isArray
-  isString
-  isFunction
-  isCallable
-  isDataBlock
   indexBy
   deep_clone
   deep_update
@@ -481,4 +489,19 @@ return freeze({
   insertGap
   getSubArray
   getSubTable
+  isInteger
+  isFloat
+  isTable
+  isArray
+  isString
+  isFunction
+  isCallable
+  isDataBlock
+  isNull
+  isBool
+  isInstance
+  isGenerator
+  isUserdata
+  isThread
+  isWeakref
 })

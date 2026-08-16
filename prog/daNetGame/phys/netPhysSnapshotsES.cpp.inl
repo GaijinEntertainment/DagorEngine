@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "netPhysSnapshots.h"
+#include "netPhysSyncState.h"
 #include "physUtils.h"
 #include <daECS/net/msgDecl.h>
 #include <daECS/net/msgSink.h>
@@ -146,14 +147,6 @@ static inline void net_phys_receive_snapshots_es_event_handler(const ecs::EventN
       return physreg::snapshotMsgCb[&cls - physreg::snapshotMsgCls.cbegin()](msg);
 }
 
-enum class PhysActorSyncState // Note: shall fit in 2 bits
-{
-  Normal,
-  Asleep,
-  Hidden,
-  Invalid // can't happen
-};
-
 static void send_phys_snapshots_impl(net::IConnection &conn,
   danet::BitStream &tmpBs,
   PhysSnapshotsMsgSender &unreliableSender,
@@ -212,6 +205,10 @@ static void send_phys_snapshots_impl(net::IConnection &conn,
       PhysSnapSerializeType pst = plr ? PhysSnapSerializeType::FARAWAY : PhysSnapSerializeType::CLOSEST;
       bool skipUpdate = false;
       PhysActorSyncState curSyncState = ((sr.flags & PHYS_ASLEEP) == 0) ? PhysActorSyncState::Normal : PhysActorSyncState::Asleep;
+
+      PhysActorSyncState prevSyncState = read_phys_actor_sync_state(make_span_const(syncStates), sr.netPhysId, connBecameResponsive);
+      DAECS_EXT_FAST_ASSERT(prevSyncState != PhysActorSyncState::Invalid);
+
       if (vPlayerLookAt)
       {
         vec4f vpos = ((sizeof(PhysActorSendRecord) % 16) == 0 && (offsetof(PhysActorSendRecord, pos) % 16) == 0) ? v_ld(&sr.pos.x)
@@ -231,7 +228,7 @@ static void send_phys_snapshots_impl(net::IConnection &conn,
           bool should_be_min_visible = game::is_teams_friendly(plrTeam, sr.team)  // teammates are visible regardless of it's distance
                                        || (sr.flags & PHYS_ALWAYS_SEND_SHANPSHOT) // marks are visible on a huge distance
             ;
-          if (!should_be_min_visible)
+          if (!should_be_min_visible && should_query_phys_actor_min_visible(prevSyncState, send_seq_value, sr.netPhysId))
             g_entity_mgr->sendEventImmediate(sr.eid, QueryPhysSnapshotMustBeMinVisible(plrTeam, &should_be_min_visible));
           if (should_be_min_visible)
             pst = PhysSnapSerializeType::MIN;
@@ -270,23 +267,8 @@ static void send_phys_snapshots_impl(net::IConnection &conn,
         pst = (PhysSnapSerializeType)sv_force_serializetype.get();
 #endif
 
-      PhysActorSyncState prevSyncState = PhysActorSyncState::Normal;
-      static constexpr unsigned RECSPERBYTE = 4; // CHAR_BIT/2 bits
-      unsigned stByteIdx = sr.netPhysId / RECSPERBYTE;
-      // If connection became responsive - resend all reliable state changes (asleep/hidden)
-      if (uint8_t stbyte = (stByteIdx >= syncStates.size() || connBecameResponsive) ? 0 : syncStates[stByteIdx])
-      {
-        prevSyncState = PhysActorSyncState((stbyte >> (sr.netPhysId % RECSPERBYTE * 2)) % RECSPERBYTE);
-        DAECS_EXT_FAST_ASSERT(prevSyncState != PhysActorSyncState::Invalid);
-      }
-
       if (curSyncState != prevSyncState)
-      {
-        if (DAGOR_UNLIKELY(stByteIdx >= syncStates.size()))
-          syncStates.resize(stByteIdx + 1);
-        unsigned bshift = sr.netPhysId % RECSPERBYTE * 2;
-        syncStates[stByteIdx] = (syncStates[stByteIdx] & ~(0b11 << bshift)) | (unsigned(curSyncState) << bshift);
-      }
+        write_phys_actor_sync_state(syncStates, sr.netPhysId, curSyncState);
 
       if ((curSyncState == PhysActorSyncState::Normal) ? skipUpdate : (curSyncState == prevSyncState))
         continue;
@@ -469,7 +451,8 @@ void net_rcv_phys_snapshots(const net::IMessage &,
     {
       G_ASSERTF(0, "failed to deserialize snapshot for actor eid=%d/netPhysId=%d",
         (netPhysId < eids_list.size()) ? (ecs::entity_id_t)eids_list[netPhysId] : 0, netPhysId);
-      break;
+      // the bitstream offset is now unreliable; do not read the trailer fields below
+      return;
     }
   }
 

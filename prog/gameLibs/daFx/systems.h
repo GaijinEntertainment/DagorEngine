@@ -61,6 +61,7 @@ struct SystemTemplate
   eastl::string name;
   int gameResId;
   float spawnRangeLimit;
+  uint8_t statGroup;
 
   EmitterState emitterState;
   EmitterRandomizer emitterRandomizer;

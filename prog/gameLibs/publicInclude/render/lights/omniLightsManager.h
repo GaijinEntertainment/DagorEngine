@@ -5,7 +5,6 @@
 #pragma once
 
 #include "omniLight.h"
-#include <osApiWrappers/dag_spinlock.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <generic/dag_tabFwd.h>
 #include <generic/dag_staticTab.h>
@@ -14,7 +13,6 @@
 #include <math/dag_hlsl_floatx.h>
 #include "renderLights.hlsli"
 #include <render/lights/lightsManager.h>
-#include <render/iesTextureManager.h>
 
 #include <EASTL/bitset.h>
 
@@ -31,61 +29,34 @@ struct Frustum;
 class Occlusion;
 class LightsPartition;
 
-/* NOTE: thread safe for OmniLightsManager
-  - OmniLightsManager doesn't allocate memory: all data arrays
-    (rawLights, lightPriority, etc) are inside instance, not heap.
-    It is intended to make some operations thread safe.
-  - addLight, destroyLight can be called concurrent
-  - destroyLight, setters and getters (setLightMask, getLightMask, etc)
-    can be called from several threads, but lightId should be not equal
-    for different threads.
-  - However, access to the same lightId is not thread safe:
-    if some thread updates or destroys some light,
-    another thread cannot access to the same lightId.
-  - drawDebugInfo, renderDebugBboxes is not thread safe:
-    it should be synchronized with previous writes from another thread.
-  - destroyAllLights, close and destructor should be synchronized
-    with previous access to OmniLightsManager from another thread.
- */
-
-class OmniLightsManager : public LightsManager<OmniLight>
+// see the thread-safety NOTE on LightsManager in lightsManager.h
+class OmniLightsManager : public LightsManager<OmniLight, RenderOmniLight, OmniLightMaskType, MAX_SCENE_OMNI_LIGHTS>
 {
   friend class LightsPartition;
 
 public:
-  typedef OmniLight Light;
-  typedef Light RawLight;
-  using MaskType = OmniLightMaskType;
-  using RenderLight = RenderOmniLight;
-
-  static constexpr int MAX_LIGHTS = MAX_SCENE_OMNI_LIGHTS;
-
   OmniLightsManager();
-  ~OmniLightsManager();
-
-  void close();
+  OmniLightsManager(const char *name);
 
   void drawDebugInfo();
   void renderDebugBboxes();
 
-  // priority: lesser = better. if returns -1 - no indices
-  int addLight(int priority, const Point3 &pos, const Color3 &color, float radius, float attenuation_k = 1.f)
+  // returns -1 if fails
+  int addLight(const Point3 &pos, const Color3 &color, float radius, float attenuation_k = 1.f)
   {
-    return addLight(priority, Light(pos, color, radius, attenuation_k));
+    return addLight(Light(pos, color, radius, attenuation_k));
   }
-  int addLight(int priority, const Point3 &pos, const Color3 &color, float radius, const TMatrix &box, float attenuation_k = 1.f)
+  int addLight(const Point3 &pos, const Color3 &color, float radius, const TMatrix &box, float attenuation_k = 1.f)
   {
-    return addLight(priority, Light(pos, color, radius, attenuation_k, box));
+    return addLight(Light(pos, color, radius, attenuation_k, box));
   }
-  int addLight(int priority, const Point3 &pos, const Point3 &dir, const Color3 &color, float radius, int tex,
-    float attenuation_k = 1.f);
-  int addLight(int priority, const Point3 &pos, const Point3 &dir, const Color3 &color, float radius, int tex, const TMatrix &box,
+  int addLight(const Point3 &pos, const Point3 &dir, const Color3 &color, float radius, int tex, float attenuation_k = 1.f);
+  int addLight(const Point3 &pos, const Point3 &dir, const Color3 &color, float radius, int tex, const TMatrix &box,
     float attenuation_k = 1.f);
 
-  int addLight(int priority, const Light &l);
+  int addLight(const Light &l);
 
   void destroyLight(unsigned int id);
-  void destroyAllLights();
 
   void setLightPos(unsigned int id, const Point3 &pos)
   {
@@ -137,9 +108,6 @@ public:
     }
     rawLights[id] = l;
   }
-  int maxIndex() const DAG_TS_NO_THREAD_SAFETY_ANALYSIS { return maxLightIndex; }
-
-  IesTextureCollection::PhotometryData getPhotometryData(int texId) const;
 
   RenderOmniLight getRenderLight(unsigned int id) const
   {
@@ -167,15 +135,4 @@ public:
   }
 
   void updateShadowVolume(uint32_t light_id) override;
-
-private:
-  carray<Light, MAX_LIGHTS> rawLights;
-  carray<uint8_t, MAX_LIGHTS> lightPriority;
-  // masks allows to ignore specific lights in specific cases
-  // for example, we can ignore highly dynamic lights for GI
-  carray<OmniLightMaskType, MAX_LIGHTS> masks; //-V730_NOINIT
-  StaticTab<uint16_t, MAX_LIGHTS> freeLightIds DAG_TS_GUARDED_BY(lightAllocationSpinlock);
-  IesTextureCollection *photometryTextures = nullptr;
-  OSSpinlock lightAllocationSpinlock;
-  int maxLightIndex DAG_TS_GUARDED_BY(lightAllocationSpinlock) = -1;
 };

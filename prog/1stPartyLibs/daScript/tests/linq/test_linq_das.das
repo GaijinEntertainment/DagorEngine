@@ -195,6 +195,145 @@ def test_decs_iterator_output(t : T?) {
     t |> equal(length(names), 2, "decs iterator output")
 }
 
+// ===== table source (untyped `from kv in tab` — 1-arg from_in dispatches table<K;V> → each_kv,
+// ===== table<K> set → keys; kv.key / kv.value pair surface; slot order unspecified → order-insensitive checks) =====
+
+def private mk_car_tab() : table<int; Car> {
+    return <- {
+        1 => Car(name = "cheap", price = 50, brand = "eco"),
+        2 => Car(name = "mid", price = 150, brand = "eco"),
+        3 => Car(name = "lux", price = 300, brand = "lux")
+    }
+}
+
+[test]
+def test_table_kv_where_select(t : T?) {
+    let tab <- mk_car_tab()
+    let prices <- %linq! from kv in tab where kv.value.price > 100 select kv.value.price %%
+    t |> equal(length(prices), 2, "kv.value predicate filters, projection rides the values-pruned walk")
+    t |> equal(prices[0] + prices[1], 450, "mid + lux, slot-order-insensitive")
+}
+
+[test]
+def test_table_kv_key_only(t : T?) {
+    let tab <- mk_car_tab()
+    let ks <- %linq! from kv in tab where kv.key != 2 select kv.key %%
+    t |> equal(length(ks), 2, "key-only chain rides the keys-pruned walk")
+    t |> equal(ks[0] + ks[1], 4, "keys 1 + 3")
+}
+
+[test]
+def test_table_kv_identity_select(t : T?) {
+    let tab <- mk_car_tab()
+    let rows <- %linq! from kv in tab where kv.value.brand == "eco" select kv %%
+    t |> equal(length(rows), 2, "identity select returns (key, value) tuples")
+    t |> equal(rows[0].key + rows[1].key, 3, "eco keys 1 + 2")
+    t |> equal(rows[0].value.price + rows[1].value.price, 200, "eco prices 50 + 150")
+}
+
+[test]
+def test_table_kv_orderby(t : T?) {
+    let tab <- mk_car_tab()
+    // orderby makes the unspecified slot order deterministic
+    let names <- %linq! from kv in tab orderby kv.value.price descending select kv.value.name %%
+    t |> equal(length(names), 3)
+    t |> equal(names[0], "lux")
+    t |> equal(names[2], "cheap")
+}
+
+[test]
+def test_table_kv_group_by(t : T?) {
+    let tab <- mk_car_tab()
+    let buckets <- %linq! from kv in tab group kv by kv.value.brand %%
+    t |> equal(length(buckets), 2, "two brands")
+    for (b in buckets) {
+        t |> equal(length(b._1), b._0 == "eco" ? 2 : 1, "eco bucket has 2 cars, lux has 1")
+    }
+}
+
+[test]
+def test_table_kv_let(t : T?) {
+    let tab <- mk_car_tab()
+    let doubled <- %linq! from kv in tab let p = kv.value.price * 2 where p >= 300 select p %%
+    t |> equal(length(doubled), 2, "let binding inlines over the kv pair")
+    t |> equal(doubled[0] + doubled[1], 900, "2*150 + 2*300")
+}
+
+[test]
+def test_table_kv_iterator_output(t : T?) {
+    let tab <- mk_car_tab()
+    let got <- [for (nm in %linq! from kv in tab orderby kv.value.price select kv.value.name iterator %%); nm]
+    t |> equal(length(got), 3)
+    t |> equal(got[0], "cheap")
+}
+
+[test]
+def test_table_set_form(t : T?) {
+    var s : table<int> <- { 5, 7, 9 }
+    let big <- %linq! from k in s where k > 6 select k %%
+    t |> equal(length(big), 2, "table<K> set source rides keys()")
+    t |> equal(big[0] + big[1], 16, "7 + 9")
+}
+
+[test]
+def test_table_arbitrary_range_var_name(t : T?) {
+    let tab <- mk_car_tab()
+    // the kv pair name is the range variable — any identifier works
+    let names <- %linq! from entry in tab where entry.value.price > 200 select entry.value.name %%
+    t |> equal(length(names), 1)
+    t |> equal(names[0], "lux")
+}
+
+[test]
+def test_table_as_join_right_source(t : T?) {
+    // a table works on either side of a join (the kv pair is that side's row). A right-side table
+    // joined on its bare `.key` fuses as a key probe — no internal join hash.
+    // left side is the array → result follows array order, deterministic
+    let cars <- mk_cars()
+    let prio <- { "eco" => 10, "lux" => 99 }
+    let rows <- %linq! from c in cars join p in prio on c.brand equals p.key select "{c.name}={p.value}" %%
+    t |> equal(length(rows), 3)
+    t |> equal(rows[0], "cheap=10")
+    t |> equal(rows[1], "mid=10")
+    t |> equal(rows[2], "lux=99")
+}
+
+[test]
+def test_table_as_join_left_source(t : T?) {
+    let cars <- mk_cars()
+    let prio <- { "eco" => 10, "lux" => 99 }
+    // left side is the table → fused slot walk; slot order, so sort before asserting
+    var rows <- %linq! from p in prio join c in cars on p.key equals c.brand select "{c.name}={p.value}" %%
+    rows |> sort()
+    t |> equal(length(rows), 3)
+    t |> equal(rows[0], "cheap=10")
+    t |> equal(rows[1], "lux=99")
+    t |> equal(rows[2], "mid=10")
+}
+
+[test]
+def test_set_as_join_source(t : T?) {
+    // a table<K> set joins on its bare element — membership probe
+    let cars <- mk_cars()
+    let vip : table<string> <- { "lux" }
+    let names <- %linq! from c in cars join b in vip on c.brand equals b select c.name %%
+    t |> equal(length(names), 1)
+    t |> equal(names[0], "lux")
+}
+
+[test]
+def test_table_join_into_group(t : T?) {
+    // `into` (group join) over a table right source stays OUTER — the probe never fires (its result
+    // consumes the whole bucket), the hashed walk does
+    let cars <- mk_cars()
+    let prio <- { "eco" => 10 }
+    let rows <- %linq! from c in cars join p in prio on c.brand equals p.key into ps select (Name = c.name, N = length(ps)) %%
+    t |> equal(length(rows), 3)
+    t |> equal(rows[0].N, 1)
+    t |> equal(rows[1].N, 1)
+    t |> equal(rows[2].N, 0)
+}
+
 // ===== orderby (single key, optional `descending`) =====
 
 [test]

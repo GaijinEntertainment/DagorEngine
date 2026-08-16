@@ -82,7 +82,8 @@ All examples require `options debugger = true`.
 ## pathTracer/ — Path Tracer Demo
 
 A toy path tracer implemented in daslang, with OpenGL visualization variants.
-Requires the `stbimage` module and (for OpenGL variants) `dasGlfw` / `dasImgui`.
+Requires the `stbimage` module and (for OpenGL variants) `dasGlfw` / `dasImgui` —
+all ship in-tree, so a default build has them.
 
 | File | Description |
 |------|-------------|
@@ -181,6 +182,20 @@ is a self-contained project with a `.das_package` descriptor.
 | `packages/daspkg-example-cpp/` | Template for a daspkg package with C++ shared module |
 | `packages/daspkg-example-mixed/` | Template for a mixed daslang + C++ package |
 
+## benchmarks/sql/ — Four-Engine SQL Benchmarks
+
+The `benchmarks/sql` query families measured across SQLite, DuckDB, PostgreSQL,
+and a plain-array baseline, in interpreted and JIT mode. The DuckDB/PostgreSQL
+providers install via this folder's `.das_package`; results land in a generated
+`results.md`. See [benchmarks/sql/README.md](benchmarks/sql/README.md).
+
+| File | Description |
+|------|-------------|
+| `sqlite.das` / `duckdb.das` / `postgres.das` | Engine lanes — thin `[benchmark]` wrappers over the shared families |
+| `array.das` | Baseline lane — same chains as fused linq folds over `array<Car>` |
+| `_sql_families.das` | The query families, once, generic over the runner type |
+| `_update_results.das` | Regenerates the INTERP/JIT matrices in `results.md` from sweep JSON |
+
 ## telegram/ — Telegram Bot Example
 
 A Telegram echo bot using the `das-telegram` daspkg package. Requires setup:
@@ -209,11 +224,11 @@ daslang.exe ../../utils/daspkg/main.das -- install
 
 ## graphics/ — ImGui Examples
 
-ImGui examples using the `dasImgui` daspkg package. Requires setup:
+ImGui examples using the in-tree `dasImgui` module — it ships built-in, so no
+package install is needed:
 
 ```
 cd examples/graphics
-daslang.exe ../../utils/daspkg/main.das -- install
 daslang.exe -project_root . furier_opengl_imgui_example.das
 ```
 
@@ -224,7 +239,8 @@ daslang.exe -project_root . furier_opengl_imgui_example.das
 ## node-editor/ — Node Editor Example
 
 [imgui-node-editor](https://github.com/thedmd/imgui-node-editor) example using
-`dasImguiNodeEditor` and `dasImgui` daspkg packages. Requires setup:
+the `dasImguiNodeEditor` daspkg package (`dasImgui` itself ships built-in).
+Requires setup:
 
 ```
 cd examples/node-editor

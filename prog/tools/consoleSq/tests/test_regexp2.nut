@@ -1,4 +1,4 @@
-// Squirrel module under test: regexp2 (registered by bindSqrat.cpp register_reg_exp)
+// Quirrel module under test: regexp2 (registered by bindSqrat.cpp register_reg_exp)
 
 import "regexp2" as regexp2
 

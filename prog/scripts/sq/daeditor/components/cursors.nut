@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "types" import String
 
 let tooltipBox = @(content) {
   rendObj = ROBJ_BOX
@@ -18,7 +19,7 @@ function setTooltip(val) {
 }
 let getTooltip = @() tooltipComp.value
 
-let colorBack = Color(0,0,0,120)
+const colorBack = Color(0,0,0,120)
 
 function tooltipCmp() {
   let watch = [tooltipGen]
@@ -29,11 +30,11 @@ function tooltipCmp() {
 
   return {
     key = "tooltip"
-    pos = [0, hdpx(38)]
+    pos = const [0, hdpx(38)]
     watch = isDynamicTooltip ? [tooltip].extend(watch) : watch
     behavior = Behaviors.BoundToArea
-    transform = {}
-    children = type(tooltip) == "string" || isDynamicTooltip
+    transform = true
+    children = tooltip instanceof String || isDynamicTooltip
       ? tooltipBox({
           rendObj = ROBJ_TEXTAREA
           behavior = Behaviors.TextArea
@@ -47,11 +48,11 @@ function tooltipCmp() {
 
 let cursors = {getTooltip, setTooltip, tooltipCmp, tooltip = {}}
 
-let cursorC = Color(255,255,255,255)
+const cursorC = Color(255,255,255,255)
 
 let cursorPc = {
   rendObj = ROBJ_VECTOR_CANVAS
-  size = [fsh(2), fsh(2)]
+  size = const [fsh(2), fsh(2)]
   commands = [
     [VECTOR_WIDTH, hdpx(1)],
     [VECTOR_FILL_COLOR, cursorC],
@@ -66,7 +67,7 @@ let cursorPc = {
 
 let cursorCir = {
   rendObj = ROBJ_VECTOR_CANVAS
-  size = [fsh(2), fsh(2)]
+  size = const [fsh(2), fsh(2)]
   commands = [
     [VECTOR_WIDTH, hdpx(1)],
     [VECTOR_FILL_COLOR, Color(0,0,0,0)],
@@ -82,7 +83,7 @@ let cursorCir = {
 
 let cursorPick = {
   rendObj = ROBJ_VECTOR_CANVAS
-  size = [fsh(2), fsh(2)]
+  size = const [fsh(2), fsh(2)]
   commands = [
     [VECTOR_WIDTH, hdpx(1)],
     [VECTOR_FILL_COLOR, Color(0,0,0,255)],
@@ -106,7 +107,7 @@ let cursorPick = {
 
 function mkPcCursor(children, cursorBase=cursorPc){
   return {
-    size = [fsh(2), fsh(2)]
+    size = const [fsh(2), fsh(2)]
     hotspot = [0, 0]
     children = [cursorBase].extend(children)
     transform = {
@@ -125,7 +126,7 @@ let helpSign = {
   fontFx = FFT_GLOW
   fontFxFactor=48
   fontFxColor = colorBack
-  pos = [hdpx(25), hdpx(10)]
+  pos = const [hdpx(25), hdpx(10)]
 }
 
 cursors.help <- Cursor(function(){

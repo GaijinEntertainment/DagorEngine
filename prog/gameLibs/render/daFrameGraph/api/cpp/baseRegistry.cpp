@@ -145,6 +145,8 @@ DispatchMeshIndirectRequest BaseRegistry::dispatchMeshIndirect(const char *shade
   return DispatchRequest<detail::DispatchRequestPolicy::Default>(registry, nodeId, shaderId).mesh().indirect(buffer);
 }
 
+NameSpaceRequest BaseRegistry::getParentNameSpace() const { return {registry->knownNames.getParent(nameSpaceId), nodeId, registry}; }
+
 NameSpaceRequest BaseRegistry::root() const { return {registry->knownNames.root(), nodeId, registry}; }
 
 VirtualResourceCreationSemiRequest BaseRegistry::create(const char *name)

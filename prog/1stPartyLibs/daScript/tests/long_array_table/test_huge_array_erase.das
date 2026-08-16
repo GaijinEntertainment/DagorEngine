@@ -28,6 +28,7 @@ let HUGE_N = 2200_l * 1024_l * 1024_l
 def test_erase_at_int64_past_int_max(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     let before = long_length(arr)
     let at_pos = before - 2_l
@@ -43,6 +44,7 @@ def test_erase_at_int64_past_int_max(t : T?) {
 def test_erase_range_at_int64_past_int_max(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     let before = long_length(arr)
     let at_pos = before - 5_l

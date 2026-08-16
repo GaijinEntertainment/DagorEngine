@@ -641,6 +641,121 @@ namespace debugger {
                 invoke_URange64(context,fn_URange,classPtr,value);
             }
         }
+        virtual void Float16 ( float16_t & value ) override {
+           if ( auto fn_Float16 = get_Float16(classPtr) ) {
+                invoke_Float16(context,fn_Float16,classPtr,value);
+            }
+        }
+        virtual void Half2 ( half2 & value ) override {
+           if ( auto fn_Half2 = get_Half2(classPtr) ) {
+                invoke_Half2(context,fn_Half2,classPtr,value);
+            }
+        }
+        virtual void Half3 ( half3 & value ) override {
+           if ( auto fn_Half3 = get_Half3(classPtr) ) {
+                invoke_Half3(context,fn_Half3,classPtr,value);
+            }
+        }
+        virtual void Half4 ( half4 & value ) override {
+           if ( auto fn_Half4 = get_Half4(classPtr) ) {
+                invoke_Half4(context,fn_Half4,classPtr,value);
+            }
+        }
+        virtual void Half8 ( half8 & value ) override {
+           if ( auto fn_Half8 = get_Half8(classPtr) ) {
+                invoke_Half8(context,fn_Half8,classPtr,value);
+            }
+        }
+        virtual void Short2 ( short2 & value ) override {
+           if ( auto fn_Short2 = get_Short2(classPtr) ) {
+                invoke_Short2(context,fn_Short2,classPtr,value);
+            }
+        }
+        virtual void Short3 ( short3 & value ) override {
+           if ( auto fn_Short3 = get_Short3(classPtr) ) {
+                invoke_Short3(context,fn_Short3,classPtr,value);
+            }
+        }
+        virtual void Short4 ( short4 & value ) override {
+           if ( auto fn_Short4 = get_Short4(classPtr) ) {
+                invoke_Short4(context,fn_Short4,classPtr,value);
+            }
+        }
+        virtual void Short8 ( short8 & value ) override {
+           if ( auto fn_Short8 = get_Short8(classPtr) ) {
+                invoke_Short8(context,fn_Short8,classPtr,value);
+            }
+        }
+        virtual void UShort2 ( ushort2 & value ) override {
+           if ( auto fn_UShort2 = get_UShort2(classPtr) ) {
+                invoke_UShort2(context,fn_UShort2,classPtr,value);
+            }
+        }
+        virtual void UShort3 ( ushort3 & value ) override {
+           if ( auto fn_UShort3 = get_UShort3(classPtr) ) {
+                invoke_UShort3(context,fn_UShort3,classPtr,value);
+            }
+        }
+        virtual void UShort4 ( ushort4 & value ) override {
+           if ( auto fn_UShort4 = get_UShort4(classPtr) ) {
+                invoke_UShort4(context,fn_UShort4,classPtr,value);
+            }
+        }
+        virtual void UShort8 ( ushort8 & value ) override {
+           if ( auto fn_UShort8 = get_UShort8(classPtr) ) {
+                invoke_UShort8(context,fn_UShort8,classPtr,value);
+            }
+        }
+        virtual void Byte2 ( byte2 & value ) override {
+           if ( auto fn_Byte2 = get_Byte2(classPtr) ) {
+                invoke_Byte2(context,fn_Byte2,classPtr,value);
+            }
+        }
+        virtual void Byte3 ( byte3 & value ) override {
+           if ( auto fn_Byte3 = get_Byte3(classPtr) ) {
+                invoke_Byte3(context,fn_Byte3,classPtr,value);
+            }
+        }
+        virtual void Byte4 ( byte4 & value ) override {
+           if ( auto fn_Byte4 = get_Byte4(classPtr) ) {
+                invoke_Byte4(context,fn_Byte4,classPtr,value);
+            }
+        }
+        virtual void Byte8 ( byte8 & value ) override {
+           if ( auto fn_Byte8 = get_Byte8(classPtr) ) {
+                invoke_Byte8(context,fn_Byte8,classPtr,value);
+            }
+        }
+        virtual void Byte16 ( byte16 & value ) override {
+           if ( auto fn_Byte16 = get_Byte16(classPtr) ) {
+                invoke_Byte16(context,fn_Byte16,classPtr,value);
+            }
+        }
+        virtual void UByte2 ( ubyte2 & value ) override {
+           if ( auto fn_UByte2 = get_UByte2(classPtr) ) {
+                invoke_UByte2(context,fn_UByte2,classPtr,value);
+            }
+        }
+        virtual void UByte3 ( ubyte3 & value ) override {
+           if ( auto fn_UByte3 = get_UByte3(classPtr) ) {
+                invoke_UByte3(context,fn_UByte3,classPtr,value);
+            }
+        }
+        virtual void UByte4 ( ubyte4 & value ) override {
+           if ( auto fn_UByte4 = get_UByte4(classPtr) ) {
+                invoke_UByte4(context,fn_UByte4,classPtr,value);
+            }
+        }
+        virtual void UByte8 ( ubyte8 & value ) override {
+           if ( auto fn_UByte8 = get_UByte8(classPtr) ) {
+                invoke_UByte8(context,fn_UByte8,classPtr,value);
+            }
+        }
+        virtual void UByte16 ( ubyte16 & value ) override {
+           if ( auto fn_UByte16 = get_UByte16(classPtr) ) {
+                invoke_UByte16(context,fn_UByte16,classPtr,value);
+            }
+        }
         virtual void WalkBlock ( Block * value ) override {
            if ( auto fn_WalkBlock = get_WalkBlock(classPtr) ) {
                 invoke_WalkBlock(context,fn_WalkBlock,classPtr,*value);
@@ -1372,7 +1487,7 @@ namespace debugger {
                     ->args({"context","line"});
             auto fngsw = addExtern<DAS_BIND_FUN(debuggerGetStackWalk)>(*this, lib, "get_stackwalk",
                 SideEffects::accessExternal, "debuggerGetStackWalk")
-                    ->args({"context","line","args","vars","out_of_scope","top_only","context","at"});
+                    ->args({"context","line","args","vars","out_of_scope","top_only","context","at"})->setTempStringResult();
             fngsw->arguments[2]->init = new ExprConstBool(true);
             fngsw->arguments[3]->init = new ExprConstBool(true);
             fngsw->arguments[4]->init = new ExprConstBool(false);

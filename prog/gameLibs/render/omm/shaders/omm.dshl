@@ -26,6 +26,9 @@ const_buffer omm_local_constants;
 
 sampler omm_sampler0;
 
+float4 omm_uv_cutout_lines = float4(0, 0, 0, 1);
+int omm_uv_cutout_enabled = 0;
+
 macro OMM_GLOBAL_CONSTANTS(code)
   (code) {
     g_GlobalConstants@cbuf = omm_global_constants hlsl {
@@ -240,9 +243,13 @@ macro OMM_RASTERIZE_BINDINGS(code)
       ConstantBuffer<LocalConstants> g_LocalConstants@cbuf;
       #undef OMM_DAGOR_DECLARE_CBUFFER_TYPES
     };
-    t_alphaTexture@tex = omm_t_alphaTexture hlsl {
-      Texture2D<float4> t_alphaTexture@tex;
+    // Deliberately not t_alphaTexture: the SDK must read the alpha only through the hook macros, thus a
+    // direct read fails to compile in place of skipping the cutout without a message.
+    omm_alpha_tex@tex = omm_t_alphaTexture hlsl {
+      Texture2D<float4> omm_alpha_tex@tex;
     };
+    omm_uv_cutout_lines@f4 = omm_uv_cutout_lines;
+    omm_uv_cutout_enabled@i1 = omm_uv_cutout_enabled;
     t_indexBuffer@buf = omm_t_indexBuffer hlsl {
       ByteAddressBuffer t_indexBuffer@buf;
     };
@@ -270,6 +277,7 @@ shader omm_rasterize_cs_r_cs
   OMM_RASTERIZE_BINDINGS(cs)
   hlsl(cs) {
     #include "omm_dagor_bindings.hlsli"
+    #include "omm_uv_cutout.hlsli"
     #define IN_ALPHA_TEXTURE_CHANNEL 0
     #include <omm_rasterize_cs.hlsli>
     #undef IN_ALPHA_TEXTURE_CHANNEL
@@ -283,6 +291,7 @@ shader omm_rasterize_cs_g_cs
   OMM_RASTERIZE_BINDINGS(cs)
   hlsl(cs) {
     #include "omm_dagor_bindings.hlsli"
+    #include "omm_uv_cutout.hlsli"
     #define IN_ALPHA_TEXTURE_CHANNEL 1
     #include <omm_rasterize_cs.hlsli>
     #undef IN_ALPHA_TEXTURE_CHANNEL
@@ -296,6 +305,7 @@ shader omm_rasterize_cs_b_cs
   OMM_RASTERIZE_BINDINGS(cs)
   hlsl(cs) {
     #include "omm_dagor_bindings.hlsli"
+    #include "omm_uv_cutout.hlsli"
     #define IN_ALPHA_TEXTURE_CHANNEL 2
     #include <omm_rasterize_cs.hlsli>
     #undef IN_ALPHA_TEXTURE_CHANNEL
@@ -309,6 +319,7 @@ shader omm_rasterize_cs_a_cs
   OMM_RASTERIZE_BINDINGS(cs)
   hlsl(cs) {
     #include "omm_dagor_bindings.hlsli"
+    #include "omm_uv_cutout.hlsli"
     #define IN_ALPHA_TEXTURE_CHANNEL 3
     #include <omm_rasterize_cs.hlsli>
     #undef IN_ALPHA_TEXTURE_CHANNEL

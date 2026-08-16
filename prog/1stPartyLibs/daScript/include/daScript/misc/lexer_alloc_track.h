@@ -14,7 +14,10 @@ namespace das {
     // all under one site).
 
     // Param is tokenText, not yytext — flex defines yytext as a macro.
-    void lexer_track_alloc(std::string *p, const char *tokenText) noexcept;
+    // lexer_track_alloc is called from the lexer (compiler lib), so it is
+    // DAS_API-exported from the runtime lib; the other two are runtime-only
+    // (alloc_tracker) and need no export.
+    DAS_API void lexer_track_alloc(std::string *p, const char *tokenText) noexcept;
     void lexer_track_free(std::string *p) noexcept;
     int  dump_lexer_string_leaks(FILE *out) noexcept;
 

@@ -14,6 +14,123 @@ int omm_debug_array_data_size = 0;
 int omm_debug_tile_size = 96;
 int omm_debug_grid_columns = 1;
 float4 omm_debug_view_params = (0, 0, 1, 0);
+int omm_debug_show_grid = 1;
+float omm_debug_grid_thickness = 1.5;
+texture omm_debug_alpha_tex;
+buffer omm_debug_uv_buffer;
+int omm_debug_show_texture = 0;
+int omm_debug_alpha_channel = 3;
+float omm_debug_alpha_cutoff = 0.5;
+float4 omm_debug_cutout_lines = (0, 0, 0, 1);
+int omm_debug_cutout_enabled = 0;
+float omm_debug_texture_opacity = 0.5;
+int omm_debug_texture_threshold = 0;
+int omm_debug_show_predicted_grid = 1;
+
+buffer omm_debug_src_texcoords;
+buffer omm_debug_src_indices;
+buffer omm_debug_uv_out;
+int omm_debug_uv_tc_format = 0;
+int omm_debug_uv_tc_offset = 0;
+int omm_debug_uv_tc_stride = 0;
+int omm_debug_uv_index_format = 1;
+int omm_debug_uv_index_offset = 0;
+int omm_debug_uv_index_stride = 4;
+int omm_debug_uv_triangle_count = 0;
+float4 omm_debug_uv_predict_params = (1, 1, 2, 8); // alpha texture w and h, dynamicSubdivisionScale, maximum level
+
+// Decodes each triangle's three texcoords into one record, with the same omm_decode_texcoord the bake used.
+shader omm_debug_extract_uv
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+
+  (cs) {
+    src_texcoords@buf = omm_debug_src_texcoords hlsl { ByteAddressBuffer src_texcoords@buf; };
+    src_indices@buf = omm_debug_src_indices hlsl { ByteAddressBuffer src_indices@buf; };
+    uv_out@uav = omm_debug_uv_out hlsl { RWByteAddressBuffer uv_out@uav; };
+
+    tc_format@i1 = omm_debug_uv_tc_format;
+    tc_offset@i1 = omm_debug_uv_tc_offset;
+    tc_stride@i1 = omm_debug_uv_tc_stride;
+    idx_format@i1 = omm_debug_uv_index_format;
+    idx_offset@i1 = omm_debug_uv_index_offset;
+    idx_stride@i1 = omm_debug_uv_index_stride;
+    triangle_count@i1 = omm_debug_uv_triangle_count;
+    predict_params@f4 = omm_debug_uv_predict_params;
+  }
+
+  hlsl(cs) {
+    #include "omm_texcoord_decode.hlsli"
+    #include "omm_debug_uv_record.hlsli"
+
+    uint extract_load_u16(ByteAddressBuffer buffer, uint byte_offset)
+    {
+      uint word = buffer.Load(byte_offset & ~3u);
+      return (word >> ((byte_offset & 3u) * 8u)) & 0xFFFFu;
+    }
+
+    uint fetch_source_index(uint i)
+    {
+      // These values agree with render::omm::IndexFormat: UINT16 = 0, UINT32 = 1, UINT8 = 2.
+      uint byte_offset = uint(idx_offset) + i * uint(max(idx_stride, 1));
+      if (idx_format == 0)
+        return extract_load_u16(src_indices, byte_offset);
+      if (idx_format == 2)
+      {
+        uint word = src_indices.Load(byte_offset & ~3u);
+        return (word >> ((byte_offset & 3u) * 8u)) & 0xFFu;
+      }
+      return src_indices.Load(byte_offset);
+    }
+
+    [numthreads(64, 1, 1)]
+    void omm_debug_extract_uv_cs(uint tid : SV_DispatchThreadID)
+    {
+      if (tid >= uint(max(triangle_count, 0)))
+        return;
+
+      float2 uv[3];
+      for (uint corner = 0; corner < 3u; ++corner)
+      {
+        uint vertex = fetch_source_index(tid * 3u + corner);
+        uint byte_offset = uint(tc_offset) + vertex * uint(max(tc_stride, 1));
+        uv[corner] = omm_decode_texcoord(src_texcoords, byte_offset, uint(tc_format));
+        uv_out.Store2(tid * OMM_DEBUG_UV_RECORD_SIZE + corner * 8u, asuint(uv[corner]));
+      }
+
+      // Recalculated because the SDK stores no level for a triangle with one state. An exact copy of
+      // GetSubdivisionLevel in omm_common.hlsli, quirks included: the ratio is truncated to an integer and
+      // raised to a power of two before the halved log2, which is not ceil(0.5 * log2(ratio)).
+      float2 texels = max(predict_params.xy, float2(1.0, 1.0));
+      float2 e0 = (uv[1] - uv[0]) * texels;
+      float2 e1 = (uv[2] - uv[0]) * texels;
+      float area_texels = 0.5 * abs(e0.x * e1.y - e0.y * e1.x);
+      uint max_level = uint(predict_params.w);
+      uint level = max_level;
+      float area_ratio = area_texels / (predict_params.z * predict_params.z);
+      // The same branch as the SDK: a too large ratio, or a NaN area, takes the maximum level.
+      if (predict_params.z > 0.0 && area_ratio < 2147483648.0)
+      {
+        uint ratio = uint(area_ratio);
+        // GetLog2(GetNextPow2()): both 0 and 1 give 0.
+        uint log2_ratio = 0;
+        if (ratio > 1u)
+        {
+          uint high_bit = firstbithigh(ratio);
+          log2_ratio = (ratio == (1u << high_bit)) ? high_bit : high_bit + 1u;
+        }
+        level = min(log2_ratio >> 1u, max_level);
+      }
+      uv_out.Store(tid * OMM_DEBUG_UV_RECORD_SIZE + OMM_DEBUG_UV_PREDICTED_LEVEL_OFFSET, level);
+      uv_out.Store(tid * OMM_DEBUG_UV_RECORD_SIZE + OMM_DEBUG_UV_TEXEL_AREA_OFFSET, asuint(area_texels));
+    }
+  }
+
+  compile("target_cs", "omm_debug_extract_uv_cs");
+}
 
 shader omm_debug_visualize
 {
@@ -35,6 +152,18 @@ shader omm_debug_visualize
     tile_size@i1 = omm_debug_tile_size;
     grid_columns@i1 = omm_debug_grid_columns;
     view_params@f4 = omm_debug_view_params;
+    show_grid@i1 = omm_debug_show_grid;
+    grid_thickness@f1 = omm_debug_grid_thickness;
+    alpha_tex@smp2d = omm_debug_alpha_tex;
+    uv_buffer@buf = omm_debug_uv_buffer hlsl { ByteAddressBuffer uv_buffer@buf; };
+    show_texture@i1 = omm_debug_show_texture;
+    alpha_channel@i1 = omm_debug_alpha_channel;
+    alpha_cutoff@f1 = omm_debug_alpha_cutoff;
+    cutout_lines@f4 = omm_debug_cutout_lines;
+    cutout_enabled@i1 = omm_debug_cutout_enabled;
+    texture_opacity@f1 = omm_debug_texture_opacity;
+    texture_threshold@i1 = omm_debug_texture_threshold;
+    show_predicted_grid@i1 = omm_debug_show_predicted_grid;
   }
 
   hlsl(cs) {
@@ -46,6 +175,13 @@ shader omm_debug_visualize
     #define OMM_DEBUG_FORMAT_OC1_4_STATE 2
     #define OMM_DEBUG_TILE_GAP_RATIO 0.1
     #define OMM_DEBUG_EQUILATERAL_HEIGHT 0.8660254038
+    // You can see cyan on all four state colours (black, white, red and green).
+    #define OMM_DEBUG_GRID_COLOR float3(0.15, 0.85, 1.0)
+    // Amber shows a predicted level and not a level that the bake recorded.
+    #define OMM_DEBUG_PREDICTED_GRID_COLOR float3(1.0, 0.65, 0.1)
+    #define OMM_DEBUG_GRID_OPACITY 0.85
+    #include "omm_debug_uv_record.hlsli"
+    #include "omm_uv_cutout_band.hlsli"
 
     uint load_u8(ByteAddressBuffer buffer, uint byte_offset)
     {
@@ -185,9 +321,10 @@ shader omm_debug_visualize
       return load_desc(desc_index, byte_offset, subdivision_level, format);
     }
 
-    bool tile_to_micro_triangle(float2 local_pos, uint subdivision_level, out uint micro_triangle)
+    bool tile_to_micro_triangle(float2 local_pos, uint subdivision_level, out uint micro_triangle, out float3 bary)
     {
       micro_triangle = 0u;
+      bary = float3(0.0, 0.0, 0.0);
       float side = max(float(tile_size), 1.0);
       float height = side * OMM_DEBUG_EQUILATERAL_HEIGHT;
       if (local_pos.x < 0.0 || local_pos.y < 0.0 || local_pos.x > side || local_pos.y > height)
@@ -200,6 +337,7 @@ shader omm_debug_visualize
       if (u < 0.0 || v < 0.0 || w < 0.0)
         return false;
 
+      bary = float3(u, v, w);
       uint level = min(subdivision_level, 15u);
       uint n = 1u << level;
       uint iu = min(uint(floor(float(n) * u)), n - 1u);
@@ -207,6 +345,77 @@ shader omm_debug_visualize
       uint iw = min(uint(floor(float(n) * w)), n - 1u);
       micro_triangle = dbary_to_index(iu, iv, iw, level);
       return true;
+    }
+
+    float pick_alpha_channel(float4 texel)
+    {
+      return alpha_channel == 0 ? texel.r : (alpha_channel == 1 ? texel.g : (alpha_channel == 2 ? texel.b : texel.a));
+    }
+
+    float cutout_masked_texel(int2 texel, float2 tex_size)
+    {
+      float2 texel_uv = (float2(texel) + 0.5) / tex_size;
+      if (!omm_uv_cutout_band_keeps(cutout_lines, texel_uv))
+        return 0;
+      return pick_alpha_channel(alpha_tex.Load(int3(texel, 0)));
+    }
+
+    float sample_cutout_alpha(float2 uv)
+    {
+      float2 tex_size;
+      alpha_tex.GetDimensions(tex_size.x, tex_size.y);
+
+      float2 coord = uv * tex_size - 0.5;
+      int2 texel = int2(floor(coord));
+      float2 weight = coord - floor(coord);
+
+      float a00 = cutout_masked_texel(texel, tex_size);
+      float a10 = cutout_masked_texel(texel + int2(1, 0), tex_size);
+      float a01 = cutout_masked_texel(texel + int2(0, 1), tex_size);
+      float a11 = cutout_masked_texel(texel + int2(1, 1), tex_size);
+      return lerp(lerp(a00, a10, weight.x), lerp(a01, a11, weight.x), weight.y);
+    }
+
+    // The alpha the bake tested, over the baked states. The texcoords are interpolated with the same
+    // barycentrics the atlas uses, thus a texel here is the texel that gave the state below it.
+    float3 apply_alpha_texture(float3 color, uint triangle_index, float3 bary)
+    {
+      float2 uv0 = asfloat(uv_buffer.Load2(triangle_index * OMM_DEBUG_UV_RECORD_SIZE + OMM_DEBUG_UV_UV0_OFFSET));
+      float2 uv1 = asfloat(uv_buffer.Load2(triangle_index * OMM_DEBUG_UV_RECORD_SIZE + OMM_DEBUG_UV_UV1_OFFSET));
+      float2 uv2 = asfloat(uv_buffer.Load2(triangle_index * OMM_DEBUG_UV_RECORD_SIZE + OMM_DEBUG_UV_UV2_OFFSET));
+
+      // The weight order follows the SDK: InitBarycentrics(u, v) = (1 - u - v, u, v), and
+      // InterpolateTriangleUV weights p0 by .x, p1 by .y, p2 by .z. Here bary is (u, v, w), thus iu
+      // weights p1, iv weights p2 and w weights p0. Get it wrong and the overlay contradicts the states.
+      float2 uv = uv0 * bary.z + uv1 * bary.x + uv2 * bary.y;
+
+      float alpha = cutout_enabled != 0 ? sample_cutout_alpha(uv) : pick_alpha_channel(tex2Dlod(alpha_tex, float4(uv, 0, 0)));
+      // Thresholded shows what the bake saw; raw shows the margin, which tells a weak cutout from a strong one.
+      float3 overlay = texture_threshold != 0 ? (alpha > alpha_cutoff ? float3(1.0, 0.85, 0.2) : float3(0.1, 0.1, 0.35))
+                                              : float3(alpha, alpha, alpha);
+      return lerp(color, overlay, saturate(texture_opacity));
+    }
+
+    // Drawn last, thus visible over everything below. The width is constant in screen pixels and the grid
+    // fades out as the spacing nears one pixel, or a level-8 tile would be one solid colour. On the outer
+    // edges bary is 0, thus the outline of the tile needs no more code.
+    float3 apply_micro_triangle_grid(float3 color, float3 bary, uint subdivision_level, float side, float3 grid_color)
+    {
+      uint level = min(subdivision_level, 15u);
+      float n = float(1u << level);
+      float tile_px = side * max(view_params.z, 1e-6);
+      float spacing_px = tile_px / n;
+      float fade = saturate((spacing_px - 2.0) / 4.0);
+      if (fade <= 0.0)
+        return color;
+
+      float3 cell = frac(bary * n);
+      float3 to_edge = min(cell, 1.0 - cell);
+      float nearest = min(min(to_edge.x, to_edge.y), to_edge.z);
+      // One pixel is n / tile_px in the units of `to_edge`.
+      float half_width = 0.5 * max(grid_thickness, 0.5) * n / tile_px;
+      float edge_mask = 1.0 - smoothstep(0.0, half_width, nearest);
+      return lerp(color, grid_color, saturate(edge_mask * fade * OMM_DEBUG_GRID_OPACITY));
     }
 
     [numthreads(16, 16, 1)]
@@ -247,30 +456,52 @@ shader omm_debug_visualize
         return;
       }
 
+      // No descriptor means a special index and no micro-triangle data: one colour at level 0.
       int desc_index = decode_index(triangle_index);
-      if (desc_index < 0)
-      {
-        uint dummy;
-        target[dtid] = tile_to_micro_triangle(local_pos, 0u, dummy) ? special_index_color(desc_index) : float4(0.14, 0.14, 0.14, 1.0);
-        return;
-      }
-
-      uint subdivision_level;
-      if (!get_desc_subdivision(uint(desc_index), subdivision_level))
-      {
-        target[dtid] = float4(1.0, 0.0, 0.25, 1.0);
-        return;
-      }
+      uint subdivision_level = 0u;
+      bool has_desc = false;
+      if (desc_index >= 0)
+        has_desc = get_desc_subdivision(uint(desc_index), subdivision_level);
 
       uint micro_triangle;
-      if (!tile_to_micro_triangle(local_pos, subdivision_level, micro_triangle))
+      float3 bary;
+      if (!tile_to_micro_triangle(local_pos, subdivision_level, micro_triangle, bary))
       {
         target[dtid] = float4(0.14, 0.14, 0.14, 1.0);
         return;
       }
 
-      uint state;
-      target[dtid] = decode_state_for_desc(uint(desc_index), micro_triangle, state) ? state_color(state) : float4(1.0, 0.0, 0.25, 1.0);
+      float4 color;
+      if (desc_index < 0)
+        color = special_index_color(desc_index);
+      else if (!has_desc)
+        color = float4(1.0, 0.0, 0.25, 1.0);
+      else
+      {
+        uint state;
+        color = decode_state_for_desc(uint(desc_index), micro_triangle, state) ? state_color(state) : float4(1.0, 0.0, 0.25, 1.0);
+      }
+
+      // From the bottom to the top: the baked states, then the alpha texture, then the grid.
+      if (show_texture != 0)
+        color.rgb = apply_alpha_texture(color.rgb, triangle_index, bary);
+
+      if (show_grid != 0)
+      {
+        // A special index has no recorded level. Level 0 would suggest the bake made one micro-triangle;
+        // it did not. Show the level the bake would pick, in amber to mark it as a prediction.
+        if (has_desc)
+          color.rgb = apply_micro_triangle_grid(color.rgb, bary, subdivision_level, side, OMM_DEBUG_GRID_COLOR);
+        else if (show_predicted_grid != 0)
+        {
+          uint predicted = uv_buffer.Load(triangle_index * OMM_DEBUG_UV_RECORD_SIZE + OMM_DEBUG_UV_PREDICTED_LEVEL_OFFSET);
+          color.rgb = apply_micro_triangle_grid(color.rgb, bary, predicted, side, OMM_DEBUG_PREDICTED_GRID_COLOR);
+        }
+        else
+          color.rgb = apply_micro_triangle_grid(color.rgb, bary, 0u, side, OMM_DEBUG_GRID_COLOR);
+      }
+
+      target[dtid] = color;
     }
   }
 

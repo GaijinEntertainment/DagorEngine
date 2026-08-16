@@ -356,6 +356,14 @@ uint32_t get_index_format_unit_size(DXGI_FORMAT format)
   return 1;
 }
 
+// the triangles sibling of map_index_format: triangles have no U8, and any
+// invalid value falls back to the buffer flag, so the shared width resolver
+// is the authority on which format to choose
+DXGI_FORMAT map_triangle_index_format(Sbuffer *buffer, RaytraceGeometryDescription::IndexFormat format)
+{
+  return raytrace_tris_index32(format, buffer->getFlags()) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+}
+
 eastl::pair<D3D12_RAYTRACING_GEOMETRY_DESC, RaytraceGeometryDescriptionBufferResourceReferenceSet>
 raytrace_geometry_description_to_geometry_desc_triangles(const RaytraceGeometryDescription::TrianglesInfo &info,
   [[maybe_unused]] const RaytraceGeometryDescription::OpacityMicroMapLinkage *omm_info)
@@ -385,16 +393,8 @@ raytrace_geometry_description_to_geometry_desc_triangles(const RaytraceGeometryD
   desc.Triangles.IndexCount = info.indexCount;
   if (ibuf)
   {
-    desc.Triangles.IndexFormat = get_index_format(ibuf);
-    if (DXGI_FORMAT_R32_UINT == desc.Triangles.IndexFormat)
-    {
-      desc.Triangles.IndexBuffer += uint64_t{info.indexOffset} * 4;
-    }
-    else
-    {
-      G_ASSERT(DXGI_FORMAT_R16_UINT == desc.Triangles.IndexFormat); // -V547
-      desc.Triangles.IndexBuffer += uint64_t{info.indexOffset} * 2;
-    }
+    desc.Triangles.IndexFormat = map_triangle_index_format(info.indexBuffer, info.indexFormat);
+    desc.Triangles.IndexBuffer += uint64_t{info.indexOffset} * get_index_format_unit_size(desc.Triangles.IndexFormat);
   }
   else
   {
@@ -1404,11 +1404,7 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
 #endif
   }
 
-#if USE_DLSS_WITHOUT_STREAMLINE
-  context.dlssInterface.Initialize(device.get(), adapter.Get());
-#else
   context.initStreamline(adapter.Get());
-#endif
 
   logdbg("DX12: Creating queues...");
   if (!queues.init(device.get(), *this))
@@ -1559,6 +1555,14 @@ uint32_t Device::ensureSecondarySwapchainCreatedNoLock(HWND window, ComPtr<DXGIF
   {
     context.waitForCommandFence(); // another present might be queued, which may lead to the uninitialized virtual backbuffer usage
     auto virtualBackbuffer = createVirtualBackbuffer(context.back.swapchain.getColorImage(0), "virtual_backbuffer_0");
+    if (!virtualBackbuffer)
+    {
+      // The primary swapchain needs one before another window can be presented to, otherwise
+      // rendering into the primary backbuffer texture would go straight into the image that is
+      // being presented. Keep the window on the primary swapchain instead.
+      D3D_ERROR("DX12: No virtual backbuffer for the primary swapchain, window %p has to keep using it directly", window);
+      return 0;
+    }
     context.copyImage(context.back.swapchain.getColorImage(0), virtualBackbuffer, make_whole_resource_copy_info());
     context.finishFrame(0, true); // we need to finish frame and present to avoid several swapchains usage in one frame
     OSSpinlockScopedLock resourceBindingLock(get_resource_binding_guard());
@@ -1581,7 +1585,16 @@ uint32_t Device::ensureSecondarySwapchainCreatedNoLock(HWND window, ComPtr<DXGIF
     OSSpinlockScopedLock resourceBindingLock(get_resource_binding_guard());
     auto virtualBackbuffer = createVirtualBackbuffer(context.back.swapchain.getColorImage(newIndex),
       eastl::string{eastl::string::CtorSprintf{}, "virtual_backbuffer_%u", newIndex}.c_str());
-    context.back.swapchain.setupVirtualBackbuffers(newIndex, context.front.swapchain.getColorTexture(newIndex), virtualBackbuffer);
+    if (virtualBackbuffer)
+    {
+      context.back.swapchain.setupVirtualBackbuffers(newIndex, context.front.swapchain.getColorTexture(newIndex), virtualBackbuffer);
+    }
+    else
+    {
+      // Without it the window renders into its swapchain image directly, which is what a swapchain
+      // without a virtual backbuffer does anyway; present skips the copy for it.
+      D3D_ERROR("DX12: No virtual backbuffer for secondary swapchain %u, it renders into its swapchain image directly", newIndex);
+    }
   }
 
   context.front.swapchain.disableLatencyWait(); // muti-window mode can use arbitrary windows for presentation, so we must disable it
@@ -1660,10 +1673,6 @@ void Device::shutdown()
   context.shutdownFrameStates();
 
   pipeMan.unloadAll();
-
-#if USE_DLSS_WITHOUT_STREAMLINE
-  context.dlssInterface.Teardown(device.get());
-#endif
 
 #if _TARGET_PC_WIN
   DXGI_ADAPTER_DESC2 adapterDesc = {};
@@ -1835,6 +1844,7 @@ void Device::adjustCaps([[maybe_unused]] const DeviceCapsOverrides &overrides, [
   driverDesc.caps.hasBasicViewInstancing = D3D12_VIEW_INSTANCING_TIER_1 <= op3.ViewInstancingTier;
   driverDesc.caps.hasOptimizedViewInstancing = D3D12_VIEW_INSTANCING_TIER_2 <= op3.ViewInstancingTier;
   driverDesc.caps.hasAcceleratedViewInstancing = D3D12_VIEW_INSTANCING_TIER_3 <= op3.ViewInstancingTier;
+  driverDesc.caps.hasBarycentrics = (FALSE != op3.BarycentricsSupported) && (driverDesc.shaderModel >= 6.1_sm);
 
   driverDesc.caps.hasShaderFloat16Support = op4.Native16BitShaderOpsSupported;
 
@@ -2028,7 +2038,13 @@ Image *Device::createImage(const ImageInfo &ii, Image *base_image, const char *n
 #if _TARGET_PC_WIN
 Image *Device::createVirtualBackbuffer(Image *base, const char *name)
 {
-  auto rt = resources.cloneRenderTarget(getDXGIAdapter(), *this, base);
+  auto cloneResult = resources.cloneRenderTarget(getDXGIAdapter(), *this, base);
+  if (!cloneResult.has_value())
+  {
+    D3D_ERROR("DX12: Unable to create virtual backbuffer <%s>, %s", name, dxgi_error_code_to_string(cloneResult.error().errorCode));
+    return nullptr;
+  }
+  auto rt = cloneResult.value();
   rt->setDebugName(name);
   nameResource(rt->getHandle(), name);
   context.back.sharedContextState.resourceStates.setTextureState(context.back.sharedContextState.initialResourceStateSet,
@@ -2103,43 +2119,51 @@ BufferState Device::createDedicatedBuffer(uint32_t size, uint32_t structure_size
     .value_or({});
 }
 
-void Device::addBufferView(BufferState &buffer, BufferViewType view_type, BufferViewFormating formating, FormatStore format,
+void Device::addBufferView(BufferState &buffer, BufferViewType view_type, BufferViewFormatting formatting, FormatStore format,
   uint32_t struct_size)
 {
+  dag::Expected<void, resource_manager::MemoryAllocationError> viewResult;
   if (BufferViewType::SRV == view_type)
   {
-    if (BufferViewFormating::RAW == formating)
+    if (BufferViewFormatting::RAW == formatting)
     {
-      resources.createBufferRawSRV(device.get(), buffer);
+      viewResult = resources.createBufferRawSRV(device.get(), buffer);
     }
-    else if (BufferViewFormating::STRUCTURED == formating)
+    else if (BufferViewFormatting::STRUCTURED == formatting)
     {
-      resources.createBufferStructureSRV(device.get(), buffer, struct_size);
+      viewResult = resources.createBufferStructureSRV(device.get(), buffer, struct_size);
     }
     else
     {
-      resources.createBufferTextureSRV(device.get(), buffer, format);
+      viewResult = resources.createBufferTextureSRV(device.get(), buffer, format);
     }
   }
   else if (BufferViewType::UAV == view_type)
   {
-    if (BufferViewFormating::RAW == formating)
+    if (BufferViewFormatting::RAW == formatting)
     {
-      resources.createBufferRawUAV(device.get(), buffer);
+      viewResult = resources.createBufferRawUAV(device.get(), buffer);
     }
-    else if (BufferViewFormating::STRUCTURED == formating)
+    else if (BufferViewFormatting::STRUCTURED == formatting)
     {
-      resources.createBufferStructureUAV(device.get(), buffer, struct_size);
+      viewResult = resources.createBufferStructureUAV(device.get(), buffer, struct_size);
     }
     else
     {
-      resources.createBufferTextureUAV(device.get(), buffer, format);
+      viewResult = resources.createBufferTextureUAV(device.get(), buffer, format);
     }
   }
   else
   {
     DAG_FATAL("DX12: Invalid input to Device::addBufferView");
     return;
+  }
+  // The buffer interface has no way to report this upwards, so the buffer stays without the view
+  // and the error has to be reported here.
+  if (!viewResult.has_value())
+  {
+    D3D_ERROR("DX12: Failed to add view to buffer of %u bytes, %s", buffer.size,
+      dxgi_error_code_to_string(viewResult.error().errorCode));
   }
 }
 
@@ -2315,6 +2339,22 @@ bool Device::processDefragmentationForAllGroups()
 
 
 #if D3D_HAS_RAY_TRACING
+namespace
+{
+// The public raytrace interface reports a failure as a null structure and has no room for a reason,
+// so this is where the reason is turned into a log entry.
+RaytraceAccelerationStructure *report_error_as_null_structure(const char *what,
+  const resource_manager::RaytraceAccelerationStructurePoolProvider::AccelerationStructureResult &result)
+{
+  if (result.has_value())
+  {
+    return result.value();
+  }
+  D3D_ERROR("DX12: %s failed, %s", what, dxgi_error_code_to_string(result.error().errorCode));
+  return nullptr;
+}
+} // namespace
+
 RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(RaytraceGeometryDescription *desc, uint32_t count,
   RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes, ResourceTagType tag)
 {
@@ -2413,12 +2453,14 @@ RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(Raytr
     }
   }
 
-  return resources.newRaytraceBottomAccelerationStructure(*this, prebuildInfo.ResultDataMaxSizeInBytes, tag);
+  return report_error_as_null_structure("createRaytraceAccelerationStructure(bottom)",
+    resources.newRaytraceBottomAccelerationStructure(*this, prebuildInfo.ResultDataMaxSizeInBytes, tag));
 }
 
 RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(uint32_t size, ResourceTagType tag)
 {
-  return resources.newRaytraceBottomAccelerationStructure(*this, size, tag);
+  return report_error_as_null_structure("createRaytraceAccelerationStructure(bottom)",
+    resources.newRaytraceBottomAccelerationStructure(*this, size, tag));
 }
 
 RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(uint32_t elements, RaytraceBuildFlags flags,
@@ -2456,27 +2498,30 @@ RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(uint3
     }
   }
 
-  return resources.newRaytraceTopAccelerationStructure(*this, topLevelPrebuildInfo.ResultDataMaxSizeInBytes, tag);
+  return report_error_as_null_structure("createRaytraceAccelerationStructure(top)",
+    resources.newRaytraceTopAccelerationStructure(*this, topLevelPrebuildInfo.ResultDataMaxSizeInBytes, tag));
 }
 
 ::raytrace::TopAccelerationStructure *Device::createRaytraceAccelerationStructure(
   const ::raytrace::TopAccelerationStructurePlacementInfo &top_info)
 {
-  return reinterpret_cast<::raytrace::TopAccelerationStructure *>(
-    resources.newRaytraceTopAccelerationStructure(*this, top_info.sizeInBytes, nullptr));
+  return reinterpret_cast<::raytrace::TopAccelerationStructure *>(report_error_as_null_structure(
+    "createRaytraceAccelerationStructure(top)", resources.newRaytraceTopAccelerationStructure(*this, top_info.sizeInBytes, nullptr)));
 }
 
 ::raytrace::TopAccelerationStructure *Device::createRaytraceAccelerationStructure(::raytrace::AccelerationStructurePool pool,
   const ::raytrace::TopAccelerationStructurePlacementInfo &top_info)
 {
-  return reinterpret_cast<::raytrace::TopAccelerationStructure *>(resources.createAccelerationStructure(*this, pool, top_info));
+  return reinterpret_cast<::raytrace::TopAccelerationStructure *>(report_error_as_null_structure(
+    "createRaytraceAccelerationStructure(top, pool)", resources.createAccelerationStructure(*this, pool, top_info)));
 }
 
 ::raytrace::BottomAccelerationStructure *Device::createRaytraceAccelerationStructure(
   const ::raytrace::BottomAccelerationStructurePlacementInfo &bottom_info)
 {
   return reinterpret_cast<::raytrace::BottomAccelerationStructure *>(
-    resources.newRaytraceBottomAccelerationStructure(*this, bottom_info.sizeInBytes, nullptr));
+    report_error_as_null_structure("createRaytraceAccelerationStructure(bottom)",
+      resources.newRaytraceBottomAccelerationStructure(*this, bottom_info.sizeInBytes, nullptr)));
 }
 
 ::raytrace::BottomAccelerationStructure *Device::createRaytraceAccelerationStructure(::raytrace::AccelerationStructurePool pool,
@@ -2491,7 +2536,8 @@ RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(uint3
   if (FeatureImplementation::None != getOpacityMicroMapAvailability())
   {
     return reinterpret_cast<::raytrace::OpacityMicroMapTriangleArray *>(
-      resources.createOpacityMicroMapTriangleArray(*this, omm_info.sizeInBytes, nullptr));
+      report_error_as_null_structure("createRaytraceAccelerationStructure(opacity micro map)",
+        resources.createOpacityMicroMapTriangleArray(*this, omm_info.sizeInBytes, nullptr)));
   }
   return nullptr;
 }
@@ -2616,7 +2662,7 @@ HRESULT Device::findClosestMatchingMode(DXGI_MODE_DESC *out_desc)
       IDXGIOutput *dxgiOutput = context.getSwapchainOutput();
       if (dxgiOutput)
       {
-        DXGI_MODE_DESC newModeDesc; // Maximum monitor refresh, not rounded, exact value requred for flip to work with vsync.
+        DXGI_MODE_DESC newModeDesc; // Maximum monitor refresh, not rounded, exact value required for flip to work with vsync.
         hr = dxgiOutput->FindClosestMatchingMode(&desc.BufferDesc, &newModeDesc, NULL); // device.get()
         if (SUCCEEDED(hr))
           desc.BufferDesc = newModeDesc;
@@ -3415,7 +3461,14 @@ RayTracePipeline *Device::expandPipeline(RayTracePipeline *base, const ::raytrac
 ::raytrace::AccelerationStructurePool Device::createAccelerationStructurePool(
   const ::raytrace::AccelerationStructurePoolCreateInfo &info)
 {
-  return resources.createAccelerationStructurePool(*this, info);
+  auto result = resources.createAccelerationStructurePool(*this, info);
+  if (!result.has_value())
+  {
+    D3D_ERROR("DX12: createAccelerationStructurePool of %u bytes failed, %s", info.sizeInBytes,
+      dxgi_error_code_to_string(result.error().errorCode));
+    return ::raytrace::InvalidAccelerationStructurePool;
+  }
+  return result.value();
 }
 
 #endif

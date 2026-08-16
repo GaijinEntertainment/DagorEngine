@@ -1,10 +1,10 @@
 from "%darg/ui_imports.nut" import *
 
-let barInvisible = freeze({
+const barInvisible = {
   color = Color(40, 40, 40, 160)
   _width = sh(1)
   _height = sh(1)
-})
+}
 
 let barVisible = freeze(barInvisible.__merge({rendObj = ROBJ_SOLID}))
 
@@ -55,7 +55,7 @@ function scrollbar(scroll_handler, options={}) {
     }
 
 
-    let minV = 0
+    const minV = 0
     let maxV = contentSize - elemSize
     let fValue = scrollPos
 

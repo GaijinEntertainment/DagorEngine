@@ -167,6 +167,30 @@ macro INIT_ENVI_COVER(code, use_own_sampler, stub_intensity_tex, linear_sampler_
   INIT_ENVI_COVER_BASE(code, false, modify_gbuffer)
 endmacro
 
+
+macro INIT_ENVI_COVER_RT(code)
+  INIT_ENVI_COVER_NOISE(code, true, 0)
+  if (envi_cover_intensity_map != NULL)
+  {
+    INIT_ENVI_COVER_INTENSITY_MAP(code, true, 0)
+  }
+  (code) {
+    envi_cover_y_clamp_from_pos@f1 = envi_cover_y_clamp_from_pos;
+    is_envi_cover_on@i1            = envi_cover;
+  }
+  INIT_ENVI_COVER_PARAMS(code, true)
+endmacro
+
+macro USE_ENVI_COVER_RT(code)
+  hlsl(code) {
+    #define ENVI_COVER_NO_SPARKLES 1
+    #define ENVI_COVER_INTENSITY_MIP 2
+    #define ENVI_COVER_DEPTH_ABOVE_SIMPLIFIED 1
+  }
+
+  USE_ENVI_COVER(code, false)
+endmacro
+
 macro DEFERRED_SNOW_COVER_COMPATIBILITY_WITH_PARAMS(use_noise, use_intensity_map)
   if (allow_deferred_snow_cover_comp)
   {

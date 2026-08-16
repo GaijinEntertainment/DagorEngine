@@ -203,10 +203,6 @@ namespace das
         return -1;
     }
 
-    int builtin_string_length ( const char *str, Context * context ) {
-        return stringLengthSafe ( *context, str );
-    }
-
     char* builtin_string_chop(const char* str, int start, int length, Context* context, LineInfoArg * at) {
         if ( !str || length<=0 ) return nullptr;
         const int32_t strLen = int32_t(stringLengthSafe(*context, str));
@@ -493,7 +489,7 @@ namespace das
     char * string_repeat ( const char * str, int count, Context * context, LineInfoArg * at ) {
         uint32_t len = stringLengthSafe ( *context, str );
         if ( !len || count<=0 ) return nullptr;
-        char * res = context->allocateString(nullptr, len * count, at);
+        char * res = context->allocateString(nullptr, uint64_t(len) * uint64_t(count), at);
         for ( char * s = res; count; count--, s+=len ) {
             memcpy ( s, str, len );
         }
@@ -694,10 +690,6 @@ namespace das
         return memcmp ( str.data() + sz - slen, substr, slen )==0;
     }
 
-    int32_t builtin_ext_string_length(const string & str) {
-        return int32_t(str.length());
-    }
-
     void builtin_resize_string(string & str, int32_t newLength) {
         str.resize(newLength);
     }
@@ -896,13 +888,13 @@ namespace das
             addExtern<DAS_BIND_FUN(delete_string)>(*this, lib, "delete_string",
                 SideEffects::modifyArgumentAndExternal,"delete_string")->args({"str","context","lineinfo"})->unsafeOperation = true;
             addExtern<DAS_BIND_FUN(builtin_build_string)>(*this, lib, "build_string",
-                SideEffects::modifyExternal,"builtin_build_string_T")->args({"block","context","lineinfo"})->setAotTemplate();
+                SideEffects::modifyExternal,"builtin_build_string_T")->args({"block","context","lineinfo"})->setAotTemplate()->setTempStringResult();
             addExtern<DAS_BIND_FUN(builtin_build_hash)>(*this, lib, "build_hash",
                 SideEffects::modifyExternal,"builtin_build_hash_T")->args({"block","context","lineinfo"})->setAotTemplate();
             addExtern<DAS_BIND_FUN(builtin_string_peek)>(*this, lib, "peek_data",
                 SideEffects::modifyExternal,"builtin_string_peek")->args({"str","block","context","lineinfo"});
             addExtern<DAS_BIND_FUN(builtin_string_peek_and_modify)>(*this, lib, "modify_data",
-                SideEffects::modifyExternal,"builtin_string_peek_and_modify")->args({"str","block","context","lineinfo"});
+                SideEffects::modifyExternal,"builtin_string_peek_and_modify")->args({"str","block","context","lineinfo"})->setTempStringResult();
             addInterop<builtin_write_string,StringBuilderWriter &,StringBuilderWriter,vec4f> (*this, lib, "write",
                 SideEffects::modifyExternal, "builtin_write_string")->args({"writer","anything"});
             addExtern<DAS_BIND_FUN(write_string_char),SimNode_ExtFuncCallRef>(*this, lib, "write_char",
@@ -946,7 +938,7 @@ namespace das
             addExtern<DAS_BIND_FUN(format_and_write<double>),SimNode_ExtFuncCallRef>  (*this, lib, "format",
                 SideEffects::modifyExternal, "format_and_write<double>")->args({"writer","format","value"})->setDeprecated("use fmt() instead");
             addExtern<DAS_BIND_FUN(builtin_string_from_array)>(*this, lib, "string",
-                SideEffects::none, "builtin_string_from_array")->args({"bytes","context","at"});
+                SideEffects::none, "builtin_string_from_array")->args({"bytes","context","at"})->setTempStringResult();
             // dup
             addInterop<builtin_strdup,void,vec4f> (*this, lib, "builtin_strdup",
                 SideEffects::modifyArgumentAndExternal, "builtin_strdup")->arg("anything")->unsafeOperation = true;
@@ -962,9 +954,9 @@ namespace das
             addExtern<DAS_BIND_FUN(with_das_string)>(*this, lib, "with_das_string",
                 SideEffects::invoke, "with_das_string")->args({"block","context","at"});
             addExtern<DAS_BIND_FUN(string_repeat)>(*this, lib, "repeat",
-                SideEffects::none, "string_repeat")->args({"str","count","context","at"});
+                SideEffects::none, "string_repeat")->args({"str","count","context","at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(to_string_char)>(*this, lib, "to_char",
-                SideEffects::none, "to_string_char")->args({"char","context","at"});
+                SideEffects::none, "to_string_char")->args({"char","context","at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(builtin_string_endswith)>(*this, lib, "ends_with",
                 SideEffects::none, "builtin_string_endswith")->args({"str","cmp","context"});
             addExtern<DAS_BIND_FUN(builtin_string_ends_with)>(*this, lib, "ends_with",
@@ -980,17 +972,17 @@ namespace das
             addExtern<DAS_BIND_FUN(builtin_string_starts_with)>(*this, lib, "starts_with",
                 SideEffects::none, "builtin_string_starts_with")->args({"str","cmp","context"});
             addExtern<DAS_BIND_FUN(builtin_string_strip)>(*this, lib, "strip",
-                SideEffects::none, "builtin_string_strip")->args({"str","context","at"});
+                SideEffects::none, "builtin_string_strip")->args({"str","context","at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(builtin_string_strip_right)>(*this, lib, "strip_right",
-                SideEffects::none, "builtin_string_strip_right")->args({"str","context","at"});
+                SideEffects::none, "builtin_string_strip_right")->args({"str","context","at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(builtin_string_strip_left)>(*this, lib, "strip_left",
-                SideEffects::none, "builtin_string_strip_left")->args({"str","context","at"});
+                SideEffects::none, "builtin_string_strip_left")->args({"str","context","at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(builtin_string_chop)>(*this, lib, "chop",
-                SideEffects::none, "builtin_string_chop")->args({"str","start","length","context","at"});
+                SideEffects::none, "builtin_string_chop")->args({"str","start","length","context","at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(builtin_string_slice1)>(*this, lib, "slice",
-                SideEffects::none, "builtin_string_slice1")->args({"str","start","end","context","at"});
+                SideEffects::none, "builtin_string_slice1")->args({"str","start","end","context","at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(builtin_string_slice2)>(*this, lib, "slice",
-                SideEffects::none, "builtin_string_slice2")->args({"str","start","context","at"});
+                SideEffects::none, "builtin_string_slice2")->args({"str","start","context","at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(builtin_string_find1)>(*this, lib, "find",
                 SideEffects::none, "builtin_string_find1")->args({"str","substr","start","context"});
             addExtern<DAS_BIND_FUN(builtin_string_find2)>(*this, lib, "find",
@@ -1003,24 +995,16 @@ namespace das
                 SideEffects::none, "builtin_string_rfind1")->args({"str","substr","start","context"});
             addExtern<DAS_BIND_FUN(builtin_string_rfind2)>(*this, lib, "rfind",
                 SideEffects::none, "builtin_string_rfind2")->args({"str","substr"});
-            addExtern<DAS_BIND_FUN(builtin_string_length)>(*this, lib, "length",
-                SideEffects::none, "builtin_string_length")->args({"str","context"});
             addExtern<DAS_BIND_FUN(builtin_string_reverse)>(*this, lib, "reverse",
-                SideEffects::none, "builtin_string_reverse")->args({"str","context","at"});
+                SideEffects::none, "builtin_string_reverse")->args({"str","context","at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(builtin_append_char_to_string)>(*this, lib, "append",
                 SideEffects::modifyArgumentAndExternal, "builtin_append_char_to_string")->args({"str","ch"});
             addExtern<DAS_BIND_FUN(builtin_resize_string)>(*this, lib, "resize",
                 SideEffects::modifyArgumentAndExternal, "builtin_resize_string")->args({"str","new_length"});
-            addExtern<DAS_BIND_FUN(builtin_ext_string_length)>(*this, lib, "length",
-                SideEffects::none, "builtin_ext_string_length")->arg("str");
             addExtern<DAS_BIND_FUN(builtin_string_toupper)>(*this, lib, "to_upper",
-                SideEffects::none, "builtin_string_toupper")->args({"str","context","at"});
+                SideEffects::none, "builtin_string_toupper")->args({"str","context","at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(builtin_string_tolower)>(*this, lib, "to_lower",
-                SideEffects::none, "builtin_string_tolower")->args({"str","context","at"});
-            addExtern<DAS_BIND_FUN(builtin_string_tolower_in_place)>(*this, lib, "to_lower_in_place",
-                SideEffects::none, "builtin_string_tolower_in_place")->arg("str")->setCaptureString()->unsafeOperation = true;
-            addExtern<DAS_BIND_FUN(builtin_string_toupper_in_place)>(*this, lib, "to_upper_in_place",
-                SideEffects::none, "builtin_string_toupper_in_place")->arg("str")->setCaptureString()->unsafeOperation = true;
+                SideEffects::none, "builtin_string_tolower")->args({"str","context","at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(builtin_string_split_by_char)>(*this, lib, "builtin_string_split_by_char",
                 SideEffects::modifyExternal, "builtin_string_split_by_char")->args({"str","delimiter","block","context","lineinfo"});
             addExtern<DAS_BIND_FUN(builtin_string_split)>(*this, lib, "builtin_string_split",
@@ -1064,7 +1048,7 @@ namespace das
             addExtern<DAS_BIND_FUN(fast_to_uint64)>(*this, lib, "to_uint64",
                 SideEffects::none, "fast_to_uint64")->args({"value","hex"})->arg_init(1,new ExprConstBool(false));
             addExtern<DAS_BIND_FUN(das_to_cpp_float)>(*this, lib, "to_cpp_float",
-                SideEffects::modifyExternal, "das_to_cpp_float")->args({"value","context", "at"});
+                SideEffects::modifyExternal, "das_to_cpp_float")->args({"value","context", "at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(fast_to_float)>(*this, lib, "to_float",
                 SideEffects::none, "fast_to_float")->arg("value");
             addExtern<DAS_BIND_FUN(fast_to_double)>(*this, lib, "to_double",
@@ -1092,11 +1076,12 @@ namespace das
                 SideEffects::modifyArgument, "convert_from_string_double")->args({"str","result","offset"});
             // escaping etc
             addExtern<DAS_BIND_FUN(builtin_string_escape)>(*this, lib, "escape",
-                SideEffects::none, "builtin_string_escape")->args({"str","context","at"});
+                SideEffects::none, "builtin_string_escape")->args({"str","context","at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(builtin_string_unescape)>(*this, lib, "unescape",
-                SideEffects::none, "builtin_string_unescape")->args({"str","context", "at"});
+                SideEffects::none, "builtin_string_unescape")->args({"str","context", "at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(builtin_string_safe_unescape)>(*this, lib, "safe_unescape",
-                SideEffects::none, "builtin_string_safe_unescape")->args({"str","context","at"});
+                SideEffects::none, "builtin_string_safe_unescape")->args({"str","context","at"})->setTempStringResult();
+            // NOT setTempStringResult: replace/rtrim/trim return the INPUT string when there is nothing to do (passthrough)
             addExtern<DAS_BIND_FUN(builtin_string_replace)>(*this, lib, "replace",
                 SideEffects::none, "builtin_string_replace")->args({"str","toSearch","replace","context","at"});
             addExtern<DAS_BIND_FUN(builtin_string_rtrim)>(*this, lib, "rtrim",
@@ -1104,22 +1089,22 @@ namespace das
             addExtern<DAS_BIND_FUN(builtin_string_rtrim_ts)>(*this, lib, "rtrim",
                 SideEffects::none, "builtin_string_rtrim_ts")->args({"str","chars","context","at"});
             addExtern<DAS_BIND_FUN(builtin_string_ltrim)>(*this, lib, "ltrim",
-                SideEffects::none, "builtin_string_ltrim")->args({"str","context","at"});
+                SideEffects::none, "builtin_string_ltrim")->args({"str","context","at"})->setTempStringResult();
             addExtern<DAS_BIND_FUN(builtin_string_trim)>(*this, lib, "trim",
                 SideEffects::none, "builtin_string_trim")->args({"str","context","at"});
             // format (deprecated)
             addExtern<DAS_BIND_FUN(format<int32_t>)> (*this, lib, "format",
-                SideEffects::none, "format<int32_t>")->args({"format","value","context","at"})->setDeprecated("use fmt() instead");
+                SideEffects::none, "format<int32_t>")->args({"format","value","context","at"})->setDeprecated("use fmt() instead")->setTempStringResult();
             addExtern<DAS_BIND_FUN(format<uint32_t>)>(*this, lib, "format",
-                SideEffects::none, "format<uint32_t>")->args({"format","value","context","at"})->setDeprecated("use fmt() instead");
+                SideEffects::none, "format<uint32_t>")->args({"format","value","context","at"})->setDeprecated("use fmt() instead")->setTempStringResult();
             addExtern<DAS_BIND_FUN(format<int64_t>)> (*this, lib, "format",
-                SideEffects::none, "format<int64_t>")->args({"format","value","context","at"})->setDeprecated("use fmt() instead");
+                SideEffects::none, "format<int64_t>")->args({"format","value","context","at"})->setDeprecated("use fmt() instead")->setTempStringResult();
             addExtern<DAS_BIND_FUN(format<uint64_t>)>(*this, lib, "format",
-                SideEffects::none, "format<uint64_t>")->args({"format","value","context","at"})->setDeprecated("use fmt() instead");
+                SideEffects::none, "format<uint64_t>")->args({"format","value","context","at"})->setDeprecated("use fmt() instead")->setTempStringResult();
             addExtern<DAS_BIND_FUN(format<float>)>   (*this, lib, "format",
-                SideEffects::none, "format<float>")->args({"format","value","context","at"})->setDeprecated("use fmt() instead");
+                SideEffects::none, "format<float>")->args({"format","value","context","at"})->setDeprecated("use fmt() instead")->setTempStringResult();
             addExtern<DAS_BIND_FUN(format<double>)>  (*this, lib, "format",
-                SideEffects::none, "format<double>")->args({"format","value","context","at"})->setDeprecated("use fmt() instead");
+                SideEffects::none, "format<double>")->args({"format","value","context","at"})->setDeprecated("use fmt() instead")->setTempStringResult();
             // queries
             addExtern<DAS_BIND_FUN(is_alpha)> (*this, lib, "is_alpha",
                 SideEffects::none, "is_alpha")->arg("Character");

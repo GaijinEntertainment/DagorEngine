@@ -29,7 +29,7 @@ float sample_tex_inside_of = 0.9;
 float blood_brightness = 2.0;
 float blood_edge_fade_width = 0.0;
 int debug_torn_wounds = 0;
-interval debug_torn_wounds: off<1, on;
+interval debug_torn_wounds: off<1, coverage<2, distance<3, bands;
 
 macro INIT_BURNED_DIFFUSE_FUNCTION()
   (ps) {

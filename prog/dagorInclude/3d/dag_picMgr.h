@@ -27,6 +27,8 @@ struct PicDesc;
 typedef void (*async_load_done_cb_t)(PICTUREID pid, TEXTUREID tid, d3d::SamplerHandle smp, const Point2 *tcLt, const Point2 *tcRb,
   const Point2 *picture_sz, void *arg);
 
+typedef bool (*async_load_confirmation_cb_t)(void *arg);
+
 // Picture can be obtained by real texture name or by picture name in BLK file:
 //   "tex/mytex.tga"        - real texture name
 //   "tex/mytextures#mytex" - picture "mytex" in tex/mytextures.blk
@@ -50,7 +52,7 @@ void after_d3d_reset();
 // and false otherwise (i.e. it was successfully sheduled)
 bool get_picture_ex(const char *file_name, PICTUREID &out_pic_id, TEXTUREID &out_tex_id, d3d::SamplerHandle &out_smp_id,
   Point2 *out_tc_lefttop = NULL, Point2 *out_tc_rightbottom = NULL, Point2 *picture_size = NULL,
-  async_load_done_cb_t load_done_cb = NULL, void *cb_arg = NULL);
+  async_load_done_cb_t load_done_cb = NULL, void *cb_arg = NULL, async_load_confirmation_cb_t load_confirm_cb = nullptr);
 
 // add ref, fill picture description
 void get_picture(const char *file_name, PicDesc &out_pic);

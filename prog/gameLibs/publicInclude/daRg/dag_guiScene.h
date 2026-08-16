@@ -128,6 +128,8 @@ public:
   virtual void setCallback(IGuiSceneCallback *cb) = 0;
   virtual void initDasEnvironment(TGuiInitDas init_callback) = 0;
   virtual void shutdownDasEnvironment() = 0;
+  // Call on the scene's API thread before unloading shared das modules: in-flight jobs reference them.
+  virtual void waitAllDasJobsDone() = 0;
 
   // Need this to perform additional binding
   virtual HSQUIRRELVM getScriptVM() const = 0;
@@ -191,6 +193,7 @@ public:
   virtual void skipRender() = 0;
 
   virtual bool haveActiveCursorOnPanels() const = 0;
+  virtual bool havePointerOnPanels() const = 0;
   virtual bool isAnyPanelPointedAtWithHand(int hand) const = 0;
   virtual bool isAnyPanelTouchedWithHand(int /*hand*/) const { return false; }
   typedef bool (*vr_surface_intersect)(const Point3 &pos, const Point3 &dir, Point2 &point_in_gui, Point3 &hit_pos);

@@ -6,6 +6,7 @@
 
 #include <generic/dag_tab.h>
 #include <EASTL/vector.h>
+#include <EASTL/unique_ptr.h>
 #include <generic/dag_span.h>
 #include <dag/dag_vector.h>
 
@@ -63,6 +64,7 @@ class ScrollHandler;
 class Transition;
 class ElementTree;
 class ElementRef;
+class StatefulInstance;
 
 
 struct ElemStacks
@@ -335,6 +337,10 @@ public:
   ScrollHandler *scrollHandler = nullptr;
 
   XmbData *xmb = nullptr;
+
+  // Survives detach for the sake of fade-out callbacks: at final deletion it is
+  // moved to a queued disposer rather than released here.
+  eastl::unique_ptr<StatefulInstance> statefulInst;
 
   Point2 scrollVel = Point2(0, 0);
   ElementRef *ref = nullptr;

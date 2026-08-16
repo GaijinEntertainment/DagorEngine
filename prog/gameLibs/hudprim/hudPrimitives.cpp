@@ -314,9 +314,9 @@ void HudPrimitives::updateTarget()
   updateViewFromContext();
 }
 
-void HudPrimitives::updateTarget(int width, int height, int left, int top)
+void HudPrimitives::updateTarget(int width, int height, int left, int top, int angle)
 {
-  guiContext->setTarget(width, height, left, top);
+  guiContext->setTarget(width, height, left, top, angle);
   updateViewFromContext();
 }
 

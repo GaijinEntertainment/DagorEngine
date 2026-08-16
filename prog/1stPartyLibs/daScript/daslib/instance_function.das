@@ -15,17 +15,10 @@ require daslib/rtti
 require daslib/ast_boost
 require daslib/templates_boost
 require daslib/defer
-require strings
 
 [function_macro(name="instance_function")]
 class InstanceFunctionAnnotation : AstFunctionAnnotation {
     //! [instance_function(generic_name,type1=type1r,type2=type2r,...)] macro creates instance of the generic function with a particular set of types.
-    //! In the followin example body of the function inst will be replaced with body of the function print_zero with type int::
-    //!
-    //!     def print_zero ( a : auto(TT) )
-    //!         print("{[[TT]]}\n")
-    //!     [export, instance_function(print_zero,TT="int")]
-    //!     def inst {}
     def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
         var generic_name = ""
         var rules : Template

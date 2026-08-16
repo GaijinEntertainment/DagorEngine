@@ -236,9 +236,11 @@ protected:
   void onObjectFlagsChange(RenderableEditableObject *obj, int changed_flags) override;
   void updateSelection() override;
   void fillSelectionMenu(IGenViewportWnd *wnd, PropPanel::IMenu *menu) override;
+  void setCreateBySampleMode(RenderableEditableObject *sample_ = NULL) override;
 
   bool findTargetPos(IGenViewportWnd *wnd, int x, int y, Point3 &out, bool place_on_ri_collision = false);
   void selectNewObjEntity(const char *name);
+  void setNewObjInteractiveMove(bool on);
   SplineObject *findSplineAndDirection(IGenViewportWnd *wnd, SplinePointObject *p, bool &dirs_equal, SplineObject *excl = NULL);
 
   static void fillPossiblePixelPerfectSelectionHits(IPixelPerfectSelectionService &selection_service,
@@ -274,6 +276,7 @@ protected:
   Point3 cloneDelta;
   String cloneName;
   PtrTab<RenderableEditableObject> cloneObjs;
+  PtrTab<RenderableEditableObject> gizmoTransformObjs; // entered gizmo mode, see setSelectionGizmoTranformMode()
 
   bool inGizmo;
   DynRenderBuffer *ptDynBuf;

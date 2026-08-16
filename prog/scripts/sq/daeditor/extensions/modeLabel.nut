@@ -14,7 +14,7 @@ return @(levelLoaded) function() {
 
   return {
     watch
-    pos = [0, hdpx(50)]
+    pos = const [0, hdpx(50)]
     size = flex()
     children = isFreeCam
       ? {

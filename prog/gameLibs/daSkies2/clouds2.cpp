@@ -316,7 +316,8 @@ CloudsChangeFlags Clouds2::prepareLighting(const Point3 &main_light_dir, const P
   }
   changes |= uint32_t(weather.render());
   changes |= uint32_t(cloudsForm.render());
-  changes |= uint32_t(field.render());
+  if (noises.isReady())
+    changes |= uint32_t(field.render());
   if (changes & CLOUDS_INVALIDATED)
   {
     cloudShadows.invalidate();

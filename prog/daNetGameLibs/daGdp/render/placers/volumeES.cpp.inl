@@ -263,7 +263,7 @@ void gather_start(DagdpRiexGatherJob &job,
     viewportData.valid = true;
 
     on_ri_placers_ecs_query(*g_entity_mgr, [&](ECS_REQUIRE(ecs::Tag dagdp_placer_on_ri) ecs::EntityId eid,
-                                             const ClientRiexPoolList &dagdp__resource_ids, int dagdp__csm_cascade_count) {
+                                             const ecs::IntList &dagdp__resource_ids, int dagdp__csm_cascade_count) {
       if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
         return;
       if (volume_mapping.find(eid) == volume_mapping.end())
@@ -273,13 +273,13 @@ void gather_start(DagdpRiexGatherJob &job,
       rec.eid = eid;
       rec.firstEntry = job.entryCount;
       for (auto resIdx : dagdp__resource_ids)
-        job.addEntry(resIdx.id(), frustumBox);
+        job.addEntry(resIdx, frustumBox);
       rec.entryCount = job.entryCount - rec.firstEntry;
       viewportData.onRi.push_back(rec);
     });
 
     around_ri_placers_ecs_query(*g_entity_mgr,
-      [&](ECS_REQUIRE(ecs::Tag dagdp_placer_around_ri) ecs::EntityId eid, const ClientRiexPoolList &dagdp__resource_ids,
+      [&](ECS_REQUIRE(ecs::Tag dagdp_placer_around_ri) ecs::EntityId eid, const ecs::IntList &dagdp__resource_ids,
         const ecs::EidList &dagdp__volume_box_eids, const ecs::EidList &dagdp__volume_cylinder_eids,
         const ecs::EidList &dagdp__volume_sphere_eids, int dagdp__csm_cascade_count) {
         if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
@@ -292,7 +292,7 @@ void gather_start(DagdpRiexGatherJob &job,
         rec.eid = eid;
         rec.firstEntry = job.entryCount;
         for (auto resIdx : dagdp__resource_ids)
-          job.addEntry(resIdx.id(), fbox);
+          job.addEntry(resIdx, fbox);
         rec.entryCount = job.entryCount - rec.firstEntry;
         viewportData.aroundRi.push_back(rec);
       });
@@ -313,7 +313,8 @@ void gather_process(DagdpRiexGatherJob &job,
   RelevantTiles &out_tiles,
   RelevantVolumes &out_volumes)
 {
-  const auto processMeshes = [&](const rendinst::riex_collidable_t &out_handles, uint32_t volume_index, int mesh_lod) {
+  const auto processMeshes = [&](const rendinst::riex_collidable_t &out_handles, uint32_t volume_index, int mesh_lod,
+                               bbox3f *volume_bbox) {
     if (volume_placer_no_meshes)
       return;
     for (const auto handle : out_handles)
@@ -332,6 +333,15 @@ void gather_process(DagdpRiexGatherJob &job,
       v_mat43_transpose_to_mat44(instTm44, instTm);
       if (v_extract_x((v_mat44_max_scale43_x(instTm44))) * riLodsRes->bsphRad < MIN_GEOMETRY_SIZE)
         continue;
+
+      if (volume_bbox != nullptr)
+      {
+        bbox3f lbox, wbox;
+        v_bbox3_init_by_segment(lbox, v_ldu_p3(&riLodsRes->bbox[0].x), v_ldu_p3(&riLodsRes->bbox[1].x));
+        v_bbox3_init(wbox, instTm44, lbox);
+        if (!v_bbox3_test_box_intersect(wbox, *volume_bbox))
+          continue;
+      }
 
       RenderableInstanceResource *riRes = riLodsRes->lods[actualLod].scene;
       const auto *state = riex_processor.ask(riRes);
@@ -481,7 +491,7 @@ void gather_process(DagdpRiexGatherJob &job,
         }
     }
 
-    processMeshes(out_handles, volumeIndex, variant.targetMeshLod);
+    processMeshes(out_handles, volumeIndex, variant.targetMeshLod, &bbox);
   };
 
   volume_boxes_ecs_query(*g_entity_mgr,
@@ -513,7 +523,7 @@ void gather_process(DagdpRiexGatherJob &job,
   }
 
   on_ri_placers_ecs_query(*g_entity_mgr, [&](ECS_REQUIRE(ecs::Tag dagdp_placer_on_ri) ecs::EntityId eid,
-                                           const ClientRiexPoolList &dagdp__resource_ids, int dagdp__csm_cascade_count) {
+                                           const ecs::IntList &dagdp__resource_ids, int dagdp__csm_cascade_count) {
     if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
       return;
 
@@ -539,7 +549,7 @@ void gather_process(DagdpRiexGatherJob &job,
       Tab<rendinst::riex_handle_t> ri_handles;
       for (auto resIdx : dagdp__resource_ids)
       {
-        rendinst::getRiGenExtraInstances(ri_handles, resIdx.id(), frustumBox);
+        rendinst::getRiGenExtraInstances(ri_handles, resIdx, frustumBox);
         out_handles.insert(out_handles.end(), ri_handles.begin(), ri_handles.end());
         ri_handles.clear(); // just to make sure, getRiGenExtraInstances() clears anyway
       }
@@ -557,11 +567,11 @@ void gather_process(DagdpRiexGatherJob &job,
     volume.volumeType = VOLUME_TYPE_FULL;
     volume.variantIndex = variant.variantIndex;
 
-    processMeshes(out_handles, volumeIndex, variant.targetMeshLod);
+    processMeshes(out_handles, volumeIndex, variant.targetMeshLod, nullptr);
   });
 
   around_ri_placers_ecs_query(*g_entity_mgr,
-    [&](ECS_REQUIRE(ecs::Tag dagdp_placer_around_ri) ecs::EntityId eid, const ClientRiexPoolList &dagdp__resource_ids,
+    [&](ECS_REQUIRE(ecs::Tag dagdp_placer_around_ri) ecs::EntityId eid, const ecs::IntList &dagdp__resource_ids,
       const ecs::EidList &dagdp__volume_box_eids, const ecs::EidList &dagdp__volume_cylinder_eids,
       const ecs::EidList &dagdp__volume_sphere_eids, int dagdp__csm_cascade_count) {
       if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
@@ -572,7 +582,7 @@ void gather_process(DagdpRiexGatherJob &job,
 
       eastl::fixed_vector<int16_t, 32> riGenPools;
       for (auto id : dagdp__resource_ids)
-        if (int pool = rendinst::getRIExtraPoolRef(id.id()); pool >= 0)
+        if (int pool = rendinst::getRIExtraPoolRef(id); pool >= 0)
           riGenPools.push_back(pool);
 
       BBox3 box;
@@ -599,7 +609,7 @@ void gather_process(DagdpRiexGatherJob &job,
         Tab<rendinst::riex_handle_t> ri_handles;
         for (auto resIdx : dagdp__resource_ids)
         {
-          rendinst::getRiGenExtraInstances(ri_handles, resIdx.id(), fbox);
+          rendinst::getRiGenExtraInstances(ri_handles, resIdx, fbox);
           for (auto h : ri_handles)
             rendinst::getRIGenExtra44(h, sources.push_back());
           ri_handles.clear(); // just to make sure, getRiGenExtraInstances() clears anyway
@@ -682,14 +692,14 @@ ECS_TAG(render)
 ECS_REQUIRE(ecs::Tag dagdp_placer_on_meshes)
 ECS_BEFORE(volume_view_finalize_es)
 static inline void dagdp_placer_on_meshes_resource_link_es(
-  const dagdp::EventViewFinalize &, const ecs::StringList &dagdp__resource_names, ClientRiexPoolList &dagdp__resource_ids)
+  const dagdp::EventViewFinalize &, const ecs::StringList &dagdp__resource_names, ecs::IntList &dagdp__resource_ids)
 {
   dagdp__resource_ids.clear();
   dagdp__resource_ids.reserve(dagdp__resource_names.size());
   for (const auto &name : dagdp__resource_names)
   {
-    auto resIdx = rendinst::ClientRiexPool::get(name.c_str());
-    if (!resIdx.valid())
+    int resIdx = rendinst::getRIGenExtraResIdx(name.c_str());
+    if (resIdx == -1)
     {
       debug("daGDP: can't find RendInst '%s' to place on", name.c_str());
       totalMissingRendInst++;

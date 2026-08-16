@@ -186,6 +186,7 @@ typedef struct FfxmFsr2ContextDescription {
     FfxmDimensions2D             displaySize;                        ///< The size of the presentation resolution targeted by the upscaling process.
     FfxmInterface                backendInterface;                   ///< A set of pointers to the backend implementation for FidelityFX SDK
     FfxmFsr2Message              fpMessage;                          ///< A pointer to a function that can receive messages from the runtime.
+    int32_t                     preRotation;
 } FfxmFsr2ContextDescription;
 
 /// A structure encapsulating the parameters for dispatching the various passes
@@ -214,6 +215,7 @@ typedef struct FfxmFsr2DispatchDescription {
     float                       cameraFar;                          ///< The distance to the far plane of the camera.
     float                       cameraFovAngleVertical;             ///< The camera angle field of view in the vertical direction (expressed in radians).
     float                       viewSpaceToMetersFactor;            ///< The scale factor to convert view space units to meters
+    int32_t                     preRotation;
 } FfxmFsr2DispatchDescription;
 
 /// A structure encapsulating the parameters for automatic generation of a reactive mask

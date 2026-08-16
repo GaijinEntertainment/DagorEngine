@@ -69,7 +69,6 @@ struct ScopeAimRenderingData
   int lensNodeId = -1;
   int lensCollisionNodeId = -1;
   int64_t crosshairNodeIds = -1;
-  float scopeWeaponLensZoomFactor = 1.0f;
   ecs::EntityId entityWithScopeLensEid;
   ecs::EntityId gunEid;
   bool isAiming = false;

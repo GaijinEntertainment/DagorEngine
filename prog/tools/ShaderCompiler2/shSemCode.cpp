@@ -43,6 +43,9 @@ void ShaderSemCode::initPassMap(int pass_id)
 
 void ShaderSemCode::mergeVars(Tab<Var> &&other_vars, Tab<StVarMapping> &&other_stvarmap, int pass_id)
 {
+  vars.reserve(vars.size() + other_vars.size());
+  passes[pass_id]->varmap.reserve(passes[pass_id]->varmap.size() + other_vars.size());
+
   dag::VectorMap<int, Var *> ownedVarsByNameId{};
   eastl::transform(vars.begin(), vars.end(), eastl::inserter(ownedVarsByNameId, ownedVarsByNameId.end()),
     [this](Var &var) { return eastl::make_pair(var.nameId, &var); });
@@ -55,8 +58,6 @@ void ShaderSemCode::mergeVars(Tab<Var> &&other_vars, Tab<StVarMapping> &&other_s
       otherStvarmapDirect.resize(mapping.v + 1, -1);
     otherStvarmapDirect[mapping.v] = mapping.sv;
   }
-
-  passes[pass_id]->varmap.reserve(passes[pass_id]->varmap.size() + other_vars.size());
 
   for (auto it = other_vars.begin(); it != other_vars.end(); ++it)
   {

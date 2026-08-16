@@ -488,6 +488,8 @@ class GenericSbufferImplementation final : public GenericBufferMemoryArchitectur
   void adopt(typename T::BufferType &&buf, const char *buf_name)
   {
     buffer = eastl::move(buf);
+    if (!T::isValidBuffer(buffer))
+      return;
 
     if (!isMapableForRead())
     {

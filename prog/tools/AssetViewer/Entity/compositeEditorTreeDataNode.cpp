@@ -34,6 +34,12 @@ const char *CompositeEditorTreeDataNode::getAssetTypeName() const
   return nullptr;
 }
 
+bool CompositeEditorTreeDataNode::isCompositeAsset() const
+{
+  const char *assetTypeName = getAssetTypeName();
+  return assetTypeName != nullptr && strcmp(assetTypeName, "composit") == 0;
+}
+
 const char *CompositeEditorTreeDataNode::getName() const
 {
   const int paramIndex = params.findParam("name");
@@ -111,6 +117,24 @@ bool CompositeEditorTreeDataNode::hasEntBlock() const
 {
   for (int i = 0; i < nodes.size(); ++i)
     if (nodes[i]->isEntBlock())
+      return true;
+
+  return false;
+}
+
+bool CompositeEditorTreeDataNode::hasChildNode(unsigned dataBlockId) const
+{
+  for (int i = 0; i < nodes.size(); ++i)
+    if (nodes[i]->dataBlockId == dataBlockId)
+      return true;
+
+  return false;
+}
+
+bool CompositeEditorTreeDataNode::isAncestorOfNode(unsigned dataBlockId) const
+{
+  for (int i = 0; i < nodes.size(); ++i)
+    if (nodes[i]->dataBlockId == dataBlockId || nodes[i]->isAncestorOfNode(dataBlockId))
       return true;
 
   return false;

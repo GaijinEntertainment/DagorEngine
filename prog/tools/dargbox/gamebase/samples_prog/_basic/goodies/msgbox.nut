@@ -1,5 +1,6 @@
 from "%darg/ui_imports.nut" import *
 from "dagor.workcycle" import defer
+from "types" import Array
 
 let cursorC = Color(180,180,180,180)
 
@@ -254,7 +255,7 @@ function show(params, styling=defStyling) {
             }
           : null
         local behaviors = desc?.customStyle?.behavior ?? desc?.customStyle?.behavior
-        behaviors = type(behaviors) == "array" ? behaviors : [behaviors]
+        behaviors = behaviors instanceof Array ? behaviors : [behaviors]
         behaviors.append(Behaviors.RecalcHandler, Behaviors.Button)
         let customStyle = (desc?.customStyle ?? {}).__merge({
           onHover = onHover

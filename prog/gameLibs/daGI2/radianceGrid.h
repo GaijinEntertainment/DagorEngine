@@ -107,6 +107,7 @@ protected:
   static void clearRadiancePosition();
   static void clearIrradiancePosition();
   void updatePosIrradiance(const Point3 &at, bool update_all);
+  void publishIrradianceValidity();
   void updateTemporalIrradiance();
   void updateTemporalRadiance();
   void createIndirect();

@@ -455,6 +455,7 @@
 #define IDC_OPENDIR                       1234
 #define IDC_OPEN_DOC                      1234
 #define IDC_PARAM_DELETE_ALL              1234
+#define IDC_RESOLVE_HIER                  1234
 #define IDC_OPTIMIZE_MATERIAL_SLOTS       1236
 #define IDC_PRESERVE_SMOOTHING_GROUPS     1238
 #define IDC_IMPUTIL_WILDCARD_INCL         1238
@@ -491,6 +492,7 @@
 #define IDC_PAR_POINT_VALUE_3             1265
 #define IDC_RESOLVE_NAMES                 1265
 #define IDC_PAR_POINT_VALUE_SPINNER_3     1266
+#define IDC_REMOVE_SKIN_MOD               1266
 #define IDC_TEX0                          2000
 #define IDC_TEX1                          2001
 #define IDS_DAGEXP_LONG                   2001
@@ -549,7 +551,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE 158
 #define _APS_NEXT_COMMAND_VALUE  40014
-#define _APS_NEXT_CONTROL_VALUE  1266
+#define _APS_NEXT_CONTROL_VALUE  1267
 #define _APS_NEXT_SYMED_VALUE    101
 #endif
 #endif

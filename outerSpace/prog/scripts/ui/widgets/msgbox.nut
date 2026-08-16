@@ -2,6 +2,7 @@ from "%darg/ui_imports.nut" import *
 from "dagor.workcycle" import defer
 from "%scripts/ui/widgets/simpleComponents.nut" import menuBtn
 from "%sqstd/string.nut" import tostring_r
+from "types" import String
 
 let mkMessageText = @(text) {
   size = const [flex(), sh(30)]
@@ -9,7 +10,7 @@ let mkMessageText = @(text) {
   valign = ALIGN_CENTER
   padding = const [sh(2), 0]
   clipChildren = true
-  children = type(text)=="string" ? {
+  children = text instanceof String ? {
     size = const [sw(50), SIZE_TO_CONTENT]
     rendObj = ROBJ_TEXTAREA
     behavior = Behaviors.TextArea

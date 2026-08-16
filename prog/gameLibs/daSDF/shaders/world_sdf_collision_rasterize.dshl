@@ -16,12 +16,12 @@ shader world_sdf_collision_rasterize
   z_write = false;
   z_test = false;
   COMMON_COLLISION_BASE_RENDER()
-  if (gi_voxelize_with_instancing == primitives && supports_sh_6_1 == on)
+  if (gi_voxelize_with_instancing == primitives && supports_barycentrics == on)
   {
     dont_render;
   }
 
-  if (gi_voxelize_with_instancing == primitives && supports_sh_6_1 == off)
+  if (gi_voxelize_with_instancing == primitives && supports_barycentrics == off)
   {
     INIT_LOAD_COLLISION_PRIMITIVES(vs)
     USE_LOAD_COLLISION_PRIMITIVES(vs)
@@ -32,7 +32,7 @@ shader world_sdf_collision_rasterize
     }
   } else
   {
-    if (supports_sh_6_1 == on)
+    if (supports_barycentrics == on)
     {
       hlsl {
         #define SUPPORT_LATE_INTERPOLATION 1
@@ -50,7 +50,13 @@ shader world_sdf_collision_rasterize
       nointerpolation int axis:TEXCOORD1;
       #if RASTERIZE_PRIMS
       #if SUPPORT_LATE_INTERPOLATION
-      nointerpolation float3 vertexWorldPos : TEXCOORD2;
+
+      ##if hardware.ps4 || hardware.ps5
+        custominterp float3 vertexWorldPos : TEXCOORD2; // requires custominterp to obtain original vertex value via GetAttributeAtVertex
+      ##else
+        nointerpolation float3 vertexWorldPos : TEXCOORD2;
+      ##endif
+
       #else
       nointerpolation float3 va : TEXCOORD2;
       nointerpolation float3 vb : TEXCOORD3;
@@ -146,7 +152,7 @@ shader world_sdf_collision_rasterize
       return output;
     }
   }
-  if (supports_sh_6_1 == on)
+  if (supports_barycentrics == on)
   {
     compile("ps_6_1", "gi_collision_ps");
   } else

@@ -23,6 +23,65 @@
 #include "daScript/simulate/debug_print.h"
 #include "../parser/parser_impl.h"
 
+// arm64 CPU-feature detection headers — MUST be at file scope, not inside `namespace das`.
+// Guarded to arm64, so no other target's translation unit is affected by anything here.
+#if defined(__aarch64__) || defined(_M_ARM64)
+    #if defined(_WIN32)
+        // IsProcessorFeaturePresent + the PF_ARM_* constants; nothing else in this TU's include
+        // graph pulls windows.h in, so without this the arm64 Windows build does not compile.
+        #ifndef NOMINMAX
+            #define NOMINMAX
+        #endif
+        #ifndef WIN32_LEAN_AND_MEAN
+            #define WIN32_LEAN_AND_MEAN
+        #endif
+        #include <windows.h>
+    #elif defined(__APPLE__)
+        #include <sys/sysctl.h>
+    #elif defined(__linux__)
+        #include <sys/auxv.h>
+        #if __has_include(<asm/hwcap.h>)
+            #include <asm/hwcap.h>
+        #endif
+        // kernels predating a given extension omit the macro; the bit positions are ABI-stable
+        #ifndef HWCAP_ASIMDDP
+            #define HWCAP_ASIMDDP  (1u << 20)
+        #endif
+        #ifndef HWCAP_ASIMDRDM
+            #define HWCAP_ASIMDRDM (1u << 12)
+        #endif
+        #ifndef HWCAP_ASIMDHP
+            #define HWCAP_ASIMDHP  (1u << 10)
+        #endif
+        #ifndef HWCAP_ATOMICS
+            #define HWCAP_ATOMICS  (1u << 8)
+        #endif
+        #ifndef HWCAP_CRC32
+            #define HWCAP_CRC32    (1u << 7)
+        #endif
+        #ifndef HWCAP_SVE
+            #define HWCAP_SVE      (1u << 22)
+        #endif
+        #ifndef HWCAP_SHA3
+            #define HWCAP_SHA3     (1u << 17)
+        #endif
+        #ifndef HWCAP2_I8MM
+            #define HWCAP2_I8MM    (1u << 13)
+        #endif
+        #ifndef HWCAP2_BF16
+            #define HWCAP2_BF16    (1u << 14)
+        #endif
+    #endif
+#endif
+
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
+#if defined(_MSC_VER)
+#include <intrin.h>     // __cpuidex, _xgetbv
+#else
+#include <cpuid.h>      // __get_cpuid_count
+#endif
+#endif
+
 MAKE_TYPE_FACTORY(HashBuilder, HashBuilder)
 
 namespace das
@@ -91,6 +150,17 @@ namespace das
         };
     };
 
+    // [hot_path] / [no_alloc] / [no_env] / [no_io] / [cold_path] — markers for the daslang-side
+    // PERF026-028 lint. Declaring a contract must not drag the checker (and daslib/ast behind it)
+    // into every build of the code under contract, so these are registered here and cost nothing;
+    // daslib/perf_lint reads the annotation NAMES off func->annotations wherever lint actually runs.
+    struct HotPathFunctionAnnotation : MarkFunctionAnnotation {
+        HotPathFunctionAnnotation(const string & na) : MarkFunctionAnnotation(na) { }
+        virtual bool apply(const FunctionPtr &, ModuleGroup &, const AnnotationArgumentList &, string &) override {
+            return true;
+        };
+    };
+
     struct RequestJitFunctionAnnotation : MarkFunctionAnnotation {
         RequestJitFunctionAnnotation() : MarkFunctionAnnotation("jit") { }
         virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
@@ -107,12 +177,67 @@ namespace das
         };
     };
 
+    // [inline] - a contract, not a hint: every direct call site gets the body spliced in
+    // (Program::patchInline, ast_inline.cpp), and a shape the inliner can't handle is a
+    // compilation error reported here at lint (post-infer, so generics check per-instantiation)
+    struct InlineFunctionAnnotation : MarkFunctionAnnotation {
+        InlineFunctionAnnotation() : MarkFunctionAnnotation("inline") { }
+        virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string & err) override {
+            if ( func->neverInline ) {
+                err = "[inline] conflicts with [never_inline]";
+                return false;
+            }
+            func->mustInline = true;
+            return true;
+        };
+        virtual bool lint(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &,
+                const AnnotationArgumentList &, string & err) override {
+            return checkInlineShape(func, err) && checkInlineRecursion(func, err);
+        }
+    };
+
+    // [never_inline] - keep this function out of best-effort (auto) inlining. [inline]
+    // stays a hard error to combine; block-literal and heuristic auto tiers decline
+    struct NeverInlineFunctionAnnotation : MarkFunctionAnnotation {
+        NeverInlineFunctionAnnotation() : MarkFunctionAnnotation("never_inline") { }
+        virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string & err) override {
+            if ( func->mustInline ) {
+                err = "[never_inline] conflicts with [inline]";
+                return false;
+            }
+            func->neverInline = true;
+            return true;
+        };
+    };
+
     struct RequestNoDiscardFunctionAnnotation : MarkFunctionAnnotation {
         RequestNoDiscardFunctionAnnotation() : MarkFunctionAnnotation("nodiscard") { }
         virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
             func->nodiscard = true;
             return true;
         };
+    };
+
+    // [temp_string_result] - a contract: the result is always a fresh string allocation (or null),
+    // never a passthrough of an input, never retained by the callee. Lets the temp-string reclaim
+    // pass queue the result on the 1-slot dispose queue when it dies in the consuming call.
+    struct TempStringResultFunctionAnnotation : MarkFunctionAnnotation {
+        TempStringResultFunctionAnnotation() : MarkFunctionAnnotation("temp_string_result") { }
+        virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
+            func->tempStringResult = true;
+            return true;
+        };
+        virtual bool lint(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &,
+                const AnnotationArgumentList &, string & err) override {
+            // post-infer, so an inferred (auto) return type is concrete by now. The contract is
+            // a BY-VALUE fresh allocation: a reference or temporary result points into storage
+            // the callee still owns, which is exactly what the flag promises never happens
+            if ( !func->result || !func->result->isString() || func->result->ref || func->result->temporary ) {
+                err = "[temp_string_result] requires a function that returns a string by value (not string& or string#)";
+                return false;
+            }
+            return true;
+        }
     };
 
     struct DeprecatedFunctionAnnotation : MarkFunctionAnnotation {
@@ -813,6 +938,34 @@ namespace das
         context->throw_error_at(at, "terminate");
     }
 
+    // string length lives in the base module next to empty(), not in strings: both are
+    // reachable with no require. The int-returning forms carry the same always-on guard
+    // as array/table length -- strings past INT_MAX are rare but reachable via fmap, and
+    // returning a wrapped negative is worse than stopping when long_length() exists.
+    // Context is unused now that the guard replaced stringLengthSafe; it stays in the
+    // signature so embedders calling this directly keep compiling.
+    int builtin_string_length ( const char * str, Context * ) {
+        const size_t len = str ? strlen(str) : 0;
+        DAS_VERIFYF(len <= size_t(INT32_MAX), "string length %llu exceeds INT_MAX; use long_length() instead", (unsigned long long)len);
+        return int(len);
+    }
+
+    int64_t builtin_string_long_length ( const char * str ) {
+        const size_t len = str ? strlen(str) : 0;
+        DAS_VERIFYF(len <= size_t(INT64_MAX), "string length %llu exceeds INT64_MAX", (unsigned long long)len);
+        return int64_t(len);
+    }
+
+    int32_t builtin_ext_string_length ( const string & str ) {
+        DAS_VERIFYF(str.length() <= size_t(INT32_MAX), "string length %llu exceeds INT_MAX; use long_length() instead", (unsigned long long)str.length());
+        return int32_t(str.length());
+    }
+
+    int64_t builtin_ext_string_long_length ( const string & str ) {
+        DAS_VERIFYF(str.length() <= size_t(INT64_MAX), "string length %llu exceeds INT64_MAX", (unsigned long long)str.length());
+        return int64_t(str.length());
+    }
+
     int builtin_table_size ( const Table & arr ) {
         DAS_VERIFYF(arr.size <= uint64_t(INT32_MAX), "table size %llu exceeds INT_MAX; use long_length() instead", (unsigned long long)arr.size);
         return int(arr.size);
@@ -895,12 +1048,28 @@ namespace das
         return context->heap->bytesAllocated();
     }
 
+    uint64_t heap_total_allocated ( Context * context ) {
+        return context->heap->totalAlignedMemoryAllocated();
+    }
+
+    uint64_t max_unreserved_size ( Context * context ) {
+        return context->maxUnreservedSize;
+    }
+
+    void set_max_unreserved_size ( uint64_t bytes, Context * context ) {
+        context->maxUnreservedSize = bytes;
+    }
+
     int32_t heap_depth ( Context * context ) {
         return (int32_t) context->heap->depth();
     }
 
     uint64_t string_heap_bytes_allocated ( Context * context ) {
         return context->stringHeap->bytesAllocated();
+    }
+
+    uint64_t string_heap_total_allocated ( Context * context ) {
+        return context->stringHeap->totalAlignedMemoryAllocated();
     }
 
     int32_t string_heap_depth ( Context * context ) {
@@ -1639,6 +1808,16 @@ namespace das
         array_mark_locked(arr, (char *)data, size < 0 ? uint64_t(0) : uint64_t(size));
     }
 
+    // release a borrowed (mark_locked) array view WITHOUT freeing the storage — the bytes
+    // belong to someone else (a file mapping, another allocator). The inverse of
+    // builtin_make_temp_array for views that outlive a temp scope (the model-image loader
+    // resets its borrowed plane views through this before unmapping).
+    void builtin_forget_temp_array ( Array & arr, Context * context, LineInfoArg * at ) {
+        if ( !array_forget_locked(arr) ) {
+            context->throw_error_at(at, "forget_temp_array: not a borrowed (locked) array view");
+        }
+    }
+
     void toLog ( int level, const char * text, Context * context, LineInfoArg * at ) {
         context->to_out(at, level, text);
     }
@@ -1655,6 +1834,14 @@ namespace das
 
     bool das_is_dll_build() {
         #if DAS_ENABLE_DLL
+        return true;
+        #else
+        return false;
+        #endif
+    }
+
+    bool das_is_exceptions_enabled() {
+        #if DAS_ENABLE_EXCEPTIONS
         return true;
         #else
         return false;
@@ -1684,6 +1871,13 @@ namespace das
     bool is_in_lint_check ( ) {
         if ( daScriptEnvironment::getBound() && daScriptEnvironment::getBound()->g_Program ) {
             return daScriptEnvironment::getBound()->g_Program->policies.lint_check;
+        }
+        return false;
+    }
+
+    bool is_building_documentation ( ) {
+        if ( daScriptEnvironment::getBound() && daScriptEnvironment::getBound()->g_Program ) {
+            return daScriptEnvironment::getBound()->g_Program->policies.building_documentation;
         }
         return false;
     }
@@ -1731,22 +1925,31 @@ namespace das
         return allocFromMod(Module::require(name ? name : ""));
     }
 
-// remove define to enable emscripten version
-#define TRY_MAIN_LOOP   0
+// emscripten browser-loop for eval_main_loop: drives a daslang block once per
+// requestAnimationFrame instead of a blocking while loop. Enables standalone
+// cross-compiled graphics apps (glfw/opengl) to run in the browser.
+#define TRY_MAIN_LOOP   1
 
-#ifdef _EMSCRIPTEN_
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
 #if TRY_MAIN_LOOP
+    // Heap-allocated and the block copied BY VALUE so both survive the
+    // emscripten_set_main_loop_arg(..., simulate_infinite_loop=true) stack
+    // unwind: that flag throws to unwind the C++ stack (so builtin_main_loop
+    // never returns), which would otherwise destroy a stack-local arg + the
+    // caller's TBlock. The daslang context stack the block captures is separate
+    // and persists across the unwind, so the copied Block stays valid.
     struct MainLoopArg {
         Context * context;
         LineInfoArg * at;
-        Block * block;
+        Block block;
     };
 
     void main_loop_arg ( void * arg ) {
         auto mla = (MainLoopArg *) arg;
         vec4f args[1];
         args[0] = v_zero();
-        if ( !cast<bool>::to(mla->context->invoke(*mla->block, args, nullptr, mla->at)) ) {
+        if ( !cast<bool>::to(mla->context->invoke(mla->block, args, nullptr, mla->at)) ) {
             emscripten_cancel_main_loop();
         }
     }
@@ -1754,7 +1957,7 @@ namespace das
 #endif
 
     void builtin_main_loop ( const TBlock<bool> & block, Context * context, LineInfoArg * at ) {
-#ifndef _EMSCRIPTEN_
+#ifndef __EMSCRIPTEN__
         vec4f args[1];
         args[0] = v_zero();
         while ( true ) {
@@ -1763,11 +1966,12 @@ namespace das
         }
 #else
 #if TRY_MAIN_LOOP
-    MainLoopArg arg;
-    arg.context = context;
-    arg.at = at;
-    arg.block = &block;
-    emscripten_set_main_loop_arg(main_loop_arg, &arg, 60, true);
+        // simulate_infinite_loop=true → never returns, so the standalone-exe
+        // entry's jit_shutdown() after the daslang main is never reached and the
+        // runtime/context stay alive for the rAF callbacks. arg leaks by design
+        // (lives for the whole program). 0 = browser rAF cadence.
+        auto * arg = new MainLoopArg{ context, at, block };
+        emscripten_set_main_loop_arg(main_loop_arg, arg, 0, true);
 #endif
 #endif
     }
@@ -1813,6 +2017,35 @@ namespace das
         #endif
     }
 
+    // The cross-compilation TARGET platform, or "" on a normal (non-cross) run.
+    // Unlike get_platform_name() (the host, a compile-time #if), this reads the
+    // active jit cross-compile target from the command line (`--jit-target=<triple>`
+    // after `--`) -- already in g_CommandLineArguments at process start, so it is
+    // valid at .das_module-initialize time, before the jit codegen macro runs.
+    // Lets a .das_module register a target-native module only when cross-compiling
+    // for that target (e.g. dasOpenGL registers its wasm GLES3 module for emscripten,
+    // while a normal desktop run keeps the pure-das opengl.das). Only the wasm triple
+    // is mapped today (-> "emscripten"); other cross targets return "".
+    const char * das_get_cross_platform_name() {
+        char ** argv = (char **) g_CommandLineArguments.data;
+        uint64_t n = g_CommandLineArguments.size;
+        for ( uint64_t i=0; i<n; ++i ) {
+            const char * a = argv[i];
+            if ( !a ) continue;
+            const char * triple = nullptr;
+            if ( strncmp(a, "--jit-target=", 13)==0 ) {
+                triple = a + 13;
+            } else if ( strcmp(a, "--jit-target")==0 && i+1<n ) {
+                triple = argv[i+1];
+            }
+            if ( triple ) {
+                if ( strncmp(triple, "wasm", 4)==0 || strstr(triple, "emscripten") ) return "emscripten";
+                return "";
+            }
+        }
+        return "";
+    }
+
     // x86, arm, etc
     const char * das_get_architecture_name() {
         #if defined(__x86_64__) || defined(_M_X64)
@@ -1828,6 +2061,127 @@ namespace das
         #else
             return "unknown";
         #endif
+    }
+
+#if defined(__aarch64__) || defined(_M_ARM64)
+    #if defined(__APPLE__)
+        static bool das_sysctl_flag ( const char * name ) {
+            int val = 0; size_t sz = sizeof(val);
+            return sysctlbyname(name, &val, &sz, nullptr, 0)==0 && val!=0;
+        }
+    #endif
+
+    // Optional arm64 extensions, by LLVM target-feature name. Unknown names are false, as on x86 —
+    // a kernel gated on one must never register where its instructions would trap.
+    static bool das_arm64_feature ( const char * f ) {
+    #if defined(__APPLE__)
+        if ( strcmp(f, "dotprod")==0 )  return das_sysctl_flag("hw.optional.arm.FEAT_DotProd");
+        if ( strcmp(f, "i8mm")==0 )     return das_sysctl_flag("hw.optional.arm.FEAT_I8MM");
+        if ( strcmp(f, "bf16")==0 )     return das_sysctl_flag("hw.optional.arm.FEAT_BF16");
+        if ( strcmp(f, "fullfp16")==0 ) return das_sysctl_flag("hw.optional.arm.FEAT_FP16");
+        if ( strcmp(f, "lse")==0 )      return das_sysctl_flag("hw.optional.arm.FEAT_LSE");
+        if ( strcmp(f, "rdm")==0 )      return das_sysctl_flag("hw.optional.arm.FEAT_RDM");
+        if ( strcmp(f, "sha3")==0 )     return das_sysctl_flag("hw.optional.arm.FEAT_SHA3");
+        if ( strcmp(f, "crc")==0 )      return das_sysctl_flag("hw.optional.armv8_crc32");
+        if ( strcmp(f, "sve")==0 )      return das_sysctl_flag("hw.optional.arm.FEAT_SVE");
+        return false;
+    #elif defined(__linux__)
+        const unsigned long hw  = getauxval(AT_HWCAP);
+        const unsigned long hw2 = getauxval(AT_HWCAP2);
+        if ( strcmp(f, "dotprod")==0 )  return (hw  & HWCAP_ASIMDDP) != 0;
+        if ( strcmp(f, "i8mm")==0 )     return (hw2 & HWCAP2_I8MM) != 0;
+        if ( strcmp(f, "bf16")==0 )     return (hw2 & HWCAP2_BF16) != 0;
+        if ( strcmp(f, "fullfp16")==0 ) return (hw  & HWCAP_ASIMDHP) != 0;
+        if ( strcmp(f, "lse")==0 )      return (hw  & HWCAP_ATOMICS) != 0;
+        if ( strcmp(f, "rdm")==0 )      return (hw  & HWCAP_ASIMDRDM) != 0;
+        if ( strcmp(f, "sha3")==0 )     return (hw  & HWCAP_SHA3) != 0;
+        if ( strcmp(f, "crc")==0 )      return (hw  & HWCAP_CRC32) != 0;
+        if ( strcmp(f, "sve")==0 )      return (hw  & HWCAP_SVE) != 0;
+        return false;
+    #elif defined(_WIN32)
+        #ifdef PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE    // newer than the CRC32 bit below
+        if ( strcmp(f, "dotprod")==0 )
+            return IsProcessorFeaturePresent(PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE) != 0;
+        #endif
+        if ( strcmp(f, "crc")==0 )
+            return IsProcessorFeaturePresent(PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE) != 0;
+        return false;
+    #else
+        (void)f;
+        return false;
+    #endif
+    }
+#endif
+
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
+    static void das_cpuidex ( int leaf, int subleaf, int * regs ) {
+        #if defined(_MSC_VER)
+            __cpuidex(regs, leaf, subleaf);
+        #else
+            unsigned int a=0, b=0, c=0, d=0;
+            __get_cpuid_count(unsigned(leaf), unsigned(subleaf), &a, &b, &c, &d);
+            regs[0]=int(a); regs[1]=int(b); regs[2]=int(c); regs[3]=int(d);
+        #endif
+    }
+    static uint64_t das_xgetbv0 () {
+        #if defined(_MSC_VER)
+            return _xgetbv(0);
+        #else
+            unsigned int eax, edx;
+            __asm__ volatile ( "xgetbv" : "=a"(eax), "=d"(edx) : "c"(0u) );
+            return (uint64_t(edx) << 32u) | eax;
+        #endif
+    }
+#endif
+
+    // Runtime CPU-feature truth for kernel/backend gating — e.g. the dasLLAMA x64 backends register
+    // (and the JIT emits AVX2 intrinsics) only when cpu_supports("avx2"). On x86/x86_64 this is cpuid
+    // plus the OSXSAVE/XGETBV dance: a feature reports true only when the CPU has it AND the OS saves
+    // the register state it needs (ymm for avx*, zmm/opmask for avx512*). Fail-closed by design:
+    // unknown feature names, and every name on a non-x86 architecture, return false — a backend gated
+    // on cpu_supports can never register where its instructions can't execute.
+    bool das_cpu_supports ( const char * feature ) {
+        if ( !feature ) return false;
+#if defined(__aarch64__) || defined(_M_ARM64)
+        // arm64 has no cpuid: macOS answers via sysctl, Linux via the AT_HWCAP auxv words, Windows
+        // via IsProcessorFeaturePresent. Names are the LLVM target-feature spellings, so they match
+        // what DAS_JIT_ARM64_FORCE_FEATURES and `llc -mattr` take verbatim (same rule as AMX above).
+        if ( strcmp(feature, "neon")==0 ) return true;      // baseline on every arm64
+        if ( strcmp(feature, "fp-armv8")==0 ) return true;  // ditto
+        return das_arm64_feature(feature);
+#elif defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
+        int r0[4] = {0,0,0,0};
+        das_cpuidex(0, 0, r0);                                  // r0[0] = max basic leaf
+        int r1[4] = {0,0,0,0};
+        if ( r0[0] >= 1 ) das_cpuidex(1, 0, r1);
+        int r7[4] = {0,0,0,0};
+        if ( r0[0] >= 7 ) das_cpuidex(7, 0, r7);
+        int r71[4] = {0,0,0,0};
+        if ( r0[0] >= 7 && r7[0] >= 1 ) das_cpuidex(7, 1, r71); // leaf 7 eax = max subleaf
+        const bool osxsave = (r1[2] & (1<<27)) != 0;
+        const uint64_t xcr0 = osxsave ? das_xgetbv0() : 0;
+        const bool os_ymm = (xcr0 & 0x6) == 0x6;                // OS saves xmm+ymm state
+        const bool os_zmm = (xcr0 & 0xE6) == 0xE6;              // + opmask/zmm state
+        const bool os_amx = (xcr0 & 0x60000) == 0x60000;        // + XTILECFG/XTILEDATA state
+        if ( strcmp(feature, "sse4.2")==0 )     return (r1[2] & (1<<20)) != 0;
+        if ( strcmp(feature, "fma")==0 )        return os_ymm && (r1[2] & (1<<12)) != 0;
+        if ( strcmp(feature, "f16c")==0 )       return os_ymm && (r1[2] & (1<<29)) != 0;
+        if ( strcmp(feature, "avx")==0 )        return os_ymm && (r1[2] & (1<<28)) != 0;
+        if ( strcmp(feature, "avx2")==0 )       return os_ymm && (r7[1] & (1<<5)) != 0;
+        if ( strcmp(feature, "avxvnni")==0 )    return os_ymm && (r71[0] & (1<<4)) != 0;
+        if ( strcmp(feature, "avxvnniint8")==0 ) return os_ymm && (r71[3] & (1<<4)) != 0;
+        if ( strcmp(feature, "avx512f")==0 )    return os_zmm && (r7[1] & (1<<16)) != 0;
+        if ( strcmp(feature, "avx512bw")==0 )   return os_zmm && (r7[1] & (1<<30)) != 0;
+        if ( strcmp(feature, "avx512vl")==0 )   return os_zmm && (r7[1] & (1u<<31)) != 0;
+        if ( strcmp(feature, "avx512vnni")==0 ) return os_zmm && (r7[2] & (1<<11)) != 0;
+        // AMX names use the LLVM hyphen spelling so cpuid names == target-feature names
+        // (DAS_JIT_X64_FORCE_FEATURES / llc -mattr pass them through verbatim). XCR0 tile
+        // bits are kernel-boot truth; the per-process XTILEDATA grant (Linux arch_prctl)
+        // is a separate, runtime step — the dasLLAMA amx witness does it, not this query.
+        if ( strcmp(feature, "amx-tile")==0 )   return os_amx && (r7[3] & (1<<24)) != 0;
+        if ( strcmp(feature, "amx-int8")==0 )   return os_amx && (r7[3] & (1<<24)) != 0 && (r7[3] & (1<<25)) != 0;
+#endif
+        return false;
     }
 
     void Module_BuiltIn::addRuntime(ModuleLibrary & lib) {
@@ -1846,10 +2200,18 @@ namespace das
         addAnnotation(new MacroFunctionAnnotation());
         addAnnotation(new MacroFnFunctionAnnotation());
         addAnnotation(new CloneFunctionAnnotation());
+        addAnnotation(new HotPathFunctionAnnotation("hot_path"));
+        addAnnotation(new HotPathFunctionAnnotation("no_alloc"));
+        addAnnotation(new HotPathFunctionAnnotation("no_env"));
+        addAnnotation(new HotPathFunctionAnnotation("no_io"));
+        addAnnotation(new HotPathFunctionAnnotation("cold_path"));
         addAnnotation(new HintFunctionAnnotation());
         addAnnotation(new RequestJitFunctionAnnotation());
         addAnnotation(new RequestNoJitFunctionAnnotation());
+        addAnnotation(new InlineFunctionAnnotation());
+        addAnnotation(new NeverInlineFunctionAnnotation());
         addAnnotation(new RequestNoDiscardFunctionAnnotation());
+        addAnnotation(new TempStringResultFunctionAnnotation());
         addAnnotation(new DeprecatedFunctionAnnotation());
         addAnnotation(new AliasCMRESFunctionAnnotation());
         addAnnotation(new NeverAliasCMRESFunctionAnnotation());
@@ -1892,13 +2254,13 @@ namespace das
         // command line arguments
         addExtern<DAS_BIND_FUN(builtin_das_root)>(*this, lib, "get_das_root",
             SideEffects::accessExternal,"builtin_das_root")
-                ->args({"context","at"});
+                ->args({"context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(builtin_shared_module_extension)>(*this, lib, "shared_module_extension",
             SideEffects::none,"builtin_shared_module_extension")
-                ->args({"context","at"});
+                ->args({"context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(builtin_get_das_version)>(*this, lib, "get_das_version",
             SideEffects::none,"builtin_get_das_version")
-                ->args({"context","at"});
+                ->args({"context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(getCommandLineArguments)>(*this, lib, "builtin_get_command_line_arguments",
             SideEffects::accessExternal,"getCommandLineArguments")
                 ->arg("arguments");
@@ -1998,10 +2360,10 @@ namespace das
                 ->args({"text","context","at"});
         addInterop<builtin_sprint,char *,vec4f,PrintFlags>(*this, lib, "sprint",
             SideEffects::modifyExternal, "builtin_sprint")
-                ->args({"value","flags"});
+                ->args({"value","flags"})->setTempStringResult();
         addInterop<builtin_json_sprint,char *,vec4f,bool>(*this, lib, "sprint_json",
             SideEffects::modifyExternal, "builtin_json_sprint")
-                ->args({"value","humanReadable"});
+                ->args({"value","humanReadable"})->setTempStringResult();
         addInterop<builtin_json_sscan,bool,char *,vec4f>(*this, lib, "sscan_json",
             SideEffects::modifyArgumentAndExternal, "builtin_json_sscan")
                 ->args({"json","value"});
@@ -2017,7 +2379,7 @@ namespace das
         fnsw->arguments[1]->init = new ExprConstBool(true);
         auto fngsw = addExtern<DAS_BIND_FUN(builtin_get_stackwalk)>(*this, lib, "get_stackwalk",
             SideEffects::accessExternal, "builtin_get_stackwalk")
-                ->args({"args","vars","out_of_scope","top_only","context","lineinfo"});
+                ->args({"args","vars","out_of_scope","top_only","context","lineinfo"})->setTempStringResult();
         fngsw->arguments[0]->init = new ExprConstBool(true);
         fngsw->arguments[1]->init = new ExprConstBool(true);
         fngsw->arguments[2]->init = new ExprConstBool(false);
@@ -2031,7 +2393,7 @@ namespace das
                 ->arg("context");
         addExtern<DAS_BIND_FUN(collectProfileInfo)>(*this, lib, "collect_profile_info",
             SideEffects::modifyExternal, "collectProfileInfo")
-                ->args({"context","at"});
+                ->args({"context","at"})->setTempStringResult();
         // variant
         addExtern<DAS_BIND_FUN(variant_index)>(*this, lib, "variant_index", SideEffects::none, "variant_index");
         addExtern<DAS_BIND_FUN(set_variant_index)>(*this, lib, "set_variant_index",
@@ -2066,11 +2428,23 @@ namespace das
         addExtern<DAS_BIND_FUN(heap_bytes_allocated)>(*this, lib, "heap_bytes_allocated",
             SideEffects::modifyExternal, "heap_bytes_allocated")
                 ->arg("context");
+        addExtern<DAS_BIND_FUN(heap_total_allocated)>(*this, lib, "heap_total_allocated",
+            SideEffects::modifyExternal, "heap_total_allocated")
+                ->arg("context");
+        addExtern<DAS_BIND_FUN(max_unreserved_size)>(*this, lib, "max_unreserved_size",
+            SideEffects::modifyExternal, "max_unreserved_size")
+                ->arg("context");
+        addExtern<DAS_BIND_FUN(set_max_unreserved_size)>(*this, lib, "set_max_unreserved_size",
+            SideEffects::modifyExternal, "set_max_unreserved_size")
+                ->args({"bytes","context"});
         addExtern<DAS_BIND_FUN(heap_depth)>(*this, lib, "heap_depth",
             SideEffects::modifyExternal, "heap_depth")
                 ->arg("context");
         addExtern<DAS_BIND_FUN(string_heap_bytes_allocated)>(*this, lib, "string_heap_bytes_allocated",
             SideEffects::modifyExternal, "string_heap_bytes_allocated")
+                ->arg("context");
+        addExtern<DAS_BIND_FUN(string_heap_total_allocated)>(*this, lib, "string_heap_total_allocated",
+            SideEffects::modifyExternal, "string_heap_total_allocated")
                 ->arg("context");
         addExtern<DAS_BIND_FUN(string_heap_depth)>(*this, lib, "string_heap_depth",
             SideEffects::modifyExternal, "string_heap_depth")
@@ -2182,6 +2556,9 @@ namespace das
         addInterop<builtin_collect_local_and_zero,void,vec4f,uint32_t>(*this, lib, "builtin_collect_local_and_zero",
             SideEffects::modifyArgumentAndExternal, "builtin_collect_local_and_zero")
                 ->args({"anything","sizeOfAnything"})->unsafeOperation = true;
+        addInterop<builtin_collect_local,void,vec4f,uint32_t>(*this, lib, "builtin_collect_local",
+            SideEffects::modifyArgumentAndExternal, "builtin_collect_local")
+                ->args({"anything","sizeOfAnything"})->unsafeOperation = true;
         addInterop<builtin_scope_free,void,vec4f,uint32_t>(*this, lib, "builtin_scope_free",
             SideEffects::modifyArgumentAndExternal, "builtin_scope_free")
                 ->args({"pointer","sizeOfPointee"})->unsafeOperation = true;
@@ -2235,11 +2612,34 @@ namespace das
                 ->args({"name","context"});
         addExtern<DAS_BIND_FUN(gc0_reset)>(*this, lib, "gc0_reset",
             SideEffects::modifyExternal, "gc0_reset");
-        // memops
-        addExtern<DAS_BIND_FUN(das_memcpy)>(*this, lib, "memcpy",
+        // memops — explicit function-pointer types pick the non-const overloads (aot.h grew
+        // const-source twins for the emitted das_cast<void const *> calls; the das-side extern
+        // signatures must stay unchanged so no AOT hash churns)
+        addExtern<void (*)(void *, void *, int), das_memcpy>(*this, lib, "memcpy",
             SideEffects::modifyArgumentAndExternal, "das_memcpy")
                 ->args({"left","right","size"})->unsafeOperation = true;
-        addExtern<DAS_BIND_FUN(das_memcmp)>(*this, lib, "memcmp",
+        addExtern<int (*)(void *, void *, int), das_memcmp>(*this, lib, "memcmp",
+            SideEffects::none, "das_memcmp")
+                ->args({"left","right","size"})->unsafeOperation = true;
+        // unsigned and 64-bit size overloads. Without these a size that is already
+        // uint/int64/uint64 can only reach memcpy through int(...), which truncates
+        // above 2GB -- silently copying the wrong number of bytes.
+        addExtern<void (*)(void *, void *, uint32_t), das_memcpy>(*this, lib, "memcpy",
+            SideEffects::modifyArgumentAndExternal, "das_memcpy")
+                ->args({"left","right","size"})->unsafeOperation = true;
+        addExtern<void (*)(void *, void *, int64_t), das_memcpy>(*this, lib, "memcpy",
+            SideEffects::modifyArgumentAndExternal, "das_memcpy")
+                ->args({"left","right","size"})->unsafeOperation = true;
+        addExtern<void (*)(void *, void *, uint64_t), das_memcpy>(*this, lib, "memcpy",
+            SideEffects::modifyArgumentAndExternal, "das_memcpy")
+                ->args({"left","right","size"})->unsafeOperation = true;
+        addExtern<int (*)(void *, void *, uint32_t), das_memcmp>(*this, lib, "memcmp",
+            SideEffects::none, "das_memcmp")
+                ->args({"left","right","size"})->unsafeOperation = true;
+        addExtern<int (*)(void *, void *, int64_t), das_memcmp>(*this, lib, "memcmp",
+            SideEffects::none, "das_memcmp")
+                ->args({"left","right","size"})->unsafeOperation = true;
+        addExtern<int (*)(void *, void *, uint64_t), das_memcmp>(*this, lib, "memcmp",
             SideEffects::none, "das_memcmp")
                 ->args({"left","right","size"})->unsafeOperation = true;
         addExtern<DAS_BIND_FUN(das_memset8)>(*this, lib, "memset8",
@@ -2302,13 +2702,13 @@ namespace das
         // das string binding
         addExtern<DAS_BIND_FUN(to_das_string)>(*this, lib, "string",
             SideEffects::none, "to_das_string")
-                ->args({"source","context","at"});
+                ->args({"source","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(pass_string)>(*this, lib, "string",
             SideEffects::none, "pass_string", permanentArgFn())
                 ->args({"source"})->setCaptureString();
         addExtern<DAS_BIND_FUN(clone_pass_string)>(*this, lib, "string",
             SideEffects::none, "clone_pass_string", temporaryArgFn())
-                ->args({"source","context","at"});
+                ->args({"source","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(set_das_string)>(*this, lib, "clone",
             SideEffects::modifyArgument,"set_das_string")
                 ->args({"target","src"});
@@ -2320,15 +2720,24 @@ namespace das
                 ->args({"src","block","context","line"})->setAotTemplate();
         addExtern<DAS_BIND_FUN(builtin_string_clone)>(*this, lib, "clone_string",
             SideEffects::none, "builtin_string_clone")
-                ->args({"src","context","at"});
+                ->args({"src","context","at"})->setTempStringResult();
         // das-string
         addExtern<DAS_BIND_FUN(das_str_equ)>(*this, lib, "==", SideEffects::none, "das_str_equ");
         addExtern<DAS_BIND_FUN(das_str_nequ)>(*this, lib, "!=", SideEffects::none, "das_str_nequ");
-        // string emptiness
+        // string emptiness and length. length lived in the strings module, which made
+        // `length(str)` need a require that `empty(str)` did not -- these belong together.
         addExtern<DAS_BIND_FUN(builtin_empty)>(*this, lib, "empty",
             SideEffects::none, "builtin_empty")->arg("str");
         addExtern<DAS_BIND_FUN(builtin_empty_das_string)>(*this, lib, "empty",
             SideEffects::none, "builtin_empty_das_string")->arg("str");
+        addExtern<DAS_BIND_FUN(builtin_string_length)>(*this, lib, "length",
+            SideEffects::none, "builtin_string_length")->args({"str","context"});
+        addExtern<DAS_BIND_FUN(builtin_ext_string_length)>(*this, lib, "length",
+            SideEffects::none, "builtin_ext_string_length")->arg("str");
+        addExtern<DAS_BIND_FUN(builtin_string_long_length)>(*this, lib, "long_length",
+            SideEffects::none, "builtin_string_long_length")->arg("str");
+        addExtern<DAS_BIND_FUN(builtin_ext_string_long_length)>(*this, lib, "long_length",
+            SideEffects::none, "builtin_ext_string_long_length")->arg("str");
         // das-string extra
         STR_DSTR_REG(  eq,==);
         STR_DSTR_REG( neq,!=);
@@ -2350,9 +2759,15 @@ namespace das
             SideEffects::modifyArgument, "builtin_make_temp_array_i64")
                 ->args({"array","data","size"});
         bmta64->unsafeOperation = true;
+        auto bfta = addExtern<DAS_BIND_FUN(builtin_forget_temp_array)>(*this, lib, "_builtin_forget_temp_array",
+            SideEffects::modifyArgument, "builtin_forget_temp_array")
+                ->args({"array","context","line"});
+        bfta->unsafeOperation = true;
         // migrate data
         addExtern<DAS_BIND_FUN(das_is_dll_build)>(*this, lib, "das_is_dll_build",
             SideEffects::worstDefault, "das_is_dll_build");
+        addExtern<DAS_BIND_FUN(das_is_exceptions_enabled)>(*this, lib, "das_is_exceptions_enabled",
+            SideEffects::worstDefault, "das_is_exceptions_enabled");
         addExtern<DAS_BIND_FUN(is_in_aot)>(*this, lib, "is_in_aot",
             SideEffects::worstDefault, "is_in_aot");
         addExtern<DAS_BIND_FUN(set_aot)>(*this, lib, "set_aot",
@@ -2365,6 +2780,9 @@ namespace das
         // lint
         addExtern<DAS_BIND_FUN(is_in_lint_check)>(*this, lib, "is_in_lint_check",
             SideEffects::worstDefault, "is_in_lint_check");
+
+        addExtern<DAS_BIND_FUN(is_building_documentation)>(*this, lib, "is_building_documentation",
+            SideEffects::worstDefault, "is_building_documentation");
         // folding
         addExtern<DAS_BIND_FUN(is_folding)>(*this, lib, "is_folding",
             SideEffects::worstDefault, "is_folding");
@@ -2374,7 +2792,7 @@ namespace das
         addExtern<DAS_BIND_FUN(compiling_module_name)>(*this, lib, "compiling_module_name",
             SideEffects::accessExternal, "compiling_module_name");
         addExtern<DAS_BIND_FUN(get_module_file_name)>(*this, lib, "get_module_file_name",
-            SideEffects::accessExternal, "get_module_file_name")->args({"name", "context"});
+            SideEffects::accessExternal, "get_module_file_name")->args({"name", "context"})->setTempStringResult();
         // logger
         addExtern<DAS_BIND_FUN(toLog)>(*this, lib, "to_log",
             SideEffects::modifyExternal, "toLog")->args({"level", "text", "context", "at"});
@@ -2441,28 +2859,49 @@ namespace das
         // platform and architecture
         addExtern<DAS_BIND_FUN(das_get_platform_name)>(*this, lib, "get_platform_name",
             SideEffects::none, "das_get_platform_name");
+        // Same C++ query, but registered with a side effect so the optimizer never const-folds it.
+        // get_platform_name() (SideEffects::none) folds at compile time to the HOST platform, which is
+        // wrong inside a wasm cross-compile (host is e.g. windows, the code will RUN under emscripten).
+        // get_running_platform_name() stays a real call, so in the cross-compiled binary it resolves to
+        // the wasm runtime's das_get_platform_name -> "emscripten". Use it for runtime "where am I
+        // actually executing" decisions; use get_platform_name() for compile-time / macro decisions.
+        addExtern<DAS_BIND_FUN(das_get_platform_name)>(*this, lib, "get_running_platform_name",
+            SideEffects::accessExternal, "das_get_platform_name");
+        // SideEffects::none so it FOLDS at compile time -> usable in static_if. The cross-compile
+        // target is a compile-time property (the --jit-target triple is fixed for the whole compile),
+        // so folding to it is correct: e.g. static_if(get_platform_name()=="emscripten" ||
+        // get_cross_platform_name()=="emscripten") picks the WebGL2 draw path and drops the desktop-only
+        // glDrawElementsBaseVertex branch before symbol resolution. Folds to "" on a non-cross run, so a
+        // desktop compile keeps the BaseVertex branch. (get_running_platform_name stays accessExternal —
+        // it must NOT fold; it reports where the code actually executes.)
+        addExtern<DAS_BIND_FUN(das_get_cross_platform_name)>(*this, lib, "get_cross_platform_name",
+            SideEffects::none, "das_get_cross_platform_name");
         addExtern<DAS_BIND_FUN(das_get_architecture_name)>(*this, lib, "get_architecture_name",
             SideEffects::none, "das_get_architecture_name");
+        // accessExternal (NOT ::none) on purpose: CPU features are a property of the RUNNING box,
+        // so this must never const-fold into AOT artifacts built on a different machine.
+        addExtern<DAS_BIND_FUN(das_cpu_supports)>(*this, lib, "cpu_supports",
+            SideEffects::accessExternal, "das_cpu_supports")->args({"feature"});
         // fmt
         addExtern<DAS_BIND_FUN(fmt_i8)>(*this, lib, "fmt",
-            SideEffects::none, "fmt_i8")->args({"format","value","context","at"});
+            SideEffects::none, "fmt_i8")->args({"format","value","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(fmt_u8)>(*this, lib, "fmt",
-            SideEffects::none, "fmt_u8")->args({"format","value","context","at"});
+            SideEffects::none, "fmt_u8")->args({"format","value","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(fmt_i16)>(*this, lib, "fmt",
-            SideEffects::none, "fmt_i16")->args({"format","value","context","at"});
+            SideEffects::none, "fmt_i16")->args({"format","value","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(fmt_u16)>(*this, lib, "fmt",
-            SideEffects::none, "fmt_u16")->args({"format","value","context","at"});
+            SideEffects::none, "fmt_u16")->args({"format","value","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(fmt_i32)>(*this, lib, "fmt",
-            SideEffects::none, "fmt_i32")->args({"format","value","context","at"});
+            SideEffects::none, "fmt_i32")->args({"format","value","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(fmt_u32)>(*this, lib, "fmt",
-            SideEffects::none, "fmt_u32")->args({"format","value","context","at"});
+            SideEffects::none, "fmt_u32")->args({"format","value","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(fmt_i64)>(*this, lib, "fmt",
-            SideEffects::none, "fmt_i64")->args({"format","value","context","at"});
+            SideEffects::none, "fmt_i64")->args({"format","value","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(fmt_u64)>(*this, lib, "fmt",
-            SideEffects::none, "fmt_u64")->args({"format","value","context","at"});
+            SideEffects::none, "fmt_u64")->args({"format","value","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(fmt_f)>(*this, lib, "fmt",
-            SideEffects::none, "fmt_f")->args({"format","value","context","at"});
+            SideEffects::none, "fmt_f")->args({"format","value","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(fmt_d)>(*this, lib, "fmt",
-            SideEffects::none, "fmt_d")->args({"format","value","context","at"});
+            SideEffects::none, "fmt_d")->args({"format","value","context","at"})->setTempStringResult();
     }
 }

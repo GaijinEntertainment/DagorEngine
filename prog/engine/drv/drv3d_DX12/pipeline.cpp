@@ -4297,12 +4297,24 @@ void PipelineStageStateBase::resetDescriptorRanges()
   uRegisterDescriptorRange = {};
 }
 
-void PipelineStageStateBase::resetAllState()
+void PipelineStageStateBase::resetBindings([[maybe_unused]] BindingsResetMode mode)
 {
   resetDescriptorRanges();
   invalidateState();
-  for (auto &reg : bRegisterBuffers)
-    reg = {};
+  uint32_t resetMask = (1u << countof(bRegisters)) - 1;
+#if D3D_HAS_RAY_TRACING
+  if (BindingsResetMode::KeepRaytraceOverrides == mode)
+    resetMask &= ~bRegisterOverrideMask;
+  else
+    bRegisterOverrideMask = 0;
+  for (auto &backup : bRegisterOverrideBackup)
+    backup = {};
+#endif
+  for (auto i : LsbVisitor{resetMask})
+  {
+    bRegisters[i] = {};
+    bRegisterBuffers[i] = {};
+  }
   for (auto &reg : tRegisters)
     reg.reset();
   for (auto &reg : uRegisters)
@@ -4626,7 +4638,7 @@ void ShaderDeviceRequirementChecker::init(ID3D12Device *device, const HLSLVendor
   combinedFlags |= D3D_SHADER_REQUIRES_UAVS_AT_EVERY_STAGE;
   combinedFlags |= D3D_SHADER_REQUIRES_64_UAVS;
 
-  // should be uniformly supported, have to simply test and see, otherwsie we have to check op0.MinPrecisionSupport
+  // should be uniformly supported, have to simply test and see, otherwise we have to check op0.MinPrecisionSupport
   combinedFlags |= D3D_SHADER_REQUIRES_MINIMUM_PRECISION;
 
   if (op0.DoublePrecisionFloatShaderOps)
@@ -4677,7 +4689,7 @@ void ShaderDeviceRequirementChecker::init(ID3D12Device *device, const HLSLVendor
     combinedFlags |= D3D_SHADER_REQUIRES_INT64_OPS;
   }
 
-  // correct test would be this, but it apears that without view instancing we still can use it in shaders to read and the device will
+  // correct test would be this, but it appears that without view instancing we still can use it in shaders to read and the device will
   // just return 0
   // if (D3D12_VIEW_INSTANCING_TIER_1 <= op3.ViewInstancingTier)
   if (shading_model >= 6.1_sm)

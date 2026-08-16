@@ -16,12 +16,15 @@
 #include <osApiWrappers/dag_wndProcCompMsg.h>
 #include <osApiWrappers/dag_unicode.h>
 #include <osApiWrappers/setProgGlobals.h>
+#include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
 #include <math/dag_lsbVisitor.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <math/dag_bits.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_resetDevice.h>
 #include <perfMon/dag_statDrv.h>
+#include <osApiWrappers/dag_critSec.h>
 #include "wayland.h"
 
 #define wl_array_for_each_fixed(pos, array) for (; (const char *)pos < ((const char *)(array)->data + (array)->size); (pos)++)
@@ -482,6 +485,8 @@ void Wayland::Window::destroy()
     xdg_surface_destroy(xdg.surface);
   if (obj)
     wl_surface_destroy(obj);
+  delete inputCritSec;
+  inputCritSec = nullptr;
   parent->windows.remove(this);
 }
 
@@ -508,15 +513,19 @@ void Wayland::Window::processChangedOutputs()
 
 void Wayland::Window::resetupFullscreen()
 {
-  // window is on multiple outputs, leave it windowed till it settled down to single output
-  if (onOutputs && __popcount(onOutputs) > 1)
+  // window is on multiple outputs, leave it windowed till it settled down to single output.
+  // when an output is force-selected via "video/monitor" we know the target upfront, so bypass this wait.
+  if (!parent->getSelectedOutput() && onOutputs && __popcount(onOutputs) > 1)
   {
     if (!fullscreenOnOutput)
       return;
     xdg_toplevel_unset_fullscreen(xdg.toplevel);
     wp_viewport_set_destination(wp.viewport, -1, -1);
     fullscreenOnOutput = nullptr;
-    wl_surface_commit(obj);
+    {
+      WinAutoLock cs(*inputCritSec);
+      wl_surface_commit(obj);
+    }
     return;
   }
 
@@ -546,7 +555,10 @@ void Wayland::Window::resetupFullscreen()
     xdg_toplevel_set_fullscreen(xdg.toplevel, targetOutput->obj);
     wp_viewport_set_destination(wp.viewport, targetOutput->mode.current.width, targetOutput->mode.current.height);
   }
-  wl_surface_commit(obj);
+  {
+    WinAutoLock cs(*inputCritSec);
+    wl_surface_commit(obj);
+  }
 }
 
 void Wayland::Window::changeFullscreen(bool enable)
@@ -559,6 +571,10 @@ void Wayland::Window::changeFullscreen(bool enable)
 
 Wayland::Output *Wayland::Window::getFirstOutput()
 {
+  // an output force-selected via "video/monitor" wins over whichever output(s) the window happens to be on
+  if (Wayland::Output *selected = parent->getSelectedOutput())
+    return selected;
+
   for (uint32_t i : LsbVisitor{onOutputs})
     if (parent->outputs.isValid(i))
       return &parent->outputs.arr[i];
@@ -588,6 +604,26 @@ void Wayland::Window::cbConfigure()
   if (activePointer)
     activePointer->clipChanged |= true;
   notify_window_resized(reportedWidth, reportedHeight);
+}
+
+void Wayland::Pointer::destroy()
+{
+  if (onWindow && onWindow->activePointer == this)
+    onWindow->activePointer = nullptr;
+
+  if (zwp.confinedPointerV1)
+    zwp_confined_pointer_v1_destroy(zwp.confinedPointerV1);
+  if (zwp.relativePointerV1)
+    zwp_relative_pointer_v1_destroy(zwp.relativePointerV1);
+  if (obj)
+  {
+    if (wl_pointer_get_version(obj) >= WL_POINTER_RELEASE_SINCE_VERSION)
+      wl_pointer_release(obj);
+    else
+      wl_pointer_destroy(obj);
+  }
+
+  parent->parent->pointers.remove(this);
 }
 
 void Wayland::Pointer::resetupHideState()
@@ -620,7 +656,10 @@ void Wayland::Pointer::resetupClipState()
       nullptr, zwp_pointer_constraints_v1_lifetime::ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_PERSISTENT);
   }
   if (onWindow && clipChanged)
+  {
+    WinAutoLock cs(*onWindow->inputCritSec);
     wl_surface_commit(onWindow->obj);
+  }
   clipChanged = false;
 }
 
@@ -666,7 +705,7 @@ void Wayland::Pointer::cbFrame()
   if (axis.dirty)
   {
     if (axis.axis == WL_POINTER_AXIS_VERTICAL_SCROLL)
-      workcycle_internal::main_window_proc(onWindow, GPCM_MouseWheel, -wl_fixed_to_double(axis.value) * 100, 0);
+      workcycle_internal::main_window_proc(onWindow, GPCM_MouseWheel, -wl_fixed_to_double(axis.value) * MOUSE_WHEEL_SCALE_TO_DAGOR, 0);
     axis.dirty = false;
   }
 }
@@ -716,6 +755,26 @@ void Wayland::Pointer::cbRelativeMotion(wl_fixed_t_proxy x, wl_fixed_t_proxy y)
 {
   dltX += x;
   dltY += y;
+}
+
+void Wayland::Keyboard::destroy()
+{
+  if (focusedOn && focusedOn->activeKeyboard == this)
+    focusedOn->activeKeyboard = nullptr;
+
+  if (xkbState)
+    xkb_state_unref(xkbState);
+  if (keymap)
+    xkb_keymap_unref(keymap);
+  if (obj)
+  {
+    if (wl_keyboard_get_version(obj) >= WL_KEYBOARD_RELEASE_SINCE_VERSION)
+      wl_keyboard_release(obj);
+    else
+      wl_keyboard_destroy(obj);
+  }
+
+  parent->parent->keyboards.remove(this);
 }
 
 void Wayland::Keyboard::cbKeymap(uint32_t format, int32_t fd, uint32_t size)
@@ -864,10 +923,14 @@ void Wayland::Keyboard::cbEnter(wl_surface *surface, wl_array *keys, uint32_t se
 void Wayland::Keyboard::cbLeave(wl_surface *surface)
 {
   Wayland::Window *cbWnd = parent->parent->windows.find(surface);
+  if (!cbWnd)
+    return;
   if (cbWnd->activeKeyboard == this)
     cbWnd->activeKeyboard = nullptr;
   if (focusedOn == cbWnd)
   {
+    repeatStack.clear();
+
     focusedOn = nullptr;
     workcycle_internal::main_window_proc(cbWnd, GPCM_Activate, GPCMP1_Inactivate, 0);
   }
@@ -998,7 +1061,19 @@ bool Wayland::Seat::getClipboardUTF8Text(char *dest, int buf_size)
 
 void Wayland::Seat::cbSeatCaps(uint32_t capabilities)
 {
-  if (capabilities & wl_seat_capability::WL_SEAT_CAPABILITY_POINTER)
+  // caps may be re-sent, gaining or losing a capability; add on gain, release on loss (once per seat)
+  const bool hasPointer = capabilities & wl_seat_capability::WL_SEAT_CAPABILITY_POINTER;
+  const bool hasKeyboard = capabilities & wl_seat_capability::WL_SEAT_CAPABILITY_KEYBOARD;
+
+  Pointer *existingPointer = nullptr;
+  for (uint32_t i : LsbVisitor{parent->pointers.validMask()})
+    if (parent->pointers.arr[i].parent == this)
+    {
+      existingPointer = &parent->pointers.arr[i];
+      break;
+    }
+
+  if (hasPointer && !existingPointer)
   {
     Pointer *pi = parent->pointers.add(wl_seat_get_pointer(obj), this);
     if (parent->zwp.relativePointerManagerV1)
@@ -1014,11 +1089,24 @@ void Wayland::Seat::cbSeatCaps(uint32_t capabilities)
     }
     wl_pointer_add_listener(pi->obj, &listeners.wl.pointer, pi);
   }
-  if (capabilities & wl_seat_capability::WL_SEAT_CAPABILITY_KEYBOARD)
+  else if (!hasPointer && existingPointer)
+    existingPointer->destroy();
+
+  Keyboard *existingKeyboard = nullptr;
+  for (uint32_t i : LsbVisitor{parent->keyboards.validMask()})
+    if (parent->keyboards.arr[i].parent == this)
+    {
+      existingKeyboard = &parent->keyboards.arr[i];
+      break;
+    }
+
+  if (hasKeyboard && !existingKeyboard)
   {
     Keyboard *ki = parent->keyboards.add(wl_seat_get_keyboard(obj), this);
     wl_keyboard_add_listener(ki->obj, &listeners.wl.keyboard, ki);
   }
+  else if (!hasKeyboard && existingKeyboard)
+    existingKeyboard->destroy();
 }
 
 void Wayland::Seat::cbSendData(const char *mime_type, int32_t fd)
@@ -1035,18 +1123,23 @@ void Wayland::Seat::cbSelection(wl_data_offer *offer)
 {
   if (!offer)
     return;
+
   if (lastOffer == offer)
   {
+    // offer is consumed, so no longer need to track it
+    lastOffer = nullptr;
     if (!strstr(lastOfferMimeTypes.data(), mime_text_utf8))
     {
       wl_data_offer_destroy(offer);
+      lastOfferMimeTypes.clear();
       return;
     }
-    lastOffer = nullptr;
   }
   else
   {
-    // pretend offer can handle utf8 by default
+    // means we recived selection without mime, drop it
+    wl_data_offer_destroy(offer);
+    return;
   }
   inbound.recive(offer);
 }
@@ -1131,7 +1224,18 @@ void Wayland::processMessages()
     TIME_PROFILE(wayland_display_roundtrip);
     if (wl_display_roundtrip(wl.display) < 0)
     {
-      debug("wayland: display disconnected");
+      const int err = wl_display_get_error(wl.display);
+      if (err == EPROTO)
+      {
+        // our own protocol misuse (wrong version, destroyed/overflowed object) - a client bug, not a compositor death
+        uint32_t objId = 0;
+        const wl_interface *iface = nullptr;
+        const uint32_t code = wl_display_get_protocol_error(wl.display, &iface, &objId);
+        logerr("wayland: protocol error on %s: code=%u id=%u", iface ? iface->name : "<unknown>", code, objId);
+      }
+      else
+        // transport-level failure: compositor gone / socket closed (EPIPE, ECONNRESET, ...)
+        debug("wayland: display connection lost, err=%d", err);
       quit_game(0);
     }
   }
@@ -1188,7 +1292,10 @@ bool Wayland::init()
 
   WL_CHECK_A(mainWindow, setupWindow());
 
-  wl_surface_commit(mainWindow->obj);
+  {
+    WinAutoLock cs(*mainWindow->inputCritSec);
+    wl_surface_commit(mainWindow->obj);
+  }
   wl_display_roundtrip(wl.display);
 
   return true;
@@ -1196,6 +1303,12 @@ bool Wayland::init()
 
 void Wayland::shutdown()
 {
+  // release protocol objects owned by pointers/keyboards (constraints, relative-pointer, xkb) before dropping the pools
+  for (uint32_t i : LsbVisitor{pointers.validMask()})
+    pointers.arr[i].destroy();
+  for (uint32_t i : LsbVisitor{keyboards.validMask()})
+    keyboards.arr[i].destroy();
+
   windows.reset();
   outputs.reset();
   pointers.reset();
@@ -1272,6 +1385,75 @@ void Wayland::getVideoModeList(Tab<String> &list)
     list.push_back(String(64, "%d x %d", preferred.width, preferred.height));
 }
 
+Wayland::Output *Wayland::findOutputByName(const char *monitorName)
+{
+  if (!monitorName || !*monitorName)
+    return getDefaultOutput();
+
+  for (uint32_t idx : LsbVisitor{outputs.validMask()})
+  {
+    Output &o = outputs.arr[idx];
+    if (strcmp(o.name.str(), monitorName) == 0)
+      return &o;
+  }
+  return nullptr;
+}
+
+Wayland::Output *Wayland::getSelectedOutput()
+{
+  const char *monitorName = ::dgs_get_settings()->getBlockByNameEx("video")->getStr("monitor", nullptr);
+  if (!monitorName || !*monitorName || strcmp(monitorName, "auto") == 0)
+    return nullptr;
+  return findOutputByName(monitorName);
+}
+
+void Wayland::getMonitors(Tab<String> &monitorNames)
+{
+  monitorNames.clear();
+  for (uint32_t idx : LsbVisitor{outputs.validMask()})
+  {
+    Output &o = outputs.arr[idx];
+    monitorNames.push_back(o.name.empty() ? String(64, "wl_output-%u", o.idx) : o.name);
+  }
+}
+
+bool Wayland::getMonitorInfo(const char *monitorName, String *friendlyName, int *monitorIndex)
+{
+  Output *target = findOutputByName(monitorName);
+  if (!target)
+    return false;
+
+  if (friendlyName)
+    *friendlyName = !target->desc.empty() ? target->desc : (!target->model.empty() ? target->model : target->name);
+
+  if (monitorIndex)
+  {
+    int enumIndex = 0;
+    for (uint32_t idx : LsbVisitor{outputs.validMask()})
+    {
+      if (&outputs.arr[idx] == target)
+        break;
+      ++enumIndex;
+    }
+    *monitorIndex = enumIndex;
+  }
+  return true;
+}
+
+void Wayland::getResolutionsFromMonitor(const char *monitorName, Tab<String> &list)
+{
+  list.clear();
+  Output *oi = findOutputByName(monitorName);
+  if (!oi)
+    return;
+
+  auto &preferred = oi->mode.preferred;
+  auto &current = oi->mode.current;
+  list.push_back(String(64, "%d x %d", current.width, current.height));
+  if (preferred.width != current.width || preferred.height != current.height)
+    list.push_back(String(64, "%d x %d", preferred.width, preferred.height));
+}
+
 void *Wayland::getMainWindowPtrHandle() const { return mainWindow; }
 
 bool Wayland::isMainWindow(void *wnd) const { return wnd == (void *)mainWindow; }
@@ -1290,7 +1472,10 @@ bool Wayland::initWindow(const char *title, int winWidth, int winHeight, const l
     mainWindow = setupWindow();
     if (!mainWindow)
       return false;
-    wl_surface_commit(mainWindow->obj);
+    {
+      WinAutoLock cs(*mainWindow->inputCritSec);
+      wl_surface_commit(mainWindow->obj);
+    }
     wl_display_roundtrip(wl.display);
   }
   setTitle(title, nullptr);
@@ -1375,7 +1560,10 @@ void Wayland::setCursorPosition(int cx, int cy, void *w)
   zwp_locked_pointer_v1 *pointerLock = zwp_pointer_constraints_v1_lock_pointer(zwp.pointerConstraintsV1, wi->obj, pi.obj, NULL,
     ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT);
   zwp_locked_pointer_v1_set_cursor_position_hint(pointerLock, wl_fixed_from_int(cx), wl_fixed_from_int(cy));
-  wl_surface_commit(wi->obj);
+  {
+    WinAutoLock cs(*wi->inputCritSec);
+    wl_surface_commit(wi->obj);
+  }
   zwp_locked_pointer_v1_destroy(pointerLock);
 
   pi.clipChanged = true;
@@ -1444,6 +1632,18 @@ void Wayland::unclipCursor()
 
 void *Wayland::getNativeDisplay() { return (void *)wl.display; }
 void *Wayland::getNativeWindow(void *w) { return w ? ((Window *)w)->obj : nullptr; }
+
+void Wayland::lockWindow(void *w)
+{
+  if (Window *wi = (Window *)w; wi && wi->inputCritSec)
+    wi->inputCritSec->lock();
+}
+
+void Wayland::unlockWindow(void *w)
+{
+  if (Window *wi = (Window *)w; wi && wi->inputCritSec)
+    wi->inputCritSec->unlock();
+}
 
 void Wayland::setFullscreenMode(bool enable)
 {
@@ -1545,6 +1745,7 @@ Wayland::Window *Wayland::setupWindow()
   WL_CHECKP_A(surf, wl_compositor_create_surface(wl.compositor));
 
   Window &out = *windows.add(surf, this);
+  out.inputCritSec = new WinCritSec("wl_window_input");
   struct CleanupOnFailure
   {
     Window *ptr;

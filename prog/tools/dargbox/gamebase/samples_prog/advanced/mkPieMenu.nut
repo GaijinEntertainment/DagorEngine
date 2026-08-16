@@ -1,5 +1,6 @@
 from "%darg/ui_imports.nut" import *
 from "math" import PI, sin, cos
+from "types" import String
 
 
 function place_by_circle(params) {
@@ -177,7 +178,7 @@ function mkPieMenuActivator(params = defParams){
   let showPieMenu = params?.showPieMenu ?? Watched(hotkeys==null)
   let pieMenu = mkPieMenu(params)
   let eventHandlers = params?.eventHandlers
-  if (type(hotkeys)=="string")
+  if (hotkeys instanceof String)
     hotkeys = [[hotkeys, @() showPieMenu(!showPieMenu.get())]]
 
   return function() {

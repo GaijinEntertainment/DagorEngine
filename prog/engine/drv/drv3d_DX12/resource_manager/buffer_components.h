@@ -78,12 +78,12 @@ protected:
     void applyFirstAllocation(uint64_t payload_size);
 
     /// The allocator tries to find a segment that can supply the needed size and fulfills the alignment requirement by either
-    /// allocating from the front or the back. Should there be no segment with this properties it will give up.
+    /// allocating from the front or the back. Should there be no segment with this properties it will give up and return empty.
     /// Attempting to allocate from the back increases the chances of allocating space by about 50% during testing.
     /// The allocator makes no effort for best fit, it will pick the first fit.
-    ValueRange<uint64_t> allocate(uint64_t size, uint64_t alignment);
+    eastl::optional<ValueRange<uint64_t>> allocate(uint64_t size, uint64_t alignment);
     /// Only allocates space when there is a free segment that exactly matches the size and align requirements.
-    ValueRange<uint64_t> allocateExact(uint64_t size, uint64_t alignment);
+    eastl::optional<ValueRange<uint64_t>> allocateExact(uint64_t size, uint64_t alignment);
     void rangeAllocate(ValueRange<uint64_t> range);
     bool free(ValueRange<uint64_t> range);
 
@@ -119,8 +119,10 @@ protected:
 
     void clear();
 
-    eastl::pair<Heap *, ValueRange<uint64_t>> trySuballocate(dag::Vector<Heap> &buffer_heaps, ResourceHeapProperties properties,
-      uint64_t size, D3D12_RESOURCE_FLAGS flags, uint32_t offset_alignment);
+    /// Empty when no existing heap can host the request, or when the flags rule suballocation out.
+    /// Both are ordinary, the caller creates a new heap then.
+    eastl::optional<eastl::pair<Heap *, ValueRange<uint64_t>>> trySuballocate(dag::Vector<Heap> &buffer_heaps,
+      ResourceHeapProperties properties, uint64_t size, D3D12_RESOURCE_FLAGS flags, uint32_t offset_alignment);
 
   private:
     static uint32_t getSignature(const Heap &heap);
@@ -140,8 +142,8 @@ protected:
       ValueRange<uint64_t> range;
     };
 
-    eastl::pair<Heap *, ValueRange<uint64_t>> trySuballocateFromExistingHeaps(ResourceHeapProperties properties, uint64_t size,
-      D3D12_RESOURCE_FLAGS flags, uint32_t offset_alignment);
+    eastl::optional<eastl::pair<Heap *, ValueRange<uint64_t>>> trySuballocateFromExistingHeaps(ResourceHeapProperties properties,
+      uint64_t size, D3D12_RESOURCE_FLAGS flags, uint32_t offset_alignment);
 
     BufferGlobalId adoptBufferHeap(Heap &&heap, bool can_suballocate);
 
@@ -195,7 +197,11 @@ protected:
   static void notifyBufferMemoryRelease(size_t sz);
   static void notifyBufferMemoryAllocate(size_t sz);
 
-  BufferGlobalId tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *device, BufferGlobalId buffer_id,
+  using BufferCloneResult = dag::Expected<eastl::optional<BufferGlobalId>, MemoryAllocationError>;
+
+  /// Empty when no memory could be found for the clone, which is how defragmentation learns that a
+  /// heap group is full. Everything else, a failed resource creation for example, is an error.
+  BufferCloneResult tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *device, BufferGlobalId buffer_id,
     BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess, AllocationFlags allocation_flags, uint64_t buffer_resource_size);
 
   // Checks if the buffer is actually needed and if not it will be deleted immediately

@@ -2,6 +2,8 @@ options gen2
 options indenting = 4
 options strict_smart_pointers = true
 options stack = 1_048_576
+options _cyclomatic_complexity = 100
+options _function_length = 760
 
 module ast_match shared public
 
@@ -63,11 +65,7 @@ def qm_run(var expr : Expression?; blk : block<(var arg : Expression?) : QMatchR
 }
 
 def qm_peel_ref2value(var e : Expression?&) : void {
-    //! Strip ``ExprRef2Value`` wrappers from ``e`` in place. The typer inserts
-    //! these post-inference around any read of a reference; they are invisible
-    //! to user-written code and the matcher peels them so a clean pattern
-    //! (``_.X``) matches a wrapped source (``ExprRef2Value(_.X)``) and vice
-    //! versa. Emitted at the top of every ``generate_match`` dispatch.
+    //! Strip ``ExprRef2Value`` wrappers from ``e`` in place. The typer inserts these post-inference around any read of a reference; they are invisible to user-written code and the matcher peels them so a clean pattern (``_.X``) matches a wrapped source (``ExprRef2Value(_.X)``) and vice versa. Emitted at the top of every ``generate_match`` dispatch.
     while (e != null && e is ExprRef2Value) {
         e = (e as ExprRef2Value).subexpr
     }
@@ -302,12 +300,7 @@ def qm_extract_stmts(var blk_expr : Expression?; from_pos : int; to_pos : int; v
 }
 
 def qm_call_name_matches(call : ExprCall?; expected_name : string) : bool {
-    //! Check if a call's name matches, accounting for generic instantiation
-    //! and module qualification. When a generic function is instantiated, the
-    //! call name is mangled (e.g. ``generic_add`123456``) — the ``fromGeneric``
-    //! original name is checked as a fallback. A resolved call may also carry a
-    //! module-qualified name (``math::mad``); an unqualified pattern name
-    //! matches its last ``::`` segment.
+    //! Check if a call's name matches, accounting for generic instantiation and module qualification. When a generic function is instantiated, the call name is mangled (e.g. ``generic_add`123456``) — the ``fromGeneric`` original name is checked as a fallback. A resolved call may also carry a module-qualified name (``math::mad``); an unqualified pattern name matches its last ``::`` segment.
     return (call.name == expected_name ||
         (call.func != null && call.func.fromGeneric != null && call.func.fromGeneric.name == expected_name) ||
         (find(expected_name, "::") < 0 && "{call.name}" |> ends_with("::{expected_name}")))
@@ -342,6 +335,23 @@ def qm_extract_type(var expr : Expression?; var out_type : TypeDeclPtr&) : QMatc
 def qm_rtti(expr : Expression const?) : string {
     //! Return the RTTI type name of an expression.
     return expr.__rtti
+}
+
+def qm_tmp_expr : ExpressionPtr {
+    //! Null-initialized capture temporary — matchers stage captures in these and commit to the user's variables only after the whole match succeeds.
+    return null
+}
+
+def qm_tmp_stmts : array<ExpressionPtr> {
+    //! Empty statement-list capture temporary (see `qm_tmp_expr`).
+    var r : array<ExpressionPtr>
+    return <- r
+}
+
+def qm_tmp_args : array<VariablePtr> {
+    //! Empty argument-list capture temporary (see `qm_tmp_expr`).
+    var r : array<VariablePtr>
+    return <- r
 }
 
 
@@ -484,13 +494,81 @@ def private make_var_ref(at : LineInfo; name : string) : Expression? {
     return new ExprVar(at = at, name := name)
 }
 
+struct private QmCaptures {
+    decls : array<Expression?>      // staged-temp declarations, emitted at the matcher top
+    commits : array<Expression?>    // user-variable writes, emitted only after every guard passed
+    cleanups : array<Expression?>   // finally-emitted buffer frees for array-kind temps
+    temps : table<string; string>   // capture variable -> staged temp (dual-arm generation reuses)
+}
+
+[macro_function]
+def private qm_stage(user_name : string; kind : string; var caps : QmCaptures&; var index : int&) : string {
+    // One staged temp per capture variable, committed only after every guard passes; dual-arm generation reuses the slot (copy-init makes an unwritten arm commit the user's own value back)
+    let existing = caps.temps?[user_name] ?? ""
+    if (!empty(existing)) {
+        return existing
+    }
+    let tmp = next_var(index)
+    caps.temps |> insert(user_name, tmp)
+    if (kind == "expr") {
+        caps.decls |> push <| qmacro_expr(${ var $i(tmp) = $i(user_name); }) // nolint:LINT004,LINT019
+        caps.commits |> push <| qmacro_expr(${ $i(user_name) <- $i(tmp); }) // nolint:PERF030,LINT019 — commit replaces the capture target by design
+    } elif (kind == "copy") {
+        caps.decls |> push <| qmacro_expr(${ var $i(tmp) = $i(user_name); }) // nolint:LINT004,LINT019
+        caps.commits |> push <| qmacro_expr(${ $i(user_name) = $i(tmp); })
+    } else { // "stmts" / "args" — array temps: free the buffer deterministically on any exit
+        if (kind == "stmts") {
+            caps.decls |> push <| qmacro_expr(${ var $i(tmp) = qm_tmp_stmts(); }) // nolint:LINT004,LINT019
+        } else {
+            caps.decls |> push <| qmacro_expr(${ var $i(tmp) = qm_tmp_args(); }) // nolint:LINT004,LINT019
+        }
+        caps.commits |> push <| qmacro_expr(${ $i(user_name) <- $i(tmp); }) // nolint:PERF030,LINT019 — commit replaces the capture target by design
+        // clear drops the (gc-owned, cloned) elements without touching them; delete frees the buffer
+        caps.cleanups |> push <| qmacro_expr(${ $i(tmp) |> clear(); }) // nolint:STYLE012 — appends per capture
+        caps.cleanups |> push <| qmacro_expr(${ unsafe { delete $i(tmp); } })
+    }
+    return tmp
+}
+
+[macro_function]
+def private qm_emit_matcher(var blk : ExprBlock?; var body : array<Expression?>&; var caps : QmCaptures&; at : LineInfo) {
+    // decls, then body + commits + success return; array-capture cleanups ride a finally so guard-failure early returns free the staged buffers too
+    for (dstmt in caps.decls) {
+        blk.list |> emplace(dstmt)
+    }
+    if (empty(caps.cleanups)) {
+        for (stmt in body) {
+            blk.list |> emplace(stmt)
+        }
+        for (cstmt in caps.commits) {
+            blk.list |> emplace(cstmt)
+        }
+        blk.list |> emplace_new <| qmacro_expr(${return qm_ok(); })
+    } else {
+        var inner = new ExprBlock(at = at)
+        for (stmt in body) {
+            inner.list |> emplace(stmt)
+        }
+        for (cstmt in caps.commits) {
+            inner.list |> emplace(cstmt)
+        }
+        inner.list |> emplace_new <| qmacro_expr(${return qm_ok(); })
+        for (fstmt in caps.cleanups) {
+            inner.finalList |> emplace(fstmt)
+        }
+        blk.list |> emplace(inner)
+    }
+}
+
 [macro_function]
 def private qm_guard(at : LineInfo; var cond : Expression?&; var fail_call : Expression?&) : Expression? {
     //! Build: if (cond) { return fail_call }
     var fail_ret = new ExprReturn(at = at, subexpr = fail_call)
     var fail_blk = new ExprBlock(at = at)
     fail_blk.list |> emplace(fail_ret)
-    return new ExprIfThenElse(at = at, cond = cond, if_true = fail_blk)
+    var g = new ExprIfThenElse(at = at, cond = cond, if_true = fail_blk)
+    g.genFlags.generated = true     // guard ladders are macro output; style lint skips them
+    return g
 }
 
 [macro_function]
@@ -509,9 +587,7 @@ def private qm_null_guard(at : LineInfo; actual_var : string) : Expression? {
 
 [macro_function]
 def private next_var(var index : int&) : string {
-    // Generated locals for qmatch pattern-match bind sites. Backtick marks them as
-    // compiler-generated — no collision with user identifiers, and lint.das:152 skips
-    // backtick-bearing names from LINT004's leading-underscore-used check.
+    // Generated locals for qmatch pattern-match bind sites. Backtick marks them as compiler-generated — no collision with user identifiers, and lint.das:152 skips backtick-bearing names from LINT004's leading-underscore-used check.
     let name = "qm`{index}"
     index++
     return name
@@ -520,8 +596,6 @@ def private next_var(var index : int&) : string {
 [macro_function]
 def private qm_skip_field(rtti_name : string; field_name : string) : bool {
     //! Returns true if the field should be skipped during pattern matching.
-    //! Compiler-internal fields are populated during compilation but null/zero
-    //! in raw patterns from qmacro/quote.
 
     // Fields on all expressions: base-class fields + stack/annotation internals
     if (field_name == "_type" || field_name == "flags" || field_name == "genFlags"
@@ -535,12 +609,7 @@ def private qm_skip_field(rtti_name : string; field_name : string) : bool {
         if (field_name == "variable" || field_name == "argumentIndex" || field_name == "pBlock"
             || field_name == "varFlags") return true
     }
-    // ExprField / ExprSafeField / ExprIsVariant / ExprAsVariant / ExprSafeAsVariant —
-    // typer-resolved field metadata. The .name string carries the user-visible field
-    // identifier and is sufficient for matching; fieldIndex / fieldRef / annotation /
-    // derefFlags / fieldFlags are typer caches whose presence diverges between a
-    // qmacro pattern (defaults) and a typed source (resolved indices/refs), so they
-    // would force every qmatch against typed source to fail.
+    // ExprField / ExprSafeField / ExprIsVariant / ExprAsVariant / ExprSafeAsVariant — typer-resolved field metadata. The .name string carries the user-visible field identifier and is sufficient for matching; fieldIndex / fieldRef / annotation / derefFlags / fieldFlags are typer caches whose presence diverges between a qmacro pattern (defaults) and a typed source (resolved indices/refs), so they would force every qmatch against typed source to fail.
     if (rtti_name == "ExprField" || rtti_name == "ExprSafeField"
             || rtti_name == "ExprIsVariant" || rtti_name == "ExprAsVariant"
             || rtti_name == "ExprSafeAsVariant") {
@@ -552,10 +621,7 @@ def private qm_skip_field(rtti_name : string; field_name : string) : bool {
     if (field_name == "func" || field_name == "atEnclosure" || field_name == "stackTop"
         || field_name == "doesNotNeedSp" || field_name == "cmresAlias"
         || field_name == "argumentsFailedToInfer") return true
-    // ExprOp* (and the ExprOp2-derived assignments) inherit ExprCallFunc's call
-    // machinery; their identity is `op` + children. The parser mirrors `op` into
-    // `name`, but macro-SYNTHESIZED nodes (`new ExprOp2(op := "-")`) leave `name`
-    // empty, so comparing it fails every qmatch against macro-built source.
+    // ExprOp* (and the ExprOp2-derived assignments) inherit ExprCallFunc's call machinery; their identity is `op` + children. The parser mirrors `op` into `name`, but macro-SYNTHESIZED nodes (`new ExprOp2(op := "-")`) leave `name` empty, so comparing it fails every qmatch against macro-built source.
     if (rtti_name == "ExprOp1" || rtti_name == "ExprOp2" || rtti_name == "ExprOp3"
             || rtti_name == "ExprCopy" || rtti_name == "ExprMove" || rtti_name == "ExprClone") {
         if (field_name == "name" || field_name == "arguments") return true
@@ -570,18 +636,14 @@ def private qm_skip_field(rtti_name : string; field_name : string) : bool {
 
 [macro_function]
 def private qm_type_guard(at : LineInfo; actual_var : string; var cond : Expression?&) : Expression? {
-    //! Build: if (cond) { return qm_fail_type(expr_var) }
-    //! actual_var is used for error context (the original ExpressionPtr)
+    //! Build: if (cond) { return qm_fail_type(expr_var) } actual_var is used for error context (the original ExpressionPtr)
     var fail = qmacro(qm_fail_type($i(actual_var)))
     return qm_guard(at, cond, fail)
 }
 
 [macro_function]
-def private generate_type_match(pat_type : TypeDecl?; td_var : string; expr_var : string; var body : array<Expression?>&; var index : int&; at : LineInfo) {
+def private generate_type_match(pat_type : TypeDecl?; td_var : string; expr_var : string; var body : array<Expression?>&; var caps : QmCaptures&; var index : int&; at : LineInfo) {
     //! Generate code to match a TypeDecl at runtime.
-    //! td_var — name of a TypeDeclPtr variable holding the actual type
-    //! expr_var — name of the ExpressionPtr variable for error reporting
-    //! pat_type — compile-time pattern TypeDecl
 
     if (pat_type == null) return
 
@@ -590,9 +652,8 @@ def private generate_type_match(pat_type : TypeDecl?; td_var : string; expr_var 
         if (pat_type.firstType != null && length(pat_type.firstType.typeMacroExpr) == 1) {
             let tag_expr = pat_type.firstType.typeMacroExpr[0]
             if (tag_expr != null && tag_expr is ExprVar) {
-                let tmp = next_var(index)
-                body |> push <| qmacro_expr(${ var $i(tmp) = clone_type($i(td_var)); }) // nolint:LINT004
-                body |> push <| qmacro_expr(${ $i((tag_expr as ExprVar).name) = $i(tmp); })
+                let tmp = qm_stage(string((tag_expr as ExprVar).name), "copy", caps, index)
+                body |> push <| qmacro_expr(${ $i(tmp) = clone_type($i(td_var)); })
             }
         }
         return
@@ -658,7 +719,7 @@ def private generate_type_match(pat_type : TypeDecl?; td_var : string; expr_var 
         var nc = qmacro($i(td_var).firstType == null)
         body |> push <| qm_type_guard(at, expr_var, nc)
         body |> push <| qmacro_expr(${ var $i(child_var) = clone_type($i(td_var).firstType); })
-        generate_type_match(pat_type.firstType, child_var, expr_var, body, index, at)
+        generate_type_match(pat_type.firstType, child_var, expr_var, body, caps, index, at)
     }
 
     // ── secondType — recursive ──────────────────────────────
@@ -667,7 +728,7 @@ def private generate_type_match(pat_type : TypeDecl?; td_var : string; expr_var 
         var nc = qmacro($i(td_var).secondType == null)
         body |> push <| qm_type_guard(at, expr_var, nc)
         body |> push <| qmacro_expr(${ var $i(child_var) = clone_type($i(td_var).secondType); })
-        generate_type_match(pat_type.secondType, child_var, expr_var, body, index, at)
+        generate_type_match(pat_type.secondType, child_var, expr_var, body, caps, index, at)
     }
 
     // ── argTypes — element-wise recursive ────────────────────
@@ -680,7 +741,7 @@ def private generate_type_match(pat_type : TypeDecl?; td_var : string; expr_var 
             if (pat_arg != null) {
                 let child_var = next_var(index)
                 body |> push <| qmacro_expr(${ var $i(child_var) = clone_type($i(td_var).argTypes[$v(i)]); })
-                generate_type_match(pat_arg, child_var, expr_var, body, index, at)
+                generate_type_match(pat_arg, child_var, expr_var, body, caps, index, at)
             }
         }
     }
@@ -701,7 +762,7 @@ def private generate_type_match(pat_type : TypeDecl?; td_var : string; expr_var 
             if (pat_expr != null) {
                 let child_var = next_var(index)
                 body |> push <| qmacro_expr(${ var $i(child_var) = clone_expression($i(td_var).typeMacroExpr[$v(i)]); })
-                generate_match(pat_expr, child_var, body, index, at)
+                generate_match(pat_expr, child_var, body, caps, index, at)
             }
         }
     }
@@ -710,13 +771,8 @@ def private generate_type_match(pat_type : TypeDecl?; td_var : string; expr_var 
 // ── Argument and return type matching ────────────────────────────────────
 
 [macro_function]
-def private generate_pattern_args_match(var pat_block : ExprBlock?; target_var : string; ret_field : string; expr_var : string; var body : array<Expression?>&; var index : int&; at : LineInfo) {
+def private generate_pattern_args_match(var pat_block : ExprBlock?; target_var : string; ret_field : string; expr_var : string; var body : array<Expression?>&; var caps : QmCaptures&; var index : int&; at : LineInfo) {
     //! Generate code to match argument names, types, and return type.
-    //! target_var — runtime variable with .arguments and return type field
-    //! ret_field — "returnType" for ExprBlock, "result" for Function
-    //! Arguments always match strictly — 0 pattern args means 0 actual args.
-    //! Use $a(var) to capture remaining arguments beyond the fixed ones.
-    //! If pattern has no return type (null), skip return type check.
 
     let n_args = length(pat_block.arguments)
     if (n_args > 0) {
@@ -734,8 +790,7 @@ def private generate_pattern_args_match(var pat_block : ExprBlock?; target_var :
         }
         let n_fixed = has_a_tag ? n_args - 1 : n_args
 
-        // Check argument count (excluding fakeContext/fakeLineInfo)
-        // With $a: at least n_fixed args. Without: exactly n_args.
+        // Check argument count (excluding fakeContext/fakeLineInfo) With $a: at least n_fixed args. Without: exactly n_args.
         if (has_a_tag) {
             var cond = qmacro(qm_count_real_args($i(target_var).arguments) < $v(n_fixed))
             var fail = qmacro(qm_fail_list($i(expr_var)))
@@ -770,7 +825,7 @@ def private generate_pattern_args_match(var pat_block : ExprBlock?; target_var :
                     if (pat_td.baseType != Type.autoinfer) {
                         let td_var = next_var(index)
                         body |> push <| qmacro_expr(${ var $i(td_var) = clone_type($i(target_var).arguments[$i(phys_var)]._type); })
-                        generate_type_match(pat_td, td_var, expr_var, body, index, at)
+                        generate_type_match(pat_td, td_var, expr_var, body, caps, index, at)
                     }
                 }
             }
@@ -778,7 +833,8 @@ def private generate_pattern_args_match(var pat_block : ExprBlock?; target_var :
 
         // $a(var) — capture remaining arguments
         if (has_a_tag && !empty(a_tag_vname)) {
-            body |> push <| qmacro_expr(${ qm_extract_remaining_args($i(target_var).arguments, $v(n_fixed), $i(a_tag_vname)); })
+            let at_tmp = qm_stage(a_tag_vname, "args", caps, index)
+            body |> push <| qmacro_expr(${ qm_extract_remaining_args($i(target_var).arguments, $v(n_fixed), $i(at_tmp)); })
         }
     } else {
         // No pattern arguments — require target has 0 real args
@@ -794,7 +850,7 @@ def private generate_pattern_args_match(var pat_block : ExprBlock?; target_var :
         if (pat_ret.baseType != Type.autoinfer && pat_ret.baseType != Type.tVoid) {
             let ret_var = next_var(index)
             body |> push <| qmacro_expr(${ var $i(ret_var) = clone_type($i(target_var).$f(ret_field)); })
-            generate_type_match(pat_ret, ret_var, expr_var, body, index, at)
+            generate_type_match(pat_ret, ret_var, expr_var, body, caps, index, at)
         }
     }
 }
@@ -882,9 +938,7 @@ def private const_component_fields(folded_rtti : string) : array<string> {
 // Check if any argument in an ExprCall contains a tag expression.
 [macro_function]
 def private has_tags_in_args(call : ExprCall?) : bool {
-    // Top-level check only — tags nested inside expressions (e.g. 1.0 + $v(x))
-    // would prevent constant folding, so the call stays as ExprCall and hits the
-    // normal matching path instead of reaching here.
+    // Top-level check only — tags nested inside expressions (e.g. 1.0 + $v(x)) would prevent constant folding, so the call stays as ExprCall and hits the normal matching path instead of reaching here.
     for (arg in call.arguments) {
         if (arg != null && arg is ExprTag) return true
     }
@@ -899,8 +953,7 @@ def private qm_const_value_guard(at : LineInfo; cast_var : string; actual_var : 
 
 [macro_function, unused_argument(at)]
 def private generate_synth_component(comp_rtti : string; synth_var : string; cast_var : string; field_name : string; var body : array<Expression?>&; at : LineInfo) {
-    //! Synthesize a ``var synth = new ExprConstXxx(value = cast_var.value.field)``
-    //! so that the component can be fed through generate_match for tag handling.
+    //! Synthesize a ``var synth = new ExprConstXxx(value = cast_var.value.field)`` so that the component can be fed through generate_match for tag handling.
     if (comp_rtti == "ExprConstInt") {
         body |> push <| qmacro_expr(${ var $i(synth_var) = new ExprConstInt(value = $i(cast_var).value.$f(field_name)); })
     } elif (comp_rtti == "ExprConstUInt") {
@@ -915,11 +968,8 @@ def private generate_synth_component(comp_rtti : string; synth_var : string; cas
 }
 
 [macro_function]
-def private generate_const_constructor_match(call : ExprCall?; folded_rtti : string; actual_var : string; var body : array<Expression?>&; var index : int&; at : LineInfo) {
+def private generate_const_constructor_match(call : ExprCall?; folded_rtti : string; actual_var : string; var body : array<Expression?>&; var caps : QmCaptures&; var index : int&; at : LineInfo) {
     //! Handle constant constructor calls (range, int2, float3, etc.) that may be constant-folded.
-    //! The pattern is an ExprCall like ``range(1, 10)`` but the compiled AST may have
-    //! ``ExprConstRange`` instead. Clone the pattern call expression and compare the folded
-    //! constant's value against it directly — the compiler will fold the clone too.
     body |> push <| qm_rtti_guard(at, actual_var, folded_rtti)
     let cast_var = next_var(index)
     var as_val = make_var_ref(at, actual_var)
@@ -932,8 +982,7 @@ def private generate_const_constructor_match(call : ExprCall?; folded_rtti : str
         var cond = qmacro($i(cast_var).value != $i(pat_var))
         qm_const_value_guard(at, cast_var, actual_var, cond, body)
     } else {
-        // Slow path: some args have tags ($v, $e, etc.) — synthesize per-component ExprConst
-        // expressions from the folded value and match each arg individually
+        // Slow path: some args have tags ($v, $e, etc.) — synthesize per-component ExprConst expressions from the folded value and match each arg individually
         let comp_rtti = const_component_expr_rtti(folded_rtti)
         var inscope fields <- const_component_fields(folded_rtti)
         for (arg, field_name in call.arguments, fields) {
@@ -941,7 +990,7 @@ def private generate_const_constructor_match(call : ExprCall?; folded_rtti : str
             if (child == null) continue
             let synth_var = next_var(index)
             generate_synth_component(comp_rtti, synth_var, cast_var, field_name, body, at)
-            generate_match(child, synth_var, body, index, at)
+            generate_match(child, synth_var, body, caps, index, at)
         }
     }
 }
@@ -992,19 +1041,16 @@ def private generate_const_match(pattern : Expression?; rtti : string; actual_va
 }
 
 [macro_function]
-def private generate_match(pattern : Expression?; actual_var : string; var body : array<Expression?>&; var index : int&; at : LineInfo) {
+def private generate_match(pattern : Expression?; actual_var : string; var body : array<Expression?>&; var caps : QmCaptures&; var index : int&; at : LineInfo) {
     if (pattern == null) return
 
     // Pattern-side peel: ExprRef2Value is a typer artifact, not user-visible.
-    // Descend into the wrapped expression and discard the wrapper. Recursive
-    // call handles nested wrappers naturally.
     if (pattern is ExprRef2Value) {
-        generate_match((pattern as ExprRef2Value).subexpr, actual_var, body, index, at)
+        generate_match((pattern as ExprRef2Value).subexpr, actual_var, body, caps, index, at)
         return
     }
 
-    // Source-side peel: emit a runtime call that strips ExprRef2Value from
-    // the actual expression before any RTTI/field guards fire.
+    // Source-side peel: emit a runtime call that strips ExprRef2Value from the actual expression before any RTTI/field guards fire.
     body |> push <| qmacro_expr(${ qm_peel_ref2value($i(actual_var)); })
 
     let rtti = pattern.__rtti
@@ -1015,19 +1061,18 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
         if (tag.name == "e" || tag.name == "") {
             let var_expr = tag.subexpr as ExprVar
             if (var_expr != null) {
-                let tmp = next_var(index)
-                body |> push <| qmacro_expr(${ var $i(tmp) = clone_expression($i(actual_var)); }) // nolint:LINT004
-                body |> push <| qmacro_expr(${ $i(var_expr.name) <- $i(tmp); })
+                let tmp = qm_stage(string(var_expr.name), "expr", caps, index)
+                body |> push <| qmacro_expr(${ $i(tmp) = clone_expression($i(actual_var)); })
             }
             return
         } elif (tag.name == "v") {
-            // $v(var) — extract constant value. Overload resolved by variable type.
-            // Generates: var _qm_r = qm_extract(actual, vname); if (!_qm_r.matched) return _qm_r
+            // $v(var) — extract constant value. Overload resolved by the temp's copy-inited type.
             let var_expr = tag.subexpr as ExprVar
             if (var_expr != null) {
+                let tmp = qm_stage(string(var_expr.name), "copy", caps, index)
                 let r_var = next_var(index)
-                body |> push <| qmacro_expr(${ var $i(r_var) = qm_extract($i(actual_var), $i(var_expr.name)); })
-                var cond = qmacro($i(r_var).matched == false)
+                body |> push <| qmacro_expr(${ var $i(r_var) = qm_extract($i(actual_var), $i(tmp)); })
+                var cond = qmacro(!$i(r_var).matched)
                 var fail = make_var_ref(at, r_var)
                 body |> push <| qm_guard(at, cond, fail)
             }
@@ -1036,42 +1081,43 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
             let var_expr = tag.subexpr as ExprVar
             if (var_expr != null) {
                 // Check if $i wraps a declaration (ExprLet, ExprFor, ExprAddr)
+                let tmp = qm_stage(string(var_expr.name), "copy", caps, index)
                 if (tag.value != null) {
                     let wrapped = tag.value
                     if (wrapped is ExprLet) {
-                        // var $i(name) = expr — match ExprLet, capture variable name
-                        // Clone the wrapped expression so we don't modify the pattern AST
+                        // var $i(name) = expr — match ExprLet, capture variable name Clone the wrapped expression so we don't modify the pattern AST
                         var wrapped_clone = clone_expression(tag.value)
                         var wrapped_clone_let = wrapped_clone as ExprLet
                         if (!empty(wrapped_clone_let.variables)) {
                             wrapped_clone_let.variables[0].name := ""
                         }
                         // Generate ExprLet matching for the cloned expression
-                        generate_match(wrapped_clone, actual_var, body, index, at)
+                        generate_match(wrapped_clone, actual_var, body, caps, index, at)
                         // After matching, extract variable name
                         let cast_let = next_var(index)
                         var asv = make_var_ref(at, actual_var)
                         var asc = new ExprAsVariant(at = at, value = asv, name := "ExprLet")
                         body |> push <| qmacro_expr(${ var $i(cast_let) = $e(asc); })
-                        body |> push <| qmacro_expr(${ $i(var_expr.name) = string($i(cast_let).variables[0].name); })
+                        body |> push <| qmacro_expr(${ $i(tmp) = string($i(cast_let).variables[0].name); })
                     } else {
                         // Other wrapped types — just match and extract name
-                        generate_match(wrapped, actual_var, body, index, at)
-                        body |> push <| qmacro_expr(${ $i(var_expr.name) = qm_extract_name($i(actual_var)); })
+                        generate_match(wrapped, actual_var, body, caps, index, at)
+                        body |> push <| qmacro_expr(${ $i(tmp) = qm_extract_name($i(actual_var)); })
                     }
                 } else {
                     // Standalone $i(name) — extract name from any expression
-                    body |> push <| qmacro_expr(${ $i(var_expr.name) = qm_extract_name($i(actual_var)); })
+                    body |> push <| qmacro_expr(${ $i(tmp) = qm_extract_name($i(actual_var)); })
                 }
             }
             return
         } elif (tag.name == "t") {
-            // $t(var) — extract TypeDeclPtr from ExprTypeDecl
+            // $t(var) — extract TypeDeclPtr into the copy-inited temp
             let var_expr = tag.subexpr as ExprVar
             if (var_expr != null) {
+                let tmp = qm_stage(string(var_expr.name), "copy", caps, index)
                 let r_var = next_var(index)
-                body |> push <| qmacro_expr(${ var $i(r_var) = qm_extract_type($i(actual_var), $i(var_expr.name)); })
-                var cond = qmacro($i(r_var).matched == false)
+                body |> push <| qmacro_expr(${ var $i(r_var) = qm_extract_type($i(actual_var), $i(tmp)); })
+                var cond = qmacro(!$i(r_var).matched)
                 var fail = make_var_ref(at, r_var)
                 body |> push <| qm_guard(at, cond, fail)
             }
@@ -1085,10 +1131,11 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                     var wrapped_clone = clone_expression(tag.value)
                     var wrapped_call = wrapped_clone as ExprCall
                     wrapped_call.name := ""
-                    generate_match(wrapped_clone, actual_var, body, index, at)
+                    generate_match(wrapped_clone, actual_var, body, caps, index, at)
                 }
                 // Extract call name
-                body |> push <| qmacro_expr(${ $i(var_expr.name) = qm_extract_call_name($i(actual_var)); })
+                let tmp = qm_stage(string(var_expr.name), "copy", caps, index)
+                body |> push <| qmacro_expr(${ $i(tmp) = qm_extract_call_name($i(actual_var)); })
             }
             return
         } elif (tag.name == "f") {
@@ -1105,10 +1152,11 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                         var wf = wrapped_clone as ExprSafeField
                         wf.name := ""
                     }
-                    generate_match(wrapped_clone, actual_var, body, index, at)
+                    generate_match(wrapped_clone, actual_var, body, caps, index, at)
                 }
                 // Extract field name
-                body |> push <| qmacro_expr(${ $i(var_expr.name) = qm_extract_field_name($i(actual_var)); })
+                let tmp = qm_stage(string(var_expr.name), "copy", caps, index)
+                body |> push <| qmacro_expr(${ $i(tmp) = qm_extract_field_name($i(actual_var)); })
             }
             return
         }
@@ -1124,11 +1172,11 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
         let cast_var = next_var(index)
         var as_val = make_var_ref(at, actual_var)
         var as_cast = new ExprAsVariant(at = at, value = as_val, name := "ExprTypeDecl")
-        body |> push <| qmacro_expr(${ var $i(cast_var) = $e(as_cast); }) // nolint:LINT004
+        body |> push <| qmacro_expr(${ var $i(cast_var) = $e(as_cast); }) // nolint:LINT004,LINT019
         // Clone the typeexpr for matching
         let td_var = next_var(index)
-        body |> push <| qmacro_expr(${ var $i(td_var) = clone_type($i(cast_var).typeexpr); }) // nolint:LINT004
-        generate_type_match((pattern as ExprTypeDecl).typeexpr, td_var, actual_var, body, index, at)
+        body |> push <| qmacro_expr(${ var $i(td_var) = clone_type($i(cast_var).typeexpr); }) // nolint:LINT004,LINT019
+        generate_type_match((pattern as ExprTypeDecl).typeexpr, td_var, actual_var, body, caps, index, at)
         return
     }
 
@@ -1180,7 +1228,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
         var as_cast_b = new ExprAsVariant(at = at, value = as_val_b, name := "ExprBlock")
         body |> push <| qmacro_expr(${ var $i(cast_var) = $e(as_cast_b); })
         // Match arguments and return type
-        generate_pattern_args_match(pat_block, cast_var, "returnType", actual_var, body, index, at)
+        generate_pattern_args_match(pat_block, cast_var, "returnType", actual_var, body, caps, index, at)
         // Match statements
         let n_stmts = length(pat_block.list)
         if (n_stmts > 0) {
@@ -1192,7 +1240,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                 if (child_pat != null) {
                     let child_var = next_var(index)
                     body |> push <| qmacro_expr(${ var $i(child_var) = clone_expression($i(cast_var).list[$v(i)]); })
-                    generate_match(child_pat, child_var, body, index, at)
+                    generate_match(child_pat, child_var, body, caps, index, at)
                 }
             }
         }
@@ -1217,7 +1265,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
         body |> push <| qmacro_expr(${ var $i(cast_var) = $e(as_cast_ac); })
         // Match generatorSyntax (both true and false enforced)
         if (pat_gen) {
-            var cg = qmacro($i(cast_var).generatorSyntax == false)
+            var cg = qmacro(!$i(cast_var).generatorSyntax)
             var fg = qmacro(qm_fail_field($i(actual_var)))
             body |> push <| qm_guard(at, cg, fg)
         } else {
@@ -1227,7 +1275,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
         }
         // Match tableSyntax (both true and false enforced)
         if (pat_tbl) {
-            var ct = qmacro($i(cast_var).tableSyntax == false)
+            var ct = qmacro(!$i(cast_var).tableSyntax)
             var ft = qmacro(qm_fail_field($i(actual_var)))
             body |> push <| qm_guard(at, ct, ft)
         } else {
@@ -1245,7 +1293,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                 var nf = qmacro(qm_fail_null())
                 body |> push <| qm_guard(at, nc, nf)
             }
-            generate_match(pat_for, for_var, body, index, at)
+            generate_match(pat_for, for_var, body, caps, index, at)
         }
         // Recurse into subexpr
         let pat_sub = pat_ac.subexpr
@@ -1257,7 +1305,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                 var nf = qmacro(qm_fail_null())
                 body |> push <| qm_guard(at, nc, nf)
             }
-            generate_match(pat_sub, sub_var, body, index, at)
+            generate_match(pat_sub, sub_var, body, caps, index, at)
         }
         // Handle exprWhere
         if (pat_ac.exprWhere != null) {
@@ -1269,7 +1317,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                 var nf = qmacro(qm_fail_null())
                 body |> push <| qm_guard(at, nc, nf)
             }
-            generate_match(pat_where, where_var, body, index, at)
+            generate_match(pat_where, where_var, body, caps, index, at)
         } else {
             // Pattern has no where clause — actual shouldn't either
             var nc = qmacro($i(cast_var).exprWhere != null)
@@ -1282,8 +1330,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
     // ── ExprFor — handle iteratorsTags for $i capture ─────────
     if (pattern is ExprFor) {
         var pat_for = pattern as ExprFor
-        // Process iteratorsTags: clear tagged iterator names (so generic matching skips them)
-        // and record which indices need $i capture
+        // Process iteratorsTags: clear tagged iterator names (so generic matching skips them) and record which indices need $i capture
         var has_tags = false
         for (tag in pat_for.iteratorsTags) {
             if (tag != null) {
@@ -1297,7 +1344,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
         var as_cast_f = new ExprAsVariant(at = at, value = as_val_f, name := rtti)
         body |> push <| qmacro_expr(${ var $i(cast_var) = $e(as_cast_f); })
         // Run annotation reflection for fields
-        var ann = unsafe(reinterpret<BasicStructureAnnotation?> get_expression_annotation(pattern))
+        var ann = unsafe(reinterpret<BasicStructureAnnotation?>(get_expression_annotation(pattern)))
         if (ann != null) {
             for_each_field(*ann) $(name, _cppName, xtype, offset) {
                 return if (offset == 0xFFFFFFFFu
@@ -1308,12 +1355,12 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                         || xtype.baseType == Type.tFixedArray)
                 var p8 : int8?
                 unsafe {
-                    p8 = (reinterpret<int8?> pattern) + int(offset)
+                    p8 = (reinterpret<int8?>(pattern)) + int(offset)
                 }
                 let bt = xtype.baseType
                 // Reuse the same field matching logic from the generic handler
                 if (bt == Type.tHandle && xtype.annotation.name == "dasvector`das_string") {
-                    let pv = unsafe(reinterpret<dasvector`das_string?> p8)
+                    let pv = unsafe(reinterpret<dasvector`das_string?>(p8))
                     let pat_len = length(*pv)
                     if (pat_len > 0) {
                         var cond_s = qmacro(length($i(cast_var).$f(name)) != $v(pat_len))
@@ -1339,21 +1386,21 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                         // skip TypeDecl fields
                         pass
                     } else {
-                        let pv = unsafe(reinterpret<Expression ??> p8)
+                        let pv = unsafe(reinterpret<Expression ??>(p8))
                         if (*pv != null) {
                             let child_pattern = *pv
                             let child_var = next_var(index)
-                            body |> push <| qmacro_expr(${ var $i(child_var) = clone_expression($i(cast_var).$f(name)); }) // nolint:LINT004
+                            body |> push <| qmacro_expr(${ var $i(child_var) = clone_expression($i(cast_var).$f(name)); }) // nolint:LINT004,LINT019
                             if (!is_wildcard_call(child_pattern) && !(child_pattern is ExprTag)) {
                                 var ncond = qmacro($i(child_var) == null)
                                 var nfail = qmacro(qm_fail_null())
                                 body |> push <| qm_guard(at, ncond, nfail)
                             }
-                            generate_match(child_pattern, child_var, body, index, at)
+                            generate_match(child_pattern, child_var, body, caps, index, at)
                         }
                     }
                 } elif (bt == Type.tHandle && xtype.annotation.name == "dasvector`ptr`Expression") {
-                    let pv = unsafe(reinterpret<dasvector`ptr`Expression?> p8)
+                    let pv = unsafe(reinterpret<dasvector`ptr`Expression?>(p8))
                     let pat_len = length(*pv)
                     if (pat_len > 0) {
                         var cond_e = qmacro(length($i(cast_var).$f(name)) != $v(pat_len))
@@ -1364,7 +1411,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                             if (child_pattern != null) {
                                 let child_var = next_var(index)
                                 body |> push <| qmacro_expr(${ var $i(child_var) = clone_expression($i(cast_var).$f(name)[$v(i)]); })
-                                generate_match(child_pattern, child_var, body, index, at)
+                                generate_match(child_pattern, child_var, body, caps, index, at)
                             }
                         }
                     }
@@ -1392,10 +1439,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
         return
     }
 
-    // ── ExprCall that might be a constant constructor (range, int2, float3, etc.) ────
-    // The compiler folds these into ExprConst* but raw qmacro output keeps them as ExprCall.
-    // Generate a runtime check: if the actual is the folded form, match as constant;
-    // otherwise match as ExprCall with one-value expansion support.
+    // ── ExprCall that might be a constant constructor (range, int2, float3, etc.) ──── The compiler folds these into ExprConst* but raw qmacro output keeps them as ExprCall.
     if (rtti == "ExprCall") {
         let call = pattern as ExprCall
         let call_name = string(call.name)
@@ -1405,7 +1449,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
             body |> push <| qmacro_expr(${ var $i(is_folded_var) = qm_rtti($i(actual_var)) == $v(folded_rtti); })
             // If folded: match as constant constructor and continue
             var folded_body : array<Expression?>
-            generate_const_constructor_match(call, folded_rtti, actual_var, folded_body, index, at)
+            generate_const_constructor_match(call, folded_rtti, actual_var, folded_body, caps, index, at)
             var folded_blk = new ExprBlock(at = at)
             for (stmt in folded_body) {
                 folded_blk.list |> emplace(stmt)
@@ -1427,9 +1471,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
             }
             let n_pat_args = length(call.arguments)
             if (n_pat_args > 0) {
-                // One-value expansion: range(y) = range(0, y), float2(v) = float2(v, v)
-                // Generate: if actual has 1 arg and pattern has N, apply expansion;
-                // if actual has N args, match directly; otherwise fail.
+                // One-value expansion: range(y) = range(0, y), float2(v) = float2(v, v) Generate: if actual has 1 arg and pattern has N, apply expansion;
                 let n_actual_var = next_var(index)
                 unfolded_body |> push <| qmacro_expr(${ var $i(n_actual_var) = qm_count_real_call_args($i(cast_var).arguments); })
                 let is_one_val = next_var(index)
@@ -1496,7 +1538,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                         unfolded_body |> push <| qmacro_expr(${ var $i(child_var) : Expression ?; })
                         unfolded_body |> emplace(branch_if)
                     }
-                    generate_match(child_pattern, child_var, unfolded_body, index, at)
+                    generate_match(child_pattern, child_var, unfolded_body, caps, index, at)
                 }
             }
             // Wrap unfolded path in if (!is_folded)
@@ -1518,7 +1560,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
         let cast_var = next_var(index)
         var as_val_c = make_var_ref(at, actual_var)
         var as_cast_c = new ExprAsVariant(at = at, value = as_val_c, name := rtti)
-        body |> push <| qmacro_expr(${ var $i(cast_var) = $e(as_cast_c); }) // nolint:LINT004
+        body |> push <| qmacro_expr(${ var $i(cast_var) = $e(as_cast_c); }) // nolint:LINT004,LINT019
         // Match name (ExprCall only) then match arguments (skipping fakeContext/fakeLineInfo)
         if (rtti == "ExprCall") {
             let call = pattern as ExprCall
@@ -1536,10 +1578,10 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                     let child_pattern = arg
                     if (child_pattern != null) {
                         let phys_var = next_var(index)
-                        body |> push <| qmacro_expr(${ var $i(phys_var) = qm_real_call_arg_index($i(cast_var).arguments, $v(i)); }) // nolint:LINT004
+                        body |> push <| qmacro_expr(${ var $i(phys_var) = qm_real_call_arg_index($i(cast_var).arguments, $v(i)); }) // nolint:LINT004,LINT019
                         let child_var = next_var(index)
-                        body |> push <| qmacro_expr(${ var $i(child_var) = clone_expression($i(cast_var).arguments[$i(phys_var)]); }) // nolint:LINT004
-                        generate_match(child_pattern, child_var, body, index, at)
+                        body |> push <| qmacro_expr(${ var $i(child_var) = clone_expression($i(cast_var).arguments[$i(phys_var)]); }) // nolint:LINT004,LINT019
+                        generate_match(child_pattern, child_var, body, caps, index, at)
                     }
                 }
             }
@@ -1554,10 +1596,10 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                     let child_pattern = arg
                     if (child_pattern != null) {
                         let phys_var = next_var(index)
-                        body |> push <| qmacro_expr(${ let $i(phys_var) = qm_real_call_arg_index($i(cast_var).arguments, $v(i)); }) // nolint:LINT004
+                        body |> push <| qmacro_expr(${ let $i(phys_var) = qm_real_call_arg_index($i(cast_var).arguments, $v(i)); }) // nolint:LINT004,LINT019
                         let child_var = next_var(index)
-                        body |> push <| qmacro_expr(${ var $i(child_var) = clone_expression($i(cast_var).arguments[$i(phys_var)]); }) // nolint:LINT004
-                        generate_match(child_pattern, child_var, body, index, at)
+                        body |> push <| qmacro_expr(${ var $i(child_var) = clone_expression($i(cast_var).arguments[$i(phys_var)]); }) // nolint:LINT004,LINT019
+                        generate_match(child_pattern, child_var, body, caps, index, at)
                     }
                 }
             }
@@ -1572,10 +1614,10 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
     let cast_var = next_var(index)
     var as_val2 = make_var_ref(at, actual_var)
     var as_cast2 = new ExprAsVariant(at = at, value = as_val2, name := rtti)
-    body |> push <| qmacro_expr(${ var $i(cast_var) = $e(as_cast2); }) // nolint:LINT004
+    body |> push <| qmacro_expr(${ var $i(cast_var) = $e(as_cast2); }) // nolint:LINT004,LINT019
 
     // Iterate fields via annotation reflection
-    var ann = unsafe(reinterpret<BasicStructureAnnotation?> get_expression_annotation(pattern))
+    var ann = unsafe(reinterpret<BasicStructureAnnotation?>(get_expression_annotation(pattern)))
     if (ann == null) return
 
     // Field-by-field matching via annotation reflection
@@ -1586,7 +1628,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
         }
         var p8 : int8?
         unsafe {
-            p8 = (reinterpret<int8?> pattern) + int(offset)
+            p8 = (reinterpret<int8?>(pattern)) + int(offset)
         }
         let bt = xtype.baseType
 
@@ -1594,7 +1636,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
         if (inner_ann_name == "TypeDecl" || inner_ann_name == "Expression") {
             if (inner_ann_name == "TypeDecl") {
                 // TypeDecl? field — use generate_type_match
-                let pv = unsafe(reinterpret<TypeDeclPtr?> p8)
+                let pv = unsafe(reinterpret<TypeDeclPtr?>(p8))
                 if (*pv != null) {
                     let child_td = *pv
                     let child_var = next_var(index)
@@ -1603,22 +1645,22 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                     var nfail = qmacro(qm_fail_null())
                     body |> push <| qm_guard(at, ncond, nfail)
                     body |> push <| qmacro_expr(${ var $i(child_var) = clone_type($i(cast_var).$f(name)); })
-                    generate_type_match(child_td, child_var, actual_var, body, index, at)
+                    generate_type_match(child_td, child_var, actual_var, body, caps, index, at)
                 }
                 // If pattern's TypeDecl field is null, skip (don't require actual's to be null)
             } else {
                 // Expression? child — recurse or check null
-                let pv = unsafe(reinterpret<Expression ??> p8)
+                let pv = unsafe(reinterpret<Expression ??>(p8))
                 if (*pv != null) {
                     let child_pattern = *pv
                     let child_var = next_var(index)
-                    body |> push <| qmacro_expr(${ var $i(child_var) = clone_expression($i(cast_var).$f(name)); }) // nolint:LINT004
+                    body |> push <| qmacro_expr(${ var $i(child_var) = clone_expression($i(cast_var).$f(name)); }) // nolint:LINT004,LINT019
                     if (!is_wildcard_call(child_pattern) && !(child_pattern is ExprTag)) {
                         var ncond = qmacro($i(child_var) == null)
                         var nfail = qmacro(qm_fail_null())
                         body |> push <| qm_guard(at, ncond, nfail)
                     }
-                    generate_match(child_pattern, child_var, body, index, at)
+                    generate_match(child_pattern, child_var, body, caps, index, at)
                 } else {
                     // Pattern's child is null — require actual's child is also null
                     var ncond = qmacro($i(cast_var).$f(name) != null)
@@ -1628,7 +1670,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
             }
         } elif (bt == Type.tHandle && xtype.annotation.name == "das_string") {
             // das_string field
-            let pv = unsafe(reinterpret<das_string?> p8)
+            let pv = unsafe(reinterpret<das_string?>(p8))
             if (!empty(*pv)) {
                 var cond = qmacro($i(cast_var).$f(name) != $v(string(*pv)))
                 var fail = qmacro(qm_fail_field($i(actual_var)))
@@ -1636,7 +1678,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
             }
         } elif (bt == Type.tHandle && xtype.annotation.name == "dasvector`ptr`Expression") {
             // Expression vector field (block.list, call.arguments)
-            let pv = unsafe(reinterpret<dasvector`ptr`Expression?> p8)
+            let pv = unsafe(reinterpret<dasvector`ptr`Expression?>(p8))
             let pat_len = length(*pv)
             if (pat_len > 0) {
                 var cond = qmacro(length($i(cast_var).$f(name)) != $v(pat_len))
@@ -1647,13 +1689,13 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                     if (child_pattern != null) {
                         let child_var = next_var(index)
                         body |> push <| qmacro_expr(${ var $i(child_var) = clone_expression($i(cast_var).$f(name)[$v(i)]); })
-                        generate_match(child_pattern, child_var, body, index, at)
+                        generate_match(child_pattern, child_var, body, caps, index, at)
                     }
                 }
             }
         } elif (bt == Type.tHandle && xtype.annotation.name == "dasvector`ptr`Variable") {
             // Variable vector (ExprLet.variables) — match name, type, init
-            var pv = unsafe(reinterpret<dasvector`ptr`Variable?> p8)
+            var pv = unsafe(reinterpret<dasvector`ptr`Variable?>(p8))
             let pat_len = length(*pv)
             if (pat_len > 0) {
                 var cond = qmacro(length($i(cast_var).$f(name)) != $v(pat_len))
@@ -1681,7 +1723,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                             let init_pat = pat_v.init
                             let init_var = next_var(index)
                             body |> push <| qmacro_expr(${ var $i(init_var) = clone_expression($i(cast_var).$f(name)[$v(vi)].init); })
-                            generate_match(init_pat, init_var, body, index, at)
+                            generate_match(init_pat, init_var, body, caps, index, at)
                         }
                         // Type matching (skip autoinfer)
                         if (pat_v._type != null) {
@@ -1689,7 +1731,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                             if (pat_td.baseType != Type.autoinfer) {
                                 let td_var = next_var(index)
                                 body |> push <| qmacro_expr(${ var $i(td_var) = clone_type($i(cast_var).$f(name)[$v(vi)]._type); })
-                                generate_type_match(pat_td, td_var, actual_var, body, index, at)
+                                generate_type_match(pat_td, td_var, actual_var, body, caps, index, at)
                             }
                         }
                     }
@@ -1697,7 +1739,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
             }
         } elif (bt == Type.tHandle && xtype.annotation.name == "dasvector`das_string") {
             // String vector (ExprFor.iterators) — match name strings
-            let pv = unsafe(reinterpret<dasvector`das_string?> p8)
+            let pv = unsafe(reinterpret<dasvector`das_string?>(p8))
             let pat_len = length(*pv)
             if (pat_len > 0) {
                 var cond = qmacro(length($i(cast_var).$f(name)) != $v(pat_len))
@@ -1714,7 +1756,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                 }
             }
         } elif (bt == Type.tInt) {
-            let pv = unsafe(reinterpret<int?> p8)
+            let pv = unsafe(reinterpret<int?>(p8))
             if (*pv != 0) {
                 let fval = *pv
                 var cond = qmacro($i(cast_var).$f(name) != $v(fval))
@@ -1722,7 +1764,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                 body |> push <| qm_guard(at, cond, fail)
             }
         } elif (bt == Type.tUInt) {
-            let pv = unsafe(reinterpret<uint?> p8)
+            let pv = unsafe(reinterpret<uint?>(p8))
             if (*pv != 0u) {
                 let fval = *pv
                 var cond = qmacro($i(cast_var).$f(name) != $v(fval))
@@ -1730,7 +1772,7 @@ def private generate_match(pattern : Expression?; actual_var : string; var body 
                 body |> push <| qm_guard(at, cond, fail)
             }
         } elif (bt == Type.tBool) {
-            let pv = unsafe(reinterpret<bool?> p8)
+            let pv = unsafe(reinterpret<bool?>(p8))
             if (*pv) {
                 var cond = qmacro($i(cast_var).$f(name) == false)
                 var fail = qmacro(qm_fail_field($i(actual_var)))
@@ -1766,8 +1808,7 @@ def private count_fixed_stmts(pat_block : ExprBlock?) : int {
 
 [macro_function]
 def private get_single_fixed_stmt(var pat_block : ExprBlock?) : Expression? {
-    //! If pattern has exactly one non-wildcard statement (possibly surrounded by wildcards),
-    //! return it. Otherwise return null.
+    //! If pattern has exactly one non-wildcard statement (possibly surrounded by wildcards), return it. Otherwise return null.
     for (stmt in pat_block.list) {
         if (empty(get_wildcard_name(stmt))) return stmt
     }
@@ -1775,32 +1816,26 @@ def private get_single_fixed_stmt(var pat_block : ExprBlock?) : Expression? {
 }
 
 [macro_function]
-def private generate_block_match(var pat_block : ExprBlock?; actual_var : string; var body : array<Expression?>&; var index : int&; at : LineInfo; check_args : bool = true) {
+def private generate_block_match(var pat_block : ExprBlock?; actual_var : string; var body : array<Expression?>&; var caps : QmCaptures&; var index : int&; at : LineInfo; check_args : bool = true) {
     //! Generate code to match a block's statement list with wildcard support.
-    //! If the optimizer folded a single-statement block into a bare expression,
-    //! and the pattern has exactly one fixed statement (with optional wildcards),
-    //! match the bare expression directly against that statement.
 
     // Check if pattern is a single fixed statement (possibly with wildcards).
-    // If actual is not ExprBlock, try matching the single statement directly.
-    // Skip this optimization if pattern has arguments or return type — those require a real block.
     let has_pat_args = !empty(pat_block.arguments)
     let has_pat_ret = pat_block.returnType != null && pat_block.returnType.baseType != Type.autoinfer && pat_block.returnType.baseType != Type.tVoid
     let n_fixed = count_fixed_stmts(pat_block)
     if (n_fixed == 1 && !has_pat_args && !has_pat_ret) {
         var single_pat = get_single_fixed_stmt(pat_block)
         if (single_pat != null) {
-            // Generate: if (!(actual is ExprBlock) && !(actual is ExprMakeBlock))
-            //              match single_pat against actual directly
-            //           else
-            //              fall through to normal block matching
-            // For simplicity: try block match first. If RTTI fails (not a block),
-            // fall back to direct match. We use a runtime helper for this.
+            // Generate: if (!(actual is ExprBlock) && !(actual is ExprMakeBlock)) match single_pat against actual directly else fall through to normal block matching For simplicity: try block match first. If RTTI fails (not a block), fall back to direct match. We use a runtime helper for this.
             let direct_var = next_var(index)
             body |> push <| qmacro_expr(${ let $i(direct_var) = qm_rtti($i(actual_var)) != "ExprBlock" && qm_rtti($i(actual_var)) != "ExprMakeBlock"; })
             // If it's not a block, match directly
             var direct_body : array<Expression?>
-            generate_match(single_pat, actual_var, direct_body, index, at)
+            generate_match(single_pat, actual_var, direct_body, caps, index, at)
+            // overall-success return: emit commits-so-far (cloned — the outer entry emits the originals)
+            for (cstmt in caps.commits) {
+                direct_body |> push <| clone_expression(cstmt)
+            }
             direct_body |> push <| qmacro_expr(${return qm_ok(); })
             // Build: if (direct_var) { direct match + return }
             var direct_blk = new ExprBlock(at = at)
@@ -1837,7 +1872,7 @@ def private generate_block_match(var pat_block : ExprBlock?; actual_var : string
 
     // Match block arguments and return type (if requested and pattern specifies them)
     if (check_args) {
-        generate_pattern_args_match(pat_block, cast_var, "returnType", actual_var, body, index, at)
+        generate_pattern_args_match(pat_block, cast_var, "returnType", actual_var, body, caps, index, at)
     }
 
     // Declare position cursor: var _qm_pos = 0
@@ -1848,8 +1883,7 @@ def private generate_block_match(var pat_block : ExprBlock?; actual_var : string
     let len_var = next_var(index)
     body |> push <| qmacro_expr(${ let $i(len_var) = length($i(cast_var).list); })
 
-    // Walk through pattern statements
-    // Track pending $b capture: save_var holds start position, b_vname holds user variable name
+    // Walk through pattern statements Track pending $b capture: save_var holds start position, b_vname holds user variable name
     var pending_b_save = ""   // name of the var holding wildcard start position
     var pending_b_vname = ""  // name of the user's $b capture variable
 
@@ -1860,7 +1894,6 @@ def private generate_block_match(var pat_block : ExprBlock?; actual_var : string
 
         if (wc_name == "_wildcard") {
             // Zero or more — just skip. The next fixed pattern will scan forward.
-            // Save start position for $b capture
             let b_vname = get_wildcard_b_tag(pat)
             if (!empty(b_vname)) {
                 let save_var = next_var(index)
@@ -1869,10 +1902,10 @@ def private generate_block_match(var pat_block : ExprBlock?; actual_var : string
                 pending_b_vname = b_vname
             }
             if (pat_idx == pat_len - 1) {
-                // Trailing wildcard — matches rest, done
-                // Emit $b capture: [save_pos, len)
+                // Trailing wildcard — matches rest, done Emit $b capture: [save_pos, len)
                 if (!empty(pending_b_vname)) {
-                    body |> push <| qmacro_expr(${ qm_extract_stmts($i(blk_var), $i(pending_b_save), $i(len_var), $i(pending_b_vname)); })
+                    let bt = qm_stage(pending_b_vname, "stmts", caps, index)
+                    body |> push <| qmacro_expr(${ qm_extract_stmts($i(blk_var), $i(pending_b_save), $i(len_var), $i(bt)); })
                     pending_b_save = ""
                     pending_b_vname = ""
                 }
@@ -1894,7 +1927,8 @@ def private generate_block_match(var pat_block : ExprBlock?; actual_var : string
             if (pat_idx == pat_len - 1) {
                 // Trailing _wildcard1 — capture [save_pos, len)
                 if (!empty(pending_b_vname)) {
-                    body |> push <| qmacro_expr(${ qm_extract_stmts($i(blk_var), $i(pending_b_save), $i(len_var), $i(pending_b_vname)); })
+                    let bt = qm_stage(pending_b_vname, "stmts", caps, index)
+                    body |> push <| qmacro_expr(${ qm_extract_stmts($i(blk_var), $i(pending_b_save), $i(len_var), $i(bt)); })
                     pending_b_save = ""
                     pending_b_vname = ""
                 }
@@ -1914,7 +1948,8 @@ def private generate_block_match(var pat_block : ExprBlock?; actual_var : string
                 var fail = qmacro(qm_fail_list($i(actual_var)))
                 body |> push <| qm_guard(at, cond, fail)
                 if (!empty(pending_b_vname)) {
-                    body |> push <| qmacro_expr(${ qm_extract_stmts($i(blk_var), $i(pending_b_save), $i(len_var), $i(pending_b_vname)); })
+                    let bt = qm_stage(pending_b_vname, "stmts", caps, index)
+                    body |> push <| qmacro_expr(${ qm_extract_stmts($i(blk_var), $i(pending_b_save), $i(len_var), $i(bt)); })
                     pending_b_save = ""
                     pending_b_vname = ""
                 }
@@ -1927,12 +1962,12 @@ def private generate_block_match(var pat_block : ExprBlock?; actual_var : string
             body |> push <| qm_guard(at, cond, fail)
             if (!empty(b_vname)) {
                 // _any captures exactly one statement
-                body |> push <| qmacro_expr(${ qm_extract_stmts($i(blk_var), $i(pos_var), $i(pos_var) + 1, $i(b_vname)); })
+                let bt = qm_stage(b_vname, "stmts", caps, index)
+                body |> push <| qmacro_expr(${ qm_extract_stmts($i(blk_var), $i(pos_var), $i(pos_var) + 1, $i(bt)); })
             }
             body |> push <| qmacro_expr(${ $i(pos_var) ++; })
         } else {
-            // Fixed statement — must match at current position
-            // Check if the previous statement was a wildcard (need to scan)
+            // Fixed statement — must match at current position Check if the previous statement was a wildcard (need to scan)
             let prev_is_wildcard = pat_idx > 0 && !empty(get_wildcard_name(pat_block.list[pat_idx - 1]))
             let prev_wc = prev_is_wildcard ? get_wildcard_name(pat_block.list[pat_idx - 1]) : ""
 
@@ -1942,7 +1977,7 @@ def private generate_block_match(var pat_block : ExprBlock?; actual_var : string
 
                 // Generate match code for the fixed pattern
                 var match_body : array<Expression?>
-                generate_match(pat, elem_var, match_body, index, at)
+                generate_match(pat, elem_var, match_body, caps, index, at)
                 match_body |> push <| qmacro_expr(${return qm_ok(); })
 
                 // Build inner block: $(var elem : Expression?) : QMatchResult { match_code }
@@ -1958,8 +1993,7 @@ def private generate_block_match(var pat_block : ExprBlock?; actual_var : string
                 }
                 var inner_mkblk = new ExprMakeBlock(at = at, _block = inner_blk)
 
-                // Generate: var scan_r = qm_scan(blk_var, pos_var, scan_limit, inner_block)
-                // For _optional, limit scan to pos+2 (try at most positions pos and pos+1)
+                // Generate: var scan_r = qm_scan(blk_var, pos_var, scan_limit, inner_block) For _optional, limit scan to pos+2 (try at most positions pos and pos+1)
                 let scan_r_var = next_var(index)
                 if (prev_wc == "_optional") {
                     let limit_var = next_var(index)
@@ -1969,21 +2003,22 @@ def private generate_block_match(var pat_block : ExprBlock?; actual_var : string
                     body |> push <| qmacro_expr(${ var $i(scan_r_var) = qm_scan($i(blk_var), $i(pos_var), $i(len_var), $e(inner_mkblk)); })
                 }
                 // Guard on scan result
-                var scan_cond = qmacro($i(scan_r_var).matched == false)
+                var scan_cond = qmacro(!$i(scan_r_var).matched)
                 var scan_fail = qmacro($i(scan_r_var))
                 body |> push <| qm_guard(at, scan_cond, scan_fail)
 
                 // Emit pending $b capture: [save_pos, pos - 1) — pos was updated by qm_scan to after the match
                 if (!empty(pending_b_vname)) {
-                    body |> push <| qmacro_expr(${ qm_extract_stmts($i(blk_var), $i(pending_b_save), $i(pos_var) - 1, $i(pending_b_vname)); })
+                    let bt = qm_stage(pending_b_vname, "stmts", caps, index)
+                    body |> push <| qmacro_expr(${ qm_extract_stmts($i(blk_var), $i(pending_b_save), $i(pos_var) - 1, $i(bt)); })
                     pending_b_save = ""
                     pending_b_vname = ""
                 }
             } else {
-                // No preceding wildcard — must match at exact position
-                // Emit pending $b capture before this fixed match (for _wildcard1 followed by fixed)
+                // No preceding wildcard — must match at exact position Emit pending $b capture before this fixed match (for _wildcard1 followed by fixed)
                 if (!empty(pending_b_vname)) {
-                    body |> push <| qmacro_expr(${ qm_extract_stmts($i(blk_var), $i(pending_b_save), $i(pos_var), $i(pending_b_vname)); })
+                    let bt = qm_stage(pending_b_vname, "stmts", caps, index)
+                    body |> push <| qmacro_expr(${ qm_extract_stmts($i(blk_var), $i(pending_b_save), $i(pos_var), $i(bt)); })
                     pending_b_save = ""
                     pending_b_vname = ""
                 }
@@ -1995,7 +2030,7 @@ def private generate_block_match(var pat_block : ExprBlock?; actual_var : string
                 let elem_var = next_var(index)
                 body |> push <| qmacro_expr(${ var $i(elem_var) = clone_expression($i(cast_var).list[$i(pos_var)]); })
                 // Match it
-                generate_match(pat, elem_var, body, index, at)
+                generate_match(pat, elem_var, body, caps, index, at)
                 // Advance
                 body |> push <| qmacro_expr(${ $i(pos_var) ++; })
             }
@@ -2054,14 +2089,12 @@ class private QMatch : AstCallMacro {
 
         // Null check
         blk.list |> emplace_new <| qm_null_guard(at, "_qm_arg")
-        // Pattern matching
+        // Pattern matching: temps, matcher body, then deferred capture commits
         var index = 0
         var body : array<Expression?>
-        generate_match(pattern, "_qm_arg", body, index, at)
-        for (stmt in body) {
-            blk.list |> emplace(stmt)
-        }
-        blk.list |> emplace_new <| qmacro_expr(${return qm_ok(); })
+        var caps : QmCaptures
+        generate_match(pattern, "_qm_arg", body, caps, index, at)
+        qm_emit_matcher(blk, body, caps, at)
 
         var expr_arg : Expression?
         if (!qm_validate_expr_arg(prog, call.arguments[0], at, expr_arg)) return null
@@ -2110,14 +2143,12 @@ class private QMatchBlock : AstCallMacro {
 
         // Null check
         blk.list |> emplace_new <| qm_null_guard(at, "_qm_arg")
-        // Block matching
+        // Block matching: temps, matcher body, then deferred capture commits
         var index = 0
         var body : array<Expression?>
-        generate_block_match(pat_block, "_qm_arg", body, index, at)
-        for (stmt in body) {
-            blk.list |> emplace(stmt)
-        }
-        blk.list |> emplace_new <| qmacro_expr(${return qm_ok(); })
+        var caps : QmCaptures
+        generate_block_match(pat_block, "_qm_arg", body, caps, index, at)
+        qm_emit_matcher(blk, body, caps, at)
 
         var expr_arg : Expression?
         if (!qm_validate_expr_arg(prog, call.arguments[0], at, expr_arg)) return null
@@ -2173,16 +2204,14 @@ class private QMatchFunction : AstCallMacro {
 
         var index = 0
         var body : array<Expression?>
+        var caps : QmCaptures
 
         // Match function arguments and return type against _qm_func
-        generate_pattern_args_match(pat_block, "_qm_func", "result", "_qm_arg", body, index, at)
+        generate_pattern_args_match(pat_block, "_qm_func", "result", "_qm_arg", body, caps, index, at)
 
         // Match function body (skip arg check — already done against _qm_func)
-        generate_block_match(pat_block, "_qm_arg", body, index, at, false)
-        for (stmt in body) {
-            blk.list |> emplace(stmt)
-        }
-        blk.list |> emplace_new <| qmacro_expr(${return qm_ok(); })
+        generate_block_match(pat_block, "_qm_arg", body, caps, index, at, false)
+        qm_emit_matcher(blk, body, caps, at)
 
         var func_arg = clone_expression(call.arguments[0])
         var mkblk_f = new ExprMakeBlock(at = at, _block = blk)
@@ -2194,7 +2223,7 @@ class private QMatchFunction : AstCallMacro {
 }
 
 // ── Shared AST-match helpers ────────────────────────────────────────────
-// Hand-rolled probes harvested from daslib/linq_fold.das + modules/dasSQLITE/daslib/sqlite_linq.das.
+// Hand-rolled probes harvested from daslib/linq_fold.das + daslib/sql_linq.das.
 // Reach for these BEFORE writing a new ``is X / as X`` cascade. For deeper structural matches use ``qmatch`` directly.
 
 def match_call_in_module(var expr : Expression?; name, modName : string) : ExprCall? {
@@ -2214,7 +2243,7 @@ def match_call_in_module(var expr : Expression?; name, modName : string) : ExprC
 
 def match_call_in_linq(var expr : Expression?; name : string) : ExprCall? {
     //! Match an ``ExprCall`` to ``name`` in the ``linq`` module. Thin wrapper on ``match_call_in_module``
-    //! kept for readability at the heavy-call-site files (linq_fold, sqlite_linq, decs_boost).
+    //! kept for readability at the heavy-call-site files (linq_fold, sql_linq, decs_boost).
     return match_call_in_module(expr, name, "linq")
 }
 
@@ -2253,10 +2282,7 @@ def peel_lambda_rename_var(expr : Expression?; argName : string) : Expression? {
 
 [clone(expr, replacement)]
 def peel_lambda_replace_var(expr : Expression?; var replacement : Expression?) : Expression? {
-    //! Variant of ``peel_lambda_rename_var`` — substitutes the bound variable with an
-    //! arbitrary expression in the cloned body. ``replaceVariable`` is now peel-aware
-    //! (single unified path strips typer-inserted ``ExprRef2Value`` wrappers when
-    //! present). Falls back to ``invoke(expr, replacement)`` when non-peelable.
+    //! Variant of ``peel_lambda_rename_var`` — substitutes the bound variable with an arbitrary expression in the cloned body. ``replaceVariable`` is now peel-aware (single unified path strips typer-inserted ``ExprRef2Value`` wrappers when present). Falls back to ``invoke(expr, replacement)`` when non-peelable.
     if (expr is ExprMakeBlock) {
         var mblk = expr as ExprMakeBlock
         var blk = mblk._block as ExprBlock
@@ -2317,14 +2343,7 @@ def peel_tuple_field_read(expr : Expression?; bindName : string; fieldIndex : in
 }
 
 def qn(prefix : string; at : LineInfo) : string {
-    //! Build a backtick-quoted qname unique to ``at`` for the given ``prefix``. Use to name
-    //! synthesized locals emitted by macros so multiple expansions in one file don't collide.
-    //! ``at.line`` / ``at.column`` are interpolated via the default ``uint`` formatter (hex), so
-    //! output for ``at.line=42u, at.column=7u`` is ``\`<prefix>\`0x2a\`0x7``.
-    //! Deterministic — distinct ``(prefix, at.line, at.column)`` triples produce distinct names;
-    //! synthesized ``LineInfo()`` (line=0, column=0) produces ``\`<prefix>\`0x0\`0x0`` and WILL
-    //! collide across distinct synth sites with the same prefix. Build a synth-specific name
-    //! yourself if that matters at the call site.
+    //! Build a backtick-quoted qname unique to ``at`` for the given ``prefix``. Use to name synthesized locals emitted by macros so multiple expansions in one file don't collide.
     return "`{prefix}`{at.line}`{at.column}"
 }
 

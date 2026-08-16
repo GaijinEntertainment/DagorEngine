@@ -1,0 +1,22 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("crash")
+    package_description("Deliberate crash generator — one failure mode per run, for validating crash capture, dumps and symbols")
+}
+
+[export]
+def dependencies(version : string) {
+    require_package("./packages/dascrash")
+}
+
+[export]
+def release() {
+    release_main("main.das")
+    release_name("crash")
+    release_requires_jit()      // the deployment shape under test is `daslang -jit main.das`
+    release_include_symbols()   // the bundle exists for post-mortem; ship what a debugger needs
+}

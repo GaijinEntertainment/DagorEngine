@@ -2,6 +2,7 @@
 #pragma once
 
 #include <osApiWrappers/dag_atomic_types.h>
+#include <osApiWrappers/dag_atomic.h>
 #include <3d/dag_resPtr.h>
 #include <3d/dag_eventQueryHolder.h>
 #include <drv/3d/dag_bindless.h>
@@ -395,7 +396,7 @@ using BindlessBufferAllocator = BindlessResourceHeap<BindlessRangeType::BUFFER>;
 
 struct BindlessTexture
 {
-  uint32_t rangeBase = 0xFFFFU;
+  uint32_t rangeBase = 0;
   uint32_t slotIndex = 0;
   uint32_t referenceCount = 0;
   eastl::optional<D3DResourceType> resourceType;
@@ -420,6 +421,7 @@ struct MeshMeta : public BVHMeta
   static constexpr uint32_t bvhMaterialMonochrome = 7;
   static constexpr uint32_t bvhMaterialSmokeTracer = 8;
 
+  static constexpr uint32_t bvhMaterialDynrend = 1 << 14;
   static constexpr uint32_t bvhMaterialAnimcharDecals = 1 << 15;
   static constexpr uint32_t bvhMaterialAlphaTest = 1 << 16;
   static constexpr uint32_t bvhMaterialPainted = 1 << 17;
@@ -595,9 +597,9 @@ struct Mesh
   TEXTUREID ppPositionTextureId = BAD_TEXTUREID;
   TEXTUREID ppDirectionTextureId = BAD_TEXTUREID;
   TEXTUREID clothNoiseCombinedTexTextureId = BAD_TEXTUREID;
-  uint32_t ppPositionBindless = 0xFFFFFFFFU;
-  uint32_t ppDirectionBindless = 0xFFFFFFFFU;
-  uint32_t clothNoiseCombinedTexBindless = 0xFFFFFFFFU;
+  uint32_t ppPositionBindless = MeshMeta::INVALID_TEXTURE;
+  uint32_t ppDirectionBindless = MeshMeta::INVALID_TEXTURE;
+  uint32_t clothNoiseCombinedTexBindless = MeshMeta::INVALID_TEXTURE;
   uint32_t indexCount = 0;
   uint32_t indexFormat = 0;
   uint32_t vertexCount = 0;
@@ -631,11 +633,32 @@ struct Mesh
     Failed
   };
 
+  enum class OmmFailure : uint8_t
+  {
+    None,
+    UnsupportedTexcoordFormat,
+    NoAlphaSource,
+    AlphaTextureNeverLoaded,
+    BakeStartFailed,
+    ReadbackInvalid,
+    NoOutputBuffers,
+    NoDescriptors,
+    ZeroArraySize,
+    // Applies to one instance, thus it never fails the shared slot; here only to share the text table.
+    InstanceAlphaSourceOverride,
+    // Not an asset problem: the mesh has no cutout, thus it enters the BVH as opaque geometry.
+    AllTrianglesOpaque,
+    // Not an asset problem outside strict checks: the raster draws nothing for it, thus the BVH skips it.
+    AllTrianglesTransparent,
+  };
+
   // Bake-state fields are unsynchronized: the build pipeline that mutates them and the debug memory
   // stats that read them both run on the render thread, never concurrently. Moving either off that
   // thread requires adding synchronization here.
   struct OmmSlot
   {
+    static constexpr uint8_t NO_BAKE_STARTED = 0xFFu;
+
     OmmState state = OmmState::None;
     // Frame of the last bake poll. A Baking slot with a stale stamp belongs to an object that is no
     // longer processed, and its bake is discarded to free the pending bake slot.
@@ -643,6 +666,24 @@ struct Mesh
     render::omm::BakeHandle bakeHandle;
     render::omm::BakeResult bakeResult;
     UniqueOMM omm;
+
+    OmmFailure failure = OmmFailure::None;
+    // add_instances examines each instance of each object in each frame; report a cause only once. Two
+    // flags, because a condition of one instance does not fail the shared slot and must stay reportable.
+    bool failureLogged = false;
+    bool alphaSourceOverrideLogged = false;
+    uint32_t textureWaitAttempts = 0;
+    uint32_t textureWaitFrame = 0;
+
+    // Bake parameters for the diagnostics. The format is the bake source's, not always mesh.texcoordFormat.
+    uint32_t bakeTexcoordFormat = 0;
+    uint8_t bakeSubdivisionLevel = NO_BAKE_STARTED;
+    bool bakeUvCutout = false;
+    render::omm::BakeStats bakeStats;
+
+#if DAGOR_DBGLEVEL > 0
+    render::omm::DebugBakeSource debugBakeSource;
+#endif
   };
 
   OmmSlot ommSlots[2];
@@ -694,6 +735,7 @@ struct Object
   bool isAnimated = false;
   bool hasVertexProcessor = false;
   const char *tag = nullptr;
+  AssetNameRef assetName;
 
   void teardown(ContextId context_id, uint64_t object_id);
 
@@ -834,6 +876,8 @@ inline NativeInstance convert_instance(const HWInstance &src) { return src; }
 #endif
 
 
+struct LruCollisionData;
+
 using ObjectMap = ska::flat_hash_map<uint64_t, Object>;
 
 static constexpr int ri_gen_thread_count = 16;
@@ -900,6 +944,7 @@ struct Context
     BLASCompaction() = default;
     BLASCompaction(BLASCompaction &&other)
     {
+      G_ASSERT(!other.blasCreateJob);
       objectId = other.objectId;
       compactedSizeValue = other.compactedSizeValue;
       compactedSizeOffset = other.compactedSizeOffset;
@@ -917,6 +962,7 @@ struct Context
       if (this == &other)
         return *this;
 
+      G_ASSERT(!blasCreateJob && !other.blasCreateJob);
       objectId = other.objectId;
       compactedSizeValue = other.compactedSizeValue;
       compactedSizeOffset = other.compactedSizeOffset;
@@ -932,8 +978,8 @@ struct Context
     }
     ~BLASCompaction()
     {
-      if (blasCreateJob)
-        threadpool::wait(blasCreateJob);
+      if (auto job = interlocked_acquire_load_ptr(blasCreateJob))
+        threadpool::wait(job);
     }
 
     uint64_t objectId = 0;
@@ -941,7 +987,7 @@ struct Context
     uint32_t compactedSizeOffset = 0;
     UniqueBLAS compactedBlas;
     EventQueryHolder query;
-    cpujobs::IJob *blasCreateJob = nullptr;
+    cpujobs::IJob *volatile blasCreateJob = nullptr;
     BvhType type = BvhType::None;
 
     Stage stage = Stage::Created;
@@ -951,7 +997,7 @@ struct Context
   using HWInstanceMap = dag::Vector<HWInstance>;
   using NativeInstanceMap = dag::Vector<NativeInstance>;
 
-  Context();
+  Context() = default;
   ~Context() { teardown(); }
 
   void teardown();
@@ -962,6 +1008,7 @@ struct Context
   TextureHandle holdTexture(TEXTUREID id, uint32_t &texture_bindless_index, bool forceRefreshSrvsWhenLoaded = false);
   bool releaseTexture(TEXTUREID id);
   bool releaseTexture(uint32_t texture_and_sampler_bindless_indices);
+  void releaseUnavailableTextures();
   void markChangedTextures();
 
   void holdBuffer(Sbuffer *buffer, uint32_t &bindless_index);
@@ -1036,6 +1083,7 @@ struct Context
 
   RingBuffers tlasUploadMain;
   RingBuffers tlasUploadTerrain;
+  RingBuffers tlasUploadLruCollision;
   RingBuffers meshMeta;
   RingBuffers perInstanceData;
 
@@ -1049,12 +1097,16 @@ struct Context
   UniqueTLAS tlasMain;
   UniqueTLAS tlasTerrain;
   UniqueTLAS tlasParticles;
+  UniqueTLAS tlasLruCollision;
 
   eastl::unordered_map<uint32_t, uint32_t> camoTextures;
 
   bool tlasMainValid = false;
   bool tlasTerrainValid = false;
   bool tlasParticlesValid = false;
+  bool tlasLruCollisionValid = false;
+
+  LruCollisionData *lruCollision = nullptr;
 
   eastl::unordered_set<TEXTUREID, TextureIdHash> texturesWaitingForLoad;
 
@@ -1079,8 +1131,7 @@ struct Context
   CompQueue blasCompactions;
   eastl::unordered_map<uint64_t, CompQueue::iterator> blasCompactionsAccel;
   eastl::vector<eastl::unique_ptr<cpujobs::IJob>> createCompactedBLASJobQueue;
-  eastl::atomic<int> numCompactionBlasesBeingCreated = 0;
-  eastl::atomic<int> numCompactionBlasesWaitingBuild = 0;
+  int numCompactionBlasesInFlight = 0;
   struct PendingCompactSizeBuffer
   {
     UniqueBVHBuffer buf;
@@ -1225,14 +1276,34 @@ struct Context
     UniqueBuf ahsBuffer;
     MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
     int metaSize = 0;
+    // Shared by every grass texture, but only without OMM: a micromap is baked from one alpha texture,
+    // thus with OMM each texture needs the BLAS in TextureSlot below.
     UniqueBLAS blas;
     uint32_t vertexBufferBindless = BVH_BINDLESS_BUFFER_MAX;
     uint32_t indexBufferBindless = BVH_BINDLESS_BUFFER_MAX;
     uint32_t ahsBufferBindless = BVH_BINDLESS_BUFFER_MAX;
-    bool isValid() const
+
+    // Only the render thread uses the bake state, as with Mesh::OmmSlot.
+    struct TextureSlot
     {
-      return indexBuffer && vertexBuffer && ahsBuffer && blas && metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID;
-    }
+      TEXTUREID alphaTexId = BAD_TEXTUREID;
+      TEXTUREID diffuseTexId = BAD_TEXTUREID; // for the bake diagnostics
+      UniqueBLAS blas;
+      Mesh::OmmState ommState = Mesh::OmmState::None;
+      uint32_t ommWaitAttempts = 0;
+      render::omm::BakeHandle ommBakeHandle;
+      render::omm::BakeResult ommBakeResult;
+      render::omm::BakeStats ommBakeStats;
+      render::omm::DebugBakeSource ommDebugBakeSource;
+      UniqueOMM omm;
+    };
+    dag::Vector<TextureSlot> textureSlots;
+    // The position where the entries of this orientation start in the shared mapping buffer.
+    int mappingBase = 0;
+
+    // Neither blas nor ahsBuffer is tested: with OMM the per-texture BLASes replace the shared one, and
+    // the any-hit vertices are not needed at all.
+    bool hasGeometry() const { return indexBuffer && vertexBuffer && metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID; }
   };
   GPUGrassBillboard gpuGrassBillboard, gpuGrassHorizontal;
 
@@ -1253,8 +1324,6 @@ struct Context
   UniqueTex atmosphereTexture;
   int atmosphereCursor = 0;
   bool atmosphereDirty = true;
-
-  Texture *stubTexture = nullptr;
 
   dag::Vector<NativeInstance> instanceDescsCpu;
   dag::Vector<PerInstanceData> perInstanceDataCpu;

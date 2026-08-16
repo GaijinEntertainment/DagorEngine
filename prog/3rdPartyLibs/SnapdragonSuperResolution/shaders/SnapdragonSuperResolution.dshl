@@ -26,6 +26,7 @@ texture snapdragon_super_resolution_input;
 shader SnapdragonSuperResolution
 {
 	USE_POSTFX_VERTEX_POSITIONS()
+	USE_PRE_ROTATION(vs)
 	z_test = false;
 	z_write = false;
 	cull_mode = none;
@@ -45,6 +46,7 @@ shader SnapdragonSuperResolution
 			float2 pos = getPostfxVertexPositionById(vertex_id);
 			output.pos = float4(pos.xy, 1, 1);
 			output.texcoord = pos*float2(0.5,-0.5) + float2(0.5, 0.5);
+			output.pos.xy = apply_pre_rotation(output.pos.xy);
 			return output;
 		}
 	}

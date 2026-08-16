@@ -39,7 +39,9 @@ dafg::NodeHandle makeAimDofPrepareNode()
       registry.readTexture("depth_with_transparency").atStage(dafg::Stage::UNKNOWN).useAs(dafg::Usage::UNKNOWN).optional().handle();
 
     registry.requestState().setFrameBlock("global_frame");
-    registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>().bindAsProj<&CameraParams::jitterProjTm>();
+    registry.readBlob<CameraParams>("current_cockpit_camera")
+      .bindAsView<&CameraParams::viewRotTm>()
+      .bindAsProj<&CameraParams::jitterProjTm>();
 
     auto aimRenderingDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
     auto scopeAimRenderingDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();

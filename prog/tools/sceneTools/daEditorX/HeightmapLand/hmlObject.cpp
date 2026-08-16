@@ -148,7 +148,8 @@ HmapLandObjectEditor::HmapLandObjectEditor() :
   crossRoads(midmem),
   loftGeomCollider(true, *this),
   polyGeomCollider(false, *this),
-  cloneObjs(midmem)
+  cloneObjs(midmem),
+  outlinerInterface(new HeightmapLandOutlinerInterface(*this))
 {
   waterGeom = NULL;
   objCreator = NULL;
@@ -915,11 +916,31 @@ void HmapLandObjectEditor::onBrushPaintEnd()
   */
 }
 
+// The selection can change before the drag ends - a Shift+drag clone selects the clones - so the drag is
+// left by exactly the objects that entered it, not by whatever is selected at that point.
 void HmapLandObjectEditor::setSelectionGizmoTranformMode(bool enable)
 {
-  for (int i = 0; i < selection.size(); ++i)
-    if (auto *obj = RTTI_cast<LandscapeEntityObject>(selection[i]))
-      obj->setGizmoTranformMode(enable);
+  if (enable)
+  {
+    clear_and_shrink(gizmoTransformObjs);
+    for (int i = 0; i < selection.size(); ++i)
+      if (auto *obj = RTTI_cast<LandscapeEntityObject>(selection[i]))
+      {
+        obj->setGizmoTranformMode(true);
+        obj->setHiddenFromPlacementTrace(true);
+        gizmoTransformObjs.push_back(obj);
+      }
+  }
+  else
+  {
+    for (int i = 0; i < gizmoTransformObjs.size(); ++i)
+      if (auto *obj = RTTI_cast<LandscapeEntityObject>(gizmoTransformObjs[i]))
+      {
+        obj->setGizmoTranformMode(false); // re-places the object, which still needs it hidden from itself
+        obj->setHiddenFromPlacementTrace(false);
+      }
+    clear_and_shrink(gizmoTransformObjs);
+  }
 }
 
 void HmapLandObjectEditor::gizmoStarted()
@@ -1132,18 +1153,18 @@ bool HmapLandObjectEditor::canSelectObj(RenderableEditableObject *o)
 
   if (LandscapeEntityObject *e = RTTI_cast<LandscapeEntityObject>(o))
   {
-    if (EditLayerProps::layerProps[e->getEditLayerIdx()].lock)
+    if (EditLayerProps::layerProps[e->getEditLayerIdx()].isLayerOrTypeLocked())
       return false;
   }
   else if (SplineObject *s = RTTI_cast<SplineObject>(o))
   {
-    if (EditLayerProps::layerProps[s->getEditLayerIdx()].lock)
+    if (EditLayerProps::layerProps[s->getEditLayerIdx()].isLayerOrTypeLocked())
       return false;
   }
   else if (SplinePointObject *p = RTTI_cast<SplinePointObject>(o))
   {
     if (SplineObject *s = p->spline)
-      if (EditLayerProps::layerProps[s->getEditLayerIdx()].lock)
+      if (EditLayerProps::layerProps[s->getEditLayerIdx()].isLayerOrTypeLocked())
         return false;
   }
 
@@ -1223,7 +1244,6 @@ void HmapLandObjectEditor::fillSelectionMenu(IGenViewportWnd *wnd, PropPanel::IM
   int oneLayer = -1;
   int perTypeLayerCount = 0;
   bool enabledMoveToLayer = anySelected;
-  HeightmapLandOutlinerInterface outliner(*this);
   for (auto obj : selection)
   {
     RenderableEditableObject *object = obj;
@@ -1233,7 +1253,7 @@ void HmapLandObjectEditor::fillSelectionMenu(IGenViewportWnd *wnd, PropPanel::IM
 
     int objType;
     int perTypeLayerIndex;
-    const bool supported = outliner.getObjectTypeAndPerTypeLayerIndex(*object, objType, perTypeLayerIndex);
+    const bool supported = outlinerInterface->getObjectTypeAndPerTypeLayerIndex(*object, objType, perTypeLayerIndex);
     if (supported && (type == objType || type == -1))
     {
       type = objType;
@@ -1251,7 +1271,7 @@ void HmapLandObjectEditor::fillSelectionMenu(IGenViewportWnd *wnd, PropPanel::IM
 
     if (type > -1)
     {
-      perTypeLayerCount = outliner.getLayerCount(type);
+      perTypeLayerCount = outlinerInterface->getLayerCount(type);
       enabledMoveToLayer = perTypeLayerCount > 1;
     }
   }
@@ -1262,7 +1282,7 @@ void HmapLandObjectEditor::fillSelectionMenu(IGenViewportWnd *wnd, PropPanel::IM
   {
     for (int layerIdx = 0; layerIdx < perTypeLayerCount; ++layerIdx)
     {
-      const char *layerName = outliner.getLayerName(type, layerIdx);
+      const char *layerName = outlinerInterface->getLayerName(type, layerIdx);
       const int id = CM_MOVE_TO_LAYER_FIRST + layerIdx;
       menu->addItem(CM_MOVE_TO_LAYER, id, layerName);
       if (layerIdx == oneLayer)
@@ -1281,8 +1301,6 @@ int HmapLandObjectEditor::onMenuItemClick(unsigned id)
 {
   if (CM_MOVE_TO_LAYER_FIRST <= id && id <= CM_MOVE_TO_LAYER_LAST)
   {
-    HeightmapLandOutlinerInterface outliner(*this);
-
     int type = -1;
     const int destinationLayerIndex = id - CM_MOVE_TO_LAYER_FIRST;
     dag::Vector<RenderableEditableObject *> objectsToMove;
@@ -1303,7 +1321,7 @@ int HmapLandObjectEditor::onMenuItemClick(unsigned id)
       }
 
       int objType, objLayerIndex;
-      if (outliner.getObjectTypeAndPerTypeLayerIndex(*object, objType, objLayerIndex))
+      if (outlinerInterface->getObjectTypeAndPerTypeLayerIndex(*object, objType, objLayerIndex))
       {
         if (type == objType || type == -1)
         {
@@ -1322,13 +1340,13 @@ int HmapLandObjectEditor::onMenuItemClick(unsigned id)
     const int amount = objectsToMove.size();
     if (amount > 0)
     {
-      outliner.moveObjectsToLayer(make_span(objectsToMove), type, destinationLayerIndex);
+      outlinerInterface->moveObjectsToLayer(make_span(objectsToMove), type, destinationLayerIndex);
 
       eastl::unique_ptr<PropPanel::DialogWindow> dialog(
         DAGORED2->createDialog(hdpi::_pxScaled(360), hdpi::_pxScaled(100), "Move to layer"));
       dialog->removeDialogButton(PropPanel::DIALOG_ID_CANCEL);
       PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
-      const char *layerName = outliner.getLayerName(type, destinationLayerIndex);
+      const char *layerName = outlinerInterface->getLayerName(type, destinationLayerIndex);
       panel->createStatic(0, String(0, "%d node(s) moved to layer \"%s\"", amount, layerName));
       dialog->showDialog();
 

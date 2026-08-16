@@ -9,6 +9,7 @@
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
+#include <render/debugGbuffer.h>
 #include <game/gameEvents.h>
 #include <ecs/render/updateStageRender.h>
 #include <shaders/dag_shaderBlock.h>
@@ -124,6 +125,8 @@ static void render_services_debug_es(const UpdateStageInfoRenderDebug &)
   if (IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>())
     if (rs->getRenderType() != rs->RTYPE_DNG_BASED)
       return;
+  if (shouldRenderGbufferDebug())
+    return;
   RenderServiceBlock renderBlk;
   IEditorCoreEngine::get()->renderObjects();
   IEditorCoreEngine::get()->renderTransObjects();

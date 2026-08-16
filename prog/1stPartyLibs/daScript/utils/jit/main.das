@@ -5,10 +5,9 @@ require daslib/clargs
 require daslib/fio
 require daslib/jobque_boost
 require daslib/strings_boost
-require math
 
 require llvm/daslib/llvm_jit_cli
-require llvm/daslib/llvm_jit_run
+require llvm/daslib/llvm_jit_run // nolint:STYLE030 registration side effect: bakes the native llvm module into a standalone -exe build (see simulate() comment below)
 
 [CommandLineArgs]
 struct JitToolArgs {
@@ -20,10 +19,18 @@ struct JitToolArgs {
     @clarg_doc = "Emit a standalone executable instead of a shared library"
     exe : bool
 
+    @clarg_name = "aot-object"
+    @clarg_doc = "Emit a native .o (whole used function set) with a load ctor registering its functions into the AOT library, for static linking into a host binary"
+    aot_object : bool
+
     @clarg_short = "o"
     @clarg_name = "output"
     @clarg_doc = "Output path. Empty keeps the default content-hashed .jitted_scripts/<ns>/ naming (dll mode) or appends .exe (exe mode)."
     output : string
+
+    @clarg_name = "aot-object-prefix"
+    @clarg_doc = "Batch --aot-object: derive each input's object as <dir>/_llvm_aot_generated/<prefix>_<name>.o, so one process emits many objects (amortizes the ~52-file dasLLVM compile-time load). Per-input; overrides --output."
+    aot_object_prefix : string
 
     @clarg_name = "exclude"
     @clarg_doc = "Directory name(s) to skip during a recursive walk (matched on the folder's own name, at any depth). Repeatable."
@@ -103,7 +110,7 @@ let WORKER_CHUNK_SIZE = 1000
 // walk on explicit files), and tool.output (would collide across files).
 def build_worker_argv(exe_path : string; chunk : array<string>; tool : JitToolArgs; jit : JitCliOptions) : array<string> {
     var w : array<string>
-    w |> reserve(2 + length(chunk) + 8)
+    w |> reserve(2 + length(chunk) + 10)
     w |> push(exe_path)
     w |> push_from(chunk)
     if (tool.exe) {
@@ -120,6 +127,10 @@ def build_worker_argv(exe_path : string; chunk : array<string>; tool : JitToolAr
     if (jit.debug_info |> is_some) {
         w |> push("--jit-debug")
         w |> push(jit.debug_info |> unwrap ? "true" : "false")
+    }
+    if (jit.stack_frames |> is_some) {
+        w |> push("--jit-stack")
+        w |> push(jit.stack_frames |> unwrap ? "true" : "false")
     }
     if (jit.path_to_linker |> is_some) {
         w |> push("--jit-path-to-linker")
@@ -236,6 +247,9 @@ def run_parallel(files : array<string>; tool : JitToolArgs; jit : JitCliOptions)
                         rc = 1
                     }
                 }
+                // the drain loop only proves all results were pushed; without this join
+                // a straggler worker races the guard ("deleted while being used (ref=1)")
+                completion |> join()
             }
         }
     }
@@ -256,18 +270,27 @@ def jit_compile_one(input : string; tool : JitToolArgs; jit : JitCliOptions) : b
                 // can't emit IR for them -> "Failed to get IR for functions ...").
                 cop.aot_module = true
                 cop.threadlock_context = true
-                if (tool.exe) {
+                if (tool.aot_object) {
+                    cop.jit_emit_object = true
+                    cop.jit_dll_mode = false
+                } elif (tool.exe) {
                     cop.jit_exe_mode = true
                     cop.jit_dll_mode = false
                 } else {
                     cop.jit_dll_mode = true
                 }
-                if (!empty(tool.output)) {
-                    cop.jit_output_path := tool.output
+                // Batch object mode derives a per-input path so one process emits many objects;
+                // else use the single --output (dll/exe or one-shot object).
+                let out_path = ((tool.aot_object && !empty(tool.aot_object_prefix))
+                    ? "{dir_name(input)}/_llvm_aot_generated/{tool.aot_object_prefix}_{base_name(input)}"
+                    : tool.output)
+                if (!empty(out_path)) {
+                    cop.jit_output_path := out_path
                 }
                 cop.jit_opt_level = jit.opt_level |> unwrap_or(cop.jit_opt_level)
                 cop.jit_size_level = jit.size_level |> unwrap_or(cop.jit_size_level)
                 cop.jit_debug_info = jit.debug_info |> unwrap_or(cop.jit_debug_info)
+                cop.emit_prologue = jit.stack_frames |> unwrap_or(cop.emit_prologue)
                 let ptl = jit.path_to_linker |> unwrap_or("")
                 if (!empty(ptl)) {
                     cop.jit_path_to_linker := ptl
@@ -287,7 +310,7 @@ def jit_compile_one(input : string; tool : JitToolArgs; jit : JitCliOptions) : b
                     // marked no-jit correctly), which a post-simulate run_jit call
                     // would miss. `require llvm_jit_run` above bakes the native llvm
                     // module into a standalone -exe build of this tool.
-                    simulate(program) $(sok, context, serrors) {
+                    simulate(program) $(sok, _context, serrors) {
                         if (!sok) {
                             to_log(LOG_ERROR, "jit: failed to simulate {input}\n{serrors}\n")
                             success = false
@@ -295,10 +318,10 @@ def jit_compile_one(input : string; tool : JitToolArgs; jit : JitCliOptions) : b
                     }
                 }
                 if (success) {
-                    let target = tool.exe ? "executable" : "shared library"
-                    if (!empty(tool.output)) {
-                        let suffix = tool.exe ? ".exe" : ".dll"
-                        to_log(LOG_INFO, "jit: wrote {target} for {input} -> {tool.output}{suffix}\n")
+                    let target = tool.aot_object ? "AOT object" : (tool.exe ? "executable" : "shared library")
+                    if (!empty(out_path)) {
+                        let suffix = tool.aot_object ? ".o" : (tool.exe ? ".exe" : ".dll")
+                        to_log(LOG_INFO, "jit: wrote {target} for {input} -> {out_path}{suffix}\n")
                     } else {
                         to_log(LOG_INFO, "jit: wrote {target} for {input} under .jitted_scripts/{ns}/\n")
                     }

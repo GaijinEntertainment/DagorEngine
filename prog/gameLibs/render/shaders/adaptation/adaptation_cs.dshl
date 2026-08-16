@@ -18,10 +18,6 @@ hlsl {
   half decodeBaseColorLuma(half l) {return (l*l);}
 }
 
-define_macro_if_not_defined PROJECT_ADAPTATION_SAMPLE_TC_FUNCTION(code)
-  ADAPTATION_CENTER_WEIGHTED_TC_FUNCTION(code)
-endmacro
-
 macro CALC_ALBEDO_LUMA(code)
   INIT_RENDERING_RESOLUTION(code)
   (code) {
@@ -125,7 +121,7 @@ shader GenerateHistogramCenterWeightedFromSourceCS
     USE_READ_IS_HERO_COCKPIT(cs)
   }
 
-  PROJECT_ADAPTATION_SAMPLE_TC_FUNCTION(cs)
+  ADAPTATION_SAMPLE_TC_FUNCTION(cs)
 
   hlsl(cs) {
     float GetLuminance(float3 v)

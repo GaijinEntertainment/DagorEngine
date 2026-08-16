@@ -419,6 +419,29 @@ namespace das {
         return false;
     }
 
+    // [inline] calls (and operator sites) are spliced by the patch pass, which only
+    // reaches function bodies. global-variable and structure-field initializers evaluate
+    // outside any patched body, so a call there would silently stay a call - the
+    // contract errors instead
+    static ExprCallFunc * findMustInlineCall ( Expression * root ) {
+        class Scan : public Visitor {
+        public:
+            ExprCallFunc * found = nullptr;
+        protected:
+            void check ( ExprCallFunc * expr ) {
+                if ( !found && expr->func && expr->func->mustInline ) found = expr;
+            }
+            virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
+            virtual void preVisit ( ExprCall * expr ) override { Visitor::preVisit(expr); check(expr); }
+            virtual void preVisit ( ExprOp1 * expr ) override { Visitor::preVisit(expr); check(expr); }
+            virtual void preVisit ( ExprOp2 * expr ) override { Visitor::preVisit(expr); check(expr); }
+            virtual void preVisit ( ExprOp3 * expr ) override { Visitor::preVisit(expr); check(expr); }
+        };
+        Scan scan;
+        root->visit(scan);
+        return scan.found;
+    }
+
     class LintVisitor : public Visitor {
         bool checkOnlyFastAot;
         bool checkAotSideEffects;
@@ -542,6 +565,13 @@ namespace das {
                         decl.at, CompilationError::cant_field_class);
                 }
             }
+            if ( decl.init ) {
+                if ( auto badCall = findMustInlineCall(decl.init) ) {
+                    program->error("can't call [inline] function '" + badCall->func->name + "' in a field initializer",
+                        "field initializers evaluate outside inlined code; call a non-inline wrapper instead", "",
+                        badCall->at, CompilationError::invalid_annotation);
+                }
+            }
         }
         virtual void preVisitGlobalLet ( const VariablePtr & var ) override {
             Visitor::preVisitGlobalLet(var);
@@ -574,6 +604,13 @@ namespace das {
             if ( var->type->getSizeOf64()>0x7fffffff ) {
                 program->error("global variable '" + var->name + "' is too big", "", "",
                     var->at,CompilationError::exceeds_global);
+            }
+            if ( var->init ) {
+                if ( auto badCall = findMustInlineCall(var->init) ) {
+                    program->error("can't call [inline] function '" + badCall->func->name + "' in a global initializer",
+                        "global initializers evaluate outside inlined code; call a non-inline wrapper instead", "",
+                        badCall->at, CompilationError::invalid_annotation);
+                }
             }
         }
         virtual void preVisitGlobalLetInit ( const VariablePtr & var, Expression * that ) override {
@@ -737,6 +774,14 @@ namespace das {
                     program->error("dead write is prohibited by CodeOfPolicies", "\tin " + expr->describe(), "",
                         expr->at, CompilationError::cant_expression);
                 }
+            }
+        }
+        virtual void preVisit ( ExprAddr * expr ) override {
+            Visitor::preVisit(expr);
+            if ( expr->func && expr->func->mustInline ) {
+                program->error("can't take the address of [inline] function '" + expr->func->name + "'",
+                    "indirect calls can't inline; split it into an implementation function and an [inline] wrapper", "",
+                    expr->at, CompilationError::invalid_annotation);
             }
         }
         virtual void preVisit ( ExprCall * expr ) override {
@@ -1238,16 +1283,27 @@ namespace das {
     // memory
         "heap_size_limit",              Type::tInt,
         "string_heap_size_limit",       Type::tInt,
+        "max_unreserved_size",          Type::tInt,
         "gc",                           Type::tBool,
+        // documented in options.rst and /*option*/-tagged in ast.h, but were never registered —
+        // 'options gc_infer_collect = false' died with error 50100
+        "gc_infer_collect",             Type::tBool,
+        "gc_infer_collect_nodes",       Type::tInt,
+        "gc_infer_collect_pct",         Type::tInt,
+        "log_gc_infer_collect",         Type::tBool,
     // coverage
         "no_coverage",                  Type::tBool,
     // aot
         "no_aot",                       Type::tBool,
         "aot_prologue",                 Type::tBool,
+    // codegen
+        "no_heap_array_literals",       Type::tBool,
+    // optimization
+        "bound_check_elision",          Type::tBool,
+        "log_bound_check_elision",      Type::tBool,
     // logging
         "log",                          Type::tBool,
-        "log_optimization_passes",      Type::tBool,
-        "log_optimization",             Type::tBool,
+        // log_optimization / log_optimization_passes registered via CodeOfPolicies fields
         "log_stack",                    Type::tBool,
         "log_init",                     Type::tBool,
         "log_symbol_use",               Type::tBool,
@@ -1271,14 +1327,15 @@ namespace das {
     // optimization
         "optimize",                     Type::tBool,
         "no_optimization",              Type::tBool,
-        "fusion",                       Type::tBool,
+        // fusion registered via its CodeOfPolicies field
         "remove_unused_symbols",        Type::tBool,
     // language
         "always_export_initializer",    Type::tBool,
         "infer_time_folding",           Type::tBool,
-        "disable_run",                  Type::tBool,
+        // disable_run registered via its CodeOfPolicies field
         "indenting",                    Type::tInt,
         "no_unsafe_uninitialized_structures", Type::tBool,
+        // default_init_containers registered via its CodeOfPolicies field
     // version_2_syntax
         "gen2",                         Type::tBool,
     // deprecated
@@ -1298,7 +1355,7 @@ namespace das {
         }
     } g_verifyOptionsOnStartup;
 
-    vector<pair<string,Type>> getCodeOfPolicyOptions();
+    DAS_API vector<pair<string,Type>> getCodeOfPolicyOptions();
 
     void Program::lint ( TextWriter & /*logs*/, ModuleGroup & libGroup ) {
         if (!options.getBoolOption("lint", !policies.no_lint)) {

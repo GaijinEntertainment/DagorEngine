@@ -21,7 +21,7 @@ namespace das {
     DAS_API string getDasRoot ( void );
     DAS_API void setDasRoot ( const string & dr );
 
-    string normalizeFileName ( const char * fileName );
+    DAS_API string normalizeFileName ( const char * fileName );
 
     string get_prefix ( const string & req );   // blah.... \ foo.bar - returns blah....
     string get_suffix ( const string & req );   // blah.... \ foo.bar - returns foo.bar

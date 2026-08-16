@@ -1,8 +1,8 @@
 include "world_sdf_update_common.dshl"
 include "world_sdf_project_common.dshl"
 include "dagi_windows.dshl"
-int supports_sh_6_1;
-interval supports_sh_6_1: off<1, on;
+int supports_barycentrics;
+interval supports_barycentrics: off<1, on;
 
 macro INIT_RASTERIZE_SDF()
   WORLD_SDF_RES_MATH(ps)

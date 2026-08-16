@@ -1,0 +1,8 @@
+Module = footLockerIKCtrl ;
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/anim/$(Module) ;
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+local AllSrcFolder_CPP = . ;
+include $(Root)/prog/gameLibs/build_module.jam ;

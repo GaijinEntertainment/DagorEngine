@@ -141,6 +141,43 @@ def test_channel_gather(t : T?) {
     }
 }
 
+// Reentrancy contract: gather drains the pipe under the lock, then runs the block
+// OUTSIDE it — same rule as Stream::gather (see test_jobque_stream.das). Items
+// pushed during a gather join the next drain, never the current one.
+[test]
+def test_channel_gather_reentrant(t : T?) {
+    t |> run("gather block may push to the same channel") @(t : T?) {
+        with_channel() $(ch) {
+            ch |> push_clone(IntVal(v = 1))
+            var seen : array<int>
+            ch |> gather() $(val : IntVal#) {
+                seen |> push(val.v)
+                if (val.v == 1) {
+                    ch |> push_clone(IntVal(v = 2))
+                }
+            }
+            t |> equal(1, length(seen))
+            t |> equal(1, ch.total)
+            var second : array<int>
+            ch |> gather() $(val : IntVal#) {
+                second |> push(val.v)
+            }
+            t |> equal(1, length(second))
+            t |> equal(2, second[0])
+        }
+    }
+    t |> run("gather block may query the channel") @(t : T?) {
+        with_channel() $(ch) {
+            ch |> push_clone(IntVal(v = 7))
+            var seen_total = -1
+            ch |> gather() $(val : IntVal#) {
+                seen_total = ch.total
+            }
+            t |> equal(0, seen_total)
+        }
+    }
+}
+
 [test]
 def test_channel_peek(t : T?) {
     t |> run("peek reads without consuming") @(t : T?) {
@@ -183,7 +220,7 @@ def test_channel_each_clone_iterator(t : T?) {
 def test_channel_push_batch_clone(t : T?) {
     t |> run("push_batch_clone pushes all items") @(t : T?) {
         with_channel() $(ch) {
-            var items <- [IntVal(v=10), IntVal(v=20), IntVal(v=30)]
+            let items <- [IntVal(v=10), IntVal(v=20), IntVal(v=30)]
             ch |> push_batch_clone(items)
             t |> equal(3, ch.total)
             var results : array<int>

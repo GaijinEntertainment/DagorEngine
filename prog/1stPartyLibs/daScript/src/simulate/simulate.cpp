@@ -235,7 +235,15 @@ namespace das
 #endif
                 context.to_err(&debugInfo, error.c_str());
             }
-            context.throw_error_at(debugInfo,"assert failed");
+            // Throw with the message, not just "assert failed". It was composed above for to_err
+            // but dropped from the exception, so every consumer of the exception -- the host's
+            // `EXCEPTION:` line, try/recover, a supervisor reading stderr -- saw only the generic
+            // text while the AOT path (aot.h:71) reported it properly.
+            if ( message ) {
+                context.throw_error_at(debugInfo, "assert failed, %s", message);
+            } else {
+                context.throw_error_at(debugInfo,"assert failed");
+            }
         }
         return v_zero();
     }

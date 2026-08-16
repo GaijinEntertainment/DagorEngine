@@ -24,6 +24,8 @@ public:
   void updateResourceVisualization() override;
   void updateTextureVisualization() override;
 
+  void sendBlobData(NodeNameId node_id, ResNameId res_id, const BlobView &view) override;
+
   void clearResourcePlacements() override;
   void clearResourceBarriers() override;
   void recResourcePlacement(ResNameId id, int frame, int heap, int offset, int size, bool is_cpu) override;

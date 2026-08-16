@@ -810,7 +810,7 @@ void DaSkies::prepareClouds(bool can_be_inside_clouds, const DPoint3 &origin, co
     (update_sky == UpdateSky::OnWithoutCloudsVisibilityCheck) ? CheckCloudVisibility::No : CheckCloudVisibility::Yes;
 
   data->cloudsVisible =
-    !disable_cloud_render && (check_cloud_visibility == CheckCloudVisibility::No || clouds->hasVisibleClouds()) &&
+    !disable_cloud_render && clouds->isReady() && (check_cloud_visibility == CheckCloudVisibility::No || clouds->hasVisibleClouds()) &&
     clouds_frustum_check(origin, view_tm, proj_tm, skies.getEarthRadius(), clouds->effectiveStartAlt(), clouds->effectiveTopAlt());
 
   if (data->cloudsVisible)

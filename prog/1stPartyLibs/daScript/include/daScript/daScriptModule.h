@@ -19,12 +19,38 @@ namespace das
 
 };
 
+// Registration entry points are part of the static-module ABI. Keep their
+// language linkage explicit so non-C++ hosts (including D) can call the
+// unmangled register_Module_* names. These declarations also make the
+// built-in modules directly available to NEED_MODULE.
+extern "C" {
+    DAS_API das::Module * register_Module_BuiltIn ();
+    DAS_API das::Module * register_Module_Math ();
+    DAS_API das::Module * register_Module_Strings ();
+    DAS_API das::Module * register_Module_Rtti ();
+    DAS_API das::Module * register_Module_Ast ();
+    DAS_API das::Module * register_Module_Debugger ();
+    DAS_API das::Module * register_Module_Jit ();
+    DAS_API das::Module * register_Module_FIO ();
+    DAS_API das::Module * register_Module_DASBIND ();
+    DAS_API das::Module * register_Module_Network ();
+    DAS_API das::Module * register_Module_UriParser ();
+    DAS_API das::Module * register_Module_JobQue ();
+}
+
+// Fusion is not a module registration entry point, but it is pulled alongside
+// the default modules and likewise needs a global declaration.
+DAS_CC_API void register_fusion ();
+
+// Pull a module through its global C-linkage registration entry point. Built-in
+// modules are declared above. A separately compiled custom module must first be
+// declared with DECLARE_MODULE at file scope.
 #define NEED_MODULE(ClassName) \
-    extern DAS_API das::Module * register_##ClassName (); \
-    *das::ModuleKarma += unsigned(intptr_t(register_##ClassName()));
+    extern DAS_API das::Module * das_pull_##ClassName (); \
+    *das::ModuleKarma += unsigned(intptr_t(das_pull_##ClassName()));
 
 #define NEED_FUSION \
-    { extern DAS_CC_API void register_fusion(); register_fusion(); }
+    ::register_fusion()
 
 #define NEED_ALL_DEFAULT_MODULES \
     NEED_MODULE(Module_BuiltIn); \
@@ -39,14 +65,9 @@ namespace das
     NEED_MODULE(Module_Network); \
     NEED_FUSION;
 
-// DECLARE_MODULE / PULL_MODULE — namespace-safe alternatives to NEED_MODULE.
-//
-// NEED_MODULE places an `extern` declaration at the current scope, which
-// fails inside a C++ namespace (the linker looks for Namespace::register_…
-// instead of the global-scope function).
-//
-// Use DECLARE_MODULE at global/file scope to forward-declare the register
-// function, then PULL_MODULE inside any namespace or function body to call it.
+// DECLARE_MODULE / PULL_MODULE split declaration from registration. Use
+// DECLARE_MODULE at global/file scope to forward-declare a separately compiled
+// module, then PULL_MODULE (or NEED_MODULE) inside any namespace or function.
 //
 // Example:
 //   DECLARE_ALL_DEFAULT_MODULES;               // file scope
@@ -58,10 +79,10 @@ namespace das
 //   }
 
 #define DECLARE_MODULE(ClassName) \
-    extern DAS_API das::Module * register_##ClassName ()
+    extern "C" DAS_API das::Module * register_##ClassName ()
 
 #define PULL_MODULE(ClassName) \
-    *das::ModuleKarma += unsigned(intptr_t(::register_##ClassName()))
+    NEED_MODULE(ClassName)
 
 #define DECLARE_FUSION \
     extern DAS_CC_API void register_fusion()

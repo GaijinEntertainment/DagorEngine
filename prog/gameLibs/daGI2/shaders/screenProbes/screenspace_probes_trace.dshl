@@ -180,7 +180,13 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
           rayDir = screenspace_probe_dir_decode(jitteredOctTC*2-1);
 
         float2 probeScreenUv = screenCoordToScreenUV(probeScreenCoord);
-        float2 screenCoordJittered = min((returnJitterOffset(screen_tile_coord, hammersleyFrame))*screenspace_probe_res.z + currentScreenTileLT, screenspace_probe_screen_limit.zw);
+        // jitter the resample origin in a fixed-span window around the anchor, not the
+        // whole tile: origin wander must not grow with tileSize at a fixed temporal blend.
+        // The window shifts to stay inside the tile, keeping its full span; at tileSize 8
+        // it degenerates to the previous whole tile jitter for every anchor
+        float jitterSpan = min(float(screenspace_probe_res.z), 8.);
+        float2 jitterLT = clamp(probeScreenCoord - 0.5*jitterSpan, currentScreenTileLT, currentScreenTileLT + (float(screenspace_probe_res.z) - jitterSpan));
+        float2 screenCoordJittered = min(jitterLT + returnJitterOffset(screen_tile_coord, hammersleyFrame)*jitterSpan, screenspace_probe_screen_limit.zw);
         //try use jittered position
         //todo: once per probe!
         {
@@ -283,7 +289,13 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
                   float3 hitWorldPos = sp_world_view_pos + hit.hitCamPos;
                   uint hitClip = world_sdf_find_clip(hitWorldPos);
                   float hitVoxelSize = hitClip < MAX_WORLD_SDF_CLIPS ? world_sdf_voxel_size(hitClip) : 0;
+                  #if DAGI_PROJECT_TRACE_HAS_ALBEDO
                   radiance = dagi_get_radiance_at_with_albedo(hitWorldPos, hit.hitNormal, hit.hitAlbedo, float4(-rayDir, hit.hitAt));
+                  #else
+                  // the trace albedo is not meaningful (e.g. a collision only
+                  // bvh returns white); the albedo scene decides at the hit
+                  radiance = dagi_get_radiance_at(hitWorldPos, hit.hitNormal, float4(-rayDir, hit.hitAt));
+                  #endif
                 }
                 occluder_distance = hit.hitAt;
                 result = SCREEN_RAY_CAST_SURE_HIT;

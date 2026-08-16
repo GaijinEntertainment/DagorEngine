@@ -7,7 +7,7 @@ let {get_scene_filepath=null} = entity_editor
 
 return @(changed) @() {
   watch = [changed]
-  pos = [0, hdpx(7)]
+  pos = const [0, hdpx(7)]
   behavior = Behaviors.Button
   onClick = @() null
   children = txt(get_scene_filepath?())

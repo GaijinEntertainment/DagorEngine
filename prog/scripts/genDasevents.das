@@ -715,7 +715,7 @@ def main()
             sqStabs |> write(it)
             sqStabs |> write("\r\n")
 
-          sqStabs |> write("\}\r\nlet ")
+          sqStabs |> write("\}\r\nconst ")
 
           sqStabs |> write(names[length(names) - 1])
           sqStabs |> write("_COUNT = ")

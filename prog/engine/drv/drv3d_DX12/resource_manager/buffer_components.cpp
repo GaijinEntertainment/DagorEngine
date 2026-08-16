@@ -131,35 +131,41 @@ BufferState BufferHeap::discardBuffer(DXGIAdapter *adapter, Device &device, Buff
     {
       result.resourceId.inerhitStatusBits(to_discared.resourceId);
 
+      BufferViewCreateResult viewResult;
       if (to_discared.srvs)
       {
         if (raw_view)
         {
-          createBufferRawSRV(device.getDevice(), result);
+          viewResult = createBufferRawSRV(device.getDevice(), result);
         }
         else if (struct_view)
         {
-          createBufferStructureSRV(device.getDevice(), result, struct_size);
+          viewResult = createBufferStructureSRV(device.getDevice(), result, struct_size);
         }
         else
         {
-          createBufferTextureSRV(device.getDevice(), result, format);
+          viewResult = createBufferTextureSRV(device.getDevice(), result, format);
         }
       }
-      if (to_discared.uavs)
+      if (viewResult.has_value() && to_discared.uavs)
       {
         if (raw_view)
         {
-          createBufferRawUAV(device.getDevice(), result);
+          viewResult = createBufferRawUAV(device.getDevice(), result);
         }
         else if (struct_view)
         {
-          createBufferStructureUAV(device.getDevice(), result, struct_size);
+          viewResult = createBufferStructureUAV(device.getDevice(), result, struct_size);
         }
         else
         {
-          createBufferTextureUAV(device.getDevice(), result, format);
+          viewResult = createBufferTextureUAV(device.getDevice(), result, format);
         }
+      }
+      if (!viewResult.has_value())
+      {
+        D3D_ERROR("DX12: Discard of buffer <%s> could not recreate its views, %s", name,
+          dxgi_error_code_to_string(viewResult.error().errorCode));
       }
 
       freeBufferOnFrameCompletion(eastl::move(to_discared), freeReason);
@@ -243,8 +249,11 @@ BufferHeap::BufferAllocationResult BufferHeap::allocateBufferWithoutDefragmentat
     auto bufferHeapStateAccess = bufferHeapState.access();
 
     // Try to allocate from existing heaps
-    eastl::tie(selectedHeap, allocationRange) =
-      bufferHeapStateAccess->trySuballocateFromExistingHeaps(heap_properties, payloadSize, flags, offsetAlignment);
+    if (auto suballocation =
+          bufferHeapStateAccess->trySuballocateFromExistingHeaps(heap_properties, payloadSize, flags, offsetAlignment))
+    {
+      eastl::tie(selectedHeap, allocationRange) = *suballocation;
+    }
 
     // Create a new heap
     if (!selectedHeap)
@@ -384,7 +393,7 @@ void BufferHeap::notifyBufferMemoryRelease(size_t sz)
 
 void BufferHeap::notifyBufferMemoryAllocate(size_t sz) { tql::on_persistent_changed(true, tql::sizeInKb(sz)); }
 
-BufferGlobalId BufferHeap::tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *device, BufferGlobalId buffer_id,
+BufferHeap::BufferCloneResult BufferHeap::tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *device, BufferGlobalId buffer_id,
   BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess, AllocationFlags allocation_flags, uint64_t buffer_resource_size)
 {
   auto &heap = bufferHeapStateAccess->getConstHeap(buffer_id.index());
@@ -395,7 +404,15 @@ BufferGlobalId BufferHeap::tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *de
     bufferHeapStateAccess->createBufferHeap(this, adapter, device, buffer_resource_size, getPropertiesFromMemory(memory),
       heap.getFlags(), D3D12_RESOURCE_STATE_COPY_DEST, nullptr, heap.hasSuballocator(), allocation_flags);
 
-  return heapCreateResult.value_or({});
+  if (heapCreateResult.has_value())
+  {
+    return eastl::optional<BufferGlobalId>{heapCreateResult.value()};
+  }
+  if (is_oom_error_code(heapCreateResult.error().errorCode))
+  {
+    return eastl::optional<BufferGlobalId>{};
+  }
+  return dag::Unexpected{heapCreateResult.error()};
 }
 
 // Checks if the buffer is actually needed and if not it will be deleted immediately

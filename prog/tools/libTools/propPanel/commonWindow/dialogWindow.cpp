@@ -407,6 +407,12 @@ void DialogWindow::beforeUpdateImguiDialog(bool &use_auto_size_for_the_current_f
   }
 }
 
+float DialogWindow::calculateButtonPanelHeight() const
+{
+  const float separatorHeightWithSpacing = SEPARATOR_HEIGHT + ImGui::GetStyle().FramePadding.y;
+  return buttonsVisible ? (ImGui::GetFrameHeightWithSpacing() + separatorHeightWithSpacing) : 0.0f;
+}
+
 void DialogWindow::updateImguiDialog()
 {
   // NOTE: ImGui porting: BeginChild did not fare well with auto sizing, so using manual bottom alignment for the buttons.
@@ -421,8 +427,7 @@ void DialogWindow::updateImguiDialog()
   // vertical spacing.)
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, buttonItemSpacing);
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, buttonFramePadding);
-  const float separatorHeightWithSpacing = SEPARATOR_HEIGHT + style.FramePadding.y;
-  buttonPanelHeight = buttonsVisible ? (ImGui::GetFrameHeightWithSpacing() + separatorHeightWithSpacing) : 0.0f;
+  buttonPanelHeight = calculateButtonPanelHeight();
   ImGui::PopStyleVar(2);
 
   if (propertiesPanel)
@@ -488,11 +493,14 @@ void DialogWindow::updateImguiDialog()
     if (preventNavigationWithTheTabKey)
       ImGui::SetKeyOwner(ImGuiKey_Tab, ImGui::GetCurrentWindowRead()->ID);
 
+    // If the navigation cursor is visible then pressing Enter is the same as pressing Space, ImGui handles it as a button click. So we
+    // only handle Enter when navigation cursor is not visible to provide a Windows-like behavior: closing the dialog with Enter.
     // TODO: ImGui porting: allow closing dialogs with Enter when the focus is in an edit box. Also a single Escape press should be
     // enough to close them.
-    if (ImGui::Shortcut(ImGuiKey_Enter) || ImGui::Shortcut(ImGuiKey_KeypadEnter))
+    if (!ImGui::GetCurrentContext()->NavCursorVisible && (ImGui::Shortcut(ImGuiKey_Enter) || ImGui::Shortcut(ImGuiKey_KeypadEnter)))
     {
-      clickDialogButton(DIALOG_ID_OK);
+      if (buttonsPanel->getChildCount() > 0)
+        clickDialogButton(buttonsPanel->getByIndex(0)->getID());
     }
     else if (ImGui::Shortcut(ImGuiKey_Escape))
     {

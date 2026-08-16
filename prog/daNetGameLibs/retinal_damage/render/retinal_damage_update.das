@@ -5,10 +5,6 @@ let
   retinal_damage_remaining_time_fractionVarId = get_shader_variable_id("retinal_damage_remaining_time_fraction", true)
   retinal_damage_opacityVarId                 = get_shader_variable_id("retinal_damage_opacity", true)
 
-def smoothstep(edge0 : float; edge1 : float; x : float)
-  let step = clamp((x - edge0) / (edge1 - edge0), 0., 1.)
-  return step * step * (3. - 2. * step)
-
 def get_retinal_damage_opacity(remaining_time : float; lifetime : float; fade_in_time : float;
                                fade_out_time : float; initial_opacity : float)
   if remaining_time > 0.

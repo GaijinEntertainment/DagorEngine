@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 options rtti
 // PERF024: redundant pre-clone before a [clone(...)]-annotated function
 //
@@ -31,7 +32,7 @@ options rtti
 //   bad_clone_function_into_apply_qmacro_tmpl_fn  — 1 (Arm A, clone_function variant)
 //   bad_clone_type_into_apply_qmacro_tmpl_cls     — 0 (apply_qmacro_template_class wasn't annotated — clone_type test deferred)
 //   Total: 6
-expect 31208:6
+expect 31208:7
 
 require daslib/ast
 require daslib/ast_boost

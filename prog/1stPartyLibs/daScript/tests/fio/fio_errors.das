@@ -148,6 +148,46 @@ def test_rmdir_rec_error(t : T?) {
 }
 
 [test]
+def test_rmdir_rec_does_not_follow_symlinks(t : T?) {
+    // `rm -rf`'s rule: a symlink is unlinked, never descended into. Following
+    // one deletes whatever it points at, OUTSIDE the tree being removed —
+    // which turns "clean up a directory someone else wrote" into arbitrary
+    // deletion. Anything that removes an untrusted tree depends on this.
+    var terr = ""
+    let root = create_temp_directory("fio_rmdir_link_", terr)
+    assert(!empty(root), "temp dir created")
+    let keep_dir = path_join(root, "keep")
+    let victim = path_join(keep_dir, "precious.txt")
+    let doomed = path_join(root, "doomed")
+    mkdir_rec(keep_dir)
+    mkdir_rec(doomed)
+    fwrite(victim, "must survive")
+    let link = path_join(doomed, "link_to_keep")
+    var out = ""
+    let rc = unsafe(popen_argv(["ln", "-s", keep_dir, link], 30.0) $(f) {
+        if (f != null) {
+            out = fread(f)
+        }
+    })
+    // Gate on what landed, not the exit code: Windows `ln` reports success
+    // while copying, so an exit-code-only check would test nothing there.
+    var lerr = ""
+    if (rc != 0 || !is_symlink(link, lerr)) {
+        print("skipping: this platform did not create a symlink\n")
+        rmdir_rec(root)
+        return
+    }
+    t |> run("the link is removed, its target is not") @(tt : T?) {
+        var rerr = ""
+        tt |> success(rmdir_rec(doomed, rerr), "the tree holding the link is removed")
+        tt |> success(!stat(doomed).is_valid, "tree gone")
+        tt |> success(stat(victim).is_valid, "the link target survived")
+        tt |> equal(fread(victim), "must survive")
+    }
+    rmdir_rec(root)
+}
+
+[test]
 def test_relative_error(t : T?) {
     t |> run("works for valid paths") @(t : T?) {
         var error : string

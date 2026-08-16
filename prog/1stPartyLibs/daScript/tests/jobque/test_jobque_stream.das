@@ -1,4 +1,4 @@
-options gen2
+﻿options gen2
 options no_unused_function_arguments = false
 options no_unused_block_arguments = false
 require dastest/testing_boost public
@@ -46,7 +46,7 @@ def test_stream_basics(t : T?) {
 def test_stream_push_pop_bytes(t : T?) {
     t |> run("push + try_pop round-trip bytes") @(t : T?) {
         with_stream() $(var s : Stream?) {
-            var bytes = [1u8, 2u8, 3u8, 4u8, 5u8]
+            let bytes = [1u8, 2u8, 3u8, 4u8, 5u8]
             s |> push(bytes)
             t |> equal(1, s.total)
             var popped_len = 0
@@ -77,7 +77,7 @@ def test_stream_push_pop_bytes(t : T?) {
     t |> run("FIFO ordering") @(t : T?) {
         with_stream() $(var s : Stream?) {
             for (i in range(5)) {
-                var b = [uint8(i * 2)]
+                let b = [uint8(i * 2)]
                 s |> push(b)
             }
             t |> equal(5, s.total)
@@ -97,11 +97,11 @@ def test_stream_push_pop_bytes(t : T?) {
 def test_stream_gather_peek(t : T?) {
     t |> run("gather drains stream") @(t : T?) {
         with_stream() $(var s : Stream?) {
-            var a = [10u8]
+            let a = [10u8]
             s |> push(a)
-            var b = [20u8]
+            let b = [20u8]
             s |> push(b)
-            var c = [30u8]
+            let c = [30u8]
             s |> push(c)
             t |> equal(3, s.total)
             var sum = 0
@@ -114,9 +114,9 @@ def test_stream_gather_peek(t : T?) {
     }
     t |> run("peek preserves stream") @(t : T?) {
         with_stream() $(var s : Stream?) {
-            var a = [42u8]
+            let a = [42u8]
             s |> push(a)
-            var b = [99u8]
+            let b = [99u8]
             s |> push(b)
             var peeked : array<int>
             s |> peek() $(view : array<uint8># -const) {
@@ -221,6 +221,67 @@ def test_stream_try_pop_archive(t : T?) {
             }
             t |> equal(false, ok)
             t |> equal(false, got)
+        }
+    }
+}
+
+// Reentrancy contract: gather/gather_archive drain the queue under the lock, then
+// run the block OUTSIDE it - so the block may push to (or query) the same stream.
+// Items pushed during a gather join the NEXT drain, never the current one. This is
+// what lets a consumer (the audio command processor on the wasm AudioWorklet) run
+// arbitrary das code per command without wedging producers on other threads.
+[test]
+def test_stream_gather_reentrant(t : T?) {
+    t |> run("gather block may push to the same stream") @(t : T?) {
+        with_stream() $(var s : Stream?) {
+            let a = [1u8]
+            s |> push(a)
+            var seen : array<int>
+            s |> gather() $(view : array<uint8># -const) {
+                seen |> push(int(view[0]))
+                if (int(view[0]) == 1) {
+                    let again = [2u8]
+                    s |> push(again)
+                }
+            }
+            t |> equal(1, length(seen))
+            t |> equal(1, s.total)
+            var second : array<int>
+            s |> gather() $(view : array<uint8># -const) {
+                second |> push(int(view[0]))
+            }
+            t |> equal(1, length(second))
+            t |> equal(2, second[0])
+        }
+    }
+    t |> run("gather block may query the stream") @(t : T?) {
+        with_stream() $(var s : Stream?) {
+            let a = [7u8]
+            s |> push(a)
+            var seen_total = -1
+            s |> gather() $(view : array<uint8># -const) {
+                seen_total = s.total
+            }
+            t |> equal(0, seen_total)
+        }
+    }
+    t |> run("gather_archive block may push_archive to the same stream") @(t : T?) {
+        with_stream() $(var s : Stream?) {
+            s |> push_archive(CmdStruct(id = 1, name = "first", payload <- [0]))
+            var ids : array<int>
+            s |> gather_archive() $(var c : CmdStruct) {
+                ids |> push(c.id)
+                if (c.id == 1) {
+                    s |> push_archive(CmdStruct(id = 2, name = "second", payload <- [0]))
+                }
+            }
+            t |> equal(1, length(ids))
+            var ids2 : array<int>
+            s |> gather_archive() $(var c : CmdStruct) {
+                ids2 |> push(c.id)
+            }
+            t |> equal(1, length(ids2))
+            t |> equal(2, ids2[0])
         }
     }
 }

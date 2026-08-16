@@ -44,13 +44,24 @@ enum
   DIALOG_ID_RETRY,
   DIALOG_ID_IGNORE,
 
-  DIALOG_ID_LAST
+  DIALOG_ID_BUTTON_LAST,
+
+  PID_MESSAGE,
 };
 
 class ImguiMessageBoxDialog : public PropPanel::DialogWindow
 {
 public:
   explicit ImguiMessageBoxDialog(const char *caption) : PropPanel::DialogWindow(nullptr, hdpi::Px::ZERO, hdpi::Px::ZERO, caption) {}
+
+  void setInitialFocus()
+  {
+    // In Windows' MessageBox() the first button receives the focus by default.
+    // get_default_ret_value() also matches this.
+    PropPanel::PropertyControlBase *button = buttonsPanel->getByIndex(0);
+    G_ASSERT(button);
+    DialogWindow::setInitialFocus(button->getID());
+  }
 
   void onButtonPanelClick(int id) override
   {
@@ -59,7 +70,7 @@ public:
       if (onClose())
         hide(closeReturn());
     }
-    else if (id > PropPanel::DIALOG_ID_NONE && id < DIALOG_ID_LAST)
+    else if (id > PropPanel::DIALOG_ID_NONE && id < DIALOG_ID_BUTTON_LAST)
       hide(id);
   }
 
@@ -93,8 +104,6 @@ public:
       clipboard::set_clipboard_utf8_text(message);
     }
   }
-
-  static constexpr int PID_MESSAGE = 1;
 };
 
 class ImguiNativeModalDialogEventHandler : public wingw::INativeModalDialogEventHandler
@@ -121,7 +130,7 @@ public:
     const bool mono = (flags & wingw::MBS_MONOSPACE) != 0;
 
     PropPanel::ContainerPropertyControl *panel = dlg.getPanel();
-    panel->createStatic(ImguiMessageBoxDialog::PID_MESSAGE, msg.c_str(), false, true, true, mono);
+    panel->createStatic(PID_MESSAGE, msg.c_str(), false, true, true, mono);
 
     hdpi::Px widthMin = hdpi::_pxScaled(280);
     hdpi::Px widthMax = hdpi::_pxScaled(480);
@@ -155,6 +164,8 @@ public:
         createMessageBoxButton(dlg, PropPanel::DIALOG_ID_NO);
         break;
     }
+
+    dlg.setInitialFocus();
 
     const float paddingHorizontal = hdpi::_pxS(12) * 2;
     const float wrapMin = _px(widthMin) - paddingHorizontal;
@@ -220,7 +231,7 @@ private:
 
   void createMessageBoxButton(PropPanel::DialogWindow &dlg, int id)
   {
-    G_ASSERT(id >= 0 && id < DIALOG_ID_LAST);
+    G_ASSERT(id >= 0 && id < DIALOG_ID_BUTTON_LAST);
     dlg.createDialogButton(id, MBS_TEXT[id]);
   }
 };

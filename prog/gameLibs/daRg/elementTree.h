@@ -23,6 +23,7 @@ class GuiScene;
 class Screen;
 class InputStack;
 struct XmbData;
+struct ChildSlot;
 
 
 class ElementTree
@@ -89,10 +90,9 @@ private:
   void callAnimMethod(const Sqrat::Object &trigger, void (Animation::*)());
 
   int releaseChild(Element *elem, Element *child);
-  void reuseUnchangedDynamicChildren(dag::Vector<Element *> &elem_children,
-    dag::Vector<Sqrat::Object, framemem_allocator> &comp_children, Tab<Element *> &new_children_src);
-  void collectChildrenToReuse(dag::Vector<Element *> &elem_children, const dag::Vector<Component, framemem_allocator> &comp_children,
-    Tab<Element *> &new_children_src);
+  void reuseUnchangedDynamicChildren(dag::Vector<Element *> &elem_children, dag::Vector<ChildSlot, framemem_allocator> &slots);
+  void matchStatefulChildren(dag::Vector<Element *> &elem_children, dag::Vector<ChildSlot, framemem_allocator> &slots);
+  void collectChildrenToReuse(dag::Vector<Element *> &elem_children, dag::Vector<ChildSlot, framemem_allocator> &slots);
   bool removeExpiredFadeOutChildren(Element *elem);
 
   void releaseXmbOnDetach(Element *elem);

@@ -13,6 +13,7 @@
 #include <EASTL/numeric.h>
 #include <EASTL/sort.h>
 #include <EASTL/set.h>
+#include <EASTL/algorithm.h>
 
 
 namespace dafg
@@ -100,6 +101,39 @@ static bool segments_disjoint(Segment a, Segment b)
     return segments_disjoint_nwnw(a, b);
 }
 
+struct OccupiedRect
+{
+  uint64_t mem_start;
+  uint64_t mem_end;
+  uint32_t t_start;
+  uint32_t t_end;
+};
+
+static bool occupied_rect_by_offset(const OccupiedRect &a, const OccupiedRect &b) { return a.mem_start < b.mem_start; }
+
+// Same as base + size <= limit, but limits go up to UINT64_MAX, so the sum
+// cannot be relied upon to not wrap around.
+static bool fits_below(uint64_t base, uint64_t size, uint64_t limit) { return size <= limit && base <= limit - size; }
+
+static eastl::optional<uint64_t> lowest_free_offset(const PackerInput::Resource &res, eastl::span<const OccupiedRect> occupancy,
+  uint64_t max_heap_size)
+{
+  uint64_t cursor = 0;
+  for (const auto &occ : occupancy)
+  {
+    if (segments_disjoint(Segment{res.start, res.end}, Segment{occ.t_start, occ.t_end}))
+      continue;
+    const uint64_t base = res.doAlign(cursor);
+    if (fits_below(base, res.size, occ.mem_start) && fits_below(base, res.size, max_heap_size))
+      return base;
+    cursor = eastl::max(cursor, occ.mem_end);
+  }
+  const uint64_t base = res.doAlign(cursor);
+  if (fits_below(base, res.size, max_heap_size))
+    return base;
+  return eastl::nullopt;
+}
+
 struct GreedyScanlinePacker
 {
   template <class T>
@@ -170,7 +204,10 @@ struct GreedyScanlinePacker
     auto pinnedResources = findPinned(input.resources);
     fast_sort(pinnedResources, [&input](uint32_t a, uint32_t b) { return input.resources[a].pin < input.resources[b].pin; });
 
-    return scanlinePack(timeline, wrappingRes, pinnedResources, input);
+    PackerOutput output = scanlinePack(timeline, wrappingRes, pinnedResources, input);
+    if (!input.optionalResources.empty())
+      fillOptional(input, output);
+    return output;
   }
 
   PackerOutput scanlinePack(const Timeline &timeline, eastl::span<uint32_t> wrappingResources, eastl::span<uint32_t> pinnedResources,
@@ -285,10 +322,51 @@ struct GreedyScanlinePacker
   }
 
 private:
+  void fillOptional(const PackerInput &input, PackerOutput &output)
+  {
+    calculatedOptionalOffsets.clear();
+    calculatedOptionalOffsets.resize(input.optionalResources.size(), PackerOutput::NOT_ALLOCATED);
+
+    dag::Vector<OccupiedRect, framemem_allocator> occupancy;
+    occupancy.reserve(input.resources.size() + input.optionalResources.size());
+    for (uint32_t i = 0; i < input.resources.size(); ++i)
+    {
+      const uint64_t off = calculatedOffsets[i];
+      if (off == PackerOutput::NOT_SCHEDULED || off == PackerOutput::NOT_ALLOCATED)
+        continue;
+      const auto &res = input.resources[i];
+      occupancy.push_back({off, off + res.size, res.start, res.end});
+    }
+    eastl::sort(occupancy.begin(), occupancy.end(), occupied_rect_by_offset);
+
+    for (uint32_t k = 0; k < input.optionalResources.size(); ++k)
+    {
+      const auto &res = input.optionalResources[k];
+      if (res.size == 0)
+        continue;
+      G_ASSERT_CONTINUE(res.align != 0 && res.pin == PackerInput::NO_PIN && !is_wrapping(res));
+
+      const auto offset = lowest_free_offset(res, occupancy, input.maxHeapSize);
+      if (!offset.has_value())
+      {
+        calculatedOptionalOffsets[k] = PackerOutput::NOT_SCHEDULED;
+        continue;
+      }
+
+      calculatedOptionalOffsets[k] = *offset;
+      output.heapSize = eastl::max(output.heapSize, *offset + res.size);
+      const OccupiedRect placed{*offset, *offset + res.size, res.start, res.end};
+      occupancy.insert(eastl::upper_bound(occupancy.begin(), occupancy.end(), placed, occupied_rect_by_offset), placed);
+    }
+
+    output.optionalOffsets = calculatedOptionalOffsets;
+  }
+
   // NOTE: this intentionally does not use framemem allocator,
   // we wouldn't be able to wipe memory after packing is done
   // otherwise.
   dag::Vector<MemoryOffset> calculatedOffsets;
+  dag::Vector<MemoryOffset> calculatedOptionalOffsets;
 };
 
 Allocation GreedyAllocator::allocate(const PackerInput::Resource &res)

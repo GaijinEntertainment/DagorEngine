@@ -57,28 +57,28 @@ def isRttiType(vinfo; what : string) {
 def describe_arg(var ctxid : Context; vinfo; arg : void?) : void {
     unsafe {
         if (isRttiType(vinfo, "AnnotationList")) {
-            report_to_debugger(ctxid, "ast_debug", vinfo.name, describe(*reinterpret<AnnotationList?> arg))
+            report_to_debugger(ctxid, "ast_debug", vinfo.name, describe(*reinterpret<AnnotationList?>(arg)))
             return
         } elif (isRttiType(vinfo, "AnnotationArgumentList")) {
-            report_to_debugger(ctxid, "ast_debug", vinfo.name, describe(*reinterpret<AnnotationArgumentList?> arg))
+            report_to_debugger(ctxid, "ast_debug", vinfo.name, describe(*reinterpret<AnnotationArgumentList?>(arg)))
             return
         }
-        let parg = reinterpret<void ??> arg
+        let parg = reinterpret<void ??>(arg)
         if (parg == null || *parg == null) {
             report_to_debugger(ctxid, "ast_debug", vinfo.name, null)
             return
         }
         if (isExpressionType(vinfo)) {
-            report_to_debugger(ctxid, "ast_debug", vinfo.name, describe(*reinterpret<ExpressionPtr?> arg))
-            report_to_debugger(ctxid, "ast_debug", vinfo.name + ".detailed", debug_expression(*reinterpret<ExpressionPtr?> arg))
+            report_to_debugger(ctxid, "ast_debug", vinfo.name, describe(*reinterpret<ExpressionPtr?>(arg)))
+            report_to_debugger(ctxid, "ast_debug", vinfo.name + ".detailed", debug_expression(*reinterpret<ExpressionPtr?>(arg)))
         } elif (isAstPtrType(vinfo, "TypeDecl")) {
-            report_to_debugger(ctxid, "ast_debug", vinfo.name, describe(*reinterpret<TypeDeclPtr?> arg))
+            report_to_debugger(ctxid, "ast_debug", vinfo.name, describe(*reinterpret<TypeDeclPtr?>(arg)))
         } elif (isAstPtrType(vinfo, "Function")) {
-            report_to_debugger(ctxid, "ast_debug", vinfo.name, describe(*reinterpret<FunctionPtr?> arg))
+            report_to_debugger(ctxid, "ast_debug", vinfo.name, describe(*reinterpret<FunctionPtr?>(arg)))
         } elif (isAstPtrType(vinfo, "Variable")) {
-            report_to_debugger(ctxid, "ast_debug", vinfo.name, describe(*reinterpret<VariablePtr?> arg))
+            report_to_debugger(ctxid, "ast_debug", vinfo.name, describe(*reinterpret<VariablePtr?>(arg)))
         } elif (isRttiPtrType(vinfo, "AnnotationDeclaration")) {
-            report_to_debugger(ctxid, "ast_debug", vinfo.name, describe(**reinterpret<AnnotationDeclarationPtr?> arg))
+            report_to_debugger(ctxid, "ast_debug", vinfo.name, describe(**reinterpret<AnnotationDeclarationPtr?>(arg)))
         }
     }
 }
@@ -88,7 +88,7 @@ class SampleStackWalker : DapiStackWalker {
     ctxid : Context?
     def override onArgument(info : FuncInfo; index : int; vinfo : VarInfo; arg : float4) : void {
         if (vinfo.flags.ref || vinfo.flags.refType) {
-            describe_arg(*ctxid, vinfo, *unsafe(reinterpret<void ??>(unsafe(addr(arg)))))
+            describe_arg(*ctxid, vinfo, *unsafe(addr<void ??>(arg)))
         } else {
             describe_arg(*ctxid, vinfo, unsafe(addr(arg)))
         }

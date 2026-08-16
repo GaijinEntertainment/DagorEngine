@@ -13,6 +13,7 @@
 #include <generic/dag_zip.h>
 #include <atomic>
 #include <math/dag_frustum.h>
+#include <util/dag_strUtil.h>
 
 #include "bvh_context.h"
 #include "bvh_ri_common.h"
@@ -31,6 +32,8 @@ enum class PerInstanceDataUse
 void before_object_action(ContextId context_id, uint64_t object_id);
 
 extern elem_rules_fn elem_rules;
+
+extern bool bvh_use_hair;
 
 extern dag::AtomicInteger<uint32_t> bvh_id_gen;
 
@@ -81,6 +84,16 @@ inline eastl::optional<MeshInfo> process_relem(ContextId context_id, const Shade
 
   G_ASSERT(parser.normalFormat == -1 || parser.normalFormat == VSDT_E3DCOLOR);
   G_ASSERT(parser.colorFormat == -1 || parser.colorFormat == VSDT_E3DCOLOR);
+
+  auto shdlen = strlen(elem.mat->getShaderClassName());
+
+  if (!bvh_use_hair && strncmp(elem.mat->getShaderClassName(), "dynamic_hair", 12) == 0)
+    return eastl::nullopt;
+
+  // rendinst_*_decal
+  if (strncmp(elem.mat->getShaderClassName(), "rendinst_", 9) == 0 &&
+      str_ends_with_c(elem.mat->getShaderClassName(), "_decal", shdlen, 6))
+    return eastl::nullopt;
 
   bool isHeliRotor = strncmp(elem.mat->getShaderClassName(), "helicopter_rotor", 16) == 0;
   bool isTree = strncmp(elem.mat->getShaderClassName(), "rendinst_tree", 13) == 0;
@@ -188,19 +201,20 @@ inline void process_relems(ContextId context_id, const char *tag, const dag::Spa
 
   // filter out trees and flags because we don't want to account them yet
   BvhType type = !resource->hasTreeOrFlag() ? BvhType::RI : BvhType::None;
+  const AssetNameRef assetName = make_asset_name_ref(resource);
   if (isAnimated)
   {
     for (auto [i, info] : zip(indices, meshes))
     {
       bool isMeshAnimated = info.vertexProcessor && !info.vertexProcessor->isOneTimeOnly();
       const auto meshId = make_relem_mesh_id(bvh_id, lod_ix, i);
-      add_object(context_id, meshId, {{info}, type, isMeshAnimated, tag});
+      add_object(context_id, meshId, {{info}, type, isMeshAnimated, tag, assetName});
     }
   }
   else
   {
     const auto meshId = make_relem_mesh_id(bvh_id, lod_ix, 0);
-    add_object(context_id, meshId, {{meshes.begin(), meshes.end()}, type, isAnimated, tag});
+    add_object(context_id, meshId, {{meshes.begin(), meshes.end()}, type, isAnimated, tag, assetName});
   }
 }
 

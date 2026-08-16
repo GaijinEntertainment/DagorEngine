@@ -1,6 +1,6 @@
 # daslang MCP Server
 
-A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that exposes 28 daslang compiler-backed tools to AI coding assistants like Claude Code — compilation diagnostics, program introspection, AOT generation, live-reload control, and more.
+A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that exposes daslang compiler-backed tools to AI coding assistants like Claude Code — compilation diagnostics, program introspection, AOT generation, C++ source intelligence, live-reload control, and more.
 
 ## Tools
 
@@ -20,7 +20,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that e
 | `find_symbol` | Cross-module symbol search (functions, generics, structs, handled types, enums, globals, typedefs/aliases, fields). Case-insensitive substring by default; `=query` for exact match |
 | `list_requires` | Compile a `.das` file and list all `require` dependencies (direct and transitive), with source file paths and builtin annotations. Optional `json` for structured output |
 | `list_module_api` | List all functions, types, enums, and globals exported by a builtin or daslib module (e.g. `math`, `strings`, `fio`, `daslib/json`). Optional `compact` mode for large modules |
-| `convert_to_gen2` | Convert a `.das` file from gen1 (indentation-based) syntax to gen2 (braces/parentheses) using `das-fmt`. Optional `inplace` flag to modify the file directly |
+| `convert_to_gen2` | Convert a `.das` file from gen1 (indentation-based) syntax to gen2 (braces/parentheses) using the `gen1_to_gen2` converter. Optional `inplace` flag to modify the file directly |
 | `goto_definition` | Given a cursor position (file, line, column), resolve the definition of the symbol under the cursor. Returns location, kind (variable/function/field/builtin/struct/enum/typedef), and source snippet. Optional `no_opt` to preserve pre-optimization AST |
 | `type_of` | Given a cursor position (file, line, column), return the resolved type of the expression under the cursor. Shows all expressions at position from innermost to outermost. Optional `no_opt` |
 | `find_references` | Find all references to the symbol under the cursor (function calls, variable uses, field accesses, type refs, enum/bitfield values, aliases). Works from both usage and declaration sites. Scope: `file` (default) or `all` (all loaded modules). Optional `no_opt` |
@@ -29,6 +29,61 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that e
 | `grep_usage` | Parse-aware symbol search across `.das` files using ast-grep + tree-sitter. Finds identifier occurrences excluding comments and strings. Conditional on `sg` CLI |
 | `outline` | List all declarations (functions, structs, classes, enums, bitfields, variants, globals, typedefs) in a file or set of files using tree-sitter. Works on broken/incomplete code — no compilation needed. Conditional on `sg` CLI |
 | `aot` | Generate AOT (ahead-of-time) C++ code for a `.das` file or a single function. Without `function`, returns full AOT output. With `function`, extracts that function's C++ only. Overloaded names return a disambiguation list with mangled names for exact selection |
+
+### C++ Source & Build Tools
+
+Parse-aware (tree-sitter-cpp) source search plus compiler-backed build tools. The compile tools read the CMake compile database (`build/compile_commands.json`); see the note below.
+
+| Tool | Description |
+|---|---|
+| `cpp_grep_usage` | Parse-aware C++ identifier search across `.cpp/.h/.hpp/.cc` files using ast-grep + tree-sitter-cpp. Skips comments and strings. Searches `src/`, `include/`, `modules/` by default |
+| `cpp_find_symbol` | Search C++ symbol DECLARATIONS by name + kind (`function`/`class`/`struct`/`enum`/`union`/`typedef`/`namespace`/`macro`). Best-effort; macro-expanded declarations are invisible to ast-grep |
+| `cpp_outline` | List C++ declarations in a file or glob, grouped by file with containment (methods under their class). Works on broken code; no compile DB needed |
+| `cpp_goto_definition` | Up to 5 plausible definition locations for a cursor position. Approximate — no scope resolution or overload disambiguation |
+| `cpp_compile_check` | Syntax-check a C++ translation unit using the real compiler off `compile_commands.json` (`cl /Zs` on MSVC, `-fsyntax-only` on clang/gcc). Inherits the build's flags incl. `/WX`. Optional `json` for a structured `CppCompileResult`; optional `build_dir` |
+| `cpp_build_info` | Return the compiler, build directory, full compile command, and derived syntax-only command for a TU. Answers "what command line compiles this file" |
+| `cpp_format_file` | Format a C++ file in place with clang-format, but only when a `.clang-format` is discoverable by walking up from the file. No-op-with-message otherwise (the daScript tree ships none) |
+
+**Compile DB requirement.** `cpp_compile_check` / `cpp_build_info` need `build/compile_commands.json`. The top-level `CMakeLists.txt` sets `CMAKE_EXPORT_COMPILE_COMMANDS ON`, but only the **Ninja and Makefile** generators honor it — the **Visual Studio generator does not emit the DB**, so on Windows use a side Ninja build dir (the tools probe `build/`, `build-ninja/`, then `build*/`; pass `build_dir` to override). Headers aren't translation units (not in the DB) — pass a `.cpp`/`.cc` that includes them.
+
+**Windows + MSVC: developer environment.** On MSVC the DB omits system include paths (the compiler reads them from the `INCLUDE` env var set by `vcvars64`), so the MCP server — and the `cl.exe` it spawns — must run in a Visual Studio developer environment, or `cpp_compile_check` fails on `<vcruntime.h>`. The simplest fix is to point `.mcp.json` at the bundled launcher `utils/mcp/daslang-mcp-msvc.cmd`, which locates VS via `vswhere`, loads the x64 dev environment, then starts the server — so it works no matter how Claude Code is launched:
+
+```json
+"daslang": {
+  "command": "cmd",
+  "args": ["/c", "utils\\mcp\\daslang-mcp-msvc.cmd"],
+  "defer_loading": false
+}
+```
+
+Alternatively, launch Claude Code itself from an *x64 Native Tools Command Prompt for VS* (the server inherits the environment). clang/gcc find their system headers automatically, so this is Windows/MSVC-only — on Linux/macOS point `.mcp.json` straight at the daslang binary.
+
+### Two servers: full (`main.das`) and C++-only (`cpp_main.das`)
+
+The server has two entry points over the same dispatch core (the provider-neutral `mcp_core.das`, with the daslang module-resolution layer added by `protocol_core.das`):
+
+- **`main.das`** — the full tool set (everything above).
+- **`cpp_main.das`** — only the cpp/agnostic subset: `grep_usage`, `outline`, the seven `cpp_*` tools, and `shutdown`. None of the daslang compiler-backed tools (compile / lint / AOT / introspection / live-reload) are registered, so a C++-only project gets a focused tool list without the daslang toolchain.
+
+Register one or both. On **Windows** the same launcher serves both — the server script is the launcher's first argument:
+
+```json
+"mcpServers": {
+  "daslang":     { "command": "cmd", "args": ["/c", "utils\\mcp\\daslang-mcp-msvc.cmd"],                 "defer_loading": false },
+  "daslang-cpp": { "command": "cmd", "args": ["/c", "utils\\mcp\\daslang-mcp-msvc.cmd", "cpp_main.das"], "defer_loading": false }
+}
+```
+
+On **Linux/macOS** point each entry at the binary directly (no launcher needed):
+
+```json
+"mcpServers": {
+  "daslang":     { "command": "./bin/daslang", "args": ["utils/mcp/main.das"] },
+  "daslang-cpp": { "command": "./bin/daslang", "args": ["utils/mcp/cpp_main.das"] }
+}
+```
+
+Tools are namespaced by server, so the cpp server's tools appear as `mcp__daslang-cpp__cpp_compile_check` etc. A future `cpp-mcp` AOT binary will ship `cpp_main.das` as a standalone executable for C++-only consumers; the interpreted form above is the same server.
 
 ### Duplicate Detection
 
@@ -108,11 +163,43 @@ claude mcp add daslang -- ./bin/daslang utils/mcp/main.das
 
 Claude Code starts and stops the server automatically with each session.
 
+### Fresh checkouts and worktrees
+
+A new `git worktree add` (or a fresh clone) does **not** carry the files the MCP
+server needs: `.mcp.json`, `sgconfig.yml`, a built `bin/` binary, and the
+tree-sitter grammar shared lib are all gitignored, so a Claude session opened in
+a worktree silently has zero daslang tools. Bootstrap one with:
+
+```bash
+# run from ANY existing daslang binary, pointed at the target worktree
+bin/Release/daslang.exe utils/mcp/setup.das -- --root <worktree-abs-path>   # Windows MSVC
+./bin/daslang           utils/mcp/setup.das -- --root <worktree-abs-path>   # Linux / macOS
+daslang                 utils/mcp/setup.das -- --root <worktree-abs-path>   # when daslang is on PATH
+```
+
+`setup.das` builds a worktree-local `daslang` (+ the `tree_sitter_daslang`
+grammar), copies the platform `sgconfig.yml` template, and writes/merges
+`.mcp.json` with the `daslang` server entry. It adds no new secrets, and
+preserves any existing server entries (e.g. `github`, including their env
+blocks) as-is. Pass `--no-build` to only wire the
+config to an already-built binary. On Windows it also points the build at a
+shared OpenSSL cache (`%LOCALAPPDATA%/daslang/openssl`; override with
+`--openssl-dir`) so OpenSSL is built once instead of ~15 min per worktree.
+Restart the session in the worktree afterward to pick up the server.
+
+> **`das_root` is derived from the binary, not the cwd** (`src/misc/sysos.cpp`):
+> daslang resolves its root (daslib, modules) from the directory above `bin/`.
+> `setup.das` therefore points `.mcp.json` at the **worktree-local** binary so
+> file resolution stays inside the worktree. If you ever wire a *shared* binary
+> from another checkout, pass `-dasroot <worktree>` in `args` or every tool will
+> read the wrong tree.
+
 ## Architecture
 
 - Each tool invocation runs in a **separate thread** (`new_thread`) with its own context/heap — when the thread ends, its memory is freed without GC
 - **Exception:** `live_*` tools run on the main thread (they use `system()` and `sleep()` which don't work well from `new_thread`)
-- Protocol logic lives in `protocol.das`, the entry point is `main.das`
+- Dispatch + JSON-RPC framing live in the provider-neutral `mcp_core.das` (serverInfo and the extra-arg names it extracts for every tool come from the `McpServer` config it is handed); `protocol_core.das` adds the daslang layer — the module-resolution args (`project` / `project_root` / `load_modules`), `make_file_tool`, and `das_mcp_server()`. Tools are described by a data-driven registry (`array<ToolDef>`): `registry_das.das` registers the daslang compiler-backed tools, `registry_cpp.das` the cpp/agnostic subset. Adding a tool = one `ToolDef` entry.
+- Two entry points share that dispatch: **`main.das`** registers the full set; **`cpp_main.das`** registers only the cpp/agnostic subset (ast-grep search/outline + the C++ build tools + `shutdown`), for C++-focused consumers that don't want the daslang toolchain in their tool list.
 - Heap is collected after each request when over threshold (1 MB)
 - Tool handlers are modular: each tool lives in `tools/*.das`, MCP-specific shared utilities in `tools/common.das`. The general "comma/newline list of files / globs → file array" expander (`expand_glob`, `parse_file_list`) lives in `daslib/fio`
 
@@ -145,6 +232,13 @@ Optionally, allow the MCP tools without prompting by adding to `.claude/settings
       "mcp__daslang__grep_usage",
       "mcp__daslang__outline",
       "mcp__daslang__aot",
+      "mcp__daslang__cpp_grep_usage",
+      "mcp__daslang__cpp_find_symbol",
+      "mcp__daslang__cpp_outline",
+      "mcp__daslang__cpp_goto_definition",
+      "mcp__daslang__cpp_compile_check",
+      "mcp__daslang__cpp_build_info",
+      "mcp__daslang__cpp_format_file",
       "mcp__daslang__live_launch",
       "mcp__daslang__live_status",
       "mcp__daslang__live_error",

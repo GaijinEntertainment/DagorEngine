@@ -30,7 +30,7 @@ Compile
   assume_static {
     normal_repacking_needed:i = 0
     use_hw_rt_gi:i=0
-    supports_sh_6_1:i = 0
+    supports_barycentrics:i = 0
     in_editor_assume:i=1
     dynamic_lights_count:i=0
     shore_waves_on:i= 0

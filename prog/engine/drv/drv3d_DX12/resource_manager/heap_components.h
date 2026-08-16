@@ -1276,7 +1276,7 @@ protected:
 public:
   static D3D12_RESOURCE_STATES propertiesToInitialState(D3D12_RESOURCE_DIMENSION dim, D3D12_RESOURCE_FLAGS flags,
     DeviceMemoryClass memory_class);
-  static ResourceHeapProperties getProperties(D3D12_RESOURCE_FLAGS flags, DeviceMemoryClass memory_class, uint64_t aligment);
+  static ResourceHeapProperties getProperties(D3D12_RESOURCE_FLAGS flags, DeviceMemoryClass memory_class, uint64_t alignment);
   static ResourceHeapProperties getPropertiesFromMemory(ResourceMemory memory)
   {
     ResourceHeapProperties p;
@@ -1466,7 +1466,7 @@ protected:
 public:
   static D3D12_RESOURCE_STATES propertiesToInitialState(D3D12_RESOURCE_DIMENSION dim, D3D12_RESOURCE_FLAGS flags,
     DeviceMemoryClass memory_class);
-  ResourceHeapProperties getProperties(D3D12_RESOURCE_FLAGS flags, DeviceMemoryClass memory_class, uint64_t aligment);
+  ResourceHeapProperties getProperties(D3D12_RESOURCE_FLAGS flags, DeviceMemoryClass memory_class, uint64_t alignment);
   static ResourceHeapProperties getPropertiesFromMemory(ResourceMemory memory)
   {
     ResourceHeapProperties p;

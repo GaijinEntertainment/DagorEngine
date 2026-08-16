@@ -8,7 +8,7 @@ let { get_time_msec } = require("dagor.time")
 
 // monotonic counters of gui_scene.getPerfStats(): report delta over the window
 let counterKeys = [
-  "updates", "rebuildBatches", "invalidations", "builderEvals",
+  "updates", "rebuildBatches", "invalidations", "builderEvals", "statefulCtorRuns",
   "elemsSetupInitial", "elemsSetupRebuild", "elemsSetupRealtime",
   "elemsCreated", "elemsFreed",
   "layoutFixedSizeRoots", "layoutSizeRoots", "layoutFlowRoots",
@@ -73,7 +73,9 @@ function mkBenchRunner(name, params = {}) {
       if ("metrics" in endStats)
         result.metrics <- endStats.metrics
 
-      println("BENCH_RESULT", toJson(result))
+      // single-arg println: multi-arg pieces reach the log as separate lines,
+      // and run_bench.py needs the marker and the json on one line
+      println($"BENCH_RESULT {toJson(result)}")
       exit(0)
     }
   })

@@ -200,13 +200,13 @@ namespace raster
             {
 
             #if IN_ALPHA_TEXTURE_CHANNEL == 0
-                const PRECISE float4 gatherAlpha = t_alphaTexture.GatherRed(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), texCoord.xy, 0);
+                const PRECISE float4 gatherAlpha = OMM_ALPHA_GATHER_R(texCoord.xy);
             #elif IN_ALPHA_TEXTURE_CHANNEL == 1
-                const PRECISE float4 gatherAlpha = t_alphaTexture.GatherGreen(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), texCoord.xy, 0);
+                const PRECISE float4 gatherAlpha = OMM_ALPHA_GATHER_G(texCoord.xy);
             #elif IN_ALPHA_TEXTURE_CHANNEL == 2
-                const PRECISE float4 gatherAlpha = t_alphaTexture.GatherBlue(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), texCoord.xy, 0);
+                const PRECISE float4 gatherAlpha = OMM_ALPHA_GATHER_B(texCoord.xy);
             #elif IN_ALPHA_TEXTURE_CHANNEL == 3
-                const PRECISE float4 gatherAlpha = t_alphaTexture.GatherAlpha(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), texCoord.xy, 0);
+                const PRECISE float4 gatherAlpha = OMM_ALPHA_GATHER_A(texCoord.xy);
             #else
             #error "unexpected value of IN_ALPHA_TEXTURE_CHANNEL"
             #endif
@@ -354,13 +354,13 @@ namespace raster
             else
             {
                 #if IN_ALPHA_TEXTURE_CHANNEL == 0
-                    const PRECISE float4 alpha = t_alphaTexture.GatherRed(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), texCoord.xy, 0);
+                    const PRECISE float4 alpha = OMM_ALPHA_GATHER_R(texCoord.xy);
                 #elif IN_ALPHA_TEXTURE_CHANNEL == 1
-                    const PRECISE float4 alpha = t_alphaTexture.GatherGreen(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), texCoord.xy, 0);
+                    const PRECISE float4 alpha = OMM_ALPHA_GATHER_G(texCoord.xy);
                 #elif IN_ALPHA_TEXTURE_CHANNEL == 2
-                    const PRECISE float4 alpha = t_alphaTexture.GatherBlue(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), texCoord.xy, 0);
+                    const PRECISE float4 alpha = OMM_ALPHA_GATHER_B(texCoord.xy);
                 #elif IN_ALPHA_TEXTURE_CHANNEL == 3
-                    const PRECISE float4 alpha = t_alphaTexture.GatherAlpha(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), texCoord.xy, 0);
+                    const PRECISE float4 alpha = OMM_ALPHA_GATHER_A(texCoord.xy);
                 #else
                 #error "unexpected value of IN_ALPHA_TEXTURE_CHANNEL"
                 #endif
@@ -374,7 +374,7 @@ namespace raster
         }
         else // if (mode == TextureFilterMode::Nearest)
         {
-            const PRECISE float4 color = t_alphaTexture.SampleLevel(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), texCoord.xy, 0);
+            const PRECISE float4 color = OMM_ALPHA_SAMPLE_LEVEL(texCoord.xy);
 
         #if IN_ALPHA_TEXTURE_CHANNEL == 0
                 const PRECISE float alpha = color.r;

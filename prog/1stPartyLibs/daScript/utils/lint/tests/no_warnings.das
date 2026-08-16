@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // No warnings test — exercises correct patterns for all lint rules.
 // Should produce zero warnings from paranoid, perf, and style lint.
 

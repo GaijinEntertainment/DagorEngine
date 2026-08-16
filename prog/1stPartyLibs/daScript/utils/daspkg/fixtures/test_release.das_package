@@ -13,7 +13,11 @@ def release() {
     release_main("main.das")
     release_include("*.png")
     release_include("data/**/*.json")
+    release_include_if_missing("config/*.toml")
     release_exclude("data/internal/**")
     release_shared_module("dasSQLITE")
     release_shared_module("dasGlfw")
+    release_wasm_build("emcmake cmake -S . -B _wasm && cmake --build _wasm")
+    release_wasm_archive("_wasm/liblibDasModuleTest.a")
+    release_wasm_archive("_wasm/liblibTestApp.a")
 }

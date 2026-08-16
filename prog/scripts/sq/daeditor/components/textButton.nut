@@ -1,10 +1,11 @@
 from "%sqstd/underscore.nut" import deep_merge
 from "%darg/ui_imports.nut" import *
+
 let style = const {
   text = {
     normal = {
       color = Color(200,200,200)
-      transform = {}
+      transform = true
     }
     hover = {
       color = Color(0,0,0)
@@ -15,16 +16,16 @@ let style = const {
   }
   box = {
     normal = {
-      margin = [hdpx(1),hdpx(10)]
+      margin = const [hdpx(1),hdpx(10)]
       borderColor = Color(200,200,200)
       borderRadius = hdpx(4)
       fillColor = Color(10,10,10)
-      padding = [hdpx(4), hdpx(10)]
-      transform = {}
+      padding = const [hdpx(4), hdpx(10)]
+      transform = true
     }
     active = {
       fillColor = Color(200,200,200)
-      pos = [0, hdpx(1)]
+      pos = const [0, hdpx(1)]
     }
     hover = {
       fillColor = Color(255,255,255)
@@ -51,7 +52,7 @@ let offStyle = const {
     }
     active = {
       fillColor = Color(10,10,10)
-      pos = [0, 0]
+      pos = const [0, 0]
     }
   }
 }

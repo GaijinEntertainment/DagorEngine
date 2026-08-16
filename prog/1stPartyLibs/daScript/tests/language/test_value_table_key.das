@@ -4,7 +4,7 @@ require dastest/testing_boost public
 
 [test]
 def test_value_table_key(t : T?) {
-    var tab : table<EntityId; string>
+    var tab : table<EntityId; string>  // nolint:STYLE031 — insert with value keys is under test
     tab |> insert(EntityId(1), "hello")
     tab |> insert(EntityId(2), "world")
     tab |> insert(EntityId(3), "!")
@@ -12,12 +12,12 @@ def test_value_table_key(t : T?) {
     tab |> erase(EntityId(3))
     t |> equal(length(tab), 2)
 
-    var found = tab |> get(EntityId(2)) <| $(val) {
+    var found = tab |> get(EntityId(2)) $(val) {
         t |> equal(val, "world")
     }
     t |> success(found)
 
-    found = tab |> get(EntityId(1)) <| $(val) {
+    found = tab |> get(EntityId(1)) $(val) {
         t |> equal(val, "hello")
     }
     t |> success(found)
@@ -43,7 +43,7 @@ def test_value_table_key(t : T?) {
     }
     t |> equal(count, 2)
 
-    var set : table<EntityId>
+    var set : table<EntityId>  // nolint:STYLE031 — set insert with value keys is under test
     set |> insert(EntityId(1))
     set |> insert(EntityId(2))
     set |> insert(EntityId(3))

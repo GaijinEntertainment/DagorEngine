@@ -3919,6 +3919,8 @@ void TextEditor::ColorizeRange(int from, int to)
 
 	from = eastl::max(from, 0);
 	to = eastl::min((int)mLines.size() - 1, to);
+	if (to < from)
+		return;
 
 	eastl::string commentStart = mLanguageDefinition->mCommentStart;
 	eastl::string commentEnd = mLanguageDefinition->mCommentEnd;

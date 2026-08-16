@@ -3,6 +3,7 @@
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_expressions.h"
 #include "daScript/ast/ast_visitor.h"
+#include "daScript/ast/ast_handle.h"
 
 namespace das {
 
@@ -54,6 +55,11 @@ namespace das {
         failToCompile = true;
     }
 
+    void Program::stickyError ( const string & str, const string & extra, const string & fixme, const LineInfo & at, CompilationError cerr ) {
+        stickyErrors.emplace_back(str,extra,fixme,at,cerr);
+        error(str,extra,fixme,at,cerr);
+    }
+
     // Identify the "not_resolved_yet" follow-on family by numeric range.
     // All `not_resolved_yet_*` codes live in the 31300-31399 block (the
     // `not_resolved_yet` facet cluster within stage 3, semantic). See
@@ -61,6 +67,25 @@ namespace das {
     static __forceinline bool isNotResolvedYet ( CompilationError cerr ) {
         int v = int(cerr);
         return v >= 31300 && v < 31400;
+    }
+
+    // Macro-authored diagnostics are exempt from Rule 2: several macros can sit on one
+    // declaration, each failing with its own independently-actionable message — same line,
+    // same cerr, different macro. Bounded per node per macro (annotations by the annotation
+    // list × call sites, lint findings by one per AST node per rule), so they cannot avalanche.
+    static __forceinline bool isMacroDiagnostic ( CompilationError cerr ) {
+        switch ( cerr ) {
+            case CompilationError::runtime_annotation:
+            case CompilationError::runtime_annotation_transform:
+            case CompilationError::runtime_structure_annotation:
+            case CompilationError::runtime_function_annotation:
+            case CompilationError::runtime_macro:               // das-side macro_error()
+            case CompilationError::runtime_macro_performance:   // das-side macro_performance_warning() — perf_lint
+            case CompilationError::runtime_macro_style:         // das-side macro_style_warning() — style_lint
+                return true;
+            default:
+                return false;
+        }
     }
 
     void Program::deduplicateErrors () {
@@ -117,10 +142,12 @@ namespace das {
             }
             int dupCount = int(j - i);
             // Rule 2: same-line, same-cerr, different-text — collapse to first
-            // and append `(+N more on this line)` to the message.
+            // and append `(+N more on this line)` to the message. Macro diagnostics
+            // keep every distinct text (see isMacroDiagnostic).
             int sameLineSameCerrCount = 0;
             size_t k = j;
-            while ( k < N
+            while ( !isMacroDiagnostic(e.cerr)
+                && k < N
                 && errors[k].at.fileInfo == e.at.fileInfo
                 && errors[k].at.line == e.at.line
                 && errors[k].cerr == e.cerr
@@ -132,7 +159,8 @@ namespace das {
             // Emit the first instance with optional count suffixes.
             Error out = e;
             if ( dupCount > 1 ) {
-                out.what += " (\xC3\x97" + to_string(dupCount) + ")";
+                // ASCII 'x', not U+00D7: diagnostics flow into logs that are not UTF-8 aware
+                out.what += " (x" + to_string(dupCount) + ")";
             }
             if ( sameLineSameCerrCount > 0 ) {
                 out.what += " (+" + to_string(sameLineSameCerrCount) + " more on this line)";
@@ -214,12 +242,13 @@ namespace das {
         library.addModule(thisModule.get());
     }
 
-    TypeDecl * Program::makeTypeDeclaration(const LineInfo &at, const string &name) {
+    TypeDecl * Program::makeTypeDeclaration(const LineInfo &at, const string &name, Module * perspective) {
         das::vector<das::StructurePtr> structs;
         das::vector<das::AnnotationPtr> handles;
         das::vector<das::EnumerationPtr> enums;
         das::vector<das::TypeDeclPtr> aliases;
-        library.findWithCallback(name, thisModule.get(), [&](Module * pm, const string &name, Module * inWhichModule) {
+        if ( !perspective ) perspective = thisModule.get();
+        library.findWithCallback(name, perspective, [&](Module * pm, const string &name, Module * inWhichModule) {
             library.findStructure(structs, pm, name, inWhichModule);
             library.findAnnotation(handles, pm, name, inWhichModule);
             library.findEnum(enums, pm, name, inWhichModule);
@@ -247,7 +276,21 @@ namespace das {
             }
         } else if ( handles.size() ) {
             if ( handles.size()==1 ) {
-                if ( handles.back()->rtti_isHandledTypeAnnotation() ) {
+                if ( handles.back()->rtti_isDistinctTypeAnnotation() ) {
+                    auto dann = static_cast<DistinctTypeAnnotation *>(handles.back());
+                    if ( dann->isPrivate && dann->module && dann->module!=perspective ) {
+                        error("can't access private distinct type "+name,"","",
+                            at,CompilationError::invalid_distinct_type);
+                        return nullptr;
+                    }
+                    auto pTD = new TypeDecl(Type::tDistinct);
+                    pTD->annotation = dann;
+                    if ( dann->underlyingType ) {
+                        pTD->firstType = new TypeDecl(*dann->underlyingType);
+                    }
+                    pTD->at = at;
+                    return pTD;
+                } else if ( handles.back()->rtti_isHandledTypeAnnotation() ) {
                     auto pTD = new TypeDecl(Type::tHandle);
                     pTD->annotation = static_cast<TypeAnnotation *>(handles.back());
                     pTD->at = at;
@@ -328,6 +371,9 @@ namespace das {
 
     ExpressionPtr Program::makeConst ( const LineInfo & at, const TypeDeclPtr & type, vec4f value ) {
         if ( type->ref || type->baseType==Type::tFixedArray ) return nullptr;
+        if ( type->baseType==Type::tDistinct ) {    // ABI-identical: the const node is the underlying's
+            return type->firstType ? makeConst(at, type->firstType, value) : nullptr;
+        }
         switch ( type->baseType ) {
             case Type::tBool:           return new ExprConstBool(at, cast<bool>::to(value));
             case Type::tInt8:           return new ExprConstInt8(at, cast<int8_t>::to(value));
@@ -361,6 +407,7 @@ namespace das {
             case Type::tUInt3:          return new ExprConstUInt3(at, cast<uint3>::to(value));
             case Type::tUInt4:          return new ExprConstUInt4(at, cast<uint4>::to(value));
             case Type::tFloat:          return new ExprConstFloat(at, cast<float>::to(value));
+            case Type::tFloat16:        return new ExprConstFloat16(at, cast<float16_t>::to(value));
             case Type::tFloat2:         return new ExprConstFloat2(at, cast<float2>::to(value));
             case Type::tFloat3:         return new ExprConstFloat3(at, cast<float3>::to(value));
             case Type::tFloat4:         return new ExprConstFloat4(at, cast<float4>::to(value));
@@ -369,6 +416,30 @@ namespace das {
             case Type::tURange:         return new ExprConstURange(at, cast<urange>::to(value));
             case Type::tRange64:        return new ExprConstRange64(at, cast<range64>::to(value));
             case Type::tURange64:       return new ExprConstURange64(at, cast<urange64>::to(value));
+            // 16/8-bit lattice vectors have no ExprConst nodes (by design) — a constant
+            // expression of these types simply doesn't fold; callers must handle nullptr
+            case Type::tHalf2:
+            case Type::tHalf3:
+            case Type::tHalf4:
+            case Type::tHalf8:
+            case Type::tShort2:
+            case Type::tShort3:
+            case Type::tShort4:
+            case Type::tShort8:
+            case Type::tUShort2:
+            case Type::tUShort3:
+            case Type::tUShort4:
+            case Type::tUShort8:
+            case Type::tByte2:
+            case Type::tByte3:
+            case Type::tByte4:
+            case Type::tByte8:
+            case Type::tByte16:
+            case Type::tUByte2:
+            case Type::tUByte3:
+            case Type::tUByte4:
+            case Type::tUByte8:
+            case Type::tUByte16:        return nullptr;
             default:                    DAS_ASSERTF(0, "we should not even be here"); return nullptr;
         }
     }
@@ -629,56 +700,6 @@ namespace das {
 
     bool Program::getProfiler() const {
         return policies.profiler || options.getBoolOption("profiler",false);
-    }
-
-    void Program::optimize(TextWriter & logs, ModuleGroup & libGroup) {
-        bool logOpt = options.getBoolOption("log_optimization",false);
-        bool logPass = options.getBoolOption("log_optimization_passes",false);
-        bool log = logOpt || logPass;
-        bool any, last;
-        int optimizationRound = 1;
-        if (log) {
-            logs << *this << "\n";
-        }
-        do {
-            if ( log ) logs << "OPTIMIZE " << optimizationRound << ":\n"; if ( logPass ) logs << *this;
-            any = false;
-            last = optimizationRefFolding(optimizationRound);    if ( failed() ) break;  any |= last;
-            if ( log ) logs << "REF FOLDING: " << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
-            last = optimizationUnused(logs, optimizationRound);    if ( failed() ) break;  any |= last;
-            if ( log ) logs << "REMOVE UNUSED:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
-            last = optimizationConstFolding(optimizationRound);  if ( failed() ) break;  any |= last;
-            if ( log ) logs << "CONST FOLDING:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
-            last = optimizationCondFolding(optimizationRound);  if ( failed() ) break;  any |= last;
-            if ( log ) logs << "COND FOLDING:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
-            last = optimizationBlockFolding(optimizationRound);  if ( failed() ) break;  any |= last;
-            if ( log ) logs << "BLOCK FOLDING:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
-            // this is here again for a reason
-            last = optimizationUnused(logs, optimizationRound);    if ( failed() ) break;  any |= last;
-            if ( log ) logs << "REMOVE UNUSED:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
-            // now, user macros
-            last = false;
-            auto modMacro = [&](Module * mod) -> bool {    // we run all macros for each module
-                if ( thisModule->isVisibleDirectly(mod) && mod!=thisModule.get() ) {
-                    for ( const auto & pm : mod->optimizationMacros ) {
-                        last |= pm->apply(this, thisModule.get());
-                        if ( failed() ) {                       // if macro failed, we report it, and we are done
-                            error("optimization macro " + mod->name + "::" + pm->name + " failed", "","",LineInfo(), CompilationError::runtime_macro);
-                            return false;
-                        }
-                    }
-                }
-                return true;
-            };
-            Module::foreach(modMacro);
-            if ( failed() ) break;
-            any |= last;
-            libGroup.foreach(modMacro,"*");
-            if ( failed() ) break;
-            any |= last;
-            if ( log ) logs << "MACROS:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
-            optimizationRound++;
-        } while ( any );
     }
 
 }

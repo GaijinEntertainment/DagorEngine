@@ -29,7 +29,7 @@ Uses a version-based push-pull propagation model:
 #include <generic/dag_fixedVectorSet.h>
 #include <generic/dag_carray.h>
 #include <EASTL/vector_map.h>
-#include <EASTL/hash_set.h>
+#include <EASTL/vector_set.h>
 #include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
 #include <dag/dag_vector.h>
@@ -52,11 +52,6 @@ void graph_viewer();
 
 using NodeIdVec = dag::Vector<NodeId, framemem_allocator>;
 
-struct NodeIdHash
-{
-  size_t operator()(const NodeId &id) const { return size_t(id.index) * 2654435761u; }
-};
-
 // Push-pull node state for version-based propagation
 enum class NodeState : uint8_t
 {
@@ -77,12 +72,53 @@ struct ScriptSourceInfo
 };
 
 
+enum class NativePullResult
+{
+  Changed,         // value differs from the previous one; skip graph comparison
+  CompareWithPrev, // graph decides via object identity / deep-equal
+  Failed,          // nothing pushed; treated as a recalc error
+};
+
+
+// Value source of a Computed that lives outside the graph (ECS state, engine
+// state, ...). It has no frp sources to compare versions against, so it
+// announces its own changes via ObservablesGraph::invalidateNativeComputed.
+class INativeComputedSource
+{
+public:
+  virtual ~INativeComputedSource() = default;
+  // Called during a pull, only while the node has consumers. Pushes exactly one
+  // value on the VM stack unless it returns Failed. A source that rewrites its
+  // value in place, handing back the same object, must return Changed itself:
+  // the graph's comparison can not see in-place edits.
+  virtual NativePullResult pull(HSQUIRRELVM vm) = 0;
+};
+
+
 struct SubscriberCall
 {
   Sqrat::Function func;
   Sqrat::Object value;
   NodeId source;
   bool check = false;
+};
+
+
+// Records nodes and script subscriptions made while active on a graph, so a
+// single owner (e.g. a UI component instance) can release them all at once.
+struct OwnerScope
+{
+  struct SubEntry
+  {
+    NodeId node;
+    Sqrat::Object func;
+  };
+
+  dag::Vector<NodeId> ownedNodes;
+  dag::Vector<SubEntry> subscriptions;
+  // Make created source nodes (Watched) non-deferred and eager-pulling;
+  // Computeds stay deferred so shared upstream observables are not marked.
+  bool sourcesImmediate = false;
 };
 
 
@@ -101,6 +137,7 @@ struct NodeSlot
 
   // Computed-only
   HSQOBJECT func;
+  INativeComputedSource *nativeSource = nullptr; // when set, recalc calls this instead of func
   dag::Vector<SourceEntry> sources;
 
   // Dependency edges
@@ -123,12 +160,14 @@ struct NodeSlot
       bool isComputed : 1;
       bool isDeferred : 1;
       bool needImmediate : 1;
+      bool eagerPull : 1; // writes pull all dirty consumed dependents, not only immediate ones
       bool computedHasActiveConsumers : 1;
       bool isInTrigger : 1;
       bool isIteratingWatchers : 1;
       bool isPulling : 1;
       bool isMarked : 1;
       bool funcAcceptsCurVal : 1;
+      bool isNativeComputed : 1; // stays set after detachNativeComputed clears the pointer
     };
     uint32_t flags = 0;
   };
@@ -161,6 +200,13 @@ public:
   // Node creation
   NodeId createWatched(HSQOBJECT initial_value);
   NodeId createComputed(HSQOBJECT func_obj, dag::Vector<SourceEntry> &&sources, bool pass_cur_val);
+  // The source must outlive the node, or call detachNativeComputed before dying
+  NodeId createNativeComputed(INativeComputedSource *src);
+
+  // Cuts the script subscriptions, keeps the nodes. Idempotent.
+  void unsubscribeOwnerScope(OwnerScope &scope);
+  void disposeOwnerScope(OwnerScope &scope);
+  bool nodeHasConsumers(NodeId id) const; // any dependent, watcher or script subscriber
 
   // Node access (inline for cross-TU inlining -- these are tiny and hot)
   inline NodeSlot &node(NodeId id)
@@ -214,6 +260,9 @@ public:
   bool trigger(NodeId id);
   bool updateDeferred();
   void markDependentsDirty(NodeId id);
+  void invalidateNativeComputed(NodeId id);
+  // The source is going away while the node outlives it: the node keeps its last value
+  void detachNativeComputed(NodeId id);
   void recalcAllComputedValues();
   bool callScriptSubscribers(NodeId triggered_node, NodeIdVec &notify_queue);
 
@@ -285,6 +334,7 @@ private:
   void updateNeedImmediate(NodeId id);
   void markComputedConsumed(NodeId id);
   void updateComputedConsumed(NodeId id);
+  void registerInOwnerScope(NodeId id, NodeSlot &s);
   void onNodeGraphShutdown(NodeId id, bool exiting, Tab<Sqrat::Object> &cleared_storage);
 
   dag::Vector<NodeSlot> slots;
@@ -296,6 +346,10 @@ private:
 public:
   HSQUIRRELVM vm = nullptr;
   SimpleString graphName;
+
+  // Use the RAII guards below rather than assigning these directly.
+  OwnerScope *currentOwnerScope = nullptr;
+  const char *constructionLockMsg = nullptr; // non-null: locked, and this is the error text thrown to script
 
   OSSpinlock slotsLock; //< for external access to slots
 
@@ -347,7 +401,7 @@ public:
   bool checkSubscribers = false;
 
   // Deferred notify queue: nodes whose subscribers fire at next updateDeferred().
-  eastl::hash_set<NodeId, NodeIdHash> deferredNotifyQueue;
+  eastl::vector_set<NodeId> deferredNotifyQueue;
 
 private:
   Tab<SubscriberCall> subscriberCallsQueue, curSubscriberCalls;
@@ -446,6 +500,55 @@ public:
 
   bool setValue(const Sqrat::Object &val);
   Sqrat::Object getValue();
+};
+
+
+// Forbids creating observables and subscribing while in scope. Nesting works
+// both ways: nullptr opens an unlocked window inside a locked one.
+struct ConstructionLockGuard
+{
+  ObservablesGraph *graph;
+  const char *prevMsg = nullptr;
+
+  ConstructionLockGuard(ObservablesGraph *g, const char *lock_msg) : graph(g)
+  {
+    if (graph)
+    {
+      prevMsg = graph->constructionLockMsg;
+      graph->constructionLockMsg = lock_msg;
+    }
+  }
+  ~ConstructionLockGuard()
+  {
+    if (graph)
+      graph->constructionLockMsg = prevMsg;
+  }
+  ConstructionLockGuard(const ConstructionLockGuard &) = delete;
+  ConstructionLockGuard &operator=(const ConstructionLockGuard &) = delete;
+};
+
+
+// Scoped activation of an owner scope on a graph. No-op on a null graph.
+struct OwnerScopeGuard
+{
+  ObservablesGraph *graph;
+  OwnerScope *prev = nullptr;
+
+  OwnerScopeGuard(ObservablesGraph *g, OwnerScope *scope) : graph(g)
+  {
+    if (graph)
+    {
+      prev = graph->currentOwnerScope;
+      graph->currentOwnerScope = scope;
+    }
+  }
+  ~OwnerScopeGuard()
+  {
+    if (graph)
+      graph->currentOwnerScope = prev;
+  }
+  OwnerScopeGuard(const OwnerScopeGuard &) = delete;
+  OwnerScopeGuard &operator=(const OwnerScopeGuard &) = delete;
 };
 
 

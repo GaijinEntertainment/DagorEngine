@@ -113,7 +113,7 @@ let  gexp = [
 local  strinbuf = [], eccbuf = [], qrframe = [], framask = [], rlens = [];
 // Control values - width is based on version, last 4 are from table.
 local  version, width, neccblk1, neccblk2, datablkw, eccblkwid;
-let  ecclevel = 2;
+const  ecclevel = 2;
 
 // set bit to indicate cell in qrframe is immutable.  symmetric around diagonal
 function setmask(x: number, y: number) {
@@ -316,10 +316,10 @@ function applymask(m) {
 }
 
 // Badness coefficients.
-let N1 = 3
-let N2 = 3
-let N3 = 40
-let N4 = 10
+const N1 = 3
+const N2 = 3
+const N3 = 40
+const N4 = 10
 
 // Using the table of the length of each run, calculate the amount of bad image
 // - long runs or those that look like finders; called twice, once each for X and Y

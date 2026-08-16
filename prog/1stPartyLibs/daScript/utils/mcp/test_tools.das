@@ -30,6 +30,9 @@ require tools/cpp_grep_usage public
 require tools/cpp_find_symbol public
 require tools/cpp_outline public
 require tools/cpp_goto_definition public
+require tools/cpp_compile_check public
+require tools/cpp_format_file public
+require tools/cpp_status public
 require tools/aot public
 require tools/lint_tool public
 require tools/program_log public
@@ -1151,6 +1154,25 @@ def test_grep_usage(t : T?) {
         var is_error = false
         parse_result(do_grep_usage("", "", "", ""), text, is_error)
         t |> success(is_error, "should be error")
+    }
+    // A glob containing `/` is anchored to the search root. Passing the root as
+    // `<root>/.` (what resolve_path(".") used to return) defeats ast-grep's path
+    // relativization, so every such filter silently matched nothing.
+    t |> run("slash-anchored glob filters rather than zeroing") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_grep_usage("compile_program", "", "", "utils/mcp/tools/*.das"), text, is_error)
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "common.das") >= 0, "root-anchored glob should match")
+        t |> success(find(text, "Found 0 match") < 0, "glob must not silently zero the result")
+    }
+    t |> run("explicit '.' directory behaves like the default root") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_grep_usage("compile_program", ".", "", "utils/mcp/tools/*.das"), text, is_error)
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "common.das") >= 0, "'.' root must not append a trailing /.")
+        t |> success(find(text, "Found 0 match") < 0, "glob must not silently zero the result")
     }
 }
 
@@ -2396,6 +2418,135 @@ def test_cpp_using_alias_visible(t : T?) {
         parse_result(do_cpp_find_symbol("module_pull_t", "typedef", "include", ""), text, is_error)
         t |> success(!is_error, "should not be error -- {cpp_diag(text)}")
         t |> success(find(text, "module_pull_t") >= 0, "should locate the using-alias -- {cpp_diag(text)}")
+    }
+}
+
+// ── cpp_compile_check / cpp_build_info / cpp_format_file ──────────────
+//
+// These tools need a compile_commands.json (and, for the real check, a C++
+// compiler in the env). CI lanes that build with Ninja/Make emit the DB; the
+// Visual Studio generator does NOT — so every assertion that needs the DB is
+// gated on its presence (skip-as-pass), and the no-DB path is asserted too.
+// The "real check" assertion is deliberately loose (ran a check / OK / FAILED
+// are all fine) so a CI box without the toolchain in PATH stays green.
+
+def private has_compile_db(text : string) : bool {
+    return find(text, "No compile_commands.json") < 0
+}
+
+[test]
+def test_cpp_compile_check(t : T?) {
+    t |> run("missing file is an error") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_cpp_compile_check("src/zzz_nonexistent_xyz.cpp", "", false), text, is_error)
+        t |> success(is_error, "missing file -> error -- text={text}")
+        t |> success(find(text, "file not found") >= 0, "reports file not found -- text={text}")
+    }
+    t |> run("real TU syntax-checks (or graceful no-DB)") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_cpp_compile_check("src/misc/sysos.cpp", "", false), text, is_error)
+        if (!has_compile_db(text)) {
+            t->log("no compile_commands.json — skipping cpp_compile_check assertions")
+            return
+        }
+        // Plumbing proven whether the verdict is OK, FAILED, or honest no-entry.
+        t |> success(find(text, "Compile check") >= 0 || find(text, "no compile DB entry") >= 0,
+                     "ran a check or reported no entry -- text={text}")
+    }
+    t |> run("header is rejected with guidance") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_cpp_compile_check("src/misc/sysos.cpp", "", false), text, is_error)
+        if (!has_compile_db(text)) return
+        parse_result(do_cpp_compile_check("include/daScript/daScript.h", "", false), text, is_error)
+        t |> success(find(text, "header") >= 0, "header gets a clear 'pass a .cpp' message -- text={text}")
+    }
+    t |> run("json mode returns a CppCompileResult shape") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_cpp_compile_check("src/misc/sysos.cpp", "", true), text, is_error)
+        if (!has_compile_db(text)) return
+        if (find(text, "no compile DB entry") >= 0) return  // DB present but TU absent (alt build dir)
+        t |> success(find(text, "\"success\"") >= 0, "json has success field -- text={text}")
+        t |> success(find(text, "\"file\"") >= 0, "json has file field -- text={text}")
+    }
+}
+
+[test]
+def test_cpp_build_info(t : T?) {
+    t |> run("known TU shows compiler + syntax-only command (or graceful no-DB)") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_cpp_build_info("src/misc/sysos.cpp", ""), text, is_error)
+        if (!has_compile_db(text)) {
+            t->log("no compile_commands.json — skipping cpp_build_info assertions")
+            return
+        }
+        if (find(text, "no compile DB entry") >= 0) return  // DB present but sysos.cpp absent (alt build dir)
+        t |> success(find(text, "compiler:") >= 0, "shows compiler -- text={text}")
+        t |> success(find(text, "syntax-only command") >= 0, "shows derived syntax-only command -- text={text}")
+        t |> success(find(text, "/Zs") >= 0 || find(text, "-fsyntax-only") >= 0, "appends a syntax-only flag -- text={text}")
+    }
+    t |> run("file not in the DB reports no entry") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_cpp_build_info("src/misc/sysos.cpp", ""), text, is_error)
+        if (!has_compile_db(text)) return
+        // protocol_core.das is a .das file — never a C++ translation unit in the DB.
+        parse_result(do_cpp_build_info("utils/mcp/protocol_core.das", ""), text, is_error)
+        t |> success(is_error, "non-cpp file -> error -- text={text}")
+        t |> success(find(text, "no compile DB entry") >= 0, "reports no entry -- text={text}")
+    }
+}
+
+[test]
+def test_cpp_format_file(t : T?) {
+    t |> run("daScript tree has no .clang-format -> no_config") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_cpp_format_file("src/misc/sysos.cpp"), text, is_error)
+        t |> success(!is_error, "no_config is not an error -- text={text}")
+        t |> success(find(text, "no_config") >= 0, "reports no_config -- text={text}")
+    }
+    t |> run("missing file is an error") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_cpp_format_file("src/zzz_nonexistent_xyz.cpp"), text, is_error)
+        t |> success(is_error, "missing file -> error -- text={text}")
+        t |> success(find(text, "file not found") >= 0, "reports file not found -- text={text}")
+    }
+}
+
+[test]
+def test_cpp_status(t : T?) {
+    // Pure env detection — no compilation, no external deps required. Whatever the
+    // environment, the report (or JSON) is produced and is not an error.
+    t |> run("text report names each diagnosed dependency") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_cpp_status("", false), text, is_error)
+        t |> success(!is_error, "status is not an error -- text={text}")
+        t |> success(find(text, "cpp-mcp server status") >= 0, "has report header -- text={text}")
+        t |> success(find(text, "ast-grep") >= 0, "reports ast-grep -- text={text}")
+        t |> success(find(text, "compile DB") >= 0, "reports compile DB -- text={text}")
+        t |> success(find(text, "clang-format") >= 0, "reports clang-format -- text={text}")
+    }
+    t |> run("json mode returns structured fields") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_cpp_status("", true), text, is_error)
+        t |> success(!is_error, "json status is not an error -- text={text}")
+        t |> success(find(text, "das_root") >= 0, "json has das_root -- text={text}")
+        t |> success(find(text, "ast_grep_available") >= 0, "json has ast_grep_available -- text={text}")
+    }
+    t |> run("explicit build_dir is honored for the compile-DB probe") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_cpp_status("build-ninja", true), text, is_error)
+        t |> success(!is_error, "build_dir status is not an error -- text={text}")
+        t |> success(find(text, "compile_db") >= 0, "json reports compile_db field -- text={text}")
     }
 }
 

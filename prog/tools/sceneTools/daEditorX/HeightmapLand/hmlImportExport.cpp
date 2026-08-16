@@ -720,6 +720,7 @@ void HmapLandObjectEditor::importFromNode(const Node *node, bool &for_all, int &
             LandscapeEntityObject::Props pr = o->getProps();
             pr.placeType = coll;
             o->setProps(pr);
+            o->generatePinnedPerInstSeed(); // a new object in the level, like a placed or cloned one
             addObject(o);
           }
         }

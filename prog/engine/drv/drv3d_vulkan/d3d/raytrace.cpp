@@ -50,8 +50,9 @@ RaytraceBLASBufferRefs getRaytraceGeometryRefs(const RaytraceGeometryDescription
       if (desc.data.triangles.indexBuffer)
       {
         const BufferRef &devIbuf = ((GenericBufferInterface *)desc.data.triangles.indexBuffer)->getBufferRef();
+        // must match the index type the build uses, or the sync range misses the real reads
         uint32_t indexSize =
-          ((GenericBufferInterface *)desc.data.triangles.indexBuffer)->getIndexType() == VkIndexType::VK_INDEX_TYPE_UINT32 ? 4 : 2;
+          raytrace_tris_index32(desc.data.triangles.indexFormat, desc.data.triangles.indexBuffer->getFlags()) ? 4 : 2;
         refs.index = devIbuf.buffer;
         refs.indexOffset = (uint32_t)devIbuf.bufOffset(desc.data.triangles.indexOffset * indexSize);
         refs.indexSize = desc.data.triangles.indexCount * indexSize;
@@ -142,16 +143,8 @@ void recordBlasGeometries(RaytraceStructureBuildData &bd, const ::raytrace::Bott
     const auto *ibuf = (const GenericBufferInterface *)basbi.geometryDesc[i].data.triangles.indexBuffer;
     if (ibuf)
     {
-      const VkIndexType indexType = ibuf->getIndexType();
-      if (indexType == VkIndexType::VK_INDEX_TYPE_UINT32)
-      {
-        primitiveOffset = basbi.geometryDesc[i].data.triangles.indexOffset * 4;
-      }
-      else
-      {
-        G_ASSERT(indexType == VkIndexType::VK_INDEX_TYPE_UINT16);
-        primitiveOffset = basbi.geometryDesc[i].data.triangles.indexOffset * 2;
-      }
+      const bool index32 = raytrace_tris_index32(basbi.geometryDesc[i].data.triangles.indexFormat, ibuf->getFlags());
+      primitiveOffset = basbi.geometryDesc[i].data.triangles.indexOffset * (index32 ? 4 : 2);
     }
     auto &tri = basbi.geometryDesc[i].data.triangles;
     uint32_t primitiveCount = ibuf ? tri.indexCount / 3 : tri.vertexCount / 3;

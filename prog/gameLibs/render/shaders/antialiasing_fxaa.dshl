@@ -1,5 +1,6 @@
 include "shader_global.dshl"
 include "gbuffer.dshl"
+include "pre_rotation_inc.dshl"
 
 texture source_color_tex;
 float4 fxaa_params = (0.5, 0.166, 0.0833, 0);    // fxaaQualitySubpix, fxaaQualityEdgeThreshold, fxaaQualityEdgeThresholdMin
@@ -50,6 +51,7 @@ shader antialiasing
   }
 
   USE_POSTFX_VERTEX_POSITIONS()
+  USE_PRE_ROTATION(vs)
   INIT_ZNZFAR()
   INIT_READ_DEPTH_GBUFFER()
   USE_READ_DEPTH_GBUFFER()
@@ -178,6 +180,7 @@ shader antialiasing
         output.texcoord.xy = output.texcoord.xy * fxaa_tc_scale_offset.xy + fxaa_tc_scale_offset.zw;
         output.texcoord.xy += float2(0.00001, 0.00001);
         output.texcoord.zw = output.texcoord.xy - (resolution.zw * (0.5 + FXAA_SUBPIX_SHIFT));
+        output.pos.xy = apply_pre_rotation(output.pos.xy);
         return output;
       }
     }
@@ -264,9 +267,12 @@ shader antialiasing
 ##endif
         rgbA.rgb -= rgbA.rgb * ((1.0 -rgbA.a) * alpha_influence_over_color);
         rgbB.rgb -= rgbB.rgb * ((1.0 -rgbB.a) * alpha_influence_over_color);
-        if ((lumaB < lumaMin) || (lumaB > lumaMax))
-          return lerp(rgbA, sharpenValue, cockpitToolsWeight) * fxaa_color_mul;
-        return lerp(rgbB, sharpenValue, cockpitToolsWeight) * fxaa_color_mul;
+        half4 result = ((lumaB < lumaMin) || (lumaB > lumaMax)) ? rgbA : rgbB;
+        result = lerp(result, sharpenValue, cockpitToolsWeight) * fxaa_color_mul;
+##if luminance_from_alpha == luminance_from_alpha_on
+        result.a = 1;
+##endif
+        return result;
       }
     }
 
@@ -288,6 +294,7 @@ shader antialiasing
         output.texcoord.xy = screen_to_texcoords(pos);
         output.texcoord.xy = output.texcoord.xy * fxaa_tc_scale_offset.xy + fxaa_tc_scale_offset.zw;
         output.texcoord.xy += float2(0.00001, 0.00001);
+        output.pos.xy = apply_pre_rotation(output.pos.xy);
         return output;
       }
     }
@@ -1522,7 +1529,11 @@ shader antialiasing
             // {xyzw} = float4(1.0, -1.0, 0.25, -0.25)
             0
         ), sharpenValue, cockpitToolsWeight);
-        return max(result, 0);
+        result = max(result, 0);
+##if luminance_from_alpha == luminance_from_alpha_on
+        result.a = 1;
+##endif
+        return result;
       }
     }
   }

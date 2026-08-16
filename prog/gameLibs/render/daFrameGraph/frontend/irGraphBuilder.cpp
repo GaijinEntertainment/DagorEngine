@@ -17,6 +17,7 @@
 #include <frontend/validityInfo.h>
 #include <frontend/nameResolver.h>
 #include <common/resourceUsage.h>
+#include <common/untrackedResources.h>
 
 
 namespace dafg
@@ -47,7 +48,7 @@ void IrGraphBuilder::fixupFlagsAndActivation(ResNameId id, ResourceType type, in
   }
   auto activation = get_activation_from_usage(desiredBehavior, firstUsage, type, is_int);
 
-  desc.asBasicRes.cFlags = updatedFlags;
+  desc.asBasicRes.cFlags = drop_unsupported_no_state_tracking(updatedFlags, type);
   if (activation.has_value())
   {
     if (clear_stage == intermediate::ClearStage::RenderPass && *activation == ResourceActivationAction::CLEAR_AS_RTV_DSV)
@@ -957,9 +958,11 @@ void IrGraphBuilder::addRequestsToGraph(intermediate::Graph &graph, intermediate
 
     const auto &nodeData = registry.nodes[*irNode.frontendNode];
 
-    auto processRequest = [&irNode = irNode, &mapping, &resourceValid, &nodeData, &resolvedResIdxToIndexInIrRequests, this,
-                            irMultiplexingIndex, historyMultiplexingIndex,
-                            extents](bool history, ResNameId resId, const ResourceRequest &req) {
+    const bool banUntrackedRequests = nodeData.hasCustomExecution && nodeData.sideEffect != SideEffects::None;
+
+    auto processRequest = [&irNode = irNode, &graph, &mapping, &resourceValid, &nodeData, &resolvedResIdxToIndexInIrRequests, this,
+                            irMultiplexingIndex, historyMultiplexingIndex, extents,
+                            banUntrackedRequests](bool history, ResNameId resId, const ResourceRequest &req) {
       // Skip optional requests for missing resources
       if (req.optional && !resourceValid[resId])
         return;
@@ -983,6 +986,25 @@ void IrGraphBuilder::addRequestsToGraph(intermediate::Graph &graph, intermediate
         " node that is more multiplexed. This is invalid usage.",
         registry.knownNames.getName(*irNode.frontendNode), registry.knownNames.getName(resId));
 
+      // Untracked resources synchronize through enhanced barriers only, and
+      // those must spell out a layout and an access, which an UNKNOWN usage
+      // does not provide. A request that declares no usage at all is fine, it
+      // simply does not access the resource.
+      // Custom execution nodes may still request untracked resources: allowing
+      // them only in draw/dispatch nodes would leave too few use cases, so
+      // instead such a node must access the resource exactly as it declared.
+      G_ASSERT_LOG(!req.usageDeclared || req.usage.type != Usage::UNKNOWN || !graph.resources[resIndex].isUntracked(),
+        "daFG: Node '%s' declared an UNKNOWN usage for untracked resource '%s'. "
+        "daFG cannot derive a barrier from it: declare the real usage, or drop "
+        "the NO_STATE_TRACKING creation flag to get automatic synchronization.",
+        registry.knownNames.getName(*irNode.frontendNode), registry.knownNames.getName(resId));
+
+      // TODO: handle the debug texture snapshot node, it trips this on untracked textures.
+      G_ASSERT_LOG(!banUntrackedRequests || !graph.resources[resIndex].isUntracked(),
+        "daFG: Node '%s' requested untracked resource '%s', but executes a custom callback. "
+        "daFG cannot see what such a callback does, so it cannot synchronize untracked resources "
+        "for it. Use draw/dispatch requests instead, or drop the NO_STATE_TRACKING creation flag.",
+        registry.knownNames.getName(*irNode.frontendNode), registry.knownNames.getName(resId));
 
       // Note that name resolution might have mapped several requests
       // into the same resource requests, in which case we need to

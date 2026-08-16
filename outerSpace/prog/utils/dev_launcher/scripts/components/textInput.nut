@@ -1,5 +1,6 @@
 from "%darg/ui_imports.nut" import *
 from "string" import regexp, split_by_chars
+from "types" import String
 let {setTooltip} = require("cursors.nut")
 
 
@@ -29,7 +30,7 @@ function isStringLikelyEmail(str, _verbose=true) {
 // Domain part also have at least one period and main domain at least 2 symbols
 // also come correct emails on google are against RFC, for example a.a.a@gmail.com.
 
-  if (type(str)!="string")
+  if (!(str instanceof String))
     return false
   let splitted = split_by_chars(str,"@")
   if (splitted.len()<2)

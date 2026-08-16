@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // PERF021: cond ? T(a) : T(b) on workhorse cast T — hoist as T(cond ? a : b).
 //
 // Problem:

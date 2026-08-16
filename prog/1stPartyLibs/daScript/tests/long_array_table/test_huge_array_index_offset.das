@@ -28,6 +28,7 @@ let STRIDE_OVERFLOW_N = 1_100_000_000_l
 def test_int_array_high_index_int64(t : T?) {
     if (!huge_enabled()) return
     var arr : array<int>
+    arr |> reserve(STRIDE_OVERFLOW_N)
     arr |> resize(STRIDE_OVERFLOW_N)
     t |> equal(long_length(arr), STRIDE_OVERFLOW_N)
     // Write to a position where idx*4 > UINT32_MAX, then read it back.
@@ -44,6 +45,7 @@ def test_int_array_high_index_int64(t : T?) {
 def test_int_array_high_index_uint64(t : T?) {
     if (!huge_enabled()) return
     var arr : array<int>
+    arr |> reserve(STRIDE_OVERFLOW_N)
     arr |> resize(STRIDE_OVERFLOW_N)
     // Same test, uint64 index instead of int64 — exercises the U64 SimNode
     // variant's offset math.

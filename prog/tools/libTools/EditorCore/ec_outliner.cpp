@@ -667,7 +667,9 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true); // Using this instead of BeginDisabled to avoid dimming.
       PropPanel::ImguiHelper::imageButtonFrameless(layerButtonId, layerIcon, fontSizedIconSize);
       ImGui::PopItemFlag();
-      PropPanel::set_previous_imgui_control_tooltip(layerButtonId, "This layer is locked.");
+
+      const char *tooltip = treeInterface->isTypeLocked(type) ? "This type is locked." : "This layer is locked.";
+      PropPanel::set_previous_imgui_control_tooltip(layerButtonId, tooltip);
     }
     else
     {

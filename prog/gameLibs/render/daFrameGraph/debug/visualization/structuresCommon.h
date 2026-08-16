@@ -5,6 +5,7 @@
 
 #include <frontend/internalRegistry.h>
 #include <backend/intermediateRepresentation.h>
+#include <runtime/typeDb.h>
 
 #include <imgui.h>
 #include <imgui-node-editor/imgui_bezier_math.h>
@@ -63,6 +64,9 @@ NodeNameId get_user_node_focus_request();
 void request_user_resource_focus(const ResNameId id);
 bool check_user_resource_focus_request();
 ResNameId get_user_resource_focus_request();
+
+
+void print_blob_structured(const ResourceSubtypeTag tag, void *data);
 
 
 struct CanvasCamera

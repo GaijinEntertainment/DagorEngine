@@ -110,8 +110,55 @@ void DeviceContext::executeDebugFlushImpl(const char *caller)
 }
 #endif
 
+// setup internal markers ahead of time, they are patched to actual values on worker
+// note that worker should fill same amount of markers as we push, so balance unfilled with consumeReorderedTimestamps
+void DeviceContext::insertInternalGPUMarkers()
+{
+  Frontend::State::pod.reorderTimestamps = true;
+  {
+    TIME_D3D_PROFILE(vk_frame_core);
+    {
+      TIME_D3D_PROFILE(vk_iupload_icc);
+    }
+    {
+      TIME_D3D_PROFILE(vk_iupload_dsc);
+    }
+    {
+      TIME_D3D_PROFILE(vk_iupload_generic);
+    }
+    {
+      TIME_D3D_PROFILE(vk_iupload_uic);
+    }
+    {
+      TIME_D3D_PROFILE(vk_bupload_unordered);
+    }
+    {
+      TIME_D3D_PROFILE(vk_bupload_ordered);
+    }
+    {
+      TIME_D3D_PROFILE(vk_bupload_qfotb);
+    }
+  }
+  {
+    TIME_D3D_PROFILE(vk_post_frame);
+    {
+      TIME_D3D_PROFILE(vk_readback_buffers);
+    }
+    {
+      TIME_D3D_PROFILE(vk_readback_images);
+    }
+    {
+      TIME_D3D_PROFILE(vk_readback_buffer_flushes);
+    }
+  }
+  Frontend::State::pod.reorderTimestamps = false;
+}
+
 void DeviceContext::afterBackendFlush()
 {
+  if (Globals::cfg.bits.recordInternalGPUWorkTimestamps)
+    insertInternalGPUMarkers();
+
   Globals::bindless.afterBackendFlush();
   Frontend::GCB.onFrontFlush();
   Frontend::replay->frontFrameIndex = Frontend::State::pod.frameIndex;

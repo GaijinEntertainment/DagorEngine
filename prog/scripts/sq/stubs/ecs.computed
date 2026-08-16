@@ -1,0 +1,105 @@
+from "%sqstd/frp.nut" import WatchedRo
+from "ecs" import __assertValidQueryFilter
+from "types" import Array, Class, Integer, String, Table
+
+// The real module returns an frp Computed fed by an ECS query. The stub hands out a
+// WatchedRo: a Computed needs at least one script-side source and this one has none,
+// and a script class deriving from the native Watched gets no native instance at all.
+// Analysis needs something usable as a source, in watch=, and not settable.
+
+let showVal = @(v) $"{type(v)} ({v})"
+
+// `.` and `?.` on a table fall back to the type methods, and "filter" is one of
+// them, so caller fields are always read by key
+let paramOf = @(params, field) field in params ? params[field] : null
+
+let compName = @(c) c instanceof Array ? c[0] : c
+
+// null reads as absent, so an optional param can be written as `cond ? val : null`
+function validateStrParam(params, field) {
+  let v = paramOf(params, field)
+  assert(v == null || v instanceof String, $"'{field}' must be a string or null, got {showVal(v)}")
+}
+
+function validateComps(params, field, required) {
+  let comps = paramOf(params, field)
+  if (comps == null) {
+    assert(!required, $"'{field}' is required")
+    return
+  }
+  assert(comps instanceof Array, $"'{field}' must be an array, got {showVal(comps)}")
+  // same forms as ecs.register_es; a default makes the component optional
+  foreach (i, c in comps) {
+    let entry = $"'{field}' entry #{i}"
+    if (c instanceof Array) {
+      assert(c.len() >= 1 && c.len() <= 3,
+        $"{entry} has {c.len()} elements; a component is \"name\", [\"name\"], [\"name\", TYPE] or [\"name\", TYPE, default]")
+      assert(c[0] instanceof String, $"{entry} name must be a string, got {showVal(c[0])}")
+      // ecs.TYPE_* is an integer natively; in the stubs it is a class, and a table for TYPE_OBJECT
+      if (c.len() > 1)
+        assert(c[1] == null || c[1] instanceof Integer || c[1] instanceof Class || c[1] instanceof Table,
+          $"{entry} type must be an ecs.TYPE_* value or null, got {showVal(c[1])}")
+    }
+    else
+      assert(c instanceof String, $"{entry} must be a string or an array, got {showVal(c)}")
+  }
+  if (required)
+    assert(comps.len() > 0, $"'{field}' must list at least one component")
+}
+
+// the native filter is compiled against the mirrored components and comps_filter,
+// all read-only, plus the implicit eid
+function validateFilter(params) {
+  let mirrored = paramOf(params, "comps") ?? []
+  let filterOnly = paramOf(params, "comps_filter") ?? []
+  let names = {}
+  foreach (c in mirrored)
+    names[compName(c)] <- true
+  foreach (c in filterOnly)
+    assert(compName(c) not in names,
+      $"'comps_filter' entry '{compName(c)}' repeats a component from 'comps'; a filter can name mirrored components directly")
+  validateStrParam(params, "filter")
+  let filter = paramOf(params, "filter")
+  if (filter == null || filter == "") // like an ecs query filter string, empty means no filter
+    return
+  __assertValidQueryFilter("ecs.computed", {
+    comps_ro = [].extend(mirrored).extend(filterOnly)
+    comps_rq = paramOf(params, "comps_rq") ?? []
+    comps_no = paramOf(params, "comps_no") ?? []
+  }, filter)
+}
+
+function validateParams(params) {
+  assert(params instanceof Table, $"params must be a table, got {showVal(params)}")
+  validateComps(params, "comps", true)
+  validateComps(params, "comps_rq", false)
+  validateComps(params, "comps_no", false)
+  // read by the filter expression, never mirrored into the value
+  validateComps(params, "comps_filter", false)
+  validateFilter(params)
+  validateStrParam(params, "tags")
+  validateStrParam(params, "name")
+}
+
+// single-entity form
+function mkEcsComputed(params) {
+  validateParams(params)
+  return WatchedRo(paramOf(params, "defVal"))
+}
+
+// all matching entities as an {eid: value} table; defVal does not apply
+function mkEcsComputedEidMap(params) {
+  validateParams(params)
+  let defVal = paramOf(params, "defVal")
+  assert(defVal == null, $"'defVal' makes no sense for an eid map, got {showVal(defVal)}")
+  return WatchedRo({})
+}
+
+// the native module binds the handle class too, so analysis can resolve it
+class EcsComputed {}
+
+return {
+  mkEcsComputed
+  mkEcsComputedEidMap
+  EcsComputed
+}

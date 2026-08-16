@@ -5,6 +5,7 @@
 #include <util/dag_simpleString.h>
 #include <osApiWrappers/basePath.h>
 #include <EASTL/fixed_vector.h>
+#include <debug/dag_debug.h>
 #include <filesystem>
 #include <cstring>
 
@@ -21,11 +22,14 @@ using BasePathFolders = eastl::fixed_vector<SearchFolder, 8>;
 static BasePathFolders gather_folders_in_base_paths(const char *directory)
 {
   BasePathFolders paths;
+  std::error_code ec;
   if (is_path_abs(directory))
   {
     fs::path path(directory);
-    if (fs::exists(path))
+    if (fs::exists(path, ec))
       paths.push_back(SearchFolder{fs::path(), eastl::move(path)});
+    else if (ec)
+      logerr("gather_folders_in_base_paths: fs::exists(%s) failed: %s", path.string().c_str(), ec.message().c_str());
   }
   else
   {
@@ -33,8 +37,10 @@ static BasePathFolders gather_folders_in_base_paths(const char *directory)
     {
       fs::path path(df_base_path[i]);
       path.concat(directory);
-      if (fs::exists(path))
+      if (fs::exists(path, ec))
         paths.push_back(SearchFolder{fs::path(df_base_path[i]), eastl::move(path)});
+      else if (ec)
+        logerr("gather_folders_in_base_paths: fs::exists(%s) failed: %s", path.string().c_str(), ec.message().c_str());
     }
   }
   return paths;
@@ -54,7 +60,11 @@ static bool check_file_suffix(const fs::path &path, const char *suffix, unsigned
 static void add_directory_entry(Tab<SimpleString> &out_list, const std::filesystem::path &folder, const fs::directory_entry &entry,
   const char *suffix, unsigned suffix_len)
 {
-  if (entry.is_regular_file())
+  std::error_code ec;
+  bool isRegularFile = entry.is_regular_file(ec);
+  if (ec)
+    logerr("add_directory_entry: is_regular_file(%s) failed: %s", entry.path().string().c_str(), ec.message().c_str());
+  else if (isRegularFile)
     if (check_file_suffix(entry.path(), suffix, suffix_len))
     {
       std::string relativePath = folder.empty() ? entry.path().string() : entry.path().lexically_relative(folder).string();
@@ -70,12 +80,18 @@ static void find_real_files_in_folder_ex(Tab<SimpleString> &out_list, const char
   for (const auto &[base_path, folder] : folders)
     if (subdirs)
     {
-      for (const auto &entry : fs::recursive_directory_iterator(folder))
-        add_directory_entry(out_list, base_path, entry, suffix, suffix_len);
+      std::error_code ec;
+      for (fs::recursive_directory_iterator it(folder, ec), end; !ec && it != end; it.increment(ec))
+        add_directory_entry(out_list, base_path, *it, suffix, suffix_len);
+      if (ec)
+        logerr("find_real_files_in_folder_ex: recursive iteration of %s failed: %s", folder.string().c_str(), ec.message().c_str());
     }
     else
     {
-      for (const auto &entry : fs::directory_iterator(folder))
-        add_directory_entry(out_list, base_path, entry, suffix, suffix_len);
+      std::error_code ec;
+      for (fs::directory_iterator it(folder, ec), end; !ec && it != end; it.increment(ec))
+        add_directory_entry(out_list, base_path, *it, suffix, suffix_len);
+      if (ec)
+        logerr("find_real_files_in_folder_ex: iteration of %s failed: %s", folder.string().c_str(), ec.message().c_str());
     }
 }

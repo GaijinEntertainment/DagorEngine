@@ -51,7 +51,7 @@ def GetSelectedNodes : array<NodeId> {
         var sna : array<void?>
         sna |> resize(snc)
         unsafe {
-            snc = GetSelectedNodes(reinterpret<NodeId?> addr(sna[0]),snc)
+            snc = GetSelectedNodes(reinterpret<NodeId?>(addr(sna[0])),snc)
         }
         return <- [for (x in range(snc)); NodeId(intptr(sna[x]))]
     } else {
@@ -66,7 +66,7 @@ def GetSelectedLinks : array<LinkId> {
         var sna : array<void?>
         sna |> resize(snc)
         unsafe {
-            snc = GetSelectedLinks(reinterpret<LinkId?> addr(sna[0]),snc)
+            snc = GetSelectedLinks(reinterpret<LinkId?>(addr(sna[0])),snc)
         }
         return <- [for (x in range(snc)); LinkId(intptr(sna[x]))]
     } else {

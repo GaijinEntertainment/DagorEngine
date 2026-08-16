@@ -48,12 +48,6 @@ class DecsReqN : AstBlockAnnotation {
 [structure_macro(name="decs_template")]
 class DecsTemplate : AstStructureAnnotation {
     //! This macro creates a template for the given structure.
-    //! The following functions are generated for the structure type:
-    //!
-    //!   * ``apply_decs_template(cmp, src)`` — sets components via ComponentMap
-    //!   * ``remove_decs_template(cmp, src)`` — removes components from ComponentMap
-    //!   * ``apply_decs_template_arch(arch, eidx, eid, src)`` — writes directly into archetype storage
-    //!   * ``create_entities`T(count, blk)`` — bulk creation with direct archetype writes
     def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
         if (empty(st.fields)) {
             errors := "expecting at least one field in the desc_template {st.name}"
@@ -80,7 +74,6 @@ class DecsTemplate : AstStructureAnnotation {
             panic("failed to add remove_decs_template, can't add function {fnErase.name}")
         }
         // Generate apply_decs_template_arch — writes into archetype storage with cached indices.
-        // First call (empty cache) resolves component indices; subsequent calls are O(1) per field.
         var blkArchSetup : array<ExpressionPtr>
         var blkArchWrite : array<ExpressionPtr>
         // eid at cache[0], fields at cache[1..N]
@@ -94,7 +87,7 @@ class DecsTemplate : AstStructureAnnotation {
         var fnArch = qmacro_function("apply_decs_template_arch") $(var arch : Archetype; eidx : int; eid : EntityId; src : $t(st); var cache : array<int>) : void {
             pass
         }
-        var blkA = unsafe(reinterpret<ExprBlock?> fnArch.body)
+        var blkA = unsafe(reinterpret<ExprBlock?>(fnArch.body))
         blkA.list |> clear()
         blkA.list |> emplace_new <| qmacro_block() {
             if (length(cache) == 0) {
@@ -109,7 +102,7 @@ class DecsTemplate : AstStructureAnnotation {
         var fnBulk = qmacro_function("create_entities`{st.name}") $(count : int; user_blk : block<(eid : decs::EntityId; i : int; var entity : $t(st)) : void>) : void {
             pass
         }
-        var blk = unsafe(reinterpret<ExprBlock?> fnBulk.body)
+        var blk = unsafe(reinterpret<ExprBlock?>(fnBulk.body))
         blk.list |> clear()
         blk.list |> emplace_new <| qmacro_block() {
             var defval := default<$t(st)>
@@ -313,55 +306,6 @@ enum private DecsQueryType {
 [call_macro(name="query")]
 class DecsQueryMacro : AstCallMacro {
     //! This macro implements `query` functionality. There are 2 types of queries:
-    //!
-    //! * query(...) - returns a list of entities matching the query
-    //! * query(eid) - returns a single entity matching the eid
-    //!
-    //! For example::
-    //!
-    //!     query() $ ( eid:EntityId; pos, vel : float3 ) {
-    //!         print("[{eid}] pos={pos} vel={vel}\n")
-    //!     }
-    //!
-    //! The query above will print all entities with position and velocity.
-    //! Here is another example::
-    //!
-    //!     query(kaboom) $ ( var pos:float3&; vel:float3; col:uint=13u ) {
-    //!         pos += vel
-    //!     }
-    //!
-    //! The query above will add the velocity to the position of an entity with eid kaboom.
-    //!
-    //! Query can have `REQUIRE` and `REQUIRE_NOT` clauses::
-    //!
-    //!     var average : float3
-    //!     query <| $ [REQUIRE(tank)] ( pos:float3 )
-    //!         average += pos
-    //!
-    //! The query above will add `pos` components of all entities, which also have a `tank` component.
-    //!
-    //! Additionally queries can automatically expand components of entities. For example::
-    //!
-    //!     [decs_template(prefix="particle")]
-    //!     struct Particle
-    //!         pos, vel : float3
-    //!     ...
-    //!     query $ ( var q : Particle ) {
-    //!         q.pos += q.vel                  // this is actually particlepos += particlevel
-    //!     }
-    //!
-    //!
-    //! In the example above structure q : Particle does not exist as a variable. Instead it is expanded into accessing individual components of the entity.
-    //! REQURE section of the query is automatically filled with all components of the template.
-    //! If template prefix is not specified, prefix is taken from the name of the template (would be ``Particle_``).
-    //! Specifying empty prefix `[decs_template(prefix)]` will result in no prefix being added.
-    //!
-    //! Note: apart from tagging structure as a template, the macro also generates `apply_decs_template` and `remove_decs_template` functions.
-    //! `apply_decs_template` is used to add template to an entity, and `remove_decs_template` is used to remove all components of the template from the entity::
-    //!
-    //!     for i in range(3)
-    //!         create_entity <| @ ( eid, cmp )
-    //!             apply_decs_template(cmp, [[Particle pos=float3(i), vel=float3(i+1)]])
     def override preVisit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : void {
         let totalArgs = length(expr.arguments)
         if (totalArgs != 1 && totalArgs != 2) return
@@ -515,26 +459,6 @@ class DecsQueryMacro : AstCallMacro {
 [call_macro(name="find_query")]
 class DecsFindQueryMacro : DecsQueryMacro {
     //! This macro implements `find_query` functionality.
-    //! It is similar to `query` in most ways, with the main differences being:
-    //!
-    //! * there is no eid-based find query
-    //! * the find_query stops once the first match is found
-    //!
-    //! For example::
-    //!
-    //!     let found = find_query()  $ ( pos,dim:float3; obstacle:Obstacle ) {
-    //!         if (!obstacle.wall) {
-    //!             return false
-    //!         }
-    //!         let aabb = [[AABB min=pos-dim*0.5, max=pos+dim*0.5 ]]
-    //!         if (is_intersecting(ray, aabb, 0.1, dist)) {
-    //!             return true
-    //!         }
-    //!         return false
-    //!     }
-    //!
-    //! In the example above the find_query will return `true` once the first intersection is found.
-    //! Note: if return is missing, or end of find_query block is reached - its assumed that find_query did not find anything, and will return false.
     def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
         macro_verify(length(expr.arguments) == 1, prog, expr.at, "expecting find_query($(block_with_arguments))")
         return <- implement(expr, 0, DecsQueryType.find_query)
@@ -544,13 +468,6 @@ class DecsFindQueryMacro : DecsQueryMacro {
 [function_macro(name="decs")]
 class DecsEcsMacro : AstFunctionAnnotation {
     //! This macro converts a function into a DECS pass stage query. Possible arguments are `stage`, `REQUIRE`, and `REQUIRE_NOT`.
-    //! It has all other properties of a `query` (like ability to operate on templates). For example::
-    //!
-    //!     [decs(stage=update_ai, REQUIRE=ai_turret)]
-    //!         def update_ai ( eid:EntityId; var turret:Turret; pos:float3 )
-    //!             ...
-    //!
-    //! In the example above a query is added to the `update_ai` stage. The query also requires that each entity passed to it has an `ai_turret` property.
     def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
         let argPass = find_arg(args, "stage")
         if (!(argPass is tString)) {
@@ -629,31 +546,7 @@ class DecsEcsMacro : AstFunctionAnnotation {
 
 [call_macro(name="from_decs")]
 class FromDecsMacro : AstCallMacro {
-    //! This macro converts a DECS query into an iterator<tuple<...>>. For example::
-    //!
-    //!     let it = from_decs($(index:int; text:string){})
-    //!     for (item in it) {
-    //!         // process item
-    //!         print("Entity {item.index}: {item.text}\n")
-    //!     }
-    //!
-    //! Internally it generates the following code::
-    //!
-    //!     let it = invoke($() {
-    //!         var res : array<tuple<int,string>>
-    //!         query($(index:int; text:string) {
-    //!             res |> push((index, text))
-    //!         })
-    //!         return res.to_sequence()
-    //!
-    //! When this iterator is consumed by a daslib/linq_fold chain (`_fold(from_decs(...).where_(...).count())`,
-    //! etc.) the chain splice in plan_decs_unroll recognizes the expanded shape via extract_decs_bridge
-    //! and fuses where/select/take/distinct/group_by/order_by/reverse + the final terminator into a
-    //! single for_each_archetype loop with inline accumulator — no array<tuple> materialization. The
-    //! splice is shape-based: the same recognizer matches both this macro and from_decs_template
-    //! (which differs only in deriving the field list from a [decs_template] struct). Wave 4 component
-    //! pruning also fires: if the chain only references a subset of the lambda's declared args, the
-    //! emitted for-loop drops the unused get_ro slots.
+    //! This macro converts a DECS query into an ``iterator<tuple<...>>``.
     def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
         macro_verify(length(expr.arguments) == 1, prog, expr.at, "expecting from_decs($(block_with_arguments))")
         macro_verify(expr.arguments[0] is ExprMakeBlock, prog, expr.at, "expecting from_decs($(block_with_arguments))")
@@ -713,20 +606,6 @@ class FromDecsMacro : AstCallMacro {
 [call_macro(name="from_decs_template")]
 class FromDecsTemplateMacro : AstCallMacro {
     //! This macro converts a DECS query over a ``[decs_template]`` struct into an ``iterator<tuple<...>>``.
-    //! The field list (names and types) is derived from the struct definition; component names are
-    //! the struct's prefix (per ``[decs_template(prefix=...)]``) joined with each field name. For example::
-    //!
-    //!     [decs_template(prefix="particle_")]
-    //!     struct Particle { pos, vel : float3 }
-    //!     let it = from_decs_template(type<Particle>)
-    //!     for (item in it) {
-    //!         print("pos {item.pos}, vel {item.vel}\n")
-    //!     }
-    //!
-    //! This is the eager bridge form — equivalent to writing
-    //! ``from_decs($(particle_pos : float3; particle_vel : float3){})`` by hand and projecting back into
-    //! field names. Tuple element types are by-value (the query's archetype refs do not outlive the
-    //! invoke block).
     def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
         macro_verify(length(expr.arguments) == 1, prog, expr.at, "expecting from_decs_template(type<Foo>)")
         macro_verify(expr.arguments[0] is ExprTypeDecl, prog, expr.at, "expecting from_decs_template(type<Foo>), got {expr.arguments[0].__rtti}")
@@ -765,8 +644,7 @@ class FromDecsTemplateMacro : AstCallMacro {
             mkTuple.values |> push(new ExprVar(at = fld.at, name := "{prefix}{fld.name}"))
             mkTuple.recordNames[idx] := fld.name
         }
-        // Query block: one arg per field, name = prefixed component, type = const non-ref
-        // fld.init (if set) clones in so the query macro picks get_default_ro
+        // Query block: one arg per field, name = prefixed component, type = const non-ref fld.init (if set) clones in so the query macro picks get_default_ro
         var qblock = qmacro(${
             res |> push($e(mkTuple))
         })

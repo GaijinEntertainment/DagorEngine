@@ -20,8 +20,6 @@ interval rtao_res_mul: off<2, on;
 int rtao_checkerboard = 0;
 interval rtao_checkerboard: off<1, on;
 
-float impostor_shadow_offset = -10;
-
 shader rt_ao
 {
   INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)

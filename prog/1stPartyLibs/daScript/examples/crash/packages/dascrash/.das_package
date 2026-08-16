@@ -1,0 +1,14 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("dascrash")
+    package_description("Native failure modes (AV, stack overflow, abort, uncaught exception) for crash-pipeline testing")
+}
+
+[export]
+def build() {
+    cmake_build()
+}

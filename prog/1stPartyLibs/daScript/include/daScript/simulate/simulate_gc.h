@@ -11,7 +11,9 @@ namespace das
         PtrRange ( char * F, size_t size ) : from(F), to(F+size) {}
         void clear() { from = to = nullptr; }
         __forceinline bool empty() const { return from==to; }
-        __forceinline bool contains ( const PtrRange & r ) { return !empty() && !r.empty() && from<=r.from && to>=r.to; }
+        __forceinline bool contains ( const PtrRange & r ) const {
+            return !empty() && !r.empty() && from<=r.from && to>=r.to;
+        }
     };
 
     struct DAS_API BaseGcDataWalker : DataWalker {

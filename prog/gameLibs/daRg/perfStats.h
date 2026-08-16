@@ -15,6 +15,7 @@ struct PerfStats
   uint32_t rebuildBatches = 0;     // rebuildInvalidatedParts() calls that had work
   uint32_t invalidations = 0;      // invalidated elements processed
   uint32_t builderEvals = 0;       // component builder closure evaluations
+  uint32_t statefulCtorRuns = 0;   // StatefulComp ctor runs, one per instance mount
   uint32_t elemsSetupInitial = 0;  // Element::setup(SM_INITIAL)
   uint32_t elemsSetupRebuild = 0;  // Element::setup(SM_REBUILD_UPDATE)
   uint32_t elemsSetupRealtime = 0; // Element::setup(SM_REALTIME_UPDATE)

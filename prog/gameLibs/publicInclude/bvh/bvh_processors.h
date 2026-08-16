@@ -14,6 +14,7 @@
 #include <EASTL/vector_map.h>
 #include <EASTL/vector_multimap.h>
 #include <EASTL/unordered_map.h>
+#include <bvh/bvh.h>
 
 struct BvhTreeInstanceData;
 struct BvhSkinnedInstanceData;

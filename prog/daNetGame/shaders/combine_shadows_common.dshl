@@ -29,6 +29,8 @@ int4 temporal_shadow_frame;
 
 int offset_foliage_shadows = 0;
 
+int4 rt_shadow_resolutionI;
+
 macro SHADOWS_QUALITY_DEFINE(code)
   hlsl(code) {
     ##if shadows_quality == high
@@ -56,6 +58,7 @@ macro INIT_COMBINE_SHADOWS()
     foliage_height_above_ground@f1 = foliage_height_above_ground;
     foliage_shadow_radius_scale@f1 = foliage_shadow_radius_scale;
     bvh_usable@i1 = bvh_usable;
+    rt_shadow_resolutionI@i2 = (rt_shadow_resolutionI.xy);
   }
 
   INIT_ZNZFAR()
@@ -195,7 +198,7 @@ macro USE_COMBINE_SHADOWS()
       #if HAS_RTSM
         if (isRTSMEnabled() && use_rtsm)
         {
-          half3 rtShadow = getRTSM(screenpos.xy);
+          half3 rtShadow = getRTSM(tc * rt_shadow_resolutionI);
           half vsm = half(def_vsm_shadow(float4(worldPos,1)));
           shadow = rtShadow.r * cloudsShadow * vsm;
           shadows.vsm = vsm;

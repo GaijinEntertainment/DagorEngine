@@ -33,7 +33,7 @@ Compile
   group_size_in_kb:i=128
   assume_vars {
     include common_assumes.blk
-    supports_sh_6_1:i = 0
+    supports_barycentrics:i = 0
     static_shadows_custom_fxaa:i=0
     grass_use_quads:i=0
     object_tess_factor:r=0 // Not supported

@@ -56,6 +56,7 @@ var private log_open_failed = false
 var private log_min_level = LOG_INFO
 var private log_category_overrides : table<string; int>
 var private log_fallback_to_stderr = true
+var private log_tee = false
 
 // ── Internal helpers ─────────────────────────────────────────────────
 
@@ -118,10 +119,7 @@ def private write_record(var w : StringBuilderWriter; ts, lvl, cat, msg : string
     write_escape_string(w, msg)
     if (fields != null) {
         w |> write("\",\"fields\":")
-        // write_json always pretty-prints (depth=0 still inserts \n/\t between
-        // elements). One JSON object per line is load-bearing for JSON Lines,
-        // so flatten via the jsonrpc framing helper (preserves whitespace
-        // inside string literals).
+        // write_json always pretty-prints (depth=0 still inserts \n/\t between elements). One JSON object per line is load-bearing for JSON Lines, so flatten via the jsonrpc framing helper (preserves whitespace inside string literals).
         w |> write(compact_json_whitespace(write_json(fields)))
         w |> write("}\n")
     } else {
@@ -140,21 +138,13 @@ def private emit(level : int; category, message : string; fields : JsonValue?) {
         fflush(log_file)
         return
     }
-    // Open failed (or path never set). stderr is always safe — it isn't the
-    // JSON-RPC channel for stdio-transport servers, so a tail fallback can't
-    // corrupt protocol framing.
+    // Open failed (or path never set). stderr is always safe — it isn't the JSON-RPC channel for stdio-transport servers, so a tail fallback can't corrupt protocol framing.
     if (log_fallback_to_stderr) {
         fwrite(fstderr(), line)
     }
 }
 
 // ── Public configuration ─────────────────────────────────────────────
-//
-// All public names carry the ``logger_`` prefix on purpose. Short verbs
-// like ``flush`` / ``close`` / ``info`` / ``debug`` collide with user
-// code when callers ``require daslib/logger`` and reach for the
-// unqualified form. The prefix keeps the call sites readable
-// (``logger_info("foo", "bar")``) without forcing ``logger::`` everywhere.
 
 def logger_set_name(name : string) {
     //! Configure the log file as ``{get_das_root()}/logs/<name>.log``.
@@ -205,10 +195,7 @@ def logger_get_min_level() : int {
 }
 
 def logger_set_category_level(category : string; level : int) {
-    //! Override the level filter for one category. Dotted prefix
-    //! matching: an override on ``"mcp.live"`` applies to ``"mcp.live"``,
-    //! ``"mcp.live.foo"``, ``"mcp.live.bar"`` (unless they have their own
-    //! more specific override).
+    //! Override the level filter for one category. Dotted prefix matching: an override on ``"mcp.live"`` applies to ``"mcp.live"``, ``"mcp.live.foo"``, ``"mcp.live.bar"`` (unless they have their own more specific override).
     log_category_overrides[category] = level
 }
 
@@ -282,44 +269,31 @@ def logger_close() {
 }
 
 // ── Debug-agent hook ─────────────────────────────────────────────────
-//
-// Intercepts ``Context::to_out`` (the underlying mechanism behind ``print``
-// and ``to_log``) and routes every message into the configured log file
-// instead of stdout/stderr. Critical for stdio-transport processes — MCP
-// servers, language servers, anything where stdout is the wire format.
-//
-// Registered as a GLOBAL debug agent (not thread-local) under the
-// ``"daslib_logger"`` category. One install covers every Context that
-// later spawns; ``new_thread`` workers don't need to re-install. The
-// agent's ``onLog`` is dispatched into its installing Context, which
-// owns the log file handle — cross-context invocations route writes
-// through that single handle.
 
 let private LOGGER_AGENT_CATEGORY = "daslib_logger"
 
 class private LogHookAgent : DapiDebugAgent {
     def override onLog(context : Context?; at : LineInfo const?; level : int; text : string#) : bool {
-        // Fail-open when logging isn't configured — let the default
-        // stdout/stderr path through instead of swallowing silently.
-        // Makes accidental "hook before logger_set_name" calls harmless
-        // rather than blackholing every print().
+        // Fail-open when logging isn't configured — let the default stdout/stderr path through instead of swallowing silently.
         if (empty(log_path) && !log_fallback_to_stderr) return false
         var fields : JsonValue? = null
         if (at != null && at.fileInfo != null) {
             fields = JV({"at" => JV("{at.fileInfo.name}:{at.line}")})
         }
         emit(level, "runtime", string(text), fields)
-        return true
+        return !log_tee   // tee mode: the line also continues to the default stdout/stderr path
     }
 }
 
+def logger_set_tee(tee : bool) {
+    //! Tee mode: hooked ``print``/``to_log`` lines go to the log file AND still reach
+    //! stdout/stderr (the default hook behavior diverts them to the file only — right for
+    //! stdio-transport tools, wrong for interactive servers watched on a console).
+    log_tee = tee
+}
+
 def logger_install_hook() {
-    //! Install a global debug agent that diverts ``print`` and
-    //! ``to_log`` (from any Context, current or future) into the
-    //! configured log file. Idempotent — safe to call from every
-    //! module's [init], from MCP main, etc. Worker threads spawned via
-    //! ``new_thread`` inherit the hook automatically; no per-context
-    //! re-install needed.
+    //! Install a global debug agent that diverts ``print`` and ``to_log`` (from any Context, current or future) into the configured log file. Idempotent — safe to call from every module's [init], from MCP main, etc. Worker threads spawned via ``new_thread`` inherit the hook automatically; no per-context re-install needed.
     return if (has_debug_agent_context(LOGGER_AGENT_CATEGORY))
     install_new_debug_agent(new LogHookAgent(), LOGGER_AGENT_CATEGORY)
 }
@@ -329,4 +303,11 @@ def logger_init(name : string) {
     //! The common-case one-liner for tools that want both behaviors.
     logger_set_name(name)
     logger_install_hook()
+}
+
+def logger_init_tee(name : string) {
+    //! ``logger_init`` in tee mode: everything still prints to the console AND lands,
+    //! timestamped, in ``logs/<name>.log`` — the one-liner for interactive servers.
+    logger_set_tee(true)
+    logger_init(name)
 }

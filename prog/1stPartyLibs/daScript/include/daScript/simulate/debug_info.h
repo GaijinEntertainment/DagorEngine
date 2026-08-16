@@ -71,9 +71,39 @@ namespace das
         tBlock,
         tTuple,
         tVariant,
-        tFixedArray     // AST-only (FIXED_ARRAY_REWORK.md): structural fixed-array TypeDecl node.
+        tFixedArray,    // AST-only (FIXED_ARRAY_REWORK.md): structural fixed-array TypeDecl node.
                         //  Runtime TypeInfo never carries it — fixed arrays stay flattened to dim[]
                         //  at the single AST->TypeInfo conversion point (ast_debug_info_helper.cpp).
+        tDistinct,      // AST-only: nominal `distinct Foo = int` type. ABI-identical to firstType
+                        //  (the underlying workhorse type); annotation points at DistinctTypeAnnotation.
+                        //  Erased to the underlying type at the same AST->TypeInfo conversion point.
+        // ===== 16/8-bit type lattice — appended (NEVER insert above: das_base_type in
+        // daScriptC.h pins the numeric values of everything before this point). Vectors are
+        // byte-packed in the low bytes of the vec4f slot; scalars ride widened in lane 0.
+        tFloat16,       // IEEE-754 binary16 scalar (das name "float16"; "half" is a builtin alias)
+        tHalf2,         // 16-bit fp vectors: {2,3,4,8} lanes, 8-lane form fills the 128-bit slot
+        tHalf3,
+        tHalf4,
+        tHalf8,
+        tShort2,        // int16 vectors (storage + convert only, no closed arithmetic)
+        tShort3,
+        tShort4,
+        tShort8,
+        tUShort2,       // uint16 vectors
+        tUShort3,
+        tUShort4,
+        tUShort8,
+        tByte2,         // int8 vectors — byte = SIGNED int8 (house naming: bare=signed)
+        tByte3,
+        tByte4,
+        tByte8,
+        tByte16,
+        tUByte2,        // uint8 vectors
+        tUByte3,
+        tUByte4,
+        tUByte8,
+        tUByte16
+        // (reserved next: bfloat16 family — bfloat, bfloat2/3/4/8 — decided OUT for now)
     };
 
     enum class RefMatters {
@@ -107,8 +137,44 @@ namespace das
     };
 
     struct StructInfo;
+    struct Annotation;
     struct TypeAnnotation;
     struct EnumInfo;
+
+    // POD mirrors of AST annotation data, deep-copied into the DebugInfoAllocator so that
+    // debug info never outlives its strings (a Context can outlive its Program).
+    struct AnnotationArgumentInfo {
+        Type            type;       // only tBool, tInt, tFloat, tString
+        const char *    name;
+        const char *    sValue;
+        union {
+            bool        bValue;
+            int32_t     iValue;
+            float       fValue;
+        };
+        AnnotationArgumentInfo() = default;
+        AnnotationArgumentInfo ( const char * n, bool b )
+            : type(Type::tBool), name(n), sValue(nullptr), bValue(b) {}
+        AnnotationArgumentInfo ( const char * n, int32_t i )
+            : type(Type::tInt), name(n), sValue(nullptr), iValue(i) {}
+        AnnotationArgumentInfo ( const char * n, float f )
+            : type(Type::tFloat), name(n), sValue(nullptr), fValue(f) {}
+        AnnotationArgumentInfo ( const char * n, const char * s )
+            : type(Type::tString), name(n), sValue(s), iValue(0) {}
+    };
+
+    struct AnnotationInfo {
+        const char *                name;           // annotation name
+        const char *                module_name;    // module where the annotation is declared
+        AnnotationArgumentInfo *    arguments;      // flat array
+        uint32_t                    count;
+        mutable Annotation *        resolved;       // lazy environment-lookup cache. WARNING: use Module::resolveAnnotation
+        AnnotationInfo() = default;
+        AnnotationInfo ( const char * _name, const char * _module_name,
+                AnnotationArgumentInfo * _arguments, uint32_t _count )
+            : name(_name), module_name(_module_name)
+            , arguments(_arguments), count(_count), resolved(nullptr) {}
+    };
 
     struct BasicAnnotation : gc_node {
         BasicAnnotation ( const string & n, const string & cpn = "" ) : name(n), cppName(cpn) {}
@@ -160,6 +226,7 @@ namespace das
         string  fileName;
         string  importName;
         bool extraDepModule = false;
+        string  requireName;    // the require string that produced this info (e.g. "daslib/fio"); carried so a promoted shared module records its canonical, directory-independent require identity
     };
 
     struct BaseRequireRecord {
@@ -225,6 +292,7 @@ namespace das
         virtual bool isPodInScopeAllowed ( const string & /*moduleName*/, const string & /*fileName*/ ) const { return true; };
         virtual bool isModuleAllowed ( const string &, const string & ) const { return true; };
         virtual bool canModuleBeUnsafe ( const string &, const string & ) const { return true; };
+        virtual bool isWithModuleUnsafe ( const string & /*targetModule*/, const string & /*fileName*/ ) const { return false; };
         virtual bool canBeRequired ( const string &, const string &, bool ) const { return true; };
         virtual bool addFsRoot ( const string & , const string & ) { return false; }
         virtual void serialize ( AstSerializer & ser );
@@ -262,11 +330,12 @@ namespace das
 
     struct SimFunction;
     class Context;
+    class Program;
 
     class DAS_API ModuleFileAccess : public FileAccess {
     public:
         ModuleFileAccess();
-        ModuleFileAccess ( const string & pak, const FileAccessPtr & access );
+        ModuleFileAccess ( const string & pak, const smart_ptr<Program> & program );
         virtual ~ModuleFileAccess();
         bool failed() const { return !context || !modGet; }
         virtual ModuleInfo getModuleInfo ( const string & req, const string & from ) const override;
@@ -274,6 +343,7 @@ namespace das
         virtual string getIncludeFileName ( const string & fileName, const string & incFileName ) const override;
         virtual bool isModuleAllowed ( const string &, const string & ) const override;
         virtual bool canModuleBeUnsafe ( const string &, const string & ) const override;
+        virtual bool isWithModuleUnsafe ( const string &, const string & ) const override;
         virtual bool canBeRequired ( const string &, const string &, bool ) const override;
         virtual void serialize ( AstSerializer & ser ) override;
         virtual bool isSameFileName ( const string & f1, const string & f2 ) const override;
@@ -287,6 +357,7 @@ namespace das
         SimFunction *       includeGet = nullptr;
         SimFunction *       moduleAllowed = nullptr;
         SimFunction *       moduleUnsafe = nullptr;
+        SimFunction *       withModuleUnsafe = nullptr;
         SimFunction *       canModuleBeRequired = nullptr;
         SimFunction *       sameFileName = nullptr;
         SimFunction *       optionAllowed = nullptr;
@@ -335,11 +406,12 @@ namespace das
             flag_heapGC = 1<<13,
             flag_stringHeapGC = 1<<14,
             flag_private = 1<<15,
+            flag_classMethod = 1<<16,   // struct field is a class method (set on the field VarInfo)
         };
         union {
             StructInfo *                structType;
             EnumInfo *                  enumType;
-            mutable TypeAnnotation *    annotation_or_name;     // WARNING: unresolved. use 'getAnnotation'
+            AnnotationInfo *            annotation_info;        // WARNING: unresolved. use 'getAnnotation'
         };
         TypeInfo *                  firstType;              // map  from, or array
         TypeInfo *                  secondType;             // map  to
@@ -353,13 +425,13 @@ namespace das
         uint32_t                    argCount;
         uint32_t                    dimSize;
         TypeInfo() = default;
-        TypeInfo (  Type _type, StructInfo * _structType, EnumInfo * _enumType, TypeAnnotation * _annotation_or_name,
+        TypeInfo (  Type _type, StructInfo * _structType, EnumInfo * _enumType, AnnotationInfo * _annotation_info,
                     TypeInfo * _firstType, TypeInfo * _secondType, TypeInfo ** _argTypes, const char ** _argNames, uint32_t _argCount,
                     uint32_t _dimSize, uint32_t * _dim, uint32_t _flags, uint32_t _size, uint64_t _hash ) {
             type               = _type;
-            if ( _structType )    { structType = _structType; DAS_ASSERT(!_enumType && !_annotation_or_name); }
-            else if ( _enumType ) { enumType = _enumType; DAS_ASSERT(!_structType && !_annotation_or_name); }
-            else                  { annotation_or_name = _annotation_or_name; DAS_ASSERT(!_structType && !_enumType); }
+            if ( _structType )    { structType = _structType; DAS_ASSERT(!_enumType && !_annotation_info); }
+            else if ( _enumType ) { enumType = _enumType; DAS_ASSERT(!_structType && !_annotation_info); }
+            else                  { annotation_info = _annotation_info; DAS_ASSERT(!_structType && !_enumType); }
             firstType          = _firstType;
             secondType         = _secondType;
             argTypes           = _argTypes;
@@ -437,20 +509,24 @@ namespace das
             char *                  sValue;
         };
         const char *                name;
-        void *                      annotation_arguments = nullptr;
+        AnnotationArgumentInfo *    annotation_arguments = nullptr; // flat array
+        uint32_t                    annotation_argument_count = 0;
         uint32_t                    offset;
         uint32_t                    nextGcField;
         VarInfo() = default;
-        VarInfo(Type _type, StructInfo * _structType, EnumInfo * _enumType, TypeAnnotation * _annotation_or_name,
+        VarInfo(Type _type, StructInfo * _structType, EnumInfo * _enumType, AnnotationInfo * _annotation_info,
                 TypeInfo * _firstType, TypeInfo * _secondType, TypeInfo ** _argTypes, const char ** _argNames, uint32_t _argCount,
                 uint32_t _dimSize, uint32_t * _dim, uint32_t _flags, uint32_t _size,
-                uint64_t _hash, const char * _name, uint32_t _offset, uint32_t _nextGcField ) :
-            TypeInfo(_type,_structType,_enumType,_annotation_or_name,
+                uint64_t _hash, const char * _name, uint32_t _offset, uint32_t _nextGcField,
+                AnnotationArgumentInfo * _annotation_arguments = nullptr, uint32_t _annotation_argument_count = 0 ) :
+            TypeInfo(_type,_structType,_enumType,_annotation_info,
                     _firstType,_secondType,_argTypes,_argNames,_argCount,
                      _dimSize,_dim,_flags,_size,_hash) {
                 name               = _name;
                 offset             = _offset;
                 nextGcField        = _nextGcField;
+                annotation_arguments       = _annotation_arguments;
+                annotation_argument_count  = _annotation_argument_count;
                 value = v_zero();
         }
     };
@@ -465,17 +541,19 @@ namespace das
         const char* name;
         const char* module_name;
         VarInfo **  fields;
-        void *      annotation_list;
+        AnnotationInfo * annotations;   // flat array
         uint64_t    hash;
         uint64_t    init_mnh;
         uint32_t    flags;
         uint32_t    count;
         uint32_t    size;
         uint32_t    firstGcField;
+        uint32_t    annotation_count;
         StructInfo() = default;
         StructInfo(
             const char * _name, const char * _module_name, uint32_t _flags, VarInfo ** _fields, uint32_t _count,
-            uint32_t _size, uint64_t _init_mnh, void * _annotation_list, uint64_t _hash, uint32_t _firstGcField ) {
+            uint32_t _size, uint64_t _init_mnh, AnnotationInfo * _annotations, uint32_t _annotation_count,
+            uint64_t _hash, uint32_t _firstGcField ) {
                 name =            _name;
                 module_name =     _module_name;
                 flags =           _flags;
@@ -483,7 +561,8 @@ namespace das
                 count =           _count;
                 size =            _size;
                 init_mnh =        _init_mnh;
-                annotation_list = _annotation_list;
+                annotations =     _annotations;
+                annotation_count = _annotation_count;
                 hash =            _hash;
                 firstGcField =    _firstGcField;
         }
@@ -504,6 +583,8 @@ namespace das
         uint32_t            count;
         uint64_t            hash;
         uint32_t            flags;
+        AnnotationInfo *    annotations;        // flat array
+        uint32_t            annotation_count;
     };
 
     struct LocalVariableInfo : TypeInfo {
@@ -533,15 +614,18 @@ namespace das
         TypeInfo *              result;
         LocalVariableInfo **    locals;
         VarInfo **              globals;
+        AnnotationInfo *        annotations;    // flat array
         uint64_t                hash;
         uint32_t                flags;
         uint32_t                count;
         uint32_t                stackSize;
         uint32_t                localCount;
         uint32_t                globalCount;
+        uint32_t                annotation_count;
         FuncInfo() = default;
         FuncInfo( const char * _name, const char * _cppName, VarInfo ** _fields, uint32_t _count, uint32_t _stackSize,
-                TypeInfo * _result, LocalVariableInfo ** _locals, uint32_t _localCount, uint64_t _hash, uint32_t _flags ) {
+                TypeInfo * _result, LocalVariableInfo ** _locals, uint32_t _localCount, uint64_t _hash, uint32_t _flags,
+                AnnotationInfo * _annotations = nullptr, uint32_t _annotation_count = 0 ) {
             name =       _name;
             cppName =    _cppName;
             fields =     _fields;
@@ -554,6 +638,8 @@ namespace das
             flags =      _flags;
             globals =    nullptr;
             globalCount = 0;
+            annotations = _annotations;
+            annotation_count = _annotation_count;
         }
     };
 

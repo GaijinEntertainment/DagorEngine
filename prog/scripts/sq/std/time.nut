@@ -1,6 +1,7 @@
 from "math" import abs
 from "string.nut" import isStringInteger
 from "string" import format, split_by_chars
+from "types" import Table
 
 const TIME_SECOND_IN_MSEC = 1000
 const TIME_SECOND_IN_MSEC_F = 1000.0
@@ -27,7 +28,7 @@ let daysToSeconds = @(days: number) days * TIME_DAY_IN_SECONDS
 let secondsToDays = @(seconds: number) seconds / TIME_DAY_IN_SECONDS_F
 
 function secondsToTime(time): table {
-  if(type(time)=="table" && "seconds" in time)
+  if(time instanceof Table && "seconds" in time)
     return time
   let s = time.tointeger()
   return {
@@ -51,7 +52,7 @@ function secondsToTimeSimpleString(time): string {
 }
 
 function roundTime(time): table {
-  let t = (type(time)=="table" && "seconds" in time) ? clone time : secondsToTime(time)
+  let t = (time instanceof Table && "seconds" in time) ? clone time : secondsToTime(time)
   if (t.days > 2)
     t.hours = 0
   if (t.days > 0)

@@ -101,10 +101,7 @@ static SQClass *CreateBuiltInTypeClass(SQSharedState *ss, const char *name, cons
                 nc->_nodiscard = true;
             if (funcz[i].docstring) {
                 SQObjectPtr docValue(SQString::Create(ss, funcz[i].docstring));
-                SQObjectPtr docKey;
-                docKey._type = OT_USERPOINTER;
-                docKey._unVal.pUserPointer = (void *)nc->_function;
-                _table(ss->doc_objects)->NewSlot(docKey, docValue);
+                _table(ss->doc_objects)->NewSlot(sq_docstring_key(nc), docValue);
             }
 
             cls->NewSlot(ss, SQObjectPtr(nc->_name), SQObjectPtr(nc), /*static*/ true);
@@ -271,6 +268,31 @@ SQSharedState::~SQSharedState()
     if(_scratchpad)SQ_FREE(_alloc_ctx,_scratchpad,_scratchpadsize);
 }
 
+
+#if SQ_STORE_DOC_OBJECTS
+void SQSharedState::RemoveDocObjects(const void *obj)
+{
+    // Called from destructors, so doc_objects may already be gone: ~SQSharedState
+    // finalizes it before the objects that still point into it are released.
+    if (sq_type(doc_objects) != OT_TABLE)
+        return;
+    SQTable *docs = _table(doc_objects);
+    if (docs->CountUsed() == 0)
+        return;
+    docs->Remove(sq_docstring_key(obj));
+    docs->Remove(sq_declstring_key(obj));
+}
+
+void SQSharedState::CopyDocObjects(const void *from, const void *to)
+{
+    SQTable *docs = _table(doc_objects);
+    SQObjectPtr value;
+    if (docs->Get(sq_docstring_key(from), value))
+        docs->NewSlot(sq_docstring_key(to), value);
+    if (docs->Get(sq_declstring_key(from), value))
+        docs->NewSlot(sq_declstring_key(to), value);
+}
+#endif
 
 SQInteger SQSharedState::GetMetaMethodIdxByName(const SQObjectPtr &name)
 {

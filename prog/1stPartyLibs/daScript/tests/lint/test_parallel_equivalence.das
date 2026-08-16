@@ -20,7 +20,7 @@ def das_exe() : string {
 def run_argv(args : array<string>; var output : string&) : int {
     return unsafe(popen_argv(args, 0.0, $(f) {
         if (f != null) {
-            output := unsafe(fread_to_eof(f))
+            output = fread(f)
         }
     }))
 }
@@ -54,10 +54,7 @@ def build_argv(workers : int; fixtures : array<string>; quiet : bool = true) : a
     if (quiet) {
         argv |> push("-q")
     }
-    argv |> reserve(length(argv) + length(fixtures))
-    for (f in fixtures) {
-        argv |> push(f)
-    }
+    argv |> push_from(fixtures)
     return <- argv
 }
 

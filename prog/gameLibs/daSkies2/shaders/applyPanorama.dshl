@@ -31,8 +31,6 @@ float skies_panorama_mobile_blendup_coef = 0.0001;
 
 texture uav_depth_texture;
 
-float4 skies_panorama_below_skies_fill_color = float4(0, 0, 0, 0);
-
 shader applyCloudsPanorama
 {
   //blend_src = 1; blend_dst = sa;
@@ -65,7 +63,6 @@ shader applyCloudsPanorama
     skies_panorama_light_dir@f3 = skies_panorama_light_dir;
     skies_panorama_remove_sun_threshold@f1 = (1.5 + render_sun*1000,0,0,0);
     rgbm_panorama_scale_factor@f1 = (rgbm_panorama_scale_factor);
-    skies_panorama_below_skies_fill_color@f4 = skies_panorama_below_skies_fill_color;
   }
   INIT_GLOBAL_LINEAR_WRAP_U_CLAMP_V_SAMPLER(ps)
   INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
@@ -293,11 +290,6 @@ shader applyCloudsPanorama
       #else
         half4 result=half4(pack_hdr(panorama.rgb).rgb, retAlpha);
       #endif
-
-      // use custom color to fill space below sky if it's provided
-      float belowFillFactor = skies_panorama_below_skies_fill_color.a*step(viewDirection.y, PANORAMA_VIEW_THRESHOLD);
-      result = lerp(result, float4(skies_panorama_below_skies_fill_color.rgb, 0.0), belowFillFactor);
-
       return result;
     }
   }

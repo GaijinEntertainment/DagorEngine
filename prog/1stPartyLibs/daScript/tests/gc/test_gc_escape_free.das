@@ -84,6 +84,46 @@ def alias_then_escape(i : int) {
     g_kept = q
 }
 
+// a SCRIPT callee that stores its argument into a global -> its parameter escapes, so a local
+// passed only here must NOT be freed
+def keep_node_script(var p : Node?) { g_kept = p }
+def escape_via_script(i : int) {
+    var p = new Node(x = i, y = i)
+    keep_node_script(p)
+}
+
+// transitive: keep_node_script_t forwards p to keep_node_script, which stores it -> the escape
+// transits the call chain, so the parameter still escapes
+def keep_node_script_t(var p : Node?) { keep_node_script(p) }
+def escape_via_script_transitive(i : int) {
+    var p = new Node(x = i, y = i)
+    keep_node_script_t(p)
+}
+
+// a script callee that captures its argument into a lambda stored in a global -> the parameter
+// escapes through the capture frame
+def keep_node_capture(p : Node?) { g_lam <- @() : int { return p.x } }
+def escape_via_script_capture(i : int) {
+    var p = new Node(x = i, y = i)
+    keep_node_capture(p)
+}
+
+// a fresh local pointer MOVED into a struct field. This is the explicit form of a lambda capture:
+// both lower to an ExprMakeStruct that moves the pointer into the frame. The moved-in pointee
+// follows the struct - if the struct escapes it must NOT be freed; in a local struct, no double-free.
+struct Box { node : Node ? }
+var g_boxes : array<Box?>
+def move_into_escaping_box(i : int) {
+    var p = new Node(x = i, y = i)
+    var b = new Box(node <- p)       // p moved into b.node
+    g_boxes |> push(b)               // b escapes -> the moved-in pointee escapes with it
+}
+def move_into_local_box_read(i : int) : int {
+    var p = new Node(x = i, y = i)
+    var b = new Box(node <- p)
+    return b.node.x                  // read through the moved-in pointer before scope exit
+}
+
 [test]
 def test_escape_free_does_not_free_global(t : T?) {
     leak_into_global(42)
@@ -155,4 +195,49 @@ def test_escape_free_does_not_run_user_finalizer(t : T?) {
     g_user_fin_calls = 0
     churn_user_finalizer()
     t |> equal(g_user_fin_calls, 0)   // freed without finalizing -> matches GC behavior
+}
+
+// SCRIPT-callee escape: a local passed to a script function that stores it must survive. If the
+// per-parameter analysis wrongly marked the callee's parameter escape-free, the local would be
+// statically freed and the validating collect (or the value check) would fail.
+[test]
+def test_escape_free_does_not_free_stored_by_script(t : T?) {
+    escape_via_script(77)
+    unsafe { heap_collect(true, true) }
+    t |> equal(g_kept.x, 77)
+}
+
+[test]
+def test_escape_free_does_not_free_stored_by_script_transitive(t : T?) {
+    escape_via_script_transitive(88)
+    unsafe { heap_collect(true, true) }
+    t |> equal(g_kept.x, 88)
+}
+
+[test]
+def test_escape_free_does_not_free_captured_by_script(t : T?) {
+    escape_via_script_capture(66)
+    unsafe { heap_collect(true, true) }
+    t |> equal(invoke(g_lam), 66)
+}
+
+// a pointer MOVED into a struct that then escapes must survive: the move transfers it into the box
+// frame (ExprMakeStruct-by-move), so it escapes through the box and must not be statically freed.
+[test]
+def test_escape_free_move_into_escaping_struct_not_freed(t : T?) {
+    g_boxes |> clear()
+    move_into_escaping_box(55)
+    unsafe { heap_collect(true, true) }   // throws if the moved-in pointee was wrongly freed
+    t |> equal(length(g_boxes), 1)
+    t |> equal(g_boxes[0].node.x, 55)     // survived intact through move + escape
+}
+
+// a pointer moved into a NON-escaping local struct: read back correctly with no double-free (the
+// moved pointer is owned by the box, so it must not also be freed as the original local)
+[test]
+def test_escape_free_move_into_local_struct_sound(t : T?) {
+    var acc = 0
+    for (i in range(100)) { acc += move_into_local_box_read(i) }
+    unsafe { heap_collect(true, true) }
+    t |> equal(acc, (100 - 1) * 100 / 2)
 }

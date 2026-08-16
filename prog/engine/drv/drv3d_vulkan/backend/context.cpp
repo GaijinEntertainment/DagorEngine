@@ -32,7 +32,20 @@ using namespace drv3d_vulkan;
 namespace
 {
 typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::QFOT> QFOTPipelineBarrier;
-}
+
+struct ReorderedGPUProfileRange
+{
+  BEContext &ctx;
+  ReorderedGPUProfileRange(BEContext &_ctx) : ctx(_ctx) { ctx.insertReorderedTimestamp(); }
+  ~ReorderedGPUProfileRange() { ctx.insertReorderedTimestamp(); };
+
+  static constexpr uint32_t markers_in_readback = 3;
+  static constexpr uint32_t markers_in_image_upload = 4;
+  static constexpr uint32_t markers_in_buffer_upload = 3;
+  static constexpr uint32_t markers_in_frame_core = markers_in_image_upload + markers_in_buffer_upload;
+};
+
+} // namespace
 
 thread_local bool BEContext::active = false;
 
@@ -47,6 +60,7 @@ void BEContext::reset(RenderWork *in_work)
   directDrawCountInSurvey = 0;
   actionIdx = 0;
   lastTimestampActionIdx = -1;
+  lastReorderedTimestampIndex = 0;
   reorderedBufferCopyOffset = 0;
   ncmdLoopKey = 0;
   frameCore = VulkanHandle();
@@ -143,28 +157,46 @@ void BEContext::allocFrameCore()
 
 void BEContext::flushUnorderedImageColorClears()
 {
+  ReorderedGPUProfileRange marker(*this);
+
+  if (data->unorderedImageColorClears.empty())
+    return;
+
   TIME_PROFILE(vulkan_flush_unordered_rt_clears);
   for (const CmdClearColorTexture &t : data->unorderedImageColorClears)
   {
     execCmd(t);
     writeExceptionChekpointNonCommandStream(MARKER_NCMD_UNORDERED_COLOR_CLEAR);
   }
+
+  ++actionIdx;
 }
 
 void BEContext::flushUnorderedImageDepthStencilClears()
 {
+  ReorderedGPUProfileRange marker(*this);
+
+  if (data->unorderedImageDepthStencilClears.empty())
+    return;
+
   TIME_PROFILE(vulkan_flush_unordered_ds_clears);
   for (const CmdClearDepthStencilTexture &t : data->unorderedImageDepthStencilClears)
   {
     execCmd(t);
     writeExceptionChekpointNonCommandStream(MARKER_NCMD_UNORDERED_DEPTH_CLEAR);
   }
+
+  ++actionIdx;
 }
 
 void BEContext::flushUnorderedImageCopies()
 {
+  ReorderedGPUProfileRange marker(*this);
+
+  if (data->unorderedImageCopies.empty())
+    return;
+
   TIME_PROFILE(vulkan_flush_unordered_image_copies);
-  beginCustomStage("flushUnorderedImageCopies");
 
   for (CmdCopyImage &i : data->unorderedImageCopies)
   {
@@ -179,6 +211,8 @@ void BEContext::flushUnorderedImageCopies()
     Backend::sync.completeNeeded();
     writeExceptionChekpointNonCommandStream(MARKER_NCMD_UNORDERED_IMAGE_COPY_BARRIER);
   }
+
+  ++actionIdx;
 }
 
 void BEContext::cleanupMemory()
@@ -335,6 +369,31 @@ void BEContext::prepareFrameCore()
 
   switchFrameCoreForQueueChange(DeviceQueueType::GRAPHICS);
 
+  if (Globals::cfg.signalWaitStage != VK_PIPELINE_STAGE_ALL_COMMANDS_BIT)
+  {
+    // opportunistic sync approach
+    // if all writes are read consumed on last frame on non waited stages
+    // only non waited stages reads must be completed versus following writes
+    // if device shedule is task/graph based, we should not block on read-read sequences
+    const VkPipelineStageFlags syncStages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    const VkMemoryBarrier syncMem = {VK_STRUCTURE_TYPE_MEMORY_BARRIER, nullptr, VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_MEMORY_WRITE_BIT};
+    Backend::cb.wCmdPipelineBarrier(syncStages, syncStages, 0, 1, &syncMem, 0, nullptr, 0, nullptr);
+  }
+
+  writeExceptionChekpointNonCommandStream(MARKER_NCMD_TIMESTAMPS_RESET_QUEUE_READBACKS);
+  data->timestampQueryBlock->ensureSizesAndResetStatus(VK_QUERY_TYPE_TIMESTAMP);
+  Backend::gpuJob.get().pendingTimestamps = data->timestampQueryBlock;
+  data->occlusionQueryBlock->ensureSizesAndResetStatus(VK_QUERY_TYPE_OCCLUSION);
+  Backend::gpuJob.get().pendingOcclusionQueries = data->occlusionQueryBlock;
+
+  if (data->reorderedTimestampQueriesCount)
+  {
+    QueryBlock &qb = *data->timestampQueryBlock;
+    qb.dataIndexes.append_default(data->reorderedTimestampQueriesCount);
+  }
+
+  ReorderedGPUProfileRange frameCoreMarker(*this);
+
   if (needImageUpload || needBufferUpload)
   {
     // can't live on transfer queue (or can't always live) and followup queue should be graphics after prepare
@@ -347,15 +406,30 @@ void BEContext::prepareFrameCore()
       flushImageUploads();
       flushUnorderedImageCopies();
     }
+    else
+      consumeReorderedTimestamps(ReorderedGPUProfileRange::markers_in_image_upload);
 
     if (needBufferUpload)
     {
-      flushBufferUploads(false);
-      flushOrderedBufferUploads(false);
-      transferOwnershipForOverlappedBufferUploads(DeviceQueueType::TRANSFER_UPLOAD, DeviceQueueType::GRAPHICS);
+      {
+        ReorderedGPUProfileRange marker(*this);
+        flushBufferUploads(false);
+      }
+      {
+        ReorderedGPUProfileRange marker(*this);
+        flushOrderedBufferUploads(false);
+      }
+      {
+        ReorderedGPUProfileRange marker(*this);
+        transferOwnershipForOverlappedBufferUploads(DeviceQueueType::TRANSFER_UPLOAD, DeviceQueueType::GRAPHICS);
+      }
     }
+    else
+      consumeReorderedTimestamps(ReorderedGPUProfileRange::markers_in_buffer_upload);
     popEventRaw();
   }
+  else
+    consumeReorderedTimestamps(ReorderedGPUProfileRange::markers_in_frame_core);
 
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
   // previous gpu job is fully complete when this work item starts executing,
@@ -367,12 +441,6 @@ void BEContext::prepareFrameCore()
     popEventRaw();
   }
 #endif
-
-  writeExceptionChekpointNonCommandStream(MARKER_NCMD_TIMESTAMPS_RESET_QUEUE_READBACKS);
-  data->timestampQueryBlock->ensureSizesAndResetStatus(VK_QUERY_TYPE_TIMESTAMP);
-  Backend::gpuJob.get().pendingTimestamps = data->timestampQueryBlock;
-  data->occlusionQueryBlock->ensureSizesAndResetStatus(VK_QUERY_TYPE_OCCLUSION);
-  Backend::gpuJob.get().pendingOcclusionQueries = data->occlusionQueryBlock;
 
   if (
     Globals::cfg.bits.allowMultiQueue && Globals::cfg.bits.allowAsyncReadback && data->prevReadbacks && !data->prevReadbacks->empty())
@@ -512,6 +580,8 @@ VulkanCommandBufferHandle BEContext::allocAndBeginCommandBuffer(DeviceQueueType 
 
 void BEContext::flushImageDownloads()
 {
+  ReorderedGPUProfileRange marker(*this);
+
   ImageReadbacks &rb = data->readbacks->images;
   if (rb.info.empty())
     return;
@@ -556,10 +626,14 @@ void BEContext::flushImageDownloads()
     }
   }
   Backend::sync.completeNeeded();
+
+  ++actionIdx;
 }
 
 void BEContext::flushBufferDownloads()
 {
+  ReorderedGPUProfileRange marker(*this);
+
   BufferReadbacks &rb = data->readbacks->buffers;
   if (rb.info.empty())
     return;
@@ -599,6 +673,8 @@ void BEContext::flushBufferDownloads()
     }
   }
   Backend::sync.completeNeeded();
+
+  ++actionIdx;
 }
 
 void BEContext::flushImageUploadsIter(uint32_t start, uint32_t end)
@@ -615,6 +691,8 @@ void BEContext::flushImageUploadsIter(uint32_t start, uint32_t end)
 
 void BEContext::flushImageUploads()
 {
+  ReorderedGPUProfileRange marker(*this);
+
   if (data->imageUploads.empty())
     return;
 
@@ -661,6 +739,8 @@ void BEContext::flushImageUploads()
     }
   }
   flushImageUploadsIter(mergedRangeStart, data->imageUploads.size());
+
+  ++actionIdx;
 }
 
 void BEContext::transferOwnershipForOverlappedBufferUploads(DeviceQueueType src, DeviceQueueType dst)
@@ -695,6 +775,8 @@ void BEContext::transferOwnershipForOverlappedBufferUploads(DeviceQueueType src,
       barrier.addBufferOwnershipTransferByTemplate(srcFamily, dstFamily, iter->dstOffset, iter->size);
   }
   barrier.submit();
+
+  ++actionIdx;
 }
 
 void BEContext::flushOrderedBufferUploads(bool overlapped)
@@ -732,6 +814,8 @@ void BEContext::flushOrderedBufferUploads(bool overlapped)
   }
 
   popEventRaw();
+
+  ++actionIdx;
 }
 
 void BEContext::flushBufferUploads(bool overlapped)
@@ -780,10 +864,14 @@ void BEContext::flushBufferUploads(bool overlapped)
   }
 
   popEventRaw();
+
+  ++actionIdx;
 }
 
 void BEContext::flushBufferToHostFlushes()
 {
+  ReorderedGPUProfileRange marker(*this);
+
   if (data->readbacks->bufferFlushes.empty())
     return;
 
@@ -793,6 +881,8 @@ void BEContext::flushBufferToHostFlushes()
     Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_HOST_READ_BIT}, flush.buffer, {flush.offset, flush.range});
   }
   Backend::sync.completeNeeded();
+
+  ++actionIdx;
 }
 
 void BEContext::processReadbacks()
@@ -812,10 +902,16 @@ void BEContext::flushPostFrameCommands()
 
   pushEventTracked("postFrameCommands", 0x0);
 
-  if (!data->readbacks->empty())
   {
-    processReadbacks();
-    data->readbacks->clear();
+    ReorderedGPUProfileRange postFrameMarker(*this);
+
+    if (!data->readbacks->empty())
+    {
+      processReadbacks();
+      data->readbacks->clear();
+    }
+    else
+      consumeReorderedTimestamps(ReorderedGPUProfileRange::markers_in_readback);
   }
 
   if (Globals::cfg.bits.allowMultiQueue && Globals::cfg.bits.allowAsyncReadback && !data->nextReadbacks->empty())
@@ -886,7 +982,7 @@ struct FrameEndQueueJoin
           else
           {
             DeviceQueue::TimelineInfo tl = Globals::VK::queue[frameEndQueue].getTimeline();
-            Globals::VK::queue[itr].waitTimeline(tl, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+            Globals::VK::queue[itr].waitTimeline(tl, Globals::cfg.signalWaitStage);
           }
         }
       }
@@ -899,7 +995,7 @@ struct FrameEndQueueJoin
         for (uint32_t i : LsbVisitor{activeQueueList.to_uint32()})
         {
           G_ASSERTF(!target.signals.empty(), "vulkan: frame queue join signaled more than it supposed to");
-          Globals::VK::queue[static_cast<DeviceQueueType>(i)].waitSemaphore(target.signals.back(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+          Globals::VK::queue[static_cast<DeviceQueueType>(i)].waitSemaphore(target.signals.back(), Globals::cfg.signalWaitStage);
           target.signals.pop_back();
         }
       }
@@ -938,8 +1034,7 @@ void BEContext::stackUpCommandBuffers()
       {
         submitIdx = scratch.submitGraph.size();
         lastSubmitsOnQueues[(uint32_t)i.queue] = submitIdx;
-        scratch.submitGraph.push_back({{}, {}, {}, {}, 0, i.queue, (uint32_t)(&i - scratch.cmdListsToSubmit.begin()),
-          (uint32_t)(&i - scratch.cmdListsToSubmit.begin()), false});
+        scratch.submitGraph.push_back().reset(i.queue, (uint32_t)(&i - scratch.cmdListsToSubmit.begin()));
       }
     }
     activeQueue = i.queue;
@@ -1029,10 +1124,10 @@ void BEContext::enqueueCommandListsToMultipleQueues(ThreadedFence *fence)
 
     // add submit semaphores from buffer because wait can happen after other submits on same queue
     for (VulkanSemaphoreHandle j : i.waitSemaphores)
-      Globals::VK::queue[i.queue].waitSemaphore(j, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+      Globals::VK::queue[i.queue].waitSemaphore(j, Globals::cfg.signalWaitStage);
 
     for (DeviceQueue::TimelineInfo j : i.waitTimelines)
-      Globals::VK::queue[i.queue].waitTimeline(j, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+      Globals::VK::queue[i.queue].waitTimeline(j, Globals::cfg.signalWaitStage);
 
     if (fence && i.fenceWait)
     {
@@ -1104,7 +1199,7 @@ void BEContext::enqueueCommandListsToMultipleQueues(ThreadedFence *fence)
 
     G_ASSERTF(i.signals.empty(), "vulkan: some signals are not consumed!");
   }
-  scratch.submitGraph.clear();
+  scratch.submitGraph.reuse();
   scratch.cmdListsSubmitDeps.clear();
   scratch.cmdListsToSubmit.clear();
   scratch.userQueueSignals.clear();
@@ -1388,6 +1483,18 @@ void BEContext::doFrameEndCallbacks()
       Backend::timings.lastMemoryStatTime = currentTimeRef;
     }
   }
+}
+
+void BEContext::syncSwapchainImageAcquireReads(Image *img)
+{
+  // discard contents of the freshly acquired image
+  img->layout.resetTo(VK_IMAGE_LAYOUT_UNDEFINED);
+  // as noted in spec, we must sync acquire to any stages we use the image later on;
+  // model it as a fake read on all stages so the first real use transitions with a
+  // barrier that synchronizes against the acquire (matching the acquire semaphore wait)
+  Backend::sync.addImageAccess({VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_ACCESS_MEMORY_READ_BIT}, img, VK_IMAGE_LAYOUT_UNDEFINED,
+    {0, 1, 0, 1});
+  Backend::sync.completeNeeded();
 }
 
 bool BEContext::acquireSwapchainImage(const CmdPresent &params, uint32_t &out_index, VulkanSemaphoreHandle &out_sem)

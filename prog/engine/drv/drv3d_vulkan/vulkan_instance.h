@@ -252,6 +252,15 @@ VULKAN_END_EXTENSION_FUCTION_PACK(GetSurfaceCapabilities2KHR);
 VULKAN_DECLARE_EXTENSION(GetSurfaceCapabilities2KHR, KHR_GET_SURFACE_CAPABILITIES_2);
 #endif
 
+#if VK_EXT_swapchain_colorspace
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(SwapchainColorSpaceExt);
+
+VULKAN_DECLARE_EXTENSION(SwapchainColorSpaceExt, EXT_SWAPCHAIN_COLOR_SPACE);
+#endif
+
+
 // Implements vulkan core instance handling
 template <typename... Extensions>
 class VulkanInstanceCore : public Extensions...
@@ -462,6 +471,10 @@ class VulkanInstance : public VulkanInstanceCore<SurfaceKHR
 #if VK_KHR_get_surface_capabilities2
                          ,
                          GetSurfaceCapabilities2KHR
+#endif
+#if VK_EXT_swapchain_colorspace
+                         ,
+                         SwapchainColorSpaceExt
 #endif
                          >
 {

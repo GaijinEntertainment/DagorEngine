@@ -5,6 +5,7 @@ from "%sqstd/string.nut" import tostring_r
 from "console" import command
 from "%darg/ui_imports.nut" import *
 from "%sqstd/ecs.nut" import *
+from "types" import String
 let rexFloat = regexp(@"(\+|-)?([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?")
 let rexInt = regexp(@"[\+\-]?[0-9]+")
 let tofloat = @(v): float v.tofloat()
@@ -35,7 +36,7 @@ function isValueTextValid(comp_type, text) {
     let fields = text.split(",")
     if (fields.len()!=nFields[0])
       return false
-    return fields.reduce(@(a,b) (type(a) == "string" ? nFields[1](a) : a) && nFields[1](b))
+    return fields.reduce(@(a,b) (a instanceof String ? nFields[1](a) : a) && nFields[1](b))
   }
   return false
 }

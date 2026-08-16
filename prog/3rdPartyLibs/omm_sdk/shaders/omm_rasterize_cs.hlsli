@@ -378,7 +378,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     bool isOpaque = false;
     bool isTransparent = false;
     {
-        const PRECISE float4 color = t_alphaTexture.SampleLevel(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), microTri.p[0].xy, 0);
+        const PRECISE float4 color = OMM_ALPHA_SAMPLE_LEVEL(microTri.p[0].xy);
 #if IN_ALPHA_TEXTURE_CHANNEL == 0
         const PRECISE float alpha = color.r;
 #elif IN_ALPHA_TEXTURE_CHANNEL == 1
@@ -412,8 +412,12 @@ void main(uint3 tid : SV_DispatchThreadID)
                 g_GlobalConstants.TexSize * microTri.p[1] + offset, 
                 g_GlobalConstants.TexSize * microTri.p[2] + offset);
 
-        int2 min = (int2)floor(t.aabb_s);
-        int2 max = (int2)ceil(t.aabb_e);
+        // The gfx path gets this clip from the GPU. This loop has none, thus a micro-triangle with a very
+        // large aabb in texel space scans texels until the GPU hangs.
+        const PRECISE float2 rasterAreaStart = -g_GlobalConstants.ViewportOffset;
+        const PRECISE float2 rasterAreaEnd = g_GlobalConstants.ViewportSize - g_GlobalConstants.ViewportOffset;
+        int2 min = (int2)floor(clamp(t.aabb_s, rasterAreaStart, rasterAreaEnd));
+        int2 max = (int2)ceil(clamp(t.aabb_e, rasterAreaStart, rasterAreaEnd));
 
         StatelessRasterizer _tix;
         _tix.Init(t);

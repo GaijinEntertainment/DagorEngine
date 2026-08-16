@@ -54,6 +54,9 @@ namespace das {
         vector<VariableNameAndPosition>   *pNameList;
         TypeDecl                *pTypeDecl = nullptr;
         Expression              *pInit = nullptr;
+        LineInfo                atEnd;      // end of the last real token of the declaration;
+                                            // the grammar rule also swallows the (possibly
+                                            // lexer-synthesized) SEMICOLON, so @decl overshoots
         bool                    init_via_move = false;
         bool                    init_via_clone = false;
         bool                    override = false;
@@ -93,6 +96,7 @@ namespace das {
     bool ast_structureAlias ( yyscan_t scanner, string * name, TypeDecl * typeDecl, const LineInfo & atName );
     Enumeration * ast_addEmptyEnum ( yyscan_t scanner, string * name, const LineInfo & atName );
     void ast_enumDeclaration (  yyscan_t scanner, AnnotationList * annL, const LineInfo & atannL, bool pubE, Enumeration * pEnum, Enumeration * pE, Type ebt );
+    void ast_distinctDeclaration ( yyscan_t scanner, string * name, const LineInfo & atName, bool isPrivate, TypeDecl * tdecl );
     void ast_globalLetList (  yyscan_t scanner, bool kwd_let, bool glob_shar, bool pub_var, vector<VariableDeclaration*> * list );
     void ast_globalLet (  yyscan_t scanner, bool kwd_let, bool glob_shar, bool pub_var, AnnotationArgumentList * ann, VariableDeclaration * decl );
     void ast_globalBitfieldConst ( yyscan_t scanner, const TypeDeclPtr & bType, bool pub_var, const string & name, Expression * expr );

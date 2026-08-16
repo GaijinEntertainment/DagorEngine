@@ -40,6 +40,14 @@ KRNLIMP bool change_gamma(float value);
 KRNLIMP void get_display_size(int &width, int &height, bool for_primary_output = false);
 KRNLIMP void get_video_mode_list(Tab<String> &list);
 
+// Returns unique, identifiable names of active (connected) monitors.
+KRNLIMP void get_monitors(Tab<String> &monitor_names);
+// Returns user-friendly info about a monitor. monitor_name == nullptr/empty selects the primary/default monitor.
+// friendly_name and monitor_index are optional (may be nullptr). Returns false if the monitor was not found.
+KRNLIMP bool get_monitor_info(const char *monitor_name, String *friendly_name, int *monitor_index);
+// Returns available resolutions ("W x H") for a single monitor. monitor_name == nullptr/empty selects the primary/default monitor.
+KRNLIMP void get_resolutions_from_monitor(const char *monitor_name, Tab<String> &resolutions);
+
 KRNLIMP void *get_main_window_ptr_handle();
 KRNLIMP bool is_main_window(void *wnd);
 KRNLIMP void destroy_main_window();
@@ -75,6 +83,10 @@ KRNLIMP void unclip_cursor();
 KRNLIMP void hide_cursor(bool hide);
 KRNLIMP void *get_native_display();
 KRNLIMP void *get_native_window(void *w);
+
+// Serialize a window's Wayland requests against the render/present thread. No-op on X11.
+KRNLIMP void lock_window(void *w);
+KRNLIMP void unlock_window(void *w);
 
 KRNLIMP bool get_clipboard_utf8_text(char *dest, int buf_size);
 KRNLIMP bool set_clipboard_utf8_text(const char *text);

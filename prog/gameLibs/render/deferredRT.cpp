@@ -21,6 +21,8 @@
   VAR(screen_pos_to_texcoord)     \
   VAR(screen_size)                \
   VAR(gbuffer_view_size)          \
+  VAR(gbuffer_uv_transform)       \
+  VAR(gbuffer_uv_transformi)      \
   VAR(albedo_gbuf)                \
   VAR(albedo_gbuf_samplerstate)   \
   VAR(normal_gbuf)                \
@@ -54,7 +56,7 @@ void DeferredRT::close()
 #endif
 }
 
-void DeferredRT::setRt()
+void DeferredRT::setRt(DepthAccess depth_access, BaseTexture *depth_override)
 {
   for (int i = 0; i < numRt; ++i)
   {
@@ -81,7 +83,8 @@ void DeferredRT::setRt()
     colorRts[5] = {dbgTex.getTex2D(), 0, 0};
     slotsUsed = 6;
   }
-  d3d::set_render_target({depth.getTex2D(), 0, 0}, DepthAccess::RW, make_span_const(colorRts.data(), slotsUsed));
+  BaseTexture *depthTex = depth_override ? depth_override : depth.getTex2D();
+  d3d::set_render_target({depthTex, 0, 0}, depth_access, make_span_const(colorRts.data(), slotsUsed));
 
 #if DAGOR_DBGLEVEL > 0
   if (shouldRenderDbgTex)
@@ -138,6 +141,8 @@ void DeferredRT::setVar()
   ShaderGlobal::set_float4(screen_pos_to_texcoordVarId, 1.f / width, 1.f / height, 0, 0);
   ShaderGlobal::set_float4(screen_sizeVarId, width, height, 1.0 / width, 1.0 / height);
   ShaderGlobal::set_int4(gbuffer_view_sizeVarId, width, height, 0, 0);
+  ShaderGlobal::set_float4(gbuffer_uv_transformVarId, uvTransform);
+  ShaderGlobal::set_int4(gbuffer_uv_transformiVarId, uvTransformI);
 }
 
 void DeferredRT::resetVar()
@@ -154,6 +159,8 @@ void DeferredRT::resetVar()
   ShaderGlobal::set_float4(screen_pos_to_texcoordVarId, 0, 0, 0, 0);
   ShaderGlobal::set_float4(screen_sizeVarId, 0, 0, 0, 0);
   ShaderGlobal::set_int4(gbuffer_view_sizeVarId, 0, 0, 0, 0);
+  ShaderGlobal::set_float4(gbuffer_uv_transformVarId, Point4(1, 1, 0, 0));
+  ShaderGlobal::set_int4(gbuffer_uv_transformiVarId, IPoint4::ZERO);
 }
 
 uint32_t DeferredRT::recreateDepthInternal(uint32_t targetFmt)

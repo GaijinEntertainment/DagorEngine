@@ -28,7 +28,7 @@ private:
   Interface *ip;
   static RollupPanel *instance;
   IRollupWindow *iRoll;
-  static DataBlock *templateBlk;
+  static std::unique_ptr<DataBlock> templateBlk;
 
   void addButtons(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable,
     const std::vector<std::string> &items);
@@ -40,8 +40,8 @@ private:
   void addCheck(const HWND group_hwnd, int idc, const char *name, bool val, bool enable);
   void setNotCommon(const char *group, const char *name, bool nc);
   bool getCheck(const char *group, const char *name);
-  void getInput(const char *group, const char *name, char *val);
-  void getCombo(const char *group, const char *name, char *val);
+  std::string getInput(const char *group, const char *name);
+  std::string getCombo(const char *group, const char *name);
   Point3 getPoint3Input(const char *group, const char *name);
   real getRealInput(const char *group, const char *name);
   void bindCommand(INode *n, const char *name, const DataBlock &blk);

@@ -507,7 +507,7 @@ struct ModfxDeclExternalOmnilight
 };
 
 #define MODFX_TRAIL_FLAG_LAST_POS_VALID 1
-#define MODFX_TRAIL_FLAG_EMITTED_THIS_FRAME 2
+#define MODFX_TRAIL_FLAG_NEED_READJUST_PREV_LAST_PART 2
 
 // service data
 #define MODFX_SERVICE_TRAIL_SIZE (3*4 + 3*4 + 1*4)

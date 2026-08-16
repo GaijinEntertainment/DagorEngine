@@ -65,9 +65,10 @@ struct FxStats
   int instances = 0;
   int cpuElemProcessed = 0;
   int gpuElemProcessed = 0;
+  int totalParticles = 0;
   int drawCalls = 0;
-  int visibleTriangles = 0;
-  int renderedTriangles = 0;
+  int modfxTris = 0;
+  int sparksTris = 0;
   int paramRenSize = 0;
   int paramSimSize = 0;
   int partRenSize = 0;

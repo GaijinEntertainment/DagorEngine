@@ -220,59 +220,36 @@ HeapSchedulingResult ResourceScheduler::scheduleHeap(HeapIndex heap_idx, eastl::
   auto &allocations = result.allocationLocations;
   auto &heapRequests = result.heapRequests;
 
-  // Collect resources present in this heap and build a mapping
+  // Collect resources present in this heap
   dag::Vector<FrameResource, framemem_allocator> inHeapIdxToFrameResource;
   dag::Vector<PackerInput::Resource, framemem_allocator> packerResources;
   inHeapIdxToFrameResource.reserve(resources.size() * SCHEDULE_FRAME_WINDOW);
   packerResources.reserve(resources.size() * SCHEDULE_FRAME_WINDOW);
 
-  constexpr uint32_t INDEX_NOT_IN_HEAP = eastl::numeric_limits<uint32_t>::max();
-  dag::Vector<uint32_t, framemem_allocator> globalToInHeapIndex(resources.size() * SCHEDULE_FRAME_WINDOW, INDEX_NOT_IN_HEAP);
-
   for (auto resource : resources_in_heap)
   {
     const auto &resProps = resources[resource.resIdx];
 
-    globalToInHeapIndex[resource.resIdx * SCHEDULE_FRAME_WINDOW + resource.frame] = packerResources.size();
     packerResources.push_back({0, 0, corrected_resource_size(resources, ctx.corrections, resource.resIdx, resource.frame),
       resProps.offsetAlignment, PackerInput::NO_PIN});
     inHeapIdxToFrameResource.push_back(resource);
   }
 
   // Assign start/end timepoints for collected resources
-  for (uint32_t i = 0; i < SCHEDULE_FRAME_WINDOW; ++i)
   {
-    const auto &frameEvents = ctx.events[i];
-    G_ASSERT(frameEvents.totalKeys() == timepoints_per_frame);
-    for (uint32_t j = 0; j < timepoints_per_frame; ++j)
+    const uint32_t newStart = ((preserve_produced_on_frame + 1) % SCHEDULE_FRAME_WINDOW) * timepoints_per_frame;
+    const uint32_t timelineLength = SCHEDULE_FRAME_WINDOW * timepoints_per_frame;
+
+    const auto shiftToPreservePoint = [&](LifetimePoint point) {
+      return (point.frame * timepoints_per_frame + point.timepoint + newStart) % timelineLength;
+    };
+
+    for (size_t i = 0; i < packerResources.size(); ++i)
     {
-      const auto nodeIdx = static_cast<intermediate::NodeIndex>(j);
-      if (!frameEvents.isMapped(nodeIdx))
-        continue;
-
-      const auto &nodeEvents = frameEvents[nodeIdx];
-      const uint32_t time = i * timepoints_per_frame + j;
-
-      for (auto &event : nodeEvents)
-      {
-        const auto inHeapIndex = globalToInHeapIndex[event.resource * SCHEDULE_FRAME_WINDOW + event.frameResourceProducedOn];
-        if (inHeapIndex == INDEX_NOT_IN_HEAP)
-          continue;
-
-        auto &packerRes = packerResources[inHeapIndex];
-
-        const uint32_t newStart = ((preserve_produced_on_frame + 1) % SCHEDULE_FRAME_WINDOW) * timepoints_per_frame;
-        const uint32_t timelineLength = SCHEDULE_FRAME_WINDOW * timepoints_per_frame;
-
-        const auto shiftToPreservePoint = [&](uint32_t t) { return (t + newStart) % timelineLength; };
-
-        if (eastl::holds_alternative<BarrierScheduler::Event::Activation>(event.data) ||
-            eastl::holds_alternative<BarrierScheduler::Event::CpuActivation>(event.data))
-          packerRes.start = shiftToPreservePoint(time);
-        else if (eastl::holds_alternative<BarrierScheduler::Event::Deactivation>(event.data) ||
-                 eastl::holds_alternative<BarrierScheduler::Event::CpuDeactivation>(event.data))
-          packerRes.end = shiftToPreservePoint(time);
-      }
+      const auto [resIdx, frame] = inHeapIdxToFrameResource[i];
+      const auto &lifetime = ctx.lifetimes[frame][resIdx];
+      packerResources[i].start = shiftToPreservePoint(lifetime.firstUse);
+      packerResources[i].end = shiftToPreservePoint(lifetime.release);
     }
   }
 
@@ -683,7 +660,7 @@ void ResourceScheduler::scheduleResourcesIntoHeaps(int prev_frame, const Resourc
   auto resourcesToBeScheduled = bucketResourcesIntoHeaps(prev_frame, resources, activeRequestForGroup, heapRequests, alreadyScheduled,
     reusedHeaps, previousAllocations, ctx);
 
-  const uint32_t timepointsPerFrame = ctx.events[0].totalKeys();
+  const uint32_t timepointsPerFrame = ctx.graph.nodes.totalKeys() + 1;
 
   dag::Vector<HeapIndex, framemem_allocator> idxs;
   idxs.reserve(heapRequests.size());

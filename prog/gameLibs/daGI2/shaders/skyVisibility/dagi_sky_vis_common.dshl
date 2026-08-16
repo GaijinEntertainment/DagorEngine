@@ -27,6 +27,17 @@ macro DAGI_SKY_VIS_CLIPMAP_MATH_USE(code)
     uint dagi_sky_vis_get_clip_count() {return dagi_sky_vis_clipmap_sizei.z;}
     uint dagi_sky_vis_get_clip_size_with_border() {return dagi_sky_vis_clipmap_sizei.w;}
 
+    uint dagi_sky_vis_get_searched_clip_count()
+    {
+      ##assert(dagi_sky_vis_get_clip_count() <= DAGI_MAX_SKY_VIS_CLIPS, "Out of bounds: clip count is (%.f), but only (%.f) clips exist", dagi_sky_vis_get_clip_count(), DAGI_MAX_SKY_VIS_CLIPS);
+      return min(dagi_sky_vis_get_clip_count(), (uint)DAGI_MAX_SKY_VIS_CLIPS);
+    }
+    uint dagi_sky_vis_get_searched_start_clip(uint start)
+    {
+      ##assert(start <= DAGI_MAX_SKY_VIS_CLIPS, "Out of bounds: clip search starts at (%.f), but only (%.f) clips exist", start, DAGI_MAX_SKY_VIS_CLIPS);
+      return min(start, (uint)DAGI_MAX_SKY_VIS_CLIPS);
+    }
+
     #define sample_dagi_sky_vis_clipmap_lt_coord(clip) _sample_dagi_sky_vis_clipmap_lt_coord(clip, _FILE_, __LINE__)
     int4 _sample_dagi_sky_vis_clipmap_lt_coord(uint clip, int file, int ln)
     {
@@ -70,7 +81,8 @@ macro DAGI_SKY_VIS_CLIPMAP_MATH_USE(code)
 
     uint dagi_sky_vis_get_best_enclosing_clip(float3 worldPos, uint start = 0)
     {
-      uint i = start;
+      uint i = dagi_sky_vis_get_searched_start_clip(start);
+      uint clipCount = dagi_sky_vis_get_searched_clip_count();
       LOOP
       do {
         int4 lt = sample_dagi_sky_vis_clipmap_lt_coord(i);
@@ -79,12 +91,13 @@ macro DAGI_SKY_VIS_CLIPMAP_MATH_USE(code)
         if (all(uint3(coord - lt.xyz) < dagi_sky_vis_get_clip_size().xxy))
           return i;
         ++i;// moving that to while () causes invalid sahder compilation on dx11
-      } while (i < dagi_sky_vis_get_clip_count());
+      } while (i < clipCount);
       return DAGI_MAX_SKY_VIS_CLIPS;
     }
     uint dagi_sky_vis_get_best_enclosing_clip_border(float3 worldPos, out float3 coordF, out int4 lt, uint start, float border)
     {
-      uint i = start;
+      uint i = dagi_sky_vis_get_searched_start_clip(start);
+      uint clipCount = dagi_sky_vis_get_searched_clip_count();
       LOOP
       do {
         lt = sample_dagi_sky_vis_clipmap_lt_coord(i);
@@ -93,12 +106,13 @@ macro DAGI_SKY_VIS_CLIPMAP_MATH_USE(code)
         if (all(and(coordLt >= border, coordLt < float3(dagi_sky_vis_get_clip_size().xxy)-border)))
           return i;
         ++i;// moving that to while () causes invalid shader compilation on dx11
-      } while (i < dagi_sky_vis_get_clip_count());
+      } while (i < clipCount);
       return DAGI_MAX_SKY_VIS_CLIPS;
     }
     uint dagi_sky_vis_get_best_enclosing_clip_border(float3 worldPos, uint start = 0, float border = 0.5)
     {
-      uint i = start;
+      uint i = dagi_sky_vis_get_searched_start_clip(start);
+      uint clipCount = dagi_sky_vis_get_searched_clip_count();
       LOOP
       do {
         int4 lt = sample_dagi_sky_vis_clipmap_lt_coord(i);
@@ -106,7 +120,7 @@ macro DAGI_SKY_VIS_CLIPMAP_MATH_USE(code)
         if (all(and(coordF > border, coordF < float3(dagi_sky_vis_get_clip_size().xxy) - border)))
           return i;
         ++i;// moving that to while () causes invalid sahder compilation on dx11
-      } while (i < dagi_sky_vis_get_clip_count());
+      } while (i < clipCount);
       return DAGI_MAX_SKY_VIS_CLIPS;
     }
   }

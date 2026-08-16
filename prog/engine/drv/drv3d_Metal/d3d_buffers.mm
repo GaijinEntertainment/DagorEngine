@@ -77,6 +77,8 @@ bool set_buffer_ex(unsigned shader_stage, BufferType buf_type, int slot, Buffer 
 
 bool d3d::setvsrc_ex(int slot, Sbuffer *vb, int offset, int stride)
 {
+  D3D_CONTRACT_ASSERTF_RETURN(!vb || (vb->getFlags() & SBCF_BIND_VERTEX), false,
+    "Metal: setvsrc_ex vb '%s' in slot %d does not have the SBCF_BIND_VERTEX flag", vb->getBufName(), slot);
   return set_buffer_ex(STAGE_VS, GEOM_BUFFER, slot, (Buffer*)vb, offset, stride);
 }
 
@@ -102,6 +104,7 @@ bool d3d::set_rwbuffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer)
 
 bool d3d::setind(Sbuffer *ib)
 {
+  D3D_CONTRACT_ASSERT_RETURN(!ib || ib->getFlags() & SBCF_BIND_INDEX, false);
   render.setIBuff((Buffer*)ib);
 
   return true;

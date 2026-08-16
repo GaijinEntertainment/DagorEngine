@@ -100,3 +100,10 @@ DAGOR_NOINLINE RiGridObject rigrid_find_ray_intersections(const RiGrid &grid_hol
 {
   return grid_find_ray_intersections_impl<RiGridObject>(grid_holder, v_ldu(&from.x), v_ldu(&dir.x), v_splats(len), pred);
 }
+
+DAGOR_NOINLINE RiGridObject rigrid_find_closest_ray_intersection(const RiGrid &grid_holder, const Point3 &from, const Point3 &dir,
+  float len, const float *best_t, const RiGridObjPred &pred)
+{
+  return grid_find_closest_ray_intersection_impl<RiGridObject>(grid_holder, v_ldu(&from.x), v_ldu(&dir.x), v_splats(len), best_t,
+    pred);
+}

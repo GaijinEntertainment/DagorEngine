@@ -1376,8 +1376,10 @@ int get_is_charging() // note int
 int get_gpu_freq()
 {
   static const char *clockFiles[] = // 'opendir' doesn't work without some additional permissions, so simply list the files.
-    {"/sys/devices/platform/11500000.mali/clock", "/sys/devices/platform/13000000.mali/clock",
-      "/sys/devices/platform/18500000.mali/clock", "/sys/class/kgsl/kgsl-3d0/clock_mhz"};
+    {"/sys/class/misc/mali0/device/clock", "/sys/class/kgsl/kgsl-3d0/clock_mhz", "/sys/class/kgsl/kgsl-3d0/gpuclk",
+      // Legacy fallbacks:
+      "/sys/devices/platform/11500000.mali/clock", "/sys/devices/platform/13000000.mali/clock",
+      "/sys/devices/platform/18500000.mali/clock"};
 
   static bool initialized = false;
   static file_ptr_t file = NULL;
@@ -1405,7 +1407,9 @@ int get_gpu_freq()
     {
       buf[len] = 0;
       int freq = atoi(buf);
-      if (freq > 10000)
+      if (freq > 10000000)
+        freq /= 1000000;
+      else if (freq > 10000)
         freq /= 1000;
       return freq;
     }

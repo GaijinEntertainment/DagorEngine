@@ -5,6 +5,7 @@
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_resetDevice.h>
+#include <3d/dag_preRotation.h>
 #include <workCycle/dag_gameScene.h>
 #include <workCycle/dag_gameSceneRenderer.h>
 #include <image/dag_tga.h>
@@ -87,7 +88,40 @@ bool ScreenShotSystem::makeScreenShot(ScreenShot &info, IHDRDecoder *decoder)
     info.picture = (void *)decoder->LockResult(info.stride, info.w, info.h);
   }
   else
+  {
     info.picture = (void *)lockScreen(info.w, info.h, info.stride, format, info.fastLocked);
+    int angle = prerotation::frame_angle();
+    if ((angle == 90 || angle == 270) && format == d3d::CAPFMT_X8R8G8B8 && info.picture)
+    {
+      void *picture = memalloc(info.w * info.h * 4, tmpmem_ptr());
+      if (!picture)
+      {
+        message(String(128, "Not enough memory: %d needed", info.w * info.h * 4));
+        return false;
+      }
+      info.allocated = true;
+      eastl::swap(info.w, info.h);
+      for (int y = 0; y < info.h; y++)
+      {
+        for (int x = 0; x < info.w; x++)
+        {
+          char *dst = (char *)picture + (y * info.w + x) * 4;
+          char *src;
+          if (angle == 90)
+            src = (char *)info.picture + (x * info.stride + (info.h - y - 1) * 4);
+          else
+            src = (char *)info.picture + ((info.w - x - 1) * info.stride + y * 4);
+          dst[0] = src[0];
+          dst[1] = src[1];
+          dst[2] = src[2];
+          dst[3] = src[3];
+        }
+      }
+      info.stride = info.w * 4;
+      info.picture = picture;
+      unlockScreen(info.fastLocked);
+    }
+  }
   if (!info.picture)
   {
     message(String(128, "Can't make ScreenShot: %s", d3d::get_last_error()));

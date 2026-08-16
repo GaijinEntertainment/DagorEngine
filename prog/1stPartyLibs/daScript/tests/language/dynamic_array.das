@@ -5,7 +5,7 @@ require dastest/testing_boost public
 // erase, insert, move (<-), and element initialization.
 
 [test]
-def test_dynamic_array(t : T?) {
+def test_dynamic_array(t : T?) { // nolint:STYLE038 — flat list of independent container-op arms
     t |> run("push and length") @(t : T?) {
         var arr : array<int>
         let val2 = 2
@@ -40,6 +40,24 @@ def test_dynamic_array(t : T?) {
         resize(arr, 4)
         t |> equal(capacity(arr), 33)
         t |> equal(length(arr), 4)
+    }
+    t |> run("resize rounds capacity to the next power of two") @(t : T?) {
+        var min : array<int>
+        resize(min, 3)                  // below the floor -> min capacity 16
+        t |> equal(capacity(min), 16)
+        var tiny : array<int>
+        resize(tiny, 63)                // rounds UP to the next pow2
+        t |> equal(capacity(tiny), 64)
+        var big : array<int>
+        resize(big, 65)                 // pow2 slack keeps append-by-resize amortized O(1)
+        t |> equal(capacity(big), 128)
+        var huge : array<int>
+        resize(huge, 1000)
+        t |> equal(capacity(huge), 1024)
+        var exact : array<int>
+        reserve(exact, 1000)            // reserve is exact: N set, N get
+        resize(exact, 1000)             // a reserved resize never grows, so no pow2 round-up
+        t |> equal(capacity(exact), 1000)
     }
     t |> run("move semantics") @(t : T?) {
         var arr : array<int>

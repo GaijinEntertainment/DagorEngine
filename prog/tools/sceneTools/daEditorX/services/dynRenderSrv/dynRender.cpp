@@ -13,6 +13,7 @@
 #include <libTools/renderViewports/renderViewport.h>
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/util/strUtil.h>
+#include <propPanel/commonWindow/dialogManager.h>
 #include <propPanel/imguiHelper.h>
 #include <render/texDebug.h>
 #include <render/variance.h>
@@ -136,6 +137,7 @@ static int shadowQuality = 0;
 static bool dynamicRenderInited = false;
 static bool vsm_allowed = true;
 static bool render_enabled = false;
+static bool present_suppressed = false;
 static float visibleScale = 1.0;
 static float maxVisibleRange = MAX_REAL;
 static float visibility_multiplier = 1.0;
@@ -547,6 +549,8 @@ public:
       d3d::stretch_rect(d3d::get_backbuffer_tex(), vrResources.imguiTex.getTex2D(), &rect, &rect);
     }
   }
+
+  bool canPresentAndReset() override { return !present_suppressed || PropPanel::is_any_modal_dialog_open(); }
 
   BaseTexture *getRenderBuffer() { return sceneRt; }
 
@@ -1229,9 +1233,9 @@ public:
 
     renderGeomOpaque();
 
-    d3d::set_depth(deferredTarget->getDepth(), DepthAccess::SampledRO);
+    deferredTarget->setRt(DepthAccess::SampledRO);
     renderGeomDeferredDecals();
-    d3d::set_depth(deferredTarget->getDepth(), DepthAccess::RW);
+    deferredTarget->setRt(DepthAccess::RW);
 
     if (::grs_draw_wire)
       d3d::setwire(0);
@@ -2745,6 +2749,8 @@ public:
   }
 
   void enableRender(bool enable) override { render_enabled = enable; }
+
+  void suppressScenePresent(bool suppress) override { present_suppressed = suppress; }
 
   void selectAsGameScene() override { dagor_select_game_scene(dynScene); }
 

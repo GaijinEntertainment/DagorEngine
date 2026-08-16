@@ -8,48 +8,61 @@
 
 namespace das
 {
-    // AT (INDEX)
-    struct SimNode_ArrayAt : SimNode {
+    // AT (INDEX) - CHECKED bounds-checks; unchecked variant skips the check (index proven in range)
+    template <bool CHECKED>
+    struct SimNode_ArrayAtT : SimNode {
         DAS_PTR_NODE;
-        SimNode_ArrayAt ( const LineInfo & at, SimNode * ll, SimNode * rr, uint32_t sz, uint32_t o)
+        SimNode_ArrayAtT ( const LineInfo & at, SimNode * ll, SimNode * rr, uint32_t sz, uint32_t o)
             : SimNode(at), l(ll), r(rr), stride(sz), offset(o) {}
-        virtual SimNode * visit ( SimVisitor & vis ) override;
         __forceinline char * compute ( Context & context ) {
             DAS_PROFILE_NODE
             Array * pA = (Array *) l->evalPtr(context);
             int32_t idx = r->evalInt(context);
-            if ( idx<0 || uint64_t(idx) >= pA->size ) context.throw_error_at(debugInfo,"array index out of range, %d of %llu", idx, (unsigned long long)pA->size);
+            if constexpr ( CHECKED )
+                if ( idx<0 || uint64_t(idx) >= pA->size ) context.throw_error_at(debugInfo,"array index out of range, %d of %llu", idx, (unsigned long long)pA->size);
             return pA->data + uint64_t(idx)*uint64_t(stride) + offset;
         }
         SimNode * l, * r;
         uint32_t stride, offset;
     };
 
-    template <typename TT>
-    struct SimNode_ArrayAtR2V : SimNode_ArrayAt {
-        SimNode_ArrayAtR2V ( const LineInfo & at, SimNode * rv, SimNode * idx, uint32_t strd, uint32_t o )
-            : SimNode_ArrayAt(at,rv,idx,strd,o) {}
+    struct SimNode_ArrayAt : SimNode_ArrayAtT<true> {
+        SimNode_ArrayAt ( const LineInfo & at, SimNode * ll, SimNode * rr, uint32_t sz, uint32_t o)
+            : SimNode_ArrayAtT<true>(at,ll,rr,sz,o) {}
+        virtual SimNode * visit ( SimVisitor & vis ) override;
+    };
+
+    template <typename TT, bool CHECKED>
+    struct SimNode_ArrayAtR2VT : SimNode_ArrayAtT<CHECKED> {
+        SimNode_ArrayAtR2VT ( const LineInfo & at, SimNode * rv, SimNode * idx, uint32_t strd, uint32_t o )
+            : SimNode_ArrayAtT<CHECKED>(at,rv,idx,strd,o) {}
         SimNode * visit ( SimVisitor & vis ) override {
             V_BEGIN();
-            V_OP_TT(ArrayAtR2V);
-            V_SUB(l);
-            V_SUB(r);
-            V_ARG(stride);
-            V_ARG(offset);
+            if constexpr ( CHECKED ) { V_OP_TT(ArrayAtR2V); } else { V_OP_TT(ArrayAtR2VU); }
+            V_SUB_THIS(l);
+            V_SUB_THIS(r);
+            V_ARG_THIS(stride);
+            V_ARG_THIS(offset);
             V_END();
         }
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            TT * pR = (TT *) compute(context);
+            TT * pR = (TT *) this->compute(context);
             return cast<TT>::from(*pR);
         }
 #define EVAL_NODE(TYPE,CTYPE)                                       \
         virtual CTYPE eval##TYPE ( Context & context ) override {   \
             DAS_PROFILE_NODE \
-            return *(CTYPE *)compute(context);                      \
+            return *(CTYPE *)this->compute(context);                \
         }
         DAS_EVAL_NODE
 #undef EVAL_NODE
+    };
+
+    template <typename TT>
+    struct SimNode_ArrayAtR2V : SimNode_ArrayAtR2VT<TT,true> {
+        SimNode_ArrayAtR2V ( const LineInfo & at, SimNode * rv, SimNode * idx, uint32_t strd, uint32_t o )
+            : SimNode_ArrayAtR2VT<TT,true>(at,rv,idx,strd,o) {}
     };
 
     // AT (INDEX) - int64 index
@@ -138,6 +151,19 @@ namespace das
         }
         DAS_EVAL_NODE
 #undef EVAL_NODE
+    };
+
+    // AT (INDEX) - unchecked, no bounds check (index proven in range)
+    struct SimNode_ArrayAtU : SimNode_ArrayAtT<false> {
+        SimNode_ArrayAtU ( const LineInfo & at, SimNode * ll, SimNode * rr, uint32_t sz, uint32_t o)
+            : SimNode_ArrayAtT<false>(at,ll,rr,sz,o) {}
+        virtual SimNode * visit ( SimVisitor & vis ) override;
+    };
+
+    template <typename TT>
+    struct SimNode_ArrayAtR2VU : SimNode_ArrayAtR2VT<TT,false> {
+        SimNode_ArrayAtR2VU ( const LineInfo & at, SimNode * rv, SimNode * idx, uint32_t strd, uint32_t o )
+            : SimNode_ArrayAtR2VT<TT,false>(at,rv,idx,strd,o) {}
     };
 
     // AT (INDEX)

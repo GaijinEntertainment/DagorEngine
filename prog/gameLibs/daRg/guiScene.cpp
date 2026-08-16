@@ -60,6 +60,7 @@
 #include "canvasDraw.h"
 #include "dirPadNav.h"
 #include "xmb.h"
+#include "statefulComp.h"
 
 #include "textLayout.h"
 #include "dargDebugUtils.h"
@@ -313,6 +314,9 @@ void GuiScene::initDasEnvironment(TGuiInitDas init_callback) { dasScriptsData->i
 
 
 void GuiScene::shutdownDasEnvironment() { dasScriptsData->shutdownDasEnvironment(); }
+
+
+void GuiScene::waitAllDasJobsDone() { dasScriptsData->waitAllJobsDone(); }
 
 
 void GuiScene::createNativeWatches()
@@ -1468,7 +1472,7 @@ void GuiScene::updateGlobalActiveCursor()
 
   bool haveFallbackCursor = config.useDefaultCursor || forcedCursor.GetType() == OT_INSTANCE;
 
-  if (!isCursorForcefullyDisabled() && !haveActiveCursorOnPanels())
+  if (!isCursorForcefullyDisabled() && !havePointerOnPanels())
   {
     Screen *screen = getGuiScreen(MAIN_SCREEN_ID);
     bool matched = false;
@@ -2913,7 +2917,7 @@ void GuiScene::invalidateElement(Element *elem)
     return;
   }
 
-  if (isRebuildingInvalidatedParts && config.reportNestedWatchedUpdate)
+  if (isRebuildingInvalidatedParts && config.reportNestedWatchedUpdate && !suppressNestedUpdateReport)
   {
     LOGERR_CTX("Nested state update");
 
@@ -3003,11 +3007,19 @@ void GuiScene::rebuildInvalidatedParts()
 
     perfStats.invalidations++;
 
+    bool built = false;
     if (elem->props.scriptBuilder.IsNull())
     {
       darg_report_unrebuildable_element(elem, "Trying to rebuild component not defined by function");
     }
-    else if (Component::build_component(comp, elem->props.scriptBuilder, stringKeys, elem->props.scriptBuilder))
+    else
+    {
+      // Only stateful builders are locked; a null graph makes the guard a no-op.
+      sqfrp::ConstructionLockGuard frpLock(elem->statefulInst ? frpGraph.get() : nullptr, stateful_builder_lock_msg);
+      built = Component::build_component(comp, elem->props.scriptBuilder, stringKeys, elem->props.scriptBuilder);
+    }
+
+    if (built)
     {
       int rebuildResult = 0;
       {
@@ -3735,6 +3747,7 @@ SQInteger GuiScene::get_perf_stats(HSQUIRRELVM vm)
   res.SetValue("rebuildBatches", SQInteger(ps.rebuildBatches));
   res.SetValue("invalidations", SQInteger(ps.invalidations));
   res.SetValue("builderEvals", SQInteger(ps.builderEvals));
+  res.SetValue("statefulCtorRuns", SQInteger(ps.statefulCtorRuns));
   res.SetValue("elemsSetupInitial", SQInteger(ps.elemsSetupInitial));
   res.SetValue("elemsSetupRebuild", SQInteger(ps.elemsSetupRebuild));
   res.SetValue("elemsSetupRealtime", SQInteger(ps.elemsSetupRealtime));
@@ -3811,12 +3824,13 @@ void GuiScene::dumpPerfStatsToLog()
   }
 
   debug("daRg perf_stats scene=%p: {\"updates\":%u,\"rebuildBatches\":%u,\"invalidations\":%u,\"builderEvals\":%u,"
-        "\"elemsSetupInitial\":%u,\"elemsSetupRebuild\":%u,\"elemsSetupRealtime\":%u,\"elemsCreated\":%u,\"elemsFreed\":%u,"
+        "\"statefulCtorRuns\":%u,\"elemsSetupInitial\":%u,\"elemsSetupRebuild\":%u,\"elemsSetupRealtime\":%u,"
+        "\"elemsCreated\":%u,\"elemsFreed\":%u,"
         "\"layoutFixedSizeRoots\":%u,\"layoutSizeRoots\":%u,\"layoutFlowRoots\":%u,\"stacksRebuilds\":%u,"
         "\"elemCount\":%d,\"descTableSlots\":%lld,\"storageTableSlots\":%lld,\"watchRefs\":%lld,\"renderListSize\":%d}",
-    this, ps.updates, ps.rebuildBatches, ps.invalidations, ps.builderEvals, ps.elemsSetupInitial, ps.elemsSetupRebuild,
-    ps.elemsSetupRealtime, ps.elemsCreated, ps.elemsFreed, ps.layoutFixedSizeRoots, ps.layoutSizeRoots, ps.layoutFlowRoots,
-    ps.stacksRebuilds, gauges.elemCount, (long long)gauges.descTableSlots, (long long)gauges.storageTableSlots,
+    this, ps.updates, ps.rebuildBatches, ps.invalidations, ps.builderEvals, ps.statefulCtorRuns, ps.elemsSetupInitial,
+    ps.elemsSetupRebuild, ps.elemsSetupRealtime, ps.elemsCreated, ps.elemsFreed, ps.layoutFixedSizeRoots, ps.layoutSizeRoots,
+    ps.layoutFlowRoots, ps.stacksRebuilds, gauges.elemCount, (long long)gauges.descTableSlots, (long long)gauges.storageTableSlots,
     (long long)gauges.watchRefs, renderListSize);
 
 #if ENABLE_SQ_MEM_STAT
@@ -4324,11 +4338,17 @@ void GuiScene::updateTimers(float dt)
 }
 
 
-static SQInteger calc_comp_size(HSQUIRRELVM vm)
+enum class CompMeasure
+{
+  SIZE,
+  CONTENT_SIZE
+};
+
+static SQInteger measure_comp(HSQUIRRELVM vm, const char *func_name, CompMeasure measure)
 {
   GuiScene *scene = GuiScene::get_from_sqvm(vm);
   if (!scene)
-    return sq_throwerror(vm, "calc_comp_size: GuiScene is not created");
+    return sq_throwerror(vm, String(0, "%s: GuiScene is not created", func_name));
 
   Point2 outSize(0, 0);
   Sqrat::Var<Sqrat::Object> desc(vm, 2);
@@ -4359,7 +4379,7 @@ static SQInteger calc_comp_size(HSQUIRRELVM vm)
     Element *elem = etree.root->children[0];
     G_ASSERT_RETURN(elem, sq_throwerror(vm, "Empty root"));
 
-    outSize = elem->screenCoord.size;
+    outSize = measure == CompMeasure::SIZE ? elem->screenCoord.size : elem->screenCoord.contentSize;
   }
 
   Sqrat::Array res(vm, 2);
@@ -4369,6 +4389,12 @@ static SQInteger calc_comp_size(HSQUIRRELVM vm)
 
   return 1;
 }
+
+
+static SQInteger calc_comp_size(HSQUIRRELVM vm) { return measure_comp(vm, "calc_comp_size", CompMeasure::SIZE); }
+
+
+static SQInteger calc_content_size(HSQUIRRELVM vm) { return measure_comp(vm, "calc_content_size", CompMeasure::CONTENT_SIZE); }
 
 
 static SQInteger get_mouse_cursor_pos(HSQUIRRELVM vm)
@@ -4644,13 +4670,25 @@ void GuiScene::blurWorld()
 }
 
 
-bool GuiScene::haveActiveCursorOnPanels() const
+bool GuiScene::havePointerOnPanels() const
 {
   ApiThreadCheck atc(this);
 
   for (const VrPointer &vrPtr : vrPointers)
     if (vrPtr.activePanel)
       return true;
+  return false;
+}
+
+
+bool GuiScene::haveActiveCursorOnPanels() const
+{
+  ApiThreadCheck atc(this);
+
+  for (auto &itPanel : panels)
+    for (PanelPointer &ptr : itPanel.second->pointers)
+      if (ptr.cursor)
+        return true;
   return false;
 }
 
@@ -5178,7 +5216,7 @@ void GuiScene::bindScriptClasses()
     .SquirrelFunc("setConfigProps", set_config_props, 2, ".t")
     .Func("setFocusedScreen", &GuiScene::setFocusedScreenById)
     .SquirrelFunc("getFocusedScreen", &GuiScene::sqGetFocusedScreen, 1, "x")
-    .Func("haveActiveCursorOnPanels", &GuiScene::haveActiveCursorOnPanels)
+    .Func("havePointerOnPanels", &GuiScene::havePointerOnPanels)
     .Func("clearTimer", &GuiScene::clearTimer)
     .Prop("config", &GuiScene::getConfig)
     .Func("getAllObservables", &GuiScene::getAllObservables)
@@ -5279,6 +5317,7 @@ void GuiScene::bindScriptClasses()
     .SquirrelFunc("set_kb_focus", set_kb_focus, 2)
     .SquirrelFunc("capture_kb_focus", capture_kb_focus, 2)
     .SquirrelFunc("calc_comp_size", calc_comp_size, 2, ".o|t|c|x|y")
+    .SquirrelFunc("calc_content_size", calc_content_size, 2, ".o|t|c|x|y")
     .SquirrelFunc("move_mouse_cursor", GuiScene::move_mouse_cursor, -2, "..b")
     .SquirrelFunc("get_mouse_cursor_pos", get_mouse_cursor_pos, -1, ".x")
     .SquirrelFunc("resolve_button_id", resolve_button_id, 2, ".s")

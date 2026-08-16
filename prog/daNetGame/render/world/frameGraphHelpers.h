@@ -58,10 +58,24 @@ private:
   CameraBlobRequestType view;
 };
 
+inline void strict_camera_view_ordering(dafg::Registry registry, const bool is_main_view)
+{
+  if (is_main_view)
+    registry.createBlob<OrderingToken>("camera_view_strict_ordering_token");
+  else
+    (registry.getParentNameSpace() / "view0").readBlob<OrderingToken>("camera_view_strict_ordering_token");
+}
+
 inline void read_all_camera_view_tokens(dafg::NameSpaceRequest ns, const char *name)
 {
   (ns / "view0").readBlob<OrderingToken>(name).optional();
   (ns / "view1").readBlob<OrderingToken>(name).optional();
+}
+
+inline void read_all_camera_view_tokens(dafg::NameSpaceRequest ns, std::initializer_list<const char *> names)
+{
+  for (const char *name : names)
+    read_all_camera_view_tokens(ns, name);
 }
 
 inline const char *get_camera_in_camera_blob_name()
@@ -484,13 +498,9 @@ inline const vec4f &get_no_jitter_frustumPlane4(const CameraParams &params) { re
 
 inline const vec4f &get_no_jitter_frustumPlane5(const CameraParams &params) { return params.noJitterFrustum.camPlanes[5]; }
 
-/**
- * This is similar to calling set_frustum_planes(...), but it is handled by the FG.
- * It sets the frustum plane shader vars according to the current_camera::jitterFrustum
- */
-inline void use_jitter_frustum_plane_shader_vars(dafg::Registry registry, const char *camera_blob_name = "current_camera")
+inline void bind_jitter_frustum_plane_shader_vars(dafg::NameSpaceRequest ns, const char *camera_blob_name)
 {
-  registry.readBlob<CameraParams>(camera_blob_name)
+  ns.readBlob<CameraParams>(camera_blob_name)
     .bindToShaderVar<get_jitter_frustumPlane03X>("frustumPlane03X")
     .bindToShaderVar<get_jitter_frustumPlane03Y>("frustumPlane03Y")
     .bindToShaderVar<get_jitter_frustumPlane03Z>("frustumPlane03Z")
@@ -499,11 +509,25 @@ inline void use_jitter_frustum_plane_shader_vars(dafg::Registry registry, const 
     .bindToShaderVar<get_jitter_frustumPlane5>("frustumPlane5");
 }
 
+/**
+ * This is similar to calling set_frustum_planes(...), but it is handled by the FG.
+ * It sets the frustum plane shader vars according to the current_camera::jitterFrustum
+ */
+inline void use_jitter_frustum_plane_shader_vars(dafg::Registry registry, const char *camera_blob_name = "current_camera")
+{
+  bind_jitter_frustum_plane_shader_vars(registry.currNameSpace(), camera_blob_name);
+}
+
 inline void use_camera_in_camera_jitter_frustum_plane_shader_vars(dafg::Registry registry)
 {
   const bool hasCamCamFeature = renderer_has_feature(FeatureRenderFlags::CAMERA_IN_CAMERA);
   const char *camName = hasCamCamFeature ? "camera_in_camera" : "current_camera";
   use_jitter_frustum_plane_shader_vars(registry, camName);
+}
+
+inline void use_camera_view_jitter_frustum_plane_shader_vars(dafg::Registry registry, const char *view_ns)
+{
+  bind_jitter_frustum_plane_shader_vars(registry.root() / view_ns, "current_camera");
 }
 
 /**

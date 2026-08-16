@@ -79,6 +79,15 @@ void scene::TiledScene::init(float tile_sz)
 
 void scene::TiledScene::termTiledStructures()
 {
+  // A bulk scope must not span this. bulk.nodeTile is the only record of the destroys the flush still owes,
+  // and rearrange() re-inserts every live node, so a dropped marker would resurrect a destroyed one.
+  G_ASSERT(!bulk.depth);
+  for (uint32_t i = 0; i < bulk.nodeTile.size(); i++)
+    if (bulk.nodeTile[i] == BulkTransform::PENDING_DESTROY)
+      bulk.destroyedNodes.push_back(getNodeFromIndex(i));
+  for (node_index n : bulk.destroyedNodes)
+    SimpleScene::destroy(n);
+
   clear_and_shrink(tileGrid);
   clear_and_shrink(tileCull);
   clear_and_shrink(tileBox);
@@ -87,6 +96,7 @@ void scene::TiledScene::termTiledStructures()
 #if !KD_LEAVES_ONLY
   clear_and_shrink(kdNodesDistance);
 #endif
+  bulk.reset();
   usedKdNodes = 0;
   usedTilesCount = mFirstFreeTile = 0;
   max_dist_scale_sq = 0;
@@ -169,6 +179,8 @@ void scene::TiledScene::releaseTile(uint32_t idx)
   tileCull[idx].clear();
   tileData[idx].clear();
   v_bbox3_init_empty(tileBox[idx]);
+  if (idx < bulk.tileDirty.size())
+    bulk.tileDirty[idx] = 0; // the index can be handed to an unrelated tile by allocTile()
   mFirstFreeTile = min(mFirstFreeTile, idx);
   usedTilesCount--;
   G_ASSERT(mFirstFreeTile >= 1);
@@ -244,9 +256,11 @@ void scene::TiledScene::setTransformNoScaleChange(node_index node, mat44f_cref t
     return setTransformNoScaleChangeImm(node, transform);
   }
 
-  auto prev = eastl::find_if(mDeferredCommand.begin(), mDeferredCommand.end(), [node](const DeferredCommand &c) {
-    return c.node == node && (c.command == DeferredCommand::MOVE || c.command == DeferredCommand::MOVE_FAST);
-  });
+  auto prev = interlocked_relaxed_load(bulk.depth) > 0
+                ? mDeferredCommand.end() // see setTransform: the scan makes a burst quadratic
+                : eastl::find_if(mDeferredCommand.begin(), mDeferredCommand.end(), [node](const DeferredCommand &c) {
+                    return c.node == node && (c.command == DeferredCommand::MOVE || c.command == DeferredCommand::MOVE_FAST);
+                  });
 
   if (prev == mDeferredCommand.end())
     mDeferredCommand.addCmd([&](DeferredCommand &cmd) {
@@ -268,9 +282,14 @@ void scene::TiledScene::setTransform(node_index node, mat44f_cref transform, boo
       return setTransformImm(node, transform);
   }
 
-  auto prev = eastl::find_if(mDeferredCommand.begin(), mDeferredCommand.end(), [node](const DeferredCommand &c) {
-    return c.node == node && (c.command == DeferredCommand::MOVE || c.command == DeferredCommand::MOVE_FAST);
-  });
+  // The scan is O(queue) per call, so once one move has been deferred it makes a burst of them
+  // quadratic. A bulk update moves each node at most once before its flush, and duplicate commands
+  // would replay in order anyway, so skip looking for a previous one.
+  auto prev = interlocked_relaxed_load(bulk.depth) > 0
+                ? mDeferredCommand.end()
+                : eastl::find_if(mDeferredCommand.begin(), mDeferredCommand.end(), [node](const DeferredCommand &c) {
+                    return c.node == node && (c.command == DeferredCommand::MOVE || c.command == DeferredCommand::MOVE_FAST);
+                  });
   if (prev == mDeferredCommand.end())
     mDeferredCommand.addCmd([&](DeferredCommand &cmd) {
       cmd.command = DeferredCommand::MOVE;
@@ -468,10 +487,23 @@ static inline void updateMaxExt(float *tile_bbox, float &objMaxExt, int tx, int 
   inplace_max(objMaxExt, tile_bbox[6] - z0 - tileSize);
 }
 
-__forceinline uint32_t scene::TiledScene::selectTileIndex(uint32_t n_index, bool allow_add)
+__forceinline uint32_t scene::TiledScene::getTargetTileIndex(uint32_t n_index)
 {
   if (get_node_bsphere_rad(nodes[n_index]) * 2 > tileSize) // heuristics to determ if we should fit in outer scene
     return OUTER_TILE_INDEX;
+
+  int tx = 0, tz = 0;
+  posToTile(nodes.data()[n_index].col3, tx, tz);
+  if (tx < getTileX0() || tz < getTileZ0() || tx >= getTileX1() || tz >= getTileZ1())
+    return INVALID_INDEX;
+  return getTileIndex(tx, tz);
+}
+
+__forceinline uint32_t scene::TiledScene::selectTileIndex(uint32_t n_index, bool allow_add)
+{
+  const uint32_t mapped = getTargetTileIndex(n_index);
+  if (mapped != INVALID_INDEX)
+    return mapped;
 
   int tx = 0, tz = 0;
   posToTile(nodes.data()[n_index].col3, tx, tz);
@@ -489,6 +521,35 @@ __forceinline uint32_t scene::TiledScene::selectTileIndex(uint32_t n_index, bool
     tidx = tileGrid[getTileGridIndex(tx, tz)] = allocTile(tx - getTileX0(), tz - getTileZ0());
   }
   return tidx;
+}
+
+__forceinline uint32_t scene::TiledScene::getActualTileIndex(uint32_t n_index)
+{
+  if (bulk.depth > 0 && n_index < bulk.nodeTile.size())
+  {
+    const uint32_t t_idx = bulk.nodeTile[n_index];
+    if (t_idx != INVALID_INDEX && t_idx != BulkTransform::PENDING_DESTROY)
+      return t_idx;
+  }
+  return selectTileIndex(n_index, false);
+}
+
+__forceinline void scene::TiledScene::markNodeDisplaced(uint32_t n_index, uint32_t t_idx)
+{
+  if (n_index >= bulk.nodeTile.size())
+    bulk.nodeTile.resize(max(static_cast<uint32_t>(nodes.size()), n_index + 1), INVALID_INDEX);
+  if (bulk.nodeTile[n_index] == BulkTransform::PENDING_DESTROY)
+    return;
+  bulk.nodeTile[n_index] = t_idx;
+  if (t_idx >= bulk.tileDirty.size())
+    bulk.tileDirty.resize(max(static_cast<uint32_t>(tileData.size()), t_idx + 1), 0);
+  bulk.tileDirty[t_idx] = 1;
+}
+
+__forceinline void scene::TiledScene::clearNodeDisplaced(uint32_t n_index)
+{
+  if (bulk.depth > 0 && n_index < bulk.nodeTile.size())
+    bulk.nodeTile[n_index] = INVALID_INDEX;
 }
 
 __forceinline void scene::TiledScene::scheduleTileMaintenance(TileData &tile, uint32_t mflags)
@@ -931,9 +992,13 @@ void scene::TiledScene::reallocateImm(node_index node, const mat44f &transform, 
   if (isFreeIndex(index))
     return;
 
-  int t_idx = selectTileIndex(index, false);
+  if (bulk.isPendingDestroy(index))
+    return;
+
+  int t_idx = getActualTileIndex(index);
   // fixme: this is too slow if node is still within same tile
   removeNode(getTileByIndex(t_idx), node);
+  clearNodeDisplaced(index); // allocateImm() puts it back into the tile its position maps to
   allocateImm(node, transform, pool, flags);
 }
 
@@ -949,10 +1014,17 @@ void scene::TiledScene::setTransformNoScaleChangeImm(node_index node, mat44f_cre
   uint32_t index = getNodeIndex(node);
   if (isFreeIndex(index))
     return;
+  if (bulk.isPendingDestroy(index))
+    return;
 
-
-  int t_idx = selectTileIndex(index, false);
+  int t_idx = getActualTileIndex(index);
   G_ASSERTF_RETURN(t_idx != INVALID_INDEX, , "node=%08X pos=%f %f %f", node, V4D(nodes.data()[index].col3));
+  if (bulk.depth > 0)
+  {
+    markNodeDisplaced(index, t_idx);
+    SimpleScene::setTransformNoScaleChange(node, transform);
+    return growTileForDisplacedNode(t_idx, index);
+  }
   mat44f oldTransform = nodes.data()[index];
   vec3f move = v_sub(transform.col3, oldTransform.col3);
   SimpleScene::setTransformNoScaleChange(node, transform);
@@ -983,9 +1055,17 @@ void scene::TiledScene::setTransformImm(node_index node, mat44f_cref transform)
   uint32_t index = getNodeIndex(node);
   if (isFreeIndex(index))
     return;
+  if (bulk.isPendingDestroy(index))
+    return;
 
-  int t_idx = selectTileIndex(index, false);
+  int t_idx = getActualTileIndex(index);
   G_ASSERTF_RETURN(t_idx != INVALID_INDEX, , "node=%08X pos=%f %f %f", node, V4D(nodes.data()[index].col3));
+  if (bulk.depth > 0)
+  {
+    markNodeDisplaced(index, t_idx);
+    SimpleScene::setTransform(node, transform);
+    return growTileForDisplacedNode(t_idx, index);
+  }
   mat44f oldTransform = nodes.data()[index];
   SimpleScene::setTransform(node, transform);
 
@@ -1001,6 +1081,116 @@ void scene::TiledScene::setTransformImm(node_index node, mat44f_cref transform)
   updateTile(t_idx, index, &oldTransform);
 }
 
+// Bounds only grow, so every tile query stays conservative, and the kd tree is dropped because the node
+// has left its leaf box.
+void scene::TiledScene::growTileForDisplacedNode(uint32_t t_idx, uint32_t n_index)
+{
+  TileData &tdata = getTileByIndex(t_idx);
+  bbox3f wabb;
+  updateTileExtents(tdata, nodes[n_index], wabb);
+  setKdTreeCount(tileBox[t_idx], 0);
+  copyTileDataToCull(tdata); // tileCull unions nodesCount with kdTreeLeftNode, so it must follow the count change
+  tdata.nextGeneration();
+}
+
+void scene::TiledScene::flushBulkTransformUpdate()
+{
+  bulk.movedNodes.clear();
+  bulk.destroyedNodes.clear();
+
+  // pass 1: drop the nodes that no longer map to the tile they are stored in, one walk per touched tile.
+  // Nothing here may allocate a tile: allocTile()/rearrange() resize tileData and would invalidate the
+  // tiles this loop walks.
+  for (uint32_t t_idx = 0; t_idx < bulk.tileDirty.size(); ++t_idx)
+  {
+    if (!bulk.tileDirty[t_idx])
+      continue;
+    bulk.tileDirty[t_idx] = 0;
+    if (t_idx >= tileData.size())
+      continue;
+    TileData &tdata = getTileByIndex(t_idx);
+    if (tdata.isDead())
+      continue;
+
+    node_index *dst = tdata.nodes.data();
+    for (node_index n : tdata.nodes)
+    {
+      const uint32_t index = getNodeIndexInternal(n);
+      if (index < bulk.nodeTile.size() && bulk.nodeTile[index] == BulkTransform::PENDING_DESTROY)
+      {
+        bulk.destroyedNodes.push_back(n);
+        continue;
+      }
+      if (getTargetTileIndex(index) == t_idx)
+        *dst++ = n;
+      else
+        bulk.movedNodes.push_back(n);
+    }
+
+    const int keptCount = static_cast<int>(dst - tdata.nodes.data());
+    if (keptCount == static_cast<int>(tdata.nodes.size())) // no node left the tile, only its bounds and kd tree need fixing up
+    {
+      scheduleTileMaintenance(tdata, tdata.MFLG_RECALC_BBOX | tdata.MFLG_REBUILD_KDTREE | tdata.MFLG_IVALIDATE_KDTREE);
+      continue;
+    }
+    tdata.nodes.resize(keptCount);
+    if (keptCount == 1)
+      initTile(tdata);
+    else if (!keptCount)
+    {
+      if (t_idx == OUTER_TILE_INDEX)
+      {
+        tileCull[t_idx].clear();
+        tileData[t_idx].clear();
+        v_bbox3_init_empty(tileBox[t_idx]);
+      }
+      else
+        releaseTile(t_idx);
+    }
+    else
+      scheduleTileMaintenance(tdata, tdata.MFLG_RECALC_BBOX | tdata.MFLG_REBUILD_KDTREE | tdata.MFLG_IVALIDATE_KDTREE);
+  }
+
+  // pass 2: re-insert what left its tile. selectTileIndex() may allocate a tile or rearrange the grid, so
+  // this pass addresses tiles by index and never holds a TileData reference across such a call.
+  for (node_index n : bulk.movedNodes)
+  {
+    const uint32_t index = getNodeIndexInternal(n);
+    if (isFreeIndex(index))
+      continue;
+    int nt_idx = selectTileIndex(index, true);
+    if (nt_idx == INVALID_INDEX)
+      continue;
+    insertNode(getTileByIndex(nt_idx), n);
+    updateTile(nt_idx, index, nullptr); // without an old transform this does not search the kd leaves
+  }
+  bulk.movedNodes.clear();
+
+  // last: SimpleScene::destroy() can pop_back() or clear the node array, which both passes above index
+  for (node_index n : bulk.destroyedNodes)
+    SimpleScene::destroy(n);
+
+  bulk.reset();
+}
+
+void scene::TiledScene::beginBulkTransformUpdate()
+{
+  G_ASSERT_RETURN(isInWritingThread(), );
+  interlocked_relaxed_store(bulk.depth, bulk.depth + 1);
+}
+
+void scene::TiledScene::endBulkTransformUpdate()
+{
+  G_ASSERT_RETURN(isInWritingThread(), );
+  G_ASSERTF_RETURN(bulk.depth > 0, , "endBulkTransformUpdate() without a matching begin");
+  interlocked_relaxed_store(bulk.depth, bulk.depth - 1);
+  if (!bulk.depth && tileSize > 0)
+  {
+    WriteLockRAII lock(*this);
+    flushBulkTransformUpdate();
+  }
+}
+
 void scene::TiledScene::setFlagsImm(node_index node, uint16_t flags)
 {
   uint32_t nodeIdx = getNodeIndexInternal(node);
@@ -1008,7 +1198,7 @@ void scene::TiledScene::setFlagsImm(node_index node, uint16_t flags)
     return;
 
   SimpleScene::setFlags(node, flags);
-  uint32_t tileIdx = selectTileIndex(nodeIdx, false);
+  uint32_t tileIdx = getActualTileIndex(nodeIdx);
   if (tileIdx != INVALID_INDEX)
     scheduleTileMaintenance(getTileByIndex(tileIdx), TileData::MFLG_RECALC_FLAGS);
 }
@@ -1020,7 +1210,7 @@ void scene::TiledScene::unsetFlagsImm(node_index node, uint16_t flags)
     return;
 
   SimpleScene::unsetFlags(node, flags);
-  uint32_t tileIdx = selectTileIndex(nodeIdx, false);
+  uint32_t tileIdx = getActualTileIndex(nodeIdx);
   if (tileIdx != INVALID_INDEX)
     scheduleTileMaintenance(getTileByIndex(tileIdx), TileData::MFLG_RECALC_FLAGS);
 }
@@ -1037,11 +1227,19 @@ void scene::TiledScene::destroyImm(node_index node)
   G_ASSERT_RETURN(index < nodes.size(), );
   G_ASSERT_RETURN(!isFreeIndex(index), );
 
-  int t_idx = selectTileIndex(index, false);
+  int t_idx = getActualTileIndex(index);
   G_ASSERTF_RETURN(t_idx >= 0 && t_idx < tileData.size() && t_idx < tileBox.size() && t_idx < tileCull.size(),
     SimpleScene::destroy(node), "node=%08X index=%08X t_idx=%d tileData.size()=%d tileBox.size()=%d tileCull.size()=%d  pos=%@ rad=%@",
     node, index, t_idx, tileData.size(), tileBox.size(), tileCull.size(), as_point3(&nodes[index].col3),
     get_node_bsphere_rad(nodes[index]));
+  if (bulk.depth > 0)
+  {
+    // removeNode() searches the tile's node list, which is what makes a burst of destroys quadratic -
+    // the flush drops them all in the pass it already makes over each touched tile
+    markNodeDisplaced(index, t_idx);
+    bulk.nodeTile[index] = BulkTransform::PENDING_DESTROY;
+    return;
+  }
   removeNode(getTileByIndex(t_idx), node);
   SimpleScene::destroy(node);
 }
@@ -1345,7 +1543,9 @@ bool scene::TiledScene::doMaintenance(int64_t reft, unsigned max_time_to_spend_u
 
   checkSoA();
 
-  if (usedTilesCount < tileData.size() && mFirstFreeTile < usedTilesCount)
+  // this compaction renumbers tiles, which the tile indices recorded by a bulk update refer to, so it has
+  // to wait for the flush. It is an optimization, postponing it costs nothing.
+  if (usedTilesCount < tileData.size() && mFirstFreeTile < usedTilesCount && !bulk.depth)
   {
     for (int i = mFirstFreeTile, lastUsedTile = tileData.size() - 1; i < lastUsedTile; i++)
       if (tileData[i].isDead())

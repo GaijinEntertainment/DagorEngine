@@ -282,6 +282,7 @@ struct GIDenoiser
   Point4 hitDistParams = Point4::ZERO;
   Point2 antilagSettings = Point2(4, 3);
   int maxStabilizedFrameNum = MAX_HISTORY_FRAME_NUM;
+  bool antiFirefly = false;
   bool performanceMode = true;
   bool checkerboard = true;
   bool halfResolution = true;
@@ -310,6 +311,7 @@ struct GIDenoiser
 #define NAME(name) static const char *name;
     ENUM_GI_DENOISED_NAMES
 #undef NAME
+    static const char *gi_validation;
   };
 };
 

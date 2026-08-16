@@ -37,12 +37,7 @@ float get_master_scale()
 }
 
 
-bool is_dag_file(const fs::path &filename)
-{
-  std::wstring ext = filename.extension().wstring();
-  std::transform(ext.begin(), ext.end(), ext.begin(), ::towlower);
-  return ext == L".dag";
-}
+bool is_dag_file(const fs::path &filename) { return iequal(filename.extension().native(), L".dag"); }
 
 std::vector<fs::path> glob(const fs::path &dir, bool recursive)
 {
@@ -85,6 +80,8 @@ std::wstring strToWide(const char *sz)
 std::string wideToStr(const wchar_t *sw)
 {
   int len = WideCharToMultiByte(CP_UTF8, 0, sw, -1, NULL, 0, NULL, NULL);
+  if (len <= 0)
+    return std::string();
   std::string res(len - 1, 0);
   WideCharToMultiByte(CP_UTF8, 0, sw, -1, &res[0], len, NULL, NULL);
   return res;
@@ -160,9 +157,9 @@ void update_path_edit_control(HWND hw, int id, const fs::path &path)
 int get_save_filename(HWND owner, const TCHAR *title, FilterList &filter, const TCHAR *def_ext, fs::path &exp_fname,
   bool init_with_previous)
 {
-  static TCHAR fname[MAX_PATH];
+  TCHAR fname[MAX_PATH] = {};
   if (init_with_previous)
-    _tcscpy_s(fname, MAX_PATH, exp_fname.c_str());
+    _tcsncpy_s(fname, _countof(fname), exp_fname.c_str(), _TRUNCATE);
 
   OPENFILENAME ofn;
   memset(&ofn, 0, sizeof(ofn));
@@ -202,9 +199,9 @@ tryAgain:
 
 bool get_open_filename(HWND owner, const TCHAR *title, FilterList &filter, const TCHAR *def_ext, fs::path &imp_fname)
 {
-  static TCHAR path[MAX_PATH];
+  TCHAR path[MAX_PATH] = {};
 
-  _tcscpy_s(path, MAX_PATH, imp_fname.c_str());
+  _tcsncpy_s(path, _countof(path), imp_fname.c_str(), _TRUNCATE);
 
   OPENFILENAME ofn;
   memset(&ofn, 0, sizeof(ofn));
@@ -251,11 +248,19 @@ fs::path get_cfg_filename(const TCHAR *cfg)
 std::vector<std::wstring> split(std::wstring_view text, const wchar_t delim)
 {
   std::vector<std::wstring> tokens;
-  std::wistringstream iss(std::wstring(text) + delim);
-  std::wstring tok;
-  while (std::getline(iss, tok, delim))
-    tokens.push_back(tok);
-  return tokens;
+  tokens.reserve(std::count(text.begin(), text.end(), delim) + 1);
+
+  for (size_t pos = 0;;)
+  {
+    const size_t end = text.find(delim, pos);
+    if (end == std::wstring_view::npos)
+    {
+      tokens.emplace_back(text.substr(pos));
+      return tokens;
+    }
+    tokens.emplace_back(text.substr(pos, end - pos));
+    pos = end + 1;
+  }
 }
 
 std::wstring replace_all(std::wstring str, std::wstring_view from, std::wstring_view to)
@@ -287,13 +292,7 @@ void trim(std::wstring &str)
   str.erase(0, str.find_first_not_of(L' '));
 }
 
-bool isProxymatName(std::wstring_view mat_name)
-{
-  static const std::wstring proxymat = L":proxymat";
-  if (mat_name.size() < proxymat.size())
-    return false;
-  return mat_name.compare(mat_name.size() - proxymat.size(), proxymat.size(), proxymat) == 0;
-}
+bool isProxymatName(std::wstring_view mat_name) { return mat_name.ends_with(L":proxymat"); }
 
 std::wstring simplifyRN(std::wstring_view from)
 {

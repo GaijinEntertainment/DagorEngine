@@ -705,6 +705,17 @@ else:
   os.rename(os.path.normpath(dest_dir+'/nvapi-main'), os.path.normpath(nvapi_dest_folder));
   print('+++ nvapi-R610 installed at {0}'.format(nvapi_dest_folder))
 
+# Nsight Aftermath SDK 2025.5.0.25317
+aftermath_dest_folder = dest_dir+'/aftermath-2025.5.0.25317'
+if pathlib.Path(aftermath_dest_folder).exists():
+  print('=== Nsight Aftermath SDK symlink found at {0}, skipping setup'.format(aftermath_dest_folder))
+else:
+  download_url2('https://developer.nvidia.com/downloads/assets/tools/secure/nsight-aftermath-sdk/2025_5_0/windows_x64/'
+                'NVIDIA_Nsight_Aftermath_SDK_2025.5.0.25317-windows_x64.zip', 'aftermath-2025.5.0.25317.zip')
+  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/aftermath-2025.5.0.25317.zip'), 'r') as zip_file:
+    zip_file.extractall(aftermath_dest_folder)
+  print('+++ Nsight Aftermath SDK 2025.5.0.25317 installed at {0}'.format(aftermath_dest_folder))
+
 # AGS v6.3.0
 ags_sdk_dest_folder = dest_dir+'/AGS.SDK.6.3.0'
 if pathlib.Path(ags_sdk_dest_folder).exists():

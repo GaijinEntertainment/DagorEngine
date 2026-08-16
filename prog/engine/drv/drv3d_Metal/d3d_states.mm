@@ -1095,7 +1095,7 @@ void ResourceHeap::track_resource_read(drv3d_metal::HazardTracker &resource)
   if (resources.size())
   {
     const auto &last = resources.back();
-    if (last.enc == enc && last.type == Resource::Access::Read)
+    if (last.enc == enc && last.type == Resource::Access::Read && last.offset == resource.heap_offset && last.size == resource.heap_size)
       return;
   }
   resources.emplace_back(enc, resource.heap_offset, resource.heap_size, Resource::Access::Read);

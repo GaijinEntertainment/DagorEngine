@@ -199,6 +199,11 @@ public:
   static int get_channel_cvt_errors();
   static int get_channel_cvt_critical_errors();
 
+  static void reset_uv_range_errors();
+  static int get_uv_range_errors();
+  static float get_uv_range_max_abs();
+  static bool exchange_uv_validation(bool on);
+
   RElem *addElem(int stage)
   {
     int idx = insert_items(elems, stageEndElemIdx[stage], 1);
@@ -249,6 +254,13 @@ private:
   void AddRElems(Tab<RElem> &elem, const Tab<RElem> &other_elem, bool allow_32_bit);
 };
 DAG_DECLARE_RELOCATABLE(ShaderMeshData);
+
+struct ScopedUvValidation
+{
+  bool prev;
+  ScopedUvValidation(bool on) : prev(ShaderMeshData::exchange_uv_validation(on)) {}
+  ~ScopedUvValidation() { ShaderMeshData::exchange_uv_validation(prev); }
+};
 
 
 bool can_combine_elems(const ShaderMeshData::RElem &left, const ShaderMeshData::RElem &right, bool allow_32_bit = false,

@@ -86,15 +86,15 @@ function chatLog() {
   }
 }
 
-let inputBoxHeight = fsh(3)
-let inputBoxDummy = freeze({size=[flex(), inputBoxHeight]})
+const inputBoxHeight = fsh(3)
+const inputBoxDummy = {size=const [flex(), inputBoxHeight]}
 
 function inputBox() {
   return {
     rendObj = ROBJ_SOLID
     vplace = ALIGN_BOTTOM
     color = Color(0,0,0,200)
-    size = [flex(), inputBoxHeight]
+    size = const [flex(), inputBoxHeight]
 
     children = @() {
       rendObj = ROBJ_TEXT

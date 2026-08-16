@@ -133,7 +133,8 @@ private:
   static_assert(sizeof(Slot) == 1);
 
   dag::Vector<Slot> slots{};
-  uint32_t minUsed, usedCap; // min >= cap means none are used
+  // min >= cap means none are used; a default-constructed allocator must still be a valid empty one
+  uint32_t minUsed = 0, usedCap = 0;
   Policy policy{};
 
 public:

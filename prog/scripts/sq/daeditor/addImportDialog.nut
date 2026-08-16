@@ -44,7 +44,7 @@ function mkTabButtons() {
         onClick = @() isNewImportMode.set(false)
         fillColor = !isNewImportMode.get() ? Color(80, 80, 85) : Color(65, 65, 70)
         children = {
-          margin = [hdpx(2), hdpx(4)]
+          margin = const [hdpx(2), hdpx(4)]
           rendObj = ROBJ_TEXT
           text = "Load existing"
         }
@@ -56,7 +56,7 @@ function mkTabButtons() {
         behavior = Behaviors.Button
         onClick = @() isNewImportMode.set(true)
         children = {
-          margin = [hdpx(2), hdpx(4)]
+          margin = const [hdpx(2), hdpx(4)]
           rendObj = ROBJ_TEXT
           text = "Create new"
         }
@@ -89,7 +89,7 @@ function listImportSceneRow(scene, index) {
 
 function mkAcceptSceneControl(onImportAdd, close) {
   return {
-    size = [flex(), SIZE_TO_CONTENT]
+    size = const [flex(), SIZE_TO_CONTENT]
     flow = FLOW_HORIZONTAL
     children = [
       @(){
@@ -175,7 +175,7 @@ function mkExistinTabContent(onImportAdd, close) {
     children = [
       {
         padding = hdpx(10)
-        size = [flex(), SIZE_TO_CONTENT]
+        size = const [flex(), SIZE_TO_CONTENT]
         flow = FLOW_VERTICAL
         gap = fsh(0.5)
         children = [
@@ -205,7 +205,7 @@ function mkNewTabContent(onImportAdd, close) {
     children = [
       {
         padding = hdpx(10)
-        size = [flex(), SIZE_TO_CONTENT]
+        size = const [flex(), SIZE_TO_CONTENT]
         flow = FLOW_VERTICAL
         gap = fsh(0.5)
         children = [
@@ -286,7 +286,7 @@ function addImportDialog(onImportAdd) {
         {
           halign = ALIGN_RIGHT
           valign = ALIGN_CENTER
-          size = [flex(), SIZE_TO_CONTENT]
+          size = const [flex(), SIZE_TO_CONTENT]
           padding = hdpx(10)
           children = textButton("Cancel", close, {
             hotkeys=[["Esc"]],

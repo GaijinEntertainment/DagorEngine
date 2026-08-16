@@ -141,28 +141,6 @@ bool d3d::set_depth(BaseTexture *tex, int layer, DepthAccess access)
   return true;
 }
 
-bool d3d::set_render_target(int ri, Texture *tex, uint8_t level) { return d3d::set_render_target(ri, tex, 0, level); }
-
-bool d3d::set_render_target(int ri, BaseTexture *tex, int layer, uint8_t level)
-{
-  D3D_CONTRACT_ASSERTF(ri >= 0, "vulkan: no meaning of negative render target index is present");
-
-  LocalAccessor la;
-  using Bind = StateFieldFramebufferAttachment;
-
-  la.pipeState.set<StateFieldFramebufferAttachments, Bind::RawIndexed, FrontGraphicsState, FrontFramebufferState>(
-    {(uint32_t)ri, {tex, level, layer}});
-
-  if (0 == ri)
-  {
-    la.pipeState.set<StateFieldFramebufferAttachments, Bind::Indexed, FrontGraphicsState, FrontFramebufferState>(
-      {MRT_INDEX_DEPTH_STENCIL, Bind::empty});
-
-    la.pipeState.set<StateFieldGraphicsViewport, StateFieldGraphicsViewport::RestoreFromFramebuffer, FrontGraphicsState>({});
-  }
-  return true;
-}
-
 bool d3d::set_render_target(const Driver3dRenderTarget &rt)
 {
   LocalAccessor la;
@@ -268,7 +246,7 @@ bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t le
 {
   if (!rt_tex)
   {
-    VkExtent2D size = Frontend::swapchain.getMode().extent;
+    VkExtent2D size = Frontend::swapchain.getMode().backbufferExtent;
     w = size.width;
     h = size.height;
   }

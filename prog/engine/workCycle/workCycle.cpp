@@ -523,7 +523,11 @@ static void draw(bool enable_stereo, int elapsed_usec, float gametime_elapsed, b
 
 static bool present(bool updateScreenNeeded)
 {
+  const unsigned resetCounter = get_d3d_reset_counter();
   if (!check_and_restore_3d_device())
+    return false;
+  // the frame we were about to present was rendered into resources the reset has replaced
+  if (resetCounter != get_d3d_reset_counter())
     return false;
 
   if (updatescr_done)

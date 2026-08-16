@@ -201,7 +201,7 @@ namespace das
     ,   invalid_local_init_constructor                              =   30199    // 1 site(s)
     ,   invalid_local_init_type                                     =   30200    // 4 site(s)
     ,   invalid_local_tuple_expansion                               =   30201    // 1 site(s)
-    ,   invalid_local_type                                          =   30202    // 1 site(s)
+    ,   invalid_local_type                                          =   30202    // 2 site(s)
     ,   invalid_macro_context                                       =   30203    // 1 site(s)
     ,   invalid_macro_read                                          =   30204    // 1 site(s)
     ,   invalid_macro_tag                                           =   30205    // 1 site(s)
@@ -218,7 +218,7 @@ namespace das
     ,   invalid_op3_expression                                      =   30216    // 1 site(s)
     ,   invalid_pointer_arithmetic                                  =   30218    // 2 site(s)
     ,   invalid_quote_argument_count                                =   30219    // 1 site(s)
-    ,   invalid_result                                              =   30220    // 1 site(s)
+    ,   invalid_result                                              =   30220    // 2 site(s)
     ,   invalid_result_type                                         =   30221    // 5 site(s)
     ,   invalid_return_semantics                                    =   30222    // 2 site(s)
     ,   invalid_safe_as                                             =   30223    // 1 site(s)
@@ -295,6 +295,8 @@ namespace das
     ,   invalid_yield                                               =   30294    // 1 site(s)
     ,   invalid_yield_in_block                                      =   30295    // 1 site(s)
     ,   invalid_empty_name                                          =   30296    // AST node with empty name; usually a macro emission bug
+    ,   invalid_distinct_type                                       =   30297    // distinct underlying must be a workhorse type, not another distinct
+    ,   invalid_with_module                                         =   30298    // with (module foo) names a module that is not part of the program
 
 // missing_*
 
@@ -337,6 +339,7 @@ namespace das
     ,   mismatching_tuple_field_names                               =   30410    // 1 site(s)
     ,   mismatching_type                                            =   30411    // 3 site(s)
     ,   mismatching_variant_dimension                               =   30412    // 1 site(s)
+    ,   mismatching_distinct_type                                   =   30413    // distinct <-> underlying conversion is explicit-only
 
 // exceeds_*
 
@@ -445,7 +448,7 @@ namespace das
     ,   cant_ascend                                                 =   30909    // 1 site(s)
     ,   cant_assign_op                                              =   30910    // 2 site(s)
     ,   cant_block                                                  =   30911    // 1 site(s)
-    ,   cant_capture_variable                                       =   30912    // 6 site(s)
+    ,   cant_capture_variable                                       =   30912    // 7 site(s)
     ,   cant_clone                                                  =   30913    // 4 site(s)
     ,   cant_clone_type                                             =   30914    // 2 site(s)
     ,   cant_copy                                                   =   30915    // 3 site(s)
@@ -526,6 +529,7 @@ namespace das
     ,   unsafe_table_safe_index                                     =   31034    // 2 site(s)
     ,   unsafe_variant_field                                        =   31035    // 2 site(s)
     ,   unsafe_variant_safe_as                                      =   31036    // 1 site(s)
+    ,   unsafe_with_module                                          =   31037    // user-written with (module foo) under the with_module_is_unsafe policy
 
 // recursion_*
 
@@ -563,7 +567,7 @@ namespace das
     ,   not_resolved_yet_delete_size_type                           =   31309    // 1 site(s)
     ,   not_resolved_yet_dereference_type                           =   31310    // 1 site(s)
     ,   not_resolved_yet_enumerator                                 =   31311    // 3 site(s)
-    ,   not_resolved_yet_expression_type                            =   31312    // 2 site(s)
+    ,   not_resolved_yet_expression_type                            =   31312    // 3 site(s)
     ,   not_resolved_yet_function                                   =   31313    // 2 site(s)
     ,   not_resolved_yet_function_block                             =   31314    // 1 site(s)
     ,   not_resolved_yet_generator_block                            =   31315    // 1 site(s)
@@ -630,7 +634,7 @@ namespace das
     ,   runtime_function                                            =   50500    // 3 site(s)
     ,   runtime_function_annotation                                 =   50501    // 5 site(s)
     ,   runtime_global                                              =   50502    // 2 site(s)
-    ,   runtime_macro                                               =   50503    // 6 site(s)
+    ,   runtime_macro                                               =   50503    // 7 site(s)
 
 // internal_*
 
@@ -641,9 +645,9 @@ namespace das
     ,   internal_block_missing_return_type                          =   50604    // 1 site(s)
     ,   internal_class                                              =   50605    // 1 site(s)
     ,   internal_enumeration                                        =   50606    // 1 site(s)
-    ,   internal_expression                                         =   50607    // 26 site(s)
-    ,   internal_field                                              =   50608    // 1 site(s)
-    ,   internal_function                                           =   50609    // 9 site(s)
+    ,   internal_expression                                         =   50607    // 29 site(s)
+    ,   internal_field                                              =   50608    // 2 site(s)
+    ,   internal_function                                           =   50609    // 11 site(s)
     ,   internal_function_annotation                                =   50610    // 1 site(s)
     ,   internal_function_changed                                   =   50611    // 1 site(s)
     ,   internal_function_name                                      =   50612    // 1 site(s)
@@ -674,7 +678,7 @@ namespace das
     ,   internal_type                                               =   50637    // 15 site(s)
     ,   internal_type_alias                                         =   50638    // 1 site(s)
     ,   internal_typeinfo_macro                                     =   50639    // 1 site(s)
-    ,   internal_variable                                           =   50640    // 3 site(s)
+    ,   internal_variable                                           =   50640    // 9 site(s)
 
     // ===== preserved for direct (non-error()) callers =====
     ,   missing_aot                                                 =   50101    // Program::linkError direct

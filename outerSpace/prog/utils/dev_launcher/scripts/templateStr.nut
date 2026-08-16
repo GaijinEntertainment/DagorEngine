@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "types" import String
 
 let {startswith, endswith} = require("string")
 //let {kwpartial} = require("%sqstd/functools.nut")
@@ -35,7 +36,7 @@ function buildStrByTemplates(str, params, formatters){
     }
     let t = token.slice(">>".len()).slice(0, -"<<".len())
     assert(t in formatters, @() $"unknown template: {t}")
-    if (type(formatters[t])=="string") {
+    if (formatters[t] instanceof String) {
       resStrings.append(buildStrByTemplates(formatters[t], params, formatters))
     }
     else {

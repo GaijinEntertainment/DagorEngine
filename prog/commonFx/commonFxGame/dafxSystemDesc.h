@@ -30,6 +30,13 @@ enum
 static const char *renderTags[] = {"lowres", "highres", "distortion", "transmittance", "thermal", "water_proj_advanced", "water_proj",
   "vol_thickness", "vol_depth", "vol_wboit", "fom", "underwater", "volfog_injection", "bvh", "xray", "highres_atest"};
 
+enum class StatGroup : uint8_t
+{
+  Unknown = 0,
+  ModFx = 1,
+  Sparks = 2,
+};
+
 enum TransformType
 {
   TRANSFORM_DEFAULT = 0,

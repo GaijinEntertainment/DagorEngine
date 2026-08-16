@@ -20,14 +20,14 @@ if $(Platform) in windows && $(PlatformArch) in x86_64 arm64 && ( $(UseD3DMulti)
   }
 
   local AgsSdkDir = $(_DEVTOOL)/AGS.SDK.$(AgsSdkVer) ;
-  if [ GLOB $(AgsSdkDir) : * ] && $(AgsEnabled) = yes {
+  if [ GLOB $(AgsSdkDir) : * ] && $(PlatformArch) = x86_64 {
     BundleCopy +=
       @$(AgsSdkDir)/lib/amd_ags_x64.dll amd_ags_x64.dll
     ;
   }
 
   local FidelityFXSDKDir = $(_DEVTOOL)/FidelityFX-SDK-$(FidelityFXVer)/Kits/FidelityFX ;
-  if [ GLOB $(FidelityFXSDKDir) : * ] {
+  if [ GLOB $(FidelityFXSDKDir) : * ] && $(PlatformArch) = x86_64 {
     BundleCopy +=
       @$(FidelityFXSDKDir)/signedbin/amd_fidelityfx_loader_dx12.dll amd_fidelityfx_loader_dx12.dll
       @$(FidelityFXSDKDir)/signedbin/amd_fidelityfx_framegeneration_dx12.dll amd_fidelityfx_framegeneration_dx12.dll

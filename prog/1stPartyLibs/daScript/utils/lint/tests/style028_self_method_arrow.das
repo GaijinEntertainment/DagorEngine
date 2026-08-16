@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE028: 'self->method(...)' inside a class method is optional.
 //
 // Problem: `self->foo(args)` writes the implicit receiver twice — once via

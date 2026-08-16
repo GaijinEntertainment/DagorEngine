@@ -10,6 +10,7 @@ from "%scripts/ui/http_task.nut" import HttpPostTask, mkJsonHttpReq
 from "%scripts/ui/backend_api.nut" import get_master_server_url
 from "dagor.workcycle" import defer
 from "dagor.time" import unixtime_to_local_timetbl, get_local_unixtime
+from "types" import String
 let DngBhv = require("dng.behaviors")
 let { setOfflineSessionParams, isInMainMenu, ulog, launch_network_session, launch_internal_dedicated_server } = require("%scripts/ui/app_state.nut")
 let { hardPersistWatched } = require("%sqstd/globalState.nut")
@@ -394,7 +395,7 @@ function mkRoomsUi() {
       children = [
         errorTitle(titleTxt)
         errorTxt(watch!=null ? watch?.get() : watchErrorTxt)
-        type(tip) =="string" ? {rendObj = ROBJ_TEXT text = tip} : tip
+        tip instanceof String ? {rendObj = ROBJ_TEXT text = tip} : tip
       ]
     }
   }

@@ -30,6 +30,7 @@ def test_huge_array_resize_round_trip(t : T?) {
     if (!huge_enabled()) return
     let N = 5_l * 1024_l * 1024_l * 1024_l  // 5 GB elements of uint8
     var arr : array<uint8>
+    arr |> reserve(N)
     arr |> resize(N)
     t |> equal(long_length(arr), N)
     arr[0_l] = uint8(0xC0)
@@ -46,6 +47,7 @@ def test_huge_array_length_panics_long_length_ok(t : T?) {
     // per the surface contract added in PR #2746.
     let N = 2200_l * 1024_l * 1024_l
     var arr : array<uint8>
+    arr |> reserve(N)
     arr |> resize(N)
     t |> equal(long_length(arr), N)
     // length(arr) here should panic — but try/recover is banned for panic UX testing

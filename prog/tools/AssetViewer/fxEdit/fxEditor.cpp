@@ -219,6 +219,16 @@ uint32_t get_gpu_buffer_size_based_on_quality(uint32_t quality_mask)
   return DEFAULT_BUFFER_SIZE;
 }
 
+static void set_debug_render_tag_remap(bool debug_render)
+{
+  if (!dafx_helper_globals::ctx || !dafx_helper_globals::cull_id)
+    return;
+
+  const char *colorTag = dafx_helper_globals::particles_resolution_preview == 0 ? "lowres" : "highres";
+  dafx::remap_culling_state_tag(dafx_helper_globals::ctx, dafx_helper_globals::cull_id, "distortion",
+    debug_render ? colorTag : "distortion");
+}
+
 class EffectsPluginSaveCB : public ScriptHelpers::SaveValuesCB
 {
 public:
@@ -402,6 +412,7 @@ public:
     ScriptHelpers::obj_editor = NULL;
 
     ShaderGlobal::set_int(dynamic_lights_countVarId, 0);
+    set_debug_render_tag_remap(false);
 
     curAsset = NULL;
 
@@ -493,6 +504,7 @@ public:
       ShaderGlobal::set_int(::get_shader_variable_id("modfx_debug_render", true), particles_debug_render);
       ShaderGlobal::set_int(::get_shader_variable_id("fx_debug_editor_mode", true), (int)particles_debug_hdr_emission);
       ShaderGlobal::set_float(::get_shader_variable_id("fx_debug_exposure_threshold", true), particles_debug_hdr_emission_threshold);
+      set_debug_render_tag_remap(particles_debug_render);
 
       if (particles_debug_motion)
       {
@@ -620,9 +632,10 @@ public:
     s.instances = lastSimStats.activeInstances / 2;
     s.cpuElemProcessed = lastSimStats.cpuElemProcessed;
     s.gpuElemProcessed = lastSimStats.gpuElemProcessed;
+    s.totalParticles = stats.totalParticles;
     s.drawCalls = stats.renderDrawCalls;
-    s.visibleTriangles = stats.visibleTriangles;
-    s.renderedTriangles = stats.renderedTriangles;
+    s.modfxTris = stats.renderedTriangles[eastl::to_underlying(dafx_ex::StatGroup::ModFx)];
+    s.sparksTris = stats.renderedTriangles[eastl::to_underlying(dafx_ex::StatGroup::Sparks)];
 
     int elemSize[4] = {0};
     effect->getParam(_MAKE4C('PFXX'), elemSize);

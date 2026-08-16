@@ -130,6 +130,103 @@ bool d3d_resource_barrier_to_laddr(bool is_tex, bool is_depth, LogicAddress &lad
   return true;
 }
 
+// d3d enhanced (untracked resource) barrier -> vulkan translation
+
+static VkPipelineStageFlags enhanced_stage_to_vk(d3d::PipelineStageFlags stages)
+{
+  if (stages & d3d::PipelineStageFlag::All)
+    return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+  VkPipelineStageFlags out = VK_PIPELINE_STAGE_NONE;
+  if (stages & d3d::PipelineStageFlag::ExecuteIndirect)
+    out |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+  if (stages & (d3d::PipelineStageFlag::IndexInput | d3d::PipelineStageFlag::VertexAttributeInput))
+    out |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+  if (stages & d3d::PipelineStageFlag::AllVertexShading)
+    out |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT |
+           VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+  if (stages & d3d::PipelineStageFlag::Rasterization)
+    out |= VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+  if (stages & d3d::PipelineStageFlag::EarlyFragmentTests)
+    out |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+  if (stages & d3d::PipelineStageFlag::PixelShading)
+    out |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  if (stages & d3d::PipelineStageFlag::LateFragmentTests)
+    out |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+  if (stages & d3d::PipelineStageFlag::OutputMerging)
+    out |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  if (stages & d3d::PipelineStageFlag::ComputeShading)
+    out |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+  // clear/blit/resolve are native transfer ops on vulkan, unlike dx where they run through shaders
+  if (stages &
+      (d3d::PipelineStageFlag::Copy | d3d::PipelineStageFlag::Blit | d3d::PipelineStageFlag::Clear | d3d::PipelineStageFlag::Resolve))
+    out |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+  return out;
+}
+
+static VkAccessFlags enhanced_access_to_vk(d3d::AccessFlags access)
+{
+  VkAccessFlags out = VK_ACCESS_NONE;
+  if (access & d3d::AccessFlag::IndirectArgument)
+    out |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+  if (access & d3d::AccessFlag::VertexBuffer)
+    out |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+  if (access & d3d::AccessFlag::IndexBuffer)
+    out |= VK_ACCESS_INDEX_READ_BIT;
+  if (access & d3d::AccessFlag::ConstantBuffer)
+    out |= VK_ACCESS_UNIFORM_READ_BIT;
+  if (access & d3d::AccessFlag::RenderTargetRead)
+    out |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+  if (access & d3d::AccessFlag::RenderTargetWrite)
+    out |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  if (access & d3d::AccessFlag::UnorderedAccess)
+    out |= VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+  if (access & d3d::AccessFlag::DepthStencilWrite)
+    out |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+  if (access & d3d::AccessFlag::DepthStencilRead)
+    out |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+  if (access & d3d::AccessFlag::InputAttachment)
+    out |= VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+  if (access & d3d::AccessFlag::ShaderResource)
+    out |= VK_ACCESS_SHADER_READ_BIT;
+  if (access & (d3d::AccessFlag::CopyRead | d3d::AccessFlag::BlitRead | d3d::AccessFlag::ResolveRead))
+    out |= VK_ACCESS_TRANSFER_READ_BIT;
+  if (access & (d3d::AccessFlag::CopyWrite | d3d::AccessFlag::BlitWrite | d3d::AccessFlag::ResolveWrite | d3d::AccessFlag::ClearWrite))
+    out |= VK_ACCESS_TRANSFER_WRITE_BIT;
+  if (access & d3d::AccessFlag::ShadingRate)
+    out |= VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
+  return out;
+}
+
+static VkImageLayout enhanced_layout_to_vk(d3d::TextureLayout layout, bool is_depth)
+{
+  switch (layout)
+  {
+    case d3d::TextureLayout::Undefined: return VK_IMAGE_LAYOUT_UNDEFINED;
+    case d3d::TextureLayout::RenderTarget: return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    case d3d::TextureLayout::GenericRead:
+    case d3d::TextureLayout::UnorderedAccess: return VK_IMAGE_LAYOUT_GENERAL;
+    case d3d::TextureLayout::DepthRwStencilRw:
+    case d3d::TextureLayout::DepthRwStencilRo:
+    case d3d::TextureLayout::DepthRoStencilRw:
+    case d3d::TextureLayout::DepthRw: return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    case d3d::TextureLayout::DepthRoStencilRo:
+    case d3d::TextureLayout::DepthRo: return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+    case d3d::TextureLayout::ShaderResource:
+      // must match the layout baked into sampled-image descriptors
+      return is_depth && Globals::cfg.bits.sampledDepthReadOnlyLayout ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+                                                                      : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    case d3d::TextureLayout::CopySource:
+    case d3d::TextureLayout::BlitSource:
+    case d3d::TextureLayout::ResolveSource: return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    case d3d::TextureLayout::ClearDest:
+    case d3d::TextureLayout::CopyDest:
+    case d3d::TextureLayout::BlitDest:
+    case d3d::TextureLayout::ResolveDest: return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    case d3d::TextureLayout::ShadingRateSource: return VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+    default: G_ASSERTF(false, "vulkan: unhandled enhanced TextureLayout %d", int(layout)); return VK_IMAGE_LAYOUT_GENERAL;
+  }
+}
+
 TSPEC void BEContext::execCmd(const CmdFlushDraws &)
 {
   Backend::profilerStack.finish(); // ends frame core
@@ -216,6 +313,91 @@ TSPEC void BEContext::execCmd(const CmdBufferBarrier &cmd)
 
   verifyResident(cmd.bRef.buffer);
   Backend::sync.addBufferAccess(laddr, cmd.bRef.buffer, {cmd.bRef.bufOffset(0), cmd.bRef.visibleDataSize});
+}
+
+TSPEC void BEContext::execCmd(const CmdEnhancedBarrierBatch &cmd)
+{
+  if (!cmd.imageCount && !cmd.bufferCount)
+    return;
+  beginCustomStage("enhancedBarrier");
+
+  PrimaryPipelineBarrier barrier;
+
+  for (uint32_t i = 0; i < cmd.imageCount; ++i)
+  {
+    const EnhancedImageBarrier &item = data->enhancedImageBarriers[cmd.imageIndex + i];
+    Image *img = item.img;
+    const d3d::TextureBarrier &b = item.barrier;
+    const bool isDepth = img->getFormat().getAspektFlags() & VK_IMAGE_ASPECT_DEPTH_BIT;
+
+    const VkImageLayout oldLayout = enhanced_layout_to_vk(b.layoutTransition.src, isDepth);
+    VkImageLayout newLayout = enhanced_layout_to_vk(b.layoutTransition.dst, isDepth);
+    if (newLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+      newLayout = oldLayout;
+
+    uint32_t mipIndex;
+    uint32_t mipRange;
+    uint32_t arrayIndex;
+    uint32_t arrayRange;
+
+    // translate from dx12 subresource rule
+    if (b.subresources.mips.count == 0)
+    {
+      if (b.subresources.mips.first == 0xffffffffu)
+      {
+        mipIndex = 0;
+        arrayIndex = 0;
+        mipRange = img->getMipLevels();
+        arrayRange = img->getArrayLayers();
+      }
+      else
+      {
+        mipIndex = b.subresources.mips.first % img->getMipLevels();
+        mipRange = 1;
+        arrayIndex = b.subresources.mips.first / img->getMipLevels();
+        arrayRange = 1;
+      }
+    }
+    else
+    {
+      mipIndex = b.subresources.mips.first;
+      mipRange = b.subresources.mips.count;
+      arrayIndex = b.subresources.layers.first;
+      arrayRange = b.subresources.layers.count;
+    }
+
+    G_ASSERTF(mipRange, "vulkan: empty mip range in user barrier for img %p:%s at %s", img, img->getDebugName(),
+      getCurrentCmdCaller());
+    G_ASSERTF(arrayRange, "vulkan: empty array range in user barrier for img %p:%s at %s", img, img->getDebugName(),
+      getCurrentCmdCaller());
+
+    verifyResident(img);
+    barrier.modifyImageTemplate(img);
+
+    VkPipelineStageFlags dstStg = enhanced_stage_to_vk(b.pipelineSync.dst);
+    G_ASSERTF(dstStg, "vulkan: empty dst stage in user barrier for img %p:%s at %s", img, img->getDebugName(), getCurrentCmdCaller());
+    barrier.modifyImageTemplateStage({enhanced_stage_to_vk(b.pipelineSync.src), dstStg});
+    barrier.modifyImageTemplate(oldLayout, newLayout);
+    barrier.modifyImageTemplate(mipIndex, mipRange, arrayIndex, arrayRange);
+    barrier.addImageByTemplate({enhanced_access_to_vk(b.memorySync.src), enhanced_access_to_vk(b.memorySync.dst)});
+
+    img->layout.set(mipIndex, mipRange, arrayIndex, arrayRange, newLayout);
+  }
+
+  for (uint32_t i = 0; i < cmd.bufferCount; ++i)
+  {
+    const EnhancedBufferBarrier &item = data->enhancedBufferBarriers[cmd.bufferIndex + i];
+    const d3d::BufferBarrier &b = item.barrier;
+    verifyResident(item.bRef.buffer);
+    VkPipelineStageFlags dstStg = enhanced_stage_to_vk(b.pipelineSync.dst);
+    G_ASSERTF(dstStg, "vulkan: empty dst stage in user barrier for buffer %p:%s at %s", item.bRef.buffer,
+      item.bRef.buffer->getDebugName(), getCurrentCmdCaller());
+    barrier.addBuffer({enhanced_stage_to_vk(b.pipelineSync.src), dstStg},
+      {enhanced_access_to_vk(b.memorySync.src), enhanced_access_to_vk(b.memorySync.dst)}, item.bRef.buffer, item.bRef.bufOffset(0),
+      item.bRef.visibleDataSize);
+  }
+
+  barrier.submit();
 }
 
 TSPEC void BEContext::execCmd(const CmdDelaySyncCompletion &cmd)

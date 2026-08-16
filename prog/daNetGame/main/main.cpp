@@ -106,6 +106,7 @@
 
 #if _TARGET_C1 | _TARGET_C2
 
+
 #elif _TARGET_C4
 
 #elif _TARGET_C3
@@ -1015,6 +1016,13 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   folders::load_custom_folders(*dgs_get_settings()->getBlockByNameEx("folders"));
   init_user_system_info_cache_dir();
+#if _TARGET_C1 || _TARGET_C2
+
+
+
+
+
+#endif
   start_settings_async_saver_jobmgr();
   if (!dgs_get_argv("nopubcfg"))
     pubcfg::init(folders::get_path("pubcfg"), "");

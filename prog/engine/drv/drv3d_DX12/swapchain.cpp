@@ -794,6 +794,13 @@ void backend::Swapchain::bufferResize(Device &device, const SwapchainProperties 
     device.getContext().destroyImageNoLock(swapchainInfo.virtualColorTarget, true);
     swapchainInfo.virtualColorTarget = device.createVirtualBackbuffer(swapchainInfo.colorTarget.get(),
       eastl::string{eastl::string::CtorSprintf{}, "virtual_backbuffer_%u", swapchain_index}.c_str());
+    if (!swapchainInfo.virtualColorTarget)
+    {
+      // The old one is already destroyed, so the swapchain continues without one. The caller has to
+      // move the frontend texture off the destroyed image, see DeviceContext::changeSwapchainExtents.
+      D3D_ERROR("DX12: Lost the virtual backbuffer of swapchain %u on resize, it renders into its swapchain image now",
+        swapchain_index);
+    }
   }
 }
 

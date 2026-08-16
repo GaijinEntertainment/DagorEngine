@@ -7,10 +7,13 @@
 #include <squirrel/sqtable.h>
 #include <squirrel/sqclass.h>
 #include <squirrel/sqarray.h>
+#include <sqstdaux.h>
 
 // FNV-1a hash parameters
 #define SQ_M_HASH_MULTIPLIER 1099511628211LU
 #define SQ_M_HASH_INIT 14695981039346656037LU
+
+#define SQ_DEEP_HASH_DEFAULT_DEPTH 200
 
 static SQInteger math_recursive_hash_impl(HSQUIRRELVM vm, HSQOBJECT &obj, SQUnsignedInteger prev_hash,
   SQUnsignedInteger &out_hash, SQInteger depth)
@@ -104,12 +107,12 @@ SQInteger sq_math_hash(HSQUIRRELVM v)
 
 SQInteger sq_math_deep_hash(HSQUIRRELVM v)
 {
-  SQInteger argDepth = 200; // not a very deep by default to avoid stack overflows in case of circular references
+  SQInteger argDepth = SQ_DEEP_HASH_DEFAULT_DEPTH;
   if (sq_gettop(v) >= 3) {
     if (SQ_FAILED(sq_getinteger(v, 3, &argDepth)))
       return sq_throwerror(v, "invalid param");
-    if (argDepth < 1)
-      return sq_throwerror(v, "hashing depth must be >= 1");
+    if (argDepth < 1 || argDepth > SQ_DEEP_HASH_DEFAULT_DEPTH)
+      return sqstd_throwerrorf(v, "hashing depth must be between 1 and %d", SQ_DEEP_HASH_DEFAULT_DEPTH);
   }
   HSQOBJECT obj;
   sq_getstackobj(v, 2, &obj);

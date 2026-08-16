@@ -102,9 +102,6 @@ class B2LVisitor : AstVisitor {
 [macro_function]
 def public convert_block_to_loop(var blk : Expression?; failOnReturn, replaceReturnWithContinue, requireContinueCond : bool) {
     //! Converts closure block to loop.
-    //! If `failOnReturn` is true, then returns are not allowed inside the block.
-    //! If `replaceReturnWithContinue` is true, then `return cond;` are replaced with `if cond; continue;`.
-    //! If `requireContinueCond` is false, then `return;` is replaced with `continue;`, otherwise it is an error.
     var astVisitor = new B2LVisitor(failOnReturn, replaceReturnWithContinue, requireContinueCond)
     make_visitor(*astVisitor) $(astVisitorAdapter) {
         visit(blk, astVisitorAdapter)

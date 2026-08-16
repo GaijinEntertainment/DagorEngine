@@ -3,6 +3,7 @@
 #include "bhvRecalcHandler.h"
 #include "scriptUtil.h"
 #include "guiScene.h"
+#include "elementTree.h"
 #include "dargDebugUtils.h"
 
 #include <daRg/dag_element.h>
@@ -23,6 +24,9 @@ BhvRecalcHandler::BhvRecalcHandler() : Behavior(0, 0) {}
 
 void BhvRecalcHandler::onRecalcLayout(Element *elem)
 {
+  if (elem->etree->isInternalTemporaryTree)
+    return;
+
   Sqrat::Table &scriptDesc = elem->props.scriptDesc;
   HSQUIRRELVM vm = scriptDesc.GetVM();
   Sqrat::Function f(vm, scriptDesc, scriptDesc.RawGetSlot(elem->csk->onRecalcLayout));

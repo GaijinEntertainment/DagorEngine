@@ -108,7 +108,7 @@ void reuse_cache_destroy() {
 // until pointers ownership won't be passed between main library and modules.
 // We allocate pointers with ReuseAllocator and free them using regular one.
 // DAS_GC_DEBUG: the gc_sweep poison path sizes nodes via _msize/malloc_usable_size,
-// which is only valid for stock-CRT-backed new - not the _aligned_malloc reuse cache.
+// which is only valid for stock-CRT-backed new — not the _aligned_malloc reuse cache.
 #if (defined(__linux__) || DAS_ENABLE_DLL || DAS_GC_DEBUG) && !defined(DAS_NO_GLOBAL_NEW_AND_DELETE)
 #define DAS_NO_GLOBAL_NEW_AND_DELETE
 #endif

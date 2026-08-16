@@ -156,6 +156,9 @@ protected:
         .CreationNodeMask = 0,
         .VisibleNodeMask = 0,
       };
+
+      const auto initialState = HeapType::propertiesToInitialState(D3D12_RESOURCE_DIMENSION_BUFFER, D3D12_RESOURCE_FLAG_NONE,
+        DeviceMemoryClass::PUSH_RING_BUFFER);
 #else
       const D3D12_HEAP_PROPERTIES heapProperties = {
         .Type = D3D12_HEAP_TYPE_UPLOAD,
@@ -164,10 +167,9 @@ protected:
         .CreationNodeMask = 0,
         .VisibleNodeMask = 0,
       };
-#endif
 
-      const auto initialState = HeapType::propertiesToInitialState(D3D12_RESOURCE_DIMENSION_BUFFER, D3D12_RESOURCE_FLAG_NONE,
-        DeviceMemoryClass::PUSH_RING_BUFFER);
+      const auto initialState = D3D12_RESOURCE_STATE_GENERIC_READ;
+#endif
 
       const D3D12_RESOURCE_DESC desc = {
         .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
@@ -349,6 +351,8 @@ protected:
 
       bool canFitAllocation(size_t size, size_t alignment) const
       {
+        if (allocationOffset == freeOffset && hasAllocations()) // full
+          return false;
         size_t offset = (allocationOffset + alignment - 1) & ~(alignment - 1);
         if (allocationOffset >= freeOffset)
         {
@@ -417,6 +421,8 @@ protected:
         {
           // we want to advance by the ring_range size, back would be one short (as back is front + size - 1), so +1
           freeOffset = ring_range.back() + 1;
+          if (freeOffset >= getBufferMemorySize())
+            freeOffset = 0;
           drainDeferredFrees();
         }
         else

@@ -10,6 +10,12 @@ int4 dagi_irrad_grid_clipmap_lt_coord_5;
 int4 dagi_irrad_grid_clipmap_lt_coord_6;
 int4 dagi_irrad_grid_clipmap_lt_coord_7;
 int4 dagi_irrad_grid_clipmap_lt_invalid = (-100000, 100000, 100000, 1315859240);
+// first clip holding data (clips re-validate coarsest first, so the valid set
+// is the suffix [first_valid..clip_count-1]); clip count when a live publisher
+// (radiance grid, or sky vis when it replicates into these vars) has no valid
+// clip yet, -1 when nothing publishes readiness
+int dagi_irrad_grid_first_valid_clip = -1;
+float dagi_irrad_grid_probe_size0 = 0;
 float4 dagi_irrad_grid_atlas_decode;
 float4 dagi_irrad_grid_inv_size;
 float dagi_irrad_grid_normal_bias = 0.5;

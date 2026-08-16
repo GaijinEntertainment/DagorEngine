@@ -515,7 +515,6 @@ shader skies_integrate_froxel_scattering_cs
     groupshared float4 sharedMem[2][GROUP_X_DIM][GROUP_Y_DIM][SCATTERING_PARALLEL_Z];
     // last z-lane of the previous batch: the z-blur's cross-batch lower neighbor
     groupshared float4 prevSliceRet[GROUP_X_DIM][GROUP_Y_DIM];
-    groupshared uint max_steps;
     groupshared uint use_double_sampling;
 
     // Implementing product and sum prefix/scan based on Hillis and Steele algorithm.
@@ -797,10 +796,6 @@ shader skies_integrate_froxel_scattering_cs
       BRANCH
       if (skies_frustum_scattering_last_tz < 1)
       {
-        if (all(gtId == 0))
-          max_steps = 0;
-        GroupMemoryBarrierWithGroupSync();
-
         Length startD = tMax * pow2(float(sampleCount - 1) / float(sampleCount));
         Length dground = DistanceToBottomAtmosphereBoundarySigned(theAtmosphere, c.r, c.mu);
         //everything here is in km: mixing in metres made the tail overshoot the
@@ -810,24 +805,21 @@ shader skies_integrate_froxel_scattering_cs
         Length dfar = dground > 0 ? dground : DistanceToTopAtmosphereBoundary(theAtmosphere, c.r, c.mu);
         Length totalD = max(0.001, dfar - startD);
 
-        if (gtId.z == 0)
+        //one geometric batch (dt doubles per lane) spans any atmosphere at a fixed
+        //cost of one scan block, densest where the air is: no-ground tails put the
+        //finest steps at the froxel edge and stretch into the thin upper atmosphere,
+        //ground-terminating tails reverse the ladder so the finest steps hug the
+        //ground; the analytic per-step integration in scatterSlice stays
+        //energy-conserving for the large steps through thin air
+        Length dt0 = totalD * (1. / ((1u << SCATTERING_PARALLEL_Z) - 1));
+        bool groundTail = dground > 0;
         {
-          //bounded for huge artist-scaled atmospheres: dt stretches instead, and the
-          //analytic per-step integration stays energy-conserving for large steps
-          uint steps = min(max(1, ceil(totalD/60.0)), 8u*SCATTERING_PARALLEL_Z);//60 km per step
-          steps = ((steps + SCATTERING_PARALLEL_Z - 1) / SCATTERING_PARALLEL_Z) * SCATTERING_PARALLEL_Z; // round up to first multiple of SCATTERING_PARALLEL_Z.
-          InterlockedMax(max_steps, steps);
-        }
-        GroupMemoryBarrierWithGroupSync();
-
-        Length dt = totalD/max_steps;
-        uint loops = max_steps / SCATTERING_PARALLEL_Z;
-        float opaqueShadow = 1.0;
-        for (uint i = 0, slice = gtId.z; i < loops; i++, slice += SCATTERING_PARALLEL_Z)
-        {
-          Length prevD = startD + slice*dt;
+          uint slice = gtId.z;
+          Length prevD = startD + dt0 * (groundTail ? (1u << SCATTERING_PARALLEL_Z) - (1u << (SCATTERING_PARALLEL_Z - slice)) : (1u << slice) - 1);
+          Length dt = dt0 * (1u << (groundTail ? SCATTERING_PARALLEL_Z - 1 - slice : slice));
 
           c.shadow_offset = jitterOn ? ladderShadowOffset(jitterPhase, sampleCount + slice) : 0.5;
+          float opaqueShadow = 1.0;
           DimensionlessSpectrum throughputLocal = DimensionlessSpectrum(1.0,1.0,1.0);
           IrradianceSpectrum irradianceLocal = scatterSlice(c, dt, prevD, throughputLocal, opaqueShadow);
 
@@ -1099,12 +1091,17 @@ shader skies_integrate_froxel_scattering_cs
         //a fixed cap would cut most of the inscatter the PS/reference path integrates
         Length dfar = dground > 0 ? dground : DistanceToTopAtmosphereBoundary(theAtmosphere, c.r, c.mu);
         Length totalD = max(0.001, dfar - prevD);
-        uint steps = min(max(1, ceil(totalD/60.0)), 64u);//60 km per step, bounded as in the parallel path
-        Length dt = totalD/steps;
+        //same geometric ladder as the parallel path (incl. the ground reversal), but
+        //scaled: short tails keep the old one-step-per-60km count, only long ones
+        //grow to the full ladder
+        uint steps = min(max(1, ceil(totalD/60.0)), SCATTERING_PARALLEL_Z);
+        Length dt0 = totalD * rcp(float((1u << steps) - 1));
+        bool groundTail = dground > 0;
 
         float opaqueShadow = 1.0;
         for (uint i = 0; i < steps; i++)
         {
+          Length dt = dt0 * (1u << (groundTail ? steps - 1 - i : i));
           c.shadow_offset = jitterOn ? ladderShadowOffset(jitterPhase, sampleCount + i) : 0.5;
           L += scatterSlice(c, dt, prevD, throughput, opaqueShadow);
           prevD += dt;

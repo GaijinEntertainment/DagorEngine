@@ -19,7 +19,7 @@ namespace das {
         template<typename T>
         __forceinline bool read ( T & data ) {
             if ( bufferPos + sizeof(T) < buffer.size() ) {
-                memcpy((void*)&data, buffer.data() + bufferPos, sizeof(T));  // buffer offsets are arbitrary - no aligned punning
+                memcpy((void*)&data, buffer.data() + bufferPos, sizeof(T));  // buffer offsets are arbitrary — no aligned punning
                 bufferPos += sizeof(T);
                 return true;
             }
@@ -220,7 +220,9 @@ namespace das {
         AstSerializer & operator << ( Module & module );
         AstSerializer & serializeModule ( Module & module, bool already_exists );
 
-        static constexpr uint32_t getVersion () { return 196; }
+        static constexpr uint32_t getVersion () {
+            return 198;   // 198: CodeOfPolicies::max_unreserved_size rides the policy record
+        }
 
         void serializeProgram ( ProgramPtr program, ModuleGroup & libGroup ) noexcept;
         void serializeProgramImpl ( ProgramPtr program, ModuleGroup & libGroup ); // throws dasException; called via the noexcept wrapper above

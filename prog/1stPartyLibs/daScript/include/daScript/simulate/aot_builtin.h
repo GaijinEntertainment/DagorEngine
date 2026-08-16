@@ -4,11 +4,13 @@
 
 namespace das {
     DAS_API bool das_is_dll_build();
+    DAS_API bool das_is_exceptions_enabled();
     DAS_API bool is_in_aot();
     DAS_API void set_aot();
     DAS_API void reset_aot();
     DAS_API bool is_in_completion();
     DAS_API bool is_in_lint_check();
+    DAS_API bool is_building_documentation();
     DAS_API bool is_folding();
     DAS_API const char * compiling_file_name ( );
     DAS_API const char * compiling_module_name ( );
@@ -57,8 +59,12 @@ namespace das {
     DAS_API urange64 string_heap_allocation_stats ( Context * context );
     DAS_API uint64_t string_heap_allocation_count ( Context * context );
     DAS_API uint64_t heap_bytes_allocated ( Context * context );
+    DAS_API uint64_t heap_total_allocated ( Context * context );
+    DAS_API uint64_t max_unreserved_size ( Context * context );
+    DAS_API void set_max_unreserved_size ( uint64_t bytes, Context * context );
     DAS_API int32_t heap_depth ( Context * context );
     DAS_API uint64_t string_heap_bytes_allocated ( Context * context );
+    DAS_API uint64_t string_heap_total_allocated ( Context * context );
     DAS_API int32_t string_heap_depth ( Context * context );
     DAS_API void string_heap_report ( Context * context, LineInfoArg * info );
     DAS_API bool is_intern_strings ( Context * context );
@@ -80,6 +86,13 @@ namespace das {
     DAS_API int builtin_array_capacity ( const Array & arr );
     DAS_API int64_t builtin_array_long_size ( const Array & arr );
     DAS_API int64_t builtin_array_long_capacity ( const Array & arr );
+    // string length lives in the base module (alongside empty), not in strings: it is
+    // reachable with no require, so its declaration has to be in the header AOT output
+    // always includes. The 32-bit forms panic instead of silently wrapping.
+    DAS_API int builtin_string_length ( const char * str, Context * context );
+    DAS_API int64_t builtin_string_long_length ( const char * str );
+    DAS_API int32_t builtin_ext_string_length ( const string & str );
+    DAS_API int64_t builtin_ext_string_long_length ( const string & str );
     DAS_API int builtin_array_lock_count ( const Array & arr );
     DAS_API void builtin_array_resize ( Array & pArray, int newSize, int stride, Context * context, LineInfoArg * at );
     DAS_API void builtin_array_resize_no_init ( Array & pArray, int newSize, int stride, Context * context, LineInfoArg * at );
@@ -102,9 +115,11 @@ namespace das {
     DAS_API void builtin_temp_array ( void * data, int size, const Block & block, Context * context, LineInfoArg * lineinfo );
     DAS_API void builtin_make_temp_array ( Array & arr, void * data, int size );
     DAS_API void builtin_make_temp_array_i64 ( Array & arr, void * data, int64_t size );
+    DAS_API void builtin_forget_temp_array ( Array & arr, Context * context, LineInfoArg * at );
     DAS_API void builtin_array_free ( Array & dim, int szt, Context * __context__, LineInfoArg * at );
     DAS_API void builtin_table_free ( Table & tab, int szk, int szv, Context * __context__, LineInfoArg * at );
     DAS_API vec4f builtin_collect_local_and_zero ( Context & context, SimNode_CallBase * call, vec4f * args );
+    DAS_API vec4f builtin_collect_local ( Context & context, SimNode_CallBase * call, vec4f * args );
     DAS_API vec4f builtin_scope_free ( Context & context, SimNode_CallBase * call, vec4f * args );
 
     DAS_API void toLog ( int level, const char * text, Context * context, LineInfoArg * at );
@@ -274,7 +289,9 @@ namespace das {
     vec4f _builtin_hash ( Context & context, SimNode_CallBase * call, vec4f * args );
 
     const char * das_get_platform_name();
+    const char * das_get_cross_platform_name();
     const char * das_get_architecture_name();
+    DAS_API bool das_cpu_supports ( const char * feature );
 
     DAS_API char * fmt_i8 ( const char * fmt, int8_t value, Context * context, LineInfoArg * at );
     DAS_API char * fmt_u8 ( const char * fmt, uint8_t value, Context * context, LineInfoArg * at );

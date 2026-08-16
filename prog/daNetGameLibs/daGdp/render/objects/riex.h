@@ -22,7 +22,7 @@ struct RiexRenderableInfo
 
 struct RiexResource
 {
-  rendinst::ClientRiexPool riExId;
+  rendinst::ClientRiexPoolId riExId;
   uint32_t riPoolOffset;
   dag::Vector<RenderableId> lods_rId;
   eastl::shared_ptr<GameResource> gameRes; // We could use unique_ptr, but it does not play nicely with

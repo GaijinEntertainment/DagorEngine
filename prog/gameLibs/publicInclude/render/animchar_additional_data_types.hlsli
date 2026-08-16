@@ -11,6 +11,10 @@
 #define AAD_DECALS_TYPE       3
 #define AAD_MATERIAL_PARAMS   4
 #define AAD_EYE_DIR           5
+// Vehicle envi cover. Aliases slot 5: the eye writer runs only on soldier
+// animchars with eye components, the cover writers only in the WT vehicle
+// render paths (IGroundModel, physical tracks), so they can't intersect
+#define AAD_ENVI_COVER        5
 // Per-character head customization slot (package_soldier). Aliases slot 4:
 // all 8 ids are taken, and head animchars never use the dynmat system - the
 // packer ES enforces that with ECS_REQUIRE_NOT on dynamic_material_channels_arr.

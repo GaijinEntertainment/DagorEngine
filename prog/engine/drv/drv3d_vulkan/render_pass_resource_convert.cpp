@@ -34,6 +34,7 @@ void RenderPassResource::fillSubpassDeps(const RenderPassDesc &rp_desc, RenderPa
     dep.srcSubpass = VK_SUBPASS_EXTERNAL;
     uint32_t lastBind = -1;
     bool roDSinputAttachment = false;
+    bool hasDepthBindingOverall = false;
     // must find in what pass we did modified target that will be used,
     // for proper dependency defenition
     if (bind.subpass != 0)
@@ -51,6 +52,8 @@ void RenderPassResource::fillSubpassDeps(const RenderPassDesc &rp_desc, RenderPa
         // keep action does no RW to target, so it should not generate dependencies
         if (iter.action & RenderPassTargetAction::RP_TA_SUBPASS_KEEP)
           continue;
+
+        hasDepthBindingOverall |= (iter.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL);
 
         if (iter.subpass == bind.subpass)
         {
@@ -129,7 +132,8 @@ void RenderPassResource::fillSubpassDeps(const RenderPassDesc &rp_desc, RenderPa
         SubpassDep selfDep(selfDepVk);
         selfDep.selfDep(lastBindRef.subpass);
 
-        bool isDS = lastBindRef.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL;
+        // any DS bound textures need DS write sync at pass end
+        bool isDS = hasDepthBindingOverall;
         // if (needSyncBetweenReadsAndStores)
         {
           // debug("vulkan: self dep for subpass %u on reads-to-store-writes for target %u",
@@ -406,7 +410,17 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
       VkAttachmentReference &ref = convertedDesc.refs[refBaseForSubpass[i] + bind.slot + desc.colorAttachmentCount];
 
       ref.attachment = bind.target;
-      ref.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      // An attachment used as both input and read-only depth in one subpass must use the same layout
+      // in both references (the roDSinputAttachment case, e.g. depth tested and fetched in a deferred
+      // resolve). This ref layout is recorded in attImageLayouts and must match the descriptor layout
+      // used at bind. Mirror the DS-ref selector polarity below: RO-depth only when the DS bind reads
+      // and does not write, since a writing DS bind takes ATTACHMENT_OPTIMAL there.
+      bool alsoBoundAsRODepth = false;
+      for (AttCacheEl dsIter : attCache)
+        if (dsIter.type == ATT_DS && rp_desc.binds[dsIter.idx].target == bind.target &&
+            (rp_desc.binds[dsIter.idx].action & RP_TA_SUBPASS_READ) && !(rp_desc.binds[dsIter.idx].action & RP_TA_SUBPASS_WRITE))
+          alsoBoundAsRODepth = true;
+      ref.layout = alsoBoundAsRODepth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     }
 
     // resolve

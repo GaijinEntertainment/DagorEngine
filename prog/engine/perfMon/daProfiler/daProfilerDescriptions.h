@@ -20,6 +20,7 @@ struct ProfilerDescriptions
     GpuFrame,
     Triangles,
     NestedFrames,
+    GpuClock,
     TotalCount
   };
   uint8_t fixedDescriptions[TotalCount] = {0};
@@ -29,6 +30,7 @@ struct ProfilerDescriptions
   uint32_t gpuFrame() const { return fixedDescriptions[GpuFrame]; }
   uint32_t tri() const { return fixedDescriptions[Triangles]; }
   uint32_t addFramesCount() const { return fixedDescriptions[NestedFrames]; }
+  uint32_t gpuClock() const { return fixedDescriptions[GpuClock]; }
   size_t size() const { return count; }
   bool empty() const { return count == 0; }
   uint32_t create(const char *name, const char *file_name, int line, uint32_t flags, uint32_t color);

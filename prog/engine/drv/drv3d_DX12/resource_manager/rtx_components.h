@@ -142,10 +142,14 @@ protected:
   }
 
 public:
+  using AccelerationStructurePoolResult = dag::Expected<::raytrace::AccelerationStructurePool, MemoryAllocationError>;
+  using AccelerationStructureResult = dag::Expected<RaytraceAccelerationStructure *, MemoryAllocationError>;
+
   // assumes input was validated
-  ::raytrace::AccelerationStructurePool createAccelerationStructurePool(Device &device,
+  AccelerationStructurePoolResult createAccelerationStructurePool(Device &device,
     const ::raytrace::AccelerationStructurePoolCreateInfo &info);
-  RaytraceAccelerationStructure *createAccelerationStructure(Device &device, ::raytrace::AccelerationStructurePool pool,
+  // Only the top level structure needs a descriptor and can fail, the other two placements can not.
+  AccelerationStructureResult createAccelerationStructure(Device &device, ::raytrace::AccelerationStructurePool pool,
     const ::raytrace::TopAccelerationStructurePlacementInfo &info);
   RaytraceAccelerationStructure *createAccelerationStructure(::raytrace::AccelerationStructurePool pool,
     const ::raytrace::BottomAccelerationStructurePlacementInfo &info);
@@ -231,10 +235,11 @@ protected:
   uint64_t memoryUsed DAG_TS_GUARDED_BY(rtasSpinlock) = 0;
 
 private:
-  RaytraceAccelerationStructureHeap allocAccelStructHeap(Device &device, uint32_t size) DAG_TS_REQUIRES(rtasSpinlock);
+  dag::Expected<RaytraceAccelerationStructureHeap, MemoryAllocationError> allocAccelStructHeap(Device &device, uint32_t size)
+    DAG_TS_REQUIRES(rtasSpinlock);
   void freeAccelStructHeap(RaytraceAccelerationStructureHeap &&heap) DAG_TS_REQUIRES(rtasSpinlock);
 
-  RaytraceAccelerationStructure *allocAccelStruct(Device &device, uint32_t size, ResourceTagType tag,
+  AccelerationStructureResult allocAccelStruct(Device &device, uint32_t size, ResourceTagType tag,
     RaytraceAccelerationStructure::Type type);
   void freeAccelStruct(RaytraceAccelerationStructure *accelStruct);
 
@@ -298,9 +303,9 @@ public:
     return memoryUsed;
   }
 
-  RaytraceAccelerationStructure *newRaytraceTopAccelerationStructure(Device &device, uint64_t size, ResourceTagType tag);
-  RaytraceAccelerationStructure *newRaytraceBottomAccelerationStructure(Device &device, uint64_t size, ResourceTagType tag);
-  RaytraceAccelerationStructure *createOpacityMicroMapTriangleArray(Device &device, uint64_t size, ResourceTagType tag);
+  AccelerationStructureResult newRaytraceTopAccelerationStructure(Device &device, uint64_t size, ResourceTagType tag);
+  AccelerationStructureResult newRaytraceBottomAccelerationStructure(Device &device, uint64_t size, ResourceTagType tag);
+  AccelerationStructureResult createOpacityMicroMapTriangleArray(Device &device, uint64_t size, ResourceTagType tag);
 
   void deleteRaytraceTopAccelerationStructureOnFrameCompletion(RaytraceAccelerationStructure *ras)
   {

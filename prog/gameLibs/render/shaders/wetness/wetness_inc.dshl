@@ -21,7 +21,7 @@ int allow_hero_wetness = 1; // for shader block
 interval allow_hero_wetness: no < 1, yes;
 assume_if_not_assumed allow_hero_wetness = yes;
 
-int use_hero_wetness = 1; // for runtime apply
+int use_hero_wetness = 0; // for runtime apply
 interval use_hero_wetness: no < 1, yes;
 
 hlsl {

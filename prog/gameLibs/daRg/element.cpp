@@ -38,6 +38,7 @@
 #include "eventData.h"
 #include "behaviorHelpers.h"
 #include "elementRef.h"
+#include "statefulComp.h"
 
 
 #define DEBUG_XMB_OVERLAY 0
@@ -478,6 +479,9 @@ void Element::setup(const Component &comp, GuiScene *gui_scene, SetupMode setup_
 
 void Element::delayedCallElemStateHandler()
 {
+  if (etree->isInternalTemporaryTree)
+    return;
+
   Sqrat::Object onElemState = props.scriptDesc.RawGetSlot(csk->onElemState);
   if (!onElemState.IsNull())
   {

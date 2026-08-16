@@ -69,7 +69,7 @@ static void init_statsd_client(const char *circuit_name)
   else
     logerr("Unknown/unsupported statsd metrics format '%s'", metricsFormat);
 
-  statsd::counter("app.start", 1); // put it as early as it can be
+  statsd::counter("app.start", 1, {"version", get_exe_version_str()}); // put it as early as it can be
 }
 
 void init_statsd_common(const char *circuit_name)

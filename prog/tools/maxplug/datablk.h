@@ -58,7 +58,7 @@ public:
   static ParamType deserialize_param_type(std::string_view s);
 
   DataBlock(std::shared_ptr<NameMap> nameMap);
-  ~DataBlock();
+  ~DataBlock() = default;
 
   DataBlock(const DataBlock &) = delete;
   DataBlock &operator=(const DataBlock &) = delete;

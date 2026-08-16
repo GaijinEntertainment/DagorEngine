@@ -8,7 +8,8 @@
 #include <math/dag_traceRayTriangle.h>
 #include <math/dag_wooray2d.h>
 #include <math/dag_math2d.h>
-#include <math/dag_bounds3.h> // BBox3
+#include <math/dag_bounds3.h>   // BBox3
+#include <math/dag_mathUtils.h> // v_ldu_bbox3
 #include <EASTL/type_traits.h>
 
 
@@ -55,10 +56,7 @@ struct HmapGetMinMax
   static eastl::enable_if_t<HmapGetMinMax<U>::has_world_box, bbox3f> getWorldBox(const T &hm)
   {
     BBox3 bs = hm.getWorldBox();
-    bbox3f b;
-    b.bmin = v_ldu(&bs[0].x);
-    b.bmax = v_ldu(&bs[1].x);
-    return b;
+    return v_ldu_bbox3(bs);
   }
   template <typename U = T>
   static eastl::enable_if_t<!HmapGetMinMax<U>::has_world_box, bbox3f> getWorldBox(const T &hm)
@@ -66,17 +64,13 @@ struct HmapGetMinMax
     const float cellSize = hm.getHeightmapCellSize();
     const Point3 ofs = hm.getHeightmapOffset();
     Point2 world(cellSize * hm.getHeightmapSizeX(), cellSize * hm.getHeightmapSizeY());
-    const Point3 bmn = ofs - Point3(0, 100000, 0), bmx = ofs + Point3(world.x, 100000, world.y);
-    bbox3f b;
-    b.bmin = v_ldu(&bmn.x);
-    b.bmax = v_ldu(&bmx.x);
-    return b;
+    return v_ldu_bbox3(BBox3{ofs - Point3(0, 100000, 0), ofs + Point3(world.x, 100000, world.y)});
   }
 };
 
 template <class HM, bool useMinMax = true>
 inline bool trace_heightmap_cell(const HM &heightmap, const IPoint2 &currentCell, float cellSize, float rayMinY, float rayMaxY,
-  const Point3 &pt, const Point3 &dir, real &mint, Point3 *normal, bool cull)
+  vec3f pt, vec3f dir, real &mint, Point3 *normal, bool cull)
 {
   real h0, hx, hy, hxy, hmid;
 
@@ -102,16 +96,11 @@ inline bool trace_heightmap_cell(const HM &heightmap, const IPoint2 &currentCell
   vertices[3][0] = mid;
   vertices[3][1] = v_add(mid, e3);
   vertices[3][2] = v_add(mid, e0);
-  int hit = traceray4Triangles(v_ldu(&pt.x), v_ldu(&dir.x), mint, vertices, 4, !cull);
+  int hit = traceray4Triangles(pt, dir, mint, vertices, 4, !cull);
   if (hit < 0)
     return false;
   if (normal)
-  {
-    Point3_vec4 n;
-    vec4f vn = v_norm3(v_cross3(v_sub(vertices[hit][1], mid), v_sub(vertices[hit][2], mid)));
-    v_st(&n.x, vn);
-    *normal = n;
-  }
+    v_stu_p3(&normal->x, v_norm3(v_cross3(v_sub(vertices[hit][1], mid), v_sub(vertices[hit][2], mid))));
   return true;
 }
 
@@ -122,7 +111,7 @@ inline bool trace_ray_midpoint_heightmap(const HM &heightmap, const Point3 &pt_,
   float rayTBoxMin = 0;
   bbox3f worldBox = HmapGetMinMax<HM>::getWorldBox(heightmap);
   float minMaxT[2], mint = mint_;
-  vec3f rayStart = v_ldu(&pt_.x), rayDir = v_ldu(&dir.x);
+  vec3f rayStart = v_ldu_p3_safe(&pt_.x), rayDir = v_ldu_p3_safe(&dir.x);
   bbox3f rayBox;
   v_bbox3_init_by_ray(rayBox, rayStart, rayDir, v_splats(mint));
   if (!v_bbox3_test_box_inside(worldBox, rayBox))
@@ -135,6 +124,7 @@ inline bool trace_ray_midpoint_heightmap(const HM &heightmap, const Point3 &pt_,
     mint = min(mint, minMaxT[1] + 1e-3f) - rayTBoxMin;
   }
   const Point3 pt = pt_ + dir * rayTBoxMin - heightmap.getHeightmapOffset();
+  const vec3f ptv = v_ldu_p3_safe(&pt.x);
 
   real cellSize = heightmap.getHeightmapCellSize();
   real halfCellSize = cellSize * 0.5f;
@@ -162,7 +152,7 @@ inline bool trace_ray_midpoint_heightmap(const HM &heightmap, const Point3 &pt_,
     if (uint32_t(currentCell.x >= heightmap.getHeightmapSizeX()) || uint32_t(currentCell.y >= heightmap.getHeightmapSizeY()))
       continue;
     const float rayMinY = pt.y + min(curRayY, prevRayY), rayMaxY = pt.y + max(curRayY, prevRayY);
-    wasHit |= trace_heightmap_cell(heightmap, currentCell, cellSize, rayMinY, rayMaxY, pt, dir, mint, normal, cull);
+    wasHit |= trace_heightmap_cell(heightmap, currentCell, cellSize, rayMinY, rayMaxY, ptv, rayDir, mint, normal, cull);
   }
   if (wasHit)
     mint_ = mint + rayTBoxMin;
@@ -182,7 +172,7 @@ inline bool ray_hit_midpoint_heightmap_base(HM &heightmap, const Point3 &pt_, co
   float rayTBoxMin = 0;
   bbox3f worldBox = HmapGetMinMax<HM>::getWorldBox(heightmap);
   float minMaxT[2];
-  vec3f rayStart = v_ldu(&pt_.x), rayDir = v_ldu(&dir.x);
+  vec3f rayStart = v_ldu_p3_safe(&pt_.x), rayDir = v_ldu_p3_safe(&dir.x);
   bbox3f rayBox;
   v_bbox3_init_by_ray(rayBox, rayStart, rayDir, v_splats(mint));
   if (!v_bbox3_test_box_inside(worldBox, rayBox))
@@ -196,6 +186,7 @@ inline bool ray_hit_midpoint_heightmap_base(HM &heightmap, const Point3 &pt_, co
   }
 
   const Point3 pt = pt_ + dir * rayTBoxMin - heightmap.getHeightmapOffset();
+  const vec3f ptv = v_ldu_p3_safe(&pt.x);
   real cellSize = heightmap.getHeightmapCellSize();
   real halfCellSize = cellSize * 0.5f;
 
@@ -222,7 +213,7 @@ inline bool ray_hit_midpoint_heightmap_base(HM &heightmap, const Point3 &pt_, co
 
     // if (heightmap.getHeightmapCell5Pt(currentCell, h0, hx, hy, hxy, hmid))
     const float rayMinY = pt.y + min(curRayY, prevRayY), rayMaxY = pt.y + max(curRayY, prevRayY);
-    if (trace_heightmap_cell(heightmap, currentCell, cellSize, rayMinY, rayMaxY, pt, dir, mint, nullptr, true))
+    if (trace_heightmap_cell(heightmap, currentCell, cellSize, rayMinY, rayMaxY, ptv, rayDir, mint, nullptr, true))
       return true;
   }
   if (!approx)
@@ -269,7 +260,7 @@ inline bool ray_under_heightmap(HM &heightmap, const Point3 &pt_, const Point3 &
   float rayTBoxMin = 0;
   bbox3f worldBox = HmapGetMinMax<HM>::getWorldBox(heightmap);
   float minMaxT[2];
-  vec3f rayStart = v_ldu(&pt_.x), rayDir = v_ldu(&dir.x);
+  vec3f rayStart = v_ldu_p3_safe(&pt_.x), rayDir = v_ldu_p3_safe(&dir.x);
   bbox3f rayBox;
   v_bbox3_init_by_ray(rayBox, rayStart, rayDir, v_splats(mint));
   if (!v_bbox3_test_box_inside(worldBox, rayBox))

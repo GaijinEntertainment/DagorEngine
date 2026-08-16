@@ -148,7 +148,13 @@ class DargFileAccess final : public das::ModuleFileAccess
 public:
   DargFileAccess() {}
 
-  DargFileAccess(const char *pak) : das::ModuleFileAccess(pak, das::make_smart<DargFileAccess>()) {}
+  DargFileAccess(const char *pak) :
+    das::ModuleFileAccess(pak, [&] {
+      das::ModuleGroup libGroup;
+      das::TextWriter logs;
+      return das::compileDaScript(pak, das::FileAccessPtr(das::make_smart<DargFileAccess>()), logs, libGroup);
+    }())
+  {}
 
   virtual das::FileInfo *getNewFileInfo(const das::string &fname) override;
   virtual das::ModuleInfo getModuleInfo(const das::string &req, const das::string &from) const override;
@@ -410,6 +416,11 @@ public:
     }
 
     ctx = c;
+
+    // here the modules are alive; the host may unload them before releaseJob()
+    if (!c->persistent)
+      lintGlobalsHeapUsage();
+
     compiledOk = true;
   }
 
@@ -448,6 +459,25 @@ public:
   }
 
 private:
+  void lintGlobalsHeapUsage()
+  {
+    program->library.foreach(
+      [this](das::Module *mod) {
+        mod->globals.foreach([this](auto globVar) {
+          if (globVar && globVar->used && !globVar->type->isNoHeapType())
+          {
+            const auto ignoreMark = globVar->annotation.find("ignore_heap_usage", das::Type::tBool);
+            if (ignoreMark == nullptr || !ignoreMark->bValue)
+              logerr("global variable '%s' in script <%s> requires heap memory, but heap memory is regularly cleared."
+                     "Only value types/fixed arrays are supported in this case",
+                globVar->name, fileName.c_str());
+          }
+        });
+        return true;
+      },
+      "*");
+  }
+
   void buildError(const char *what)
   {
     errorText.sprintf("%s '%s'", what, fileName.c_str());
@@ -461,6 +491,7 @@ private:
 
   void integrateReady()
   {
+    // must not touch program->library modules: the host may have unloaded them by now
     if (dasMgr->aotMode == AotMode::AOT && !program->aotErrors.empty())
     {
       logwarn("daScript: failed to link cpp aot <%s>\n", fileName.c_str());
@@ -483,25 +514,6 @@ private:
 #endif
 
     process_loaded_script(*ctx, fileName.c_str());
-
-    if (!ctx->persistent)
-    {
-      program->library.foreach(
-        [this](das::Module *mod) {
-          mod->globals.foreach([this](auto globVar) {
-            if (globVar && globVar->used && !globVar->type->isNoHeapType())
-            {
-              const auto ignoreMark = globVar->annotation.find("ignore_heap_usage", das::Type::tBool);
-              if (ignoreMark == nullptr || !ignoreMark->bValue)
-                logerr("global variable '%s' in script <%s> requires heap memory, but heap memory is regularly cleared."
-                       "Only value types/fixed arrays are supported in this case",
-                  globVar->name, fileName.c_str());
-            }
-          });
-          return true;
-        },
-        "*");
-    }
 
     {
       int aotFn = 0;

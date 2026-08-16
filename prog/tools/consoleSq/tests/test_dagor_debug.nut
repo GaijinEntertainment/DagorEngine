@@ -1,4 +1,4 @@
-// Squirrel module under test: dagor.debug (registered by sqratDagorDebug.cpp)
+// Quirrel module under test: dagor.debug (registered by sqratDagorDebug.cpp)
 // Skipped APIs: fatal (terminates process), screenlog (UI). logerr is also
 // not invoked because csq-dev's log error callback sets has_errors and forces
 // the process exit code to 1, which would mask test status.

@@ -730,6 +730,8 @@ SQRESULT SQVM::Suspend()
 {
     if (_suspended)
         return sq_throwerror(this, "cannot suspend an already suspended vm");
+    if (this == _thread(_sharedstate->_root_vm))
+        return sq_throwerror(this, "cannot suspend the root vm");
     if (_nnativecalls!=2)
         return sq_throwerror(this, "cannot suspend through native calls/metamethods");
     return SQ_SUSPEND_FLAG;
@@ -1969,12 +1971,10 @@ exception_trap:
                 _pendingValueFaultTrace = sq_capture_error_trace(this);
         }
 
-        // Typed catches mean an active trap may not catch this value, so !traps is no
-        // longer a sound "will be caught" test. Pre-scan this invocation's traps (the
-        // topmost `traps` entries) read-only; only a real miss reaches the handler here,
-        // at the throw site with the live ci chain.
+        // A callback can cross a native frame before an outer trap catches it.
+        // Include all active traps so the handler sees only unhandled values.
         bool willBeCaught = false;
-        for (SQInteger i = 0; i < traps; i++) {
+        for (SQUnsignedInteger i = 0; i < _etraps.size(); i++) {
             if (trapMatches(_etraps._vals[_etraps.size() - 1 - i], currerror)) { willBeCaught = true; break; }
         }
 

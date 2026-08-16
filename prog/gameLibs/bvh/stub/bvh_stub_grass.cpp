@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <bvh/bvh.h>
+#include <dag/dag_vector.h>
 #include <EASTL/vector.h>
 
 namespace bvh::grass
@@ -17,5 +18,5 @@ void get_memory_statistics(ContextId, int64_t &vb, int64_t &ib, int64_t &blas, i
 {
   vb = ib = blas = meta = queries = 0;
 }
-UniqueBLAS *get_blas(int, int) { return nullptr; }
+void collect_blas_addresses(dag::Vector<uint64_t> &) {}
 } // namespace bvh::grass

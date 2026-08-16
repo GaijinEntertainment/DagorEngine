@@ -18,6 +18,7 @@ public:
     Point3 pos;
     Point2 visualAngles;
     Point2 angles;
+    bool engaged;
   };
   virtual void saveWeaponState(WeaponState &out_weapon_state) const = 0;
   virtual void restoreWeaponState(const WeaponState &saved_state) = 0;

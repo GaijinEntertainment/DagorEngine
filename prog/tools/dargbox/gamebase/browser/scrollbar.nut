@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "types" import Function
 
 function Bar(has_scroll) {
   if (has_scroll) {
@@ -26,7 +27,7 @@ let ContentRoot = { size = flex() }
 
 
 function resolveBar(bar, has_scroll) {
-  if (type(bar) == "function") {
+  if (bar instanceof Function) {
     return bar(has_scroll)
   }
   return bar

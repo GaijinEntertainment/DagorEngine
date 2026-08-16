@@ -3,7 +3,17 @@ options gen2
 require dastest/testing_boost
 require daslib/toml
 require daslib/json
+require daslib/json_boost   // ?["key"] ?? default lookups in the write_toml round-trip checks
+require daslib/math_bits
+require math            // is_finite / is_nan, for the finite-math host probe below
 require strings
+
+// IEEE-754 bit-pattern constants, same as daslib/toml.das uses internally —
+// gives exact-equality assertions that no finite large double can satisfy.
+let private {
+    EXPECT_POS_INF = uint64_bits_to_double(0x7FF0000000000000ul)
+    EXPECT_NEG_INF = uint64_bits_to_double(0xFFF0000000000000ul)
+}
 
 def expect_ok(t : T?; what : string; input : string) : JsonValue? {
     var err : string
@@ -213,6 +223,38 @@ def test_array_of_tables(t : T?) {
     }
 }
 
+// A host built -ffinite-math-only folds is_nan/is_finite and the nan compares, so a nan
+// round-trip cannot be observed there - the three tests below skip on such a host.
+def private host_folds_non_finite() : bool {
+    let inf = 1.0 / 0.0     // nolint:LINT006 — deliberate: the probe needs a real inf
+    return is_finite(inf) || !is_nan(-(inf / inf))  // nolint:LINT007 — inf/inf is how a nan is produced here
+}
+
+[test]
+def test_inf_nan(t : T?) {
+    if (host_folds_non_finite()) {
+        t |> skip("host runtime is built -ffinite-math-only: nan/inf values fold")
+        return
+    }
+
+    t |> run("inf, -inf, nan") @@(t : T?) {
+        var v : JsonValue? = expect_ok(t, "inf_nan", "p = inf\nm = -inf\nn = nan\n")
+        var p : JsonValue? = get_object_field(v, "p")
+        var m : JsonValue? = get_object_field(v, "m")
+        var n : JsonValue? = get_object_field(v, "n")
+        if (p != null && (p.value is _number)) {
+            t |> equal(p.value as _number, EXPECT_POS_INF)
+        }
+        if (m != null && (m.value is _number)) {
+            t |> equal(m.value as _number, EXPECT_NEG_INF)
+        }
+        if (n != null && (n.value is _number)) {
+            let nv = n.value as _number
+            t |> success(nv != nv)   // NaN != NaN — only NaN survives this test
+        }
+    }
+}
+
 [test]
 def test_datetime_preserved(t : T?) {
     t |> run("datetime values preserved as raw strings") @@(t : T?) {
@@ -288,6 +330,27 @@ def test_alphanum_bare_key(t : T?) {
         var b : JsonValue? = get_object_field(v, "0xff_oops")
         if (a != null && (a.value is _longint)) t |> equal(a.value as _longint, 1l)
         if (b != null && (b.value is _longint)) t |> equal(b.value as _longint, 2l)
+    }
+}
+
+[test]
+def test_inf_nan_still_work_as_values(t : T?) {
+    if (host_folds_non_finite()) {
+        t |> skip("host runtime is built -ffinite-math-only: nan/inf values fold")
+        return
+    }
+
+    t |> run("'x = inf' / 'x = -inf' / 'x = nan' still interpret as float values") @@(t : T?) {
+        var v : JsonValue? = expect_ok(t, "inf_val", "p = inf\nm = -inf\nq = nan\n")
+        var p : JsonValue? = get_object_field(v, "p")
+        var m : JsonValue? = get_object_field(v, "m")
+        var q : JsonValue? = get_object_field(v, "q")
+        if (p != null && (p.value is _number)) t |> equal(p.value as _number, EXPECT_POS_INF)
+        if (m != null && (m.value is _number)) t |> equal(m.value as _number, EXPECT_NEG_INF)
+        if (q != null && (q.value is _number)) {
+            let nv = q.value as _number
+            t |> success(nv != nv)
+        }
     }
 }
 
@@ -539,11 +602,8 @@ def test_ok_inline_dotted_keys_share_implicit(t : T?) {
 
 [test]
 def test_fail_plus_prefix_identifier(t : T?) {
-    // F13: `+foo = 1` previously emitted an empty `_bare` token because the
-    // rewind-to-bare path lands the cursor on the '+' (which is not a
-    // bare-key char) and `read_bare_key` consumes nothing. '+' is not a valid
-    // bare-key prefix per TOML ABNF, so the correct outcome is a parse error
-    // that mentions the stray sign.
+    // F13: rewind-to-bare lands on '+' (not a bare-key char) — must be a parse
+    // error naming the stray sign, not an empty `_bare` token.
     t |> run("`+foo = 1` is rejected (stray '+', not empty bare key)") @@(t : T?) {
         expect_fail_with(t, "plus_prefix_bare", "+foo = 1\n", "'+'")
     }
@@ -551,10 +611,8 @@ def test_fail_plus_prefix_identifier(t : T?) {
 
 [test]
 def test_fail_plus_inf_with_bare_tail(t : T?) {
-    // F13 cousin: `+infinity_count = 1` enters classify_number_or_datetime
-    // via the value-continuation gate, consumes '+inf', sees a bare-char
-    // continuation, then rewinds. Because the rewind lands on '+' the bare
-    // scan would be empty — must error instead.
+    // F13 cousin: classifier consumes '+inf', sees a bare-char tail, rewinds
+    // onto '+' — the empty bare scan must error instead.
     t |> run("`+infinity_count = 1` is rejected (stray '+')") @@(t : T?) {
         expect_fail_with(t, "plus_inf_bare_tail", "+infinity_count = 1\n", "'+'")
     }
@@ -576,5 +634,86 @@ def test_fail_time_trailing_colon(t : T?) {
     // dedicated message anchored at the time value.
     t |> run("`x = 12:34:56:` errors with a time-specific message") @@(t : T?) {
         expect_fail_with(t, "time_trailing_colon", "x = 12:34:56:\n", "trailing ':'")
+    }
+}
+
+// ===== write_toml =====
+
+[test]
+def test_write_toml_exact(t : T?) {
+    t |> run("canonical emit: sorted keys, sections, array-of-tables") @@(t : T?) {
+        var v = expect_ok(t, "wt_exact", "b = 2\na = 1\n[s]\nk = \"v\"\n[[j]]\nn = 1\n[[j]]\nn = 2\n")
+        var err : string
+        let out = write_toml(v, err)
+        t |> equal(out, "a = 1\nb = 2\n\n[s]\nk = \"v\"\n\n[[j]]\nn = 1\n\n[[j]]\nn = 2\n")
+        t |> success(empty(err), "no write error")
+    }
+}
+
+[test]
+def test_write_toml_round_trip(t : T?) {
+    t |> run("write ∘ read is stable across value classes") @@(t : T?) {
+        let src = "i = 9007199254740993\nf = 4.0\npi = 3.141592653589793\nneg = -3\non = true\ns = \"a\\tb \\\"q\\\" \\u0001\"\narr = [\"a\", 3, 4.5, \{ nested = true }]\nempty_arr = []\ndate = 2024-01-15T10:00:00Z\n[tab.sub]\n\"weird key\" = \"x\"\n[[jobs]]\nsub = \{ a = 1, b = [1, 2] }\n"
+        var v = expect_ok(t, "wt_rt", src)
+        var err : string
+        let out1 = write_toml(v, err)
+        t |> success(empty(err), "first write clean")
+        var v2 = expect_ok(t, "wt_rt_reparse", out1)
+        let out2 = write_toml(v2, err)
+        t |> equal(out1, out2)
+        // int64 fidelity past double range; float-ness survives; datetime re-emits quoted
+        t |> success(find(out1, "i = 9007199254740993") >= 0, "int64 exact")
+        t |> success(find(out1, "f = 4.0") >= 0, "whole float keeps .0")
+        t |> success(find(out1, "date = \"2024-01-15T10:00:00Z\"") >= 0, "datetime becomes quoted string")
+    }
+}
+
+[test]
+def test_write_toml_tiny_huge_floats(t : T?) {
+    t |> run("tiny and huge magnitudes round-trip via exponent form") @@(t : T?) {
+        var v = expect_ok(t, "wt_exp", "a = 1e-30\nb = 1.5e-17\nc = 5e+22\nd = 0.001\n")
+        var err : string
+        let out = write_toml(v, err)
+        t |> success(empty(err), "write clean")
+        var v2 = expect_ok(t, "wt_exp_rt", out)
+        t |> success((v2?["a"] ?? 0.0lf) == 1e-30lf, "1e-30 survives (fixed-point would emit 0.0)")
+        t |> success((v2?["b"] ?? 0.0lf) == 1.5e-17lf, "1.5e-17 survives exactly")
+        t |> success((v2?["c"] ?? 0.0lf) == 5e22lf, "5e+22 survives exactly")
+        t |> success((v2?["d"] ?? 0.0lf) == 0.001lf, "0.001 stays on the fixed-point path")
+        t |> success(find(out, "d = 0.001") >= 0, "borderline magnitude keeps the readable form")
+        unsafe {
+            delete v2
+        }
+    }
+}
+
+[test]
+def test_write_toml_non_finite(t : T?) {
+    if (host_folds_non_finite()) {
+        t |> skip("host runtime is built -ffinite-math-only: nan/inf values fold")
+        return
+    }
+
+    t |> run("inf / -inf / nan emit as TOML keywords") @@(t : T?) {
+        var v = expect_ok(t, "wt_inf", "a = inf\nb = -inf\nc = nan\n")
+        var err : string
+        let out = write_toml(v, err)
+        t |> equal(out, "a = inf\nb = -inf\nc = nan\n")
+    }
+}
+
+[test]
+def test_write_toml_rejects(t : T?) {
+    t |> run("null values and non-table roots are unrepresentable") @@(t : T?) {
+        var nul = JVNull()
+        var tab <- { "k" => nul }
+        var doc = JV(tab)
+        var err : string
+        t |> success(empty(write_toml(doc, err)), "null value returns empty")
+        t |> success(find(err, "no null") >= 0, "null error names the problem")
+        var not_a_table = JV(3l)
+        t |> success(empty(write_toml(not_a_table, err)), "scalar root returns empty")
+        t |> success(find(err, "must be a table") >= 0, "root error names the problem")
+        t |> success(empty(write_toml(null, err)), "null root returns empty")
     }
 }

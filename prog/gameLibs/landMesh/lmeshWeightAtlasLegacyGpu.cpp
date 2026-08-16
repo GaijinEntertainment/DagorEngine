@@ -100,7 +100,7 @@ LandWeightAtlas *render_land_weight_atlas(dag::Span<Tab<uint8_t>> records, int c
   d3d::GpuAutoLock gpuLock;
   SCOPE_RENDER_TARGET;
   SCOPE_VIEW_PROJ_MATRIX;
-  d3d::set_render_target(a->tex, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{a->tex, 0, 0}});
   d3d::clearview(CLEAR_TARGET, 0x00000000, 1.f, 0); // pages of cells that fail below are never drawn into
   Tab<int> undecoded(framemem_ptr());
   for (int i = 0; i < records.size(); ++i)
@@ -115,15 +115,15 @@ LandWeightAtlas *render_land_weight_atlas(dag::Span<Tab<uint8_t>> records, int c
     InPlaceMemLoadCB crd1(records[i].data() + HDR, tex2Offset ? tex2Offset : len);
     Texture *t1 = d3d::create_ddsx_tex(crd1, TEXCF_RGB, 0, 0, "land_weight_src");
     Texture *t2 = nullptr;
+    bool decoded = t1;
     if (tex2Offset && len - tex2Offset > 0)
     {
       InPlaceMemLoadCB crd2(records[i].data() + HDR + tex2Offset, len - tex2Offset);
       t2 = d3d::create_ddsx_tex(crd2, TEXCF_RGB, 0, 0, "land_weight_src2");
+      // instead of drawing without t2 when it is required, the cell is flagged as undecoded
+      // The decision has to happen before del_d3dres(), which nulls what it frees.
+      decoded &= bool(t2);
     }
-    // A cell wanting a second page has nothing to draw it from without tex2, so
-    // it counts as undecoded rather than drawing that page from an unbound one.
-    // The decision has to happen before del_d3dres(), which nulls what it frees.
-    const bool decoded = t1 && (t2 || LandWeightAtlas::pagesFor(numTex[i]) < 2);
     const bool packed = decoded && a->renderCell(i, numTex[i], t1, t2, tex_size);
     del_d3dres(t1);
     del_d3dres(t2);

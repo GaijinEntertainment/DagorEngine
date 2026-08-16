@@ -103,7 +103,7 @@ private:
   void copyMatrices(const eastl::vector<uint32_t> &cells_to_copy, const eastl::vector<uint32_t> &cell_counters, Sbuffer *dst_buffer,
     Sbuffer *src_buffer, uint32_t max_in_cell, uint32_t dst_offset_bytes, uint32_t lod);
   eastl::string assetName;
-  rendinst::ClientRiexPool riPoolId;
+  rendinst::ClientRiexPoolId riPoolId;
   uint32_t riPoolOffset;
   SharedTexWithShaderVar mapTexId;
   int numLods;
@@ -114,7 +114,7 @@ private:
 
 public:
   rendinst::LayerFlag layer = rendinst::LayerFlag::Opaque;
-  ObjectManager(const char *name, rendinst::ClientRiexPool ri_pool_id, int cell_tile, int cells_size_count, float cell_size,
+  ObjectManager(const char *name, rendinst::ClientRiexPoolId ri_pool_id, int cell_tile, int cells_size_count, float cell_size,
     float bounding_sphere_radius, dag::ConstSpan<float> dist_sq_lod, const PlacingParameters &parameters);
   ObjectManager(const ObjectManager &) = delete;
   ObjectManager(ObjectManager &&);
@@ -201,7 +201,7 @@ private:
   };
   eastl::vector<CascadeData> cascades;
   eastl::vector<ObjectManager> objects;
-  eastl::vector<rendinst::ClientRiexPool> objectIds;
+  eastl::vector<rendinst::ClientRiexPoolId> objectIds;
   uint32_t maxRowsCountInBuffer = 0;
   eastl::unique_ptr<ComputeShaderElement> gpuInstancingGenerateIndirect;
   eastl::unique_ptr<ComputeShaderElement> gpuInstancingRebuildRelems;
@@ -250,21 +250,21 @@ public:
     G_ASSERT_FAIL("GPU objects don't handle this rendinst layer: %d", eastl::to_underlying(layer_ri));
     return GPUOBJ_LAYER_OPAQUE;
   }
-  void addObject(const char *name, rendinst::ClientRiexPool id, int cell_tile, int grid_size, float cell_size,
+  void addObject(const char *name, rendinst::ClientRiexPoolId ri_pool_id, int cell_tile, int grid_size, float cell_size,
     float bounding_sphere_radius, dag::ConstSpan<float> dist_sq_lod, const PlacingParameters &parameters)
   {
-    if (eastl::find(objectIds.begin(), objectIds.end(), id) != objectIds.end())
+    if (eastl::find(objectIds.begin(), objectIds.end(), ri_pool_id) != objectIds.end())
       return;
 
     if (objects.size() == MAX_GPU_OBJECTS)
     {
-      logerr("GPUObjects: Trying to add object %s with id %d, but reached maximum number of objects (%d)", name, id.id(),
+      logerr("GPUObjects: Trying to add object %s with id %d, but reached maximum number of objects (%d)", name, ri_pool_id.id(),
         MAX_GPU_OBJECTS);
       return;
     }
 
-    objects.emplace_back(name, id, cell_tile, grid_size, cell_size, bounding_sphere_radius, dist_sq_lod, parameters);
-    objectIds.push_back(id);
+    objects.emplace_back(name, ri_pool_id, cell_tile, grid_size, cell_size, bounding_sphere_radius, dist_sq_lod, parameters);
+    objectIds.push_back(ri_pool_id);
     for (CascadeData &cascade : cascades)
     {
       cascade.matricesBuffer.close();
@@ -319,7 +319,7 @@ public:
     return make_span_const(cascades[cascade].layers[layerIdx].objectLodOffsets, MAX_LODS);
   }
 
-  void changeParameters(rendinst::ClientRiexPool idx, const PlacingParameters &parameters)
+  void changeParameters(rendinst::ClientRiexPoolId idx, const PlacingParameters &parameters)
   {
     for (int i = 0; i < objectIds.size(); ++i)
       if (objectIds[i] == idx)
@@ -329,7 +329,7 @@ public:
       }
   }
 
-  void changeGrid(rendinst::ClientRiexPool idx, int cell_tile, int grid_size, float cell_size)
+  void changeGrid(rendinst::ClientRiexPoolId idx, int cell_tile, int grid_size, float cell_size)
   {
     for (int i = 0; i < objectIds.size(); ++i)
       if (objectIds[i] == idx)
@@ -340,7 +340,7 @@ public:
       }
   }
 
-  void getCellData(rendinst::ClientRiexPool idx, int &cell_tile, int &cells_size_count, float &cell_size)
+  void getCellData(rendinst::ClientRiexPoolId idx, int &cell_tile, int &cells_size_count, float &cell_size)
   {
     for (int i = 0; i < objectIds.size(); ++i)
       if (objectIds[i] == idx)
@@ -350,7 +350,7 @@ public:
       }
   }
 
-  void getParameters(rendinst::ClientRiexPool idx, PlacingParameters &p)
+  void getParameters(rendinst::ClientRiexPoolId idx, PlacingParameters &p)
   {
     for (int i = 0; i < objectIds.size(); ++i)
       if (objectIds[i] == idx)

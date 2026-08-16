@@ -125,4 +125,21 @@ struct GrassInstanceUncompressed
   bool worldYOrientation;
 };
 
+// One entry for each (billboard orientation, grass texture) pair: the first gpu_grass_bvh_meta_count
+// entries are the vertical billboards, the rest are the horizontal ones.
+struct GpuGrassBvhMapping
+{
+  uint2 blas;
+  uint metaIndex;
+  uint padding;
+};
+
+#ifndef __cplusplus
+// A zero BLAS address means this grass texture is not in the BVH: its OMM still bakes, or the bake failed.
+bool gpu_grass_bvh_mapping_is_valid(GpuGrassBvhMapping mapping)
+{
+  return (mapping.blas.x | mapping.blas.y) != 0;
+}
+#endif
+
 #endif

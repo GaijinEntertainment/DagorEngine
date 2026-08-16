@@ -36,29 +36,29 @@ namespace das {
             embed = false;
             optional = false;
             string name = vi->name ? vi->name : "";
-            if ( vi->annotation_arguments ) {
-                auto aa = (AnnotationArguments *) vi->annotation_arguments;
-                for ( auto arg : *aa ) {
-                    if ( arg.name=="enum_as_int" && arg.type==Type::tBool ) {
-                        enumAsInt = arg.bValue;
-                    } else if ( arg.name=="unescape" && arg.type==Type::tBool ) {
-                        unescape = arg.bValue;
-                    } else if ( arg.name=="embed" && arg.type==Type::tBool ) {
-                        embed = arg.bValue;
-                    } else if ( arg.name=="optional" && arg.type==Type::tBool ) {
-                        optional = arg.bValue;
-                    } else if ( arg.name=="rename" ) {
-                        if ( arg.type==Type::tString ) {
-                            name = arg.sValue;
-                        } else if ( arg.type==Type::tBool && !name.empty() && name[0]=='_' ) {
-                            name = name.substr(1);
-                        }
+            for ( uint32_t ai=0, ais=vi->annotation_argument_count; ai!=ais; ++ai ) {
+                const auto & arg = vi->annotation_arguments[ai];
+                if ( strcmp(arg.name,"enum_as_int")==0 && arg.type==Type::tBool ) {
+                    enumAsInt = arg.bValue;
+                } else if ( strcmp(arg.name,"unescape")==0 && arg.type==Type::tBool ) {
+                    unescape = arg.bValue;
+                } else if ( strcmp(arg.name,"embed")==0 && arg.type==Type::tBool ) {
+                    embed = arg.bValue;
+                } else if ( strcmp(arg.name,"optional")==0 && arg.type==Type::tBool ) {
+                    optional = arg.bValue;
+                } else if ( strcmp(arg.name,"rename")==0 ) {
+                    if ( arg.type==Type::tString ) {
+                        name = arg.sValue;
+                    } else if ( arg.type==Type::tBool && !name.empty() && name[0]=='_' ) {
+                        name = name.substr(1);
                     }
                 }
             }
             bool ignoreNextField = false;
             if ( si->flags & StructInfo::flag_class ) {
-                if (name == "__rtti" || name == "__finalize") {
+                // A class carries its methods as function-pointer fields. They aren't data —
+                // skip them entirely (rather than emit "kek":null) along with the class plumbing.
+                if (name == "__rtti" || name == "__finalize" || (vi->flags & TypeInfo::flag_classMethod)) {
                     ignoreNextField = true;
                 }
             }
@@ -278,6 +278,74 @@ namespace das {
             if ( inTableKey ) ss << "[" << value.x << "," << value.y << "," << value.z << "," << value.w << "]";
             else ss << "{\"x\":" << value.x << ",\"y\":" << value.y << ",\"z\":" << value.z << ",\"w\":" << value.w << "}";
         }
+        // 16/8-bit lattice: arity <=4 mirrors the xyzw object/array form of Float2..4;
+        // 8/16-lane forms are always JSON arrays (no field names past w)
+        template <typename TT, typename PT>
+        void printSVec2 ( const TT & value ) {
+            if ( inTableKey ) ss << "[" << PT(value.x) << "," << PT(value.y) << "]";
+            else ss << "{\"x\":" << PT(value.x) << ",\"y\":" << PT(value.y) << "}";
+        }
+        template <typename TT, typename PT>
+        void printSVec3 ( const TT & value ) {
+            if ( inTableKey ) ss << "[" << PT(value.x) << "," << PT(value.y) << "," << PT(value.z) << "]";
+            else ss << "{\"x\":" << PT(value.x) << ",\"y\":" << PT(value.y) << ",\"z\":" << PT(value.z) << "}";
+        }
+        template <typename TT, typename PT>
+        void printSVec4 ( const TT & value ) {
+            if ( inTableKey ) ss << "[" << PT(value.x) << "," << PT(value.y) << "," << PT(value.z) << "," << PT(value.w) << "]";
+            else ss << "{\"x\":" << PT(value.x) << ",\"y\":" << PT(value.y) << ",\"z\":" << PT(value.z) << ",\"w\":" << PT(value.w) << "}";
+        }
+        template <typename TT, typename PT, int N>
+        void printSVecN ( const TT & value ) {
+            ss << "[";
+            for ( int i = 0; i != N; ++i ) {
+                if ( i ) ss << ",";
+                ss << PT(value.s[i]);
+            }
+            ss << "]";
+        }
+        static __forceinline float f16v ( const float16_t & h ) { return h.toFloat(); }
+        virtual void Float16 ( float16_t & value ) override {
+            ss << value.toFloat();
+        }
+        virtual void Half2 ( half2 & value ) override {
+            if ( inTableKey ) ss << "[" << f16v(value.x) << "," << f16v(value.y) << "]";
+            else ss << "{\"x\":" << f16v(value.x) << ",\"y\":" << f16v(value.y) << "}";
+        }
+        virtual void Half3 ( half3 & value ) override {
+            if ( inTableKey ) ss << "[" << f16v(value.x) << "," << f16v(value.y) << "," << f16v(value.z) << "]";
+            else ss << "{\"x\":" << f16v(value.x) << ",\"y\":" << f16v(value.y) << ",\"z\":" << f16v(value.z) << "}";
+        }
+        virtual void Half4 ( half4 & value ) override {
+            if ( inTableKey ) ss << "[" << f16v(value.x) << "," << f16v(value.y) << "," << f16v(value.z) << "," << f16v(value.w) << "]";
+            else ss << "{\"x\":" << f16v(value.x) << ",\"y\":" << f16v(value.y) << ",\"z\":" << f16v(value.z) << ",\"w\":" << f16v(value.w) << "}";
+        }
+        virtual void Half8 ( half8 & value ) override {
+            ss << "[";
+            for ( int i = 0; i != 8; ++i ) {
+                if ( i ) ss << ",";
+                ss << value.s[i].toFloat();
+            }
+            ss << "]";
+        }
+        virtual void Short2 ( short2 & value ) override { printSVec2<short2, int32_t>(value); }
+        virtual void Short3 ( short3 & value ) override { printSVec3<short3, int32_t>(value); }
+        virtual void Short4 ( short4 & value ) override { printSVec4<short4, int32_t>(value); }
+        virtual void Short8 ( short8 & value ) override { printSVecN<short8, int32_t, 8>(value); }
+        virtual void UShort2 ( ushort2 & value ) override { printSVec2<ushort2, uint32_t>(value); }
+        virtual void UShort3 ( ushort3 & value ) override { printSVec3<ushort3, uint32_t>(value); }
+        virtual void UShort4 ( ushort4 & value ) override { printSVec4<ushort4, uint32_t>(value); }
+        virtual void UShort8 ( ushort8 & value ) override { printSVecN<ushort8, uint32_t, 8>(value); }
+        virtual void Byte2 ( byte2 & value ) override { printSVec2<byte2, int32_t>(value); }
+        virtual void Byte3 ( byte3 & value ) override { printSVec3<byte3, int32_t>(value); }
+        virtual void Byte4 ( byte4 & value ) override { printSVec4<byte4, int32_t>(value); }
+        virtual void Byte8 ( byte8 & value ) override { printSVecN<byte8, int32_t, 8>(value); }
+        virtual void Byte16 ( byte16 & value ) override { printSVecN<byte16, int32_t, 16>(value); }
+        virtual void UByte2 ( ubyte2 & value ) override { printSVec2<ubyte2, uint32_t>(value); }
+        virtual void UByte3 ( ubyte3 & value ) override { printSVec3<ubyte3, uint32_t>(value); }
+        virtual void UByte4 ( ubyte4 & value ) override { printSVec4<ubyte4, uint32_t>(value); }
+        virtual void UByte8 ( ubyte8 & value ) override { printSVecN<ubyte8, uint32_t, 8>(value); }
+        virtual void UByte16 ( ubyte16 & value ) override { printSVecN<ubyte16, uint32_t, 16>(value); }
         virtual void Range ( range & value ) override {
             ss << "[" << value.x << "," << value.y << "]";
         }
@@ -341,6 +409,18 @@ namespace das {
             // uint64_t-backed values with the top bit set will compare bit-for-bit equal because the
             // stored value already round-tripped through int64_t at EnumValueInfo build time.
             Enum(value,info);
+        }
+        // A function pointer / block isn't JSON data. Emit `null` rather than nothing so the output
+        // stays valid JSON. Class methods are dropped earlier (flag_classMethod); this still guards
+        // the __lambda/__finalize fields inside a lambda's capture struct and any function-typed
+        // field, which otherwise left a dangling `:` and produced invalid JSON.
+        virtual void WalkFunction ( Func * ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
+            ss << "null";
+        }
+        virtual void WalkBlock ( Block * ) override {
+            if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
+            ss << "null";
         }
 
         virtual bool revisitStructure ( char * /*ps*/, StructInfo * /*si*/ ) override {

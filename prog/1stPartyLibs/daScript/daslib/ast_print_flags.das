@@ -15,7 +15,6 @@ options strict_smart_pointers = false
 require daslib/rtti
 require daslib/ast
 require daslib/ast_boost
-require daslib/strings_boost
 
 class SetPrinterFlags : AstVisitor {
     //! AST visitor that sets expression print formatting flags for proper output.

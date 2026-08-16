@@ -79,7 +79,7 @@ namespace das {
 #endif
 
 
-    bool starts_with ( const string & name, const char * template_name );
+    DAS_API bool starts_with ( const string & name, const char * template_name );
 
 }
 

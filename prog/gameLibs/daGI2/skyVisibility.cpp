@@ -38,6 +38,7 @@ CONSOLE_BOOL_VAL("gi", gi_sky_vis_spatial_split, false);
 CONSOLE_INT_VAL("gi", gi_sky_vis_spatial_passes, 1, 0, 2);
 
 extern void set_irradiance_grid_params(uint32_t w, uint32_t d, uint32_t clips, int info);
+extern void dagi_publish_irradiance_first_valid(int first_valid, float probe_size0);
 extern void set_irradiance_grid_textures(TEXTUREID sph0, TEXTUREID sph1);
 extern void set_irradiance_clip(uint32_t clip_no, const IPoint3 &lt, float probeSize);
 
@@ -110,6 +111,7 @@ SkyVisibility::~SkyVisibility()
   {
     set_irradiance_grid_params(0, 0, 0, 2);
     set_irradiance_grid_textures(BAD_TEXTUREID, BAD_TEXTUREID);
+    dagi_publish_irradiance_first_valid(-1, 0);
   }
 }
 
@@ -379,6 +381,8 @@ void SkyVisibility::setReplicateToIrradiance(bool on)
     set_irradiance_grid_params(clipW, clipD, clipmap.size(), 2);
     set_irradiance_grid_textures(dagi_sky_visibility_sph.getTexId(), dagi_sky_visibility_sph.getTexId());
     setClipmapVars();
+    // all clips just invalidated: gate everything in reach until they scroll in
+    dagi_publish_irradiance_first_valid(int(clipmap.size()), get_probe_size(0));
   }
   replicateToIrradiance = on;
 }
@@ -403,6 +407,11 @@ void SkyVisibility::init(uint32_t w_, uint32_t d_, uint32_t clips_, float probe0
   GLOBAL_VARS_LIST
 #undef VAR
 
+  // every consumer (per-clip vars and their clears, temporal buffers,
+  // samplers, the replicated irradiance array) holds at most
+  // DAGI_MAX_SKY_VIS_CLIPS clips; clamp before sameClipmap so a raw larger
+  // request cannot re-init every frame either
+  clips_ = clamp<uint16_t>(clips_, 1, DAGI_MAX_SKY_VIS_CLIPS);
   replicateToIrradiance = replicateTo;
   const bool sameClipmap = clipW == w_ && clipD == d_ && clipmap.size() == clips_;
   if (sameClipmap && probe0 == probeSize0)
@@ -437,6 +446,21 @@ void SkyVisibility::updatePos(const Point3 &world_pos, bool update_all)
     updatedAny |= updateClip(i, world_pos, updateLast);
     if (updatedAny && !update_all)
       break;
+  }
+
+  if (replicateToIrradiance)
+  {
+    // this replicated clipmap is the ambient the lit scene gate waits for
+    // (simulated bounce reads the lit scene back), so it publishes validity
+    // the same way RadianceGrid does; clips re-validate coarsest first
+    int firstValid = clipmap.size();
+    for (int i = 0; i < clipmap.size(); ++i)
+      if (clipmap[i].lt != VoxelClip::get_invalid_lt())
+      {
+        firstValid = i;
+        break;
+      }
+    dagi_publish_irradiance_first_valid(firstValid, get_probe_size(0));
   }
 
   if (gi_sky_vis_update_temporal)

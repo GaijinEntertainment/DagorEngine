@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <anim/dag_animPostBlendCtrl.h>
+#include <anim/footLockerIKCtrl.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/delayedAct/actInThread.h>
 #include <ecs/anim/anim.h>

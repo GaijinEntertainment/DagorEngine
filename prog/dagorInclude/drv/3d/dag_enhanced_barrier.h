@@ -56,6 +56,10 @@ enum class TextureLayout : uint32_t
   ResolveSource,
   ResolveDest,
 
+  // special clear layout to handle API wrapper disparity
+  // ex: UAV, RTV or DSV write on DX, transfer write on vk
+  ClearDest,
+
   // VRS rate texture
   ShadingRateSource
 };
@@ -147,6 +151,10 @@ enum class AccessFlag : uint32_t
 
   ResolveRead = 1u << 16,
   ResolveWrite = 1u << 17,
+
+  // special clear access to handle API wrapper disparity
+  // ex: UAV, RTV or DSV write on DX, transfer write on vk
+  ClearWrite = 1u << 18,
 
   // VRS rate texture (RO)
   ShadingRate = 1u << 23

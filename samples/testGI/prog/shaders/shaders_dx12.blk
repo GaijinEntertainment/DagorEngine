@@ -7,6 +7,7 @@ include "shaders_dx11.blk"
   file:t = "testgi_bvh_debug.dshl"
   file:t = "testgi_rtsm.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_dynrend_indices.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_lru_collision_normals.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_bake_texture_to_vertices.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_ahs_vertices.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_tree_vertices.dshl"
@@ -17,7 +18,7 @@ include "shaders_dx11.blk"
 "@override:Compile" {
   "@override:fsh":t="5.0"
   "@override:assume_vars" {
-    "@delete:supports_sh_6_1":i = 0
+    "@delete:supports_barycentrics":i = 0
     "@delete:use_hw_rt_gi":i = 0
     "@delete:render_inline_raytracing":i=0
     "@delete:dagi_warp64_irradiance":i=0

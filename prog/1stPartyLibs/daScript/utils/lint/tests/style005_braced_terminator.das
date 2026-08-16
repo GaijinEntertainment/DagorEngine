@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE005 is default-off via daslib/lint_config; force it on so this fixture
 // can assert the 5 expected error sites below.
 options _enable_default_off_rules = true

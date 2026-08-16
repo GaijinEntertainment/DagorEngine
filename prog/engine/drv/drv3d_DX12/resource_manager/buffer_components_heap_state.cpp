@@ -5,7 +5,7 @@
 namespace drv3d_dx12::resource_manager
 {
 
-eastl::pair<BufferHeap::Heap *, ValueRange<uint64_t>> BufferHeap::BufferHeapState::trySuballocateFromExistingHeaps(
+eastl::optional<eastl::pair<BufferHeap::Heap *, ValueRange<uint64_t>>> BufferHeap::BufferHeapState::trySuballocateFromExistingHeaps(
   ResourceHeapProperties properties, uint64_t size, D3D12_RESOURCE_FLAGS flags, uint32_t offset_alignment)
 {
   return suballocator.trySuballocate(bufferHeaps, properties, size, flags, offset_alignment);

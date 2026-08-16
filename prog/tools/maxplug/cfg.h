@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#define MAX_CFG_DATA      2048
 #define CFG_GLOBAL_NAME   _T("_global_params")
 #define CFG_SETTINGS_NAME _T("_settings")
 
@@ -19,11 +18,11 @@ public:
   // cfg file name
   std::wstring filename;
 
-  CfgReader();
+  CfgReader() = default;
 
   CfgReader(const std::wstring &name);
 
-  virtual ~CfgReader();
+  virtual ~CfgReader() = default;
 
   // methods to return the lists of section data and section names
   StringVector *GetSectionNames();
@@ -41,10 +40,7 @@ public:
   StringVector shader_names;
 
   CfgShader(const std::wstring &name);
-  ~CfgShader() override;
-
-  // get config file name from plugin folder.
-  static void GetCfgFilename(const TCHAR *cfg, TCHAR *filename);
+  ~CfgShader() override = default;
 
   StringVector *GetShaderNames();
 };

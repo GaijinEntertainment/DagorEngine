@@ -10,10 +10,6 @@
 
 namespace
 {
-// TODO do not forget to replace this with color theme
-constexpr ImU32 RECONNECT_LINE_COLOR = IM_COL32(0xFF, 0xFF, 0xFF, 0xFF);
-constexpr float RECONNECT_LINE_THICKNESS = 2.0f;
-
 const GraphData::Node *find_node(const GraphData &gd, int node_id)
 {
   for (const GraphData::Node &n : gd.nodes)
@@ -37,6 +33,13 @@ int GraphEdgeReconnect::begin(const GraphData &gd, int node_id, int pin_index)
   for (int i = static_cast<int>(gd.edges.size()) - 1; i >= 0; --i)
   {
     const GraphData::Edge &e = gd.edges[i];
+    // "Modify edge" should grab the live connection. Resolving a reconnect records a delete plus a
+    // create, and the created edge is default-constructed, so a muted edge would silently come back
+    // unmuted -- leave it for the user to unmute or delete explicitly.
+    if (e.muted)
+    {
+      continue;
+    }
     int oppNode = -1;
     int oppPin = -1;
     if (e.elemA == node_id && e.pinA == pin_index)
@@ -71,7 +74,7 @@ int GraphEdgeReconnect::begin(const GraphData &gd, int node_id, int pin_index)
   return -1;
 }
 
-void GraphEdgeReconnect::drawPreview(ImDrawList *draw_list, const ImVec2 &cursor) const
+void GraphEdgeReconnect::drawPreview(ImDrawList *draw_list, const ImVec2 &cursor, uint32_t color, float thickness) const
 {
   if (!active || !haveAnchorScreenPos || !draw_list)
   {
@@ -85,7 +88,7 @@ void GraphEdgeReconnect::drawPreview(ImDrawList *draw_list, const ImVec2 &cursor
   const float strength = fabsf(cursor.x - from.x) * 0.5f + 25.0f;
   const ImVec2 c1(from.x + dirX * strength, from.y);
   const ImVec2 c2(cursor.x - dirX * strength, cursor.y);
-  draw_list->AddBezierCubic(from, c1, c2, cursor, RECONNECT_LINE_COLOR, RECONNECT_LINE_THICKNESS);
+  draw_list->AddBezierCubic(from, c1, c2, cursor, color, thickness);
 }
 
 bool GraphEdgeReconnect::tryComplete(const GraphData &gd, int node_id, int pin_index, GraphData::Edge &out_edge) const

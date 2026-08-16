@@ -41,6 +41,11 @@ struct PipelineOptionalDynamicStateMask
 
 class PipelineCache;
 class PipelineManager;
+
+// At namespace scope because getViewInstancingDesc hands out a pointer to it, so it has to
+// outlive the call and be one entity across translation units.
+inline constexpr D3D12_VIEW_INSTANCE_LOCATION VIEW_INSTANCE_LOCATIONS[4] = {{0, 0}, {1, 0}, {2, 0}, {3, 0}};
+
 // Manages IDs handed out for registered shaders::RenderState data structures.
 // Internally the state is split in two parts, a static state and a dynamic state.
 // The static state is the portion that is baked into graphics pipelines and the
@@ -513,13 +518,11 @@ public:
       // We also support mapping a specific view index, to the same viewport.
       // In fact, these conditions make more likely to a GPU to do instancing more efficiently.
 
-      static constexpr D3D12_VIEW_INSTANCE_LOCATION viewInstanceLocations[4] = {{0, 0}, {1, 0}, {2, 0}, {3, 0}};
-
       // We doesn't support the instancing mask. Our intended use with this doesn't need it.
 
       return {
         .ViewInstanceCount = viewInstanceCount + 1u, // zero based
-        .pViewInstanceLocations = viewInstanceLocations,
+        .pViewInstanceLocations = VIEW_INSTANCE_LOCATIONS,
         .Flags = D3D12_VIEW_INSTANCING_FLAG_NONE,
       };
     }

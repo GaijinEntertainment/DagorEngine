@@ -416,6 +416,8 @@ HmapLandPlugin::HmapLandPlugin() :
   coversBuf = dagRender->newDebugPrimitivesVbuffer("covers_lines_vbuf", midmem);
   contoursBuf = dagRender->newDebugPrimitivesVbuffer("contours_lines_vbuf", midmem);
   obstaclesBuf = dagRender->newDebugPrimitivesVbuffer("obstacles_lines_vbuf", midmem);
+
+  LandscapeObjectTypeState::resetAllObjectTypesToDefault();
   EditLayerProps::resetLayersToDefauls();
 
   IAssetService *assetSrv = DAGORED2->queryEditorInterface<IAssetService>();
@@ -605,8 +607,7 @@ void HmapLandPlugin::registerMenuAccelerators()
   wndManager.addAccelerator(CM_MAKE_BOTTOM_SPLINES, EditorCommandIds::MAKE_BOTTOM_SPLINES);
 
   // ObjectEditor has an accelerator with the same hotkey but because this is registered first, this will "win".
-  wndManager.addViewportAccelerator(CM_TOGGLE_PROPERTIES_AND_OBJECT_PROPERTIES,
-    EditorCommandIds::TOGGLE_PROPERTIES_AND_OBJECT_PROPERTIES);
+  wndManager.addAccelerator(CM_TOGGLE_PROPERTIES_AND_OBJECT_PROPERTIES, EditorCommandIds::TOGGLE_PROPERTIES_AND_OBJECT_PROPERTIES);
 
   wndManager.addViewportAccelerator(CM_DECREASE_BRUSH_SIZE, EditorCommandIds::DECREASE_BRUSH_SIZE, true);
   wndManager.addViewportAccelerator(CM_INCREASE_BRUSH_SIZE, EditorCommandIds::INCREASE_BRUSH_SIZE, true);

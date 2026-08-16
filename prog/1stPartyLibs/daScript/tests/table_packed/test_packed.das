@@ -67,7 +67,7 @@ def test_packed_string(t : T?) {
 // strcmp and no promotion — the 64-bit hashes differ. Both must remain findable with their values.
 [test]
 def test_packed_string_hashkey32_collision(t : T?) {
-    var tab : table<string; int>
+    var tab : table<string; int>  // nolint:STYLE031 — packed-mode insert path is under test
     unsafe(tab[kcopy(1832)]) = 111
     unsafe(tab[kcopy(16303)]) = 222
     t |> equal(length(tab), 2)

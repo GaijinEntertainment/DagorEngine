@@ -35,6 +35,7 @@ Sources =
   rendInstDesc.cpp
   riGrid.cpp
   riGridDebug.cpp
+  riGridDump.cpp
   treeDestr.cpp
   riexSync.cpp
 

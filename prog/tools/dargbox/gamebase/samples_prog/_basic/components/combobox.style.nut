@@ -52,12 +52,12 @@ function boxCtor(params=null) {
   let color = params?.disabled ? Color(160,160,160,255) : Color(255,255,255,255)
 
   let labelText = {
-    group = params.group
+    group = params?.group
     rendObj = ROBJ_TEXT
     behavior = Behaviors.Marquee
     margin = sh(0.5)
-    text = params.text
-    key = params.text
+    text = params?.text
+    key = params?.text
     color = color
     size = FLEX_H
   }
@@ -69,7 +69,7 @@ function boxCtor(params=null) {
       size = [defHeight/3,defHeight/3]
       margin = sh(0.5)
       color = color
-      commands = [
+      commands = const [
         [VECTOR_WIDTH, hdpx(1)],
         [VECTOR_POLY, 0,0, 50,100, 100,0],
       ]
@@ -97,9 +97,9 @@ return {
   popupBgColor = Color(20, 30, 36)
   popupBdColor = Color(90,90,90)
   popupBorderWidth = hdpx(1)
-  itemGap = {rendObj=ROBJ_FRAME size = const [flex(),hdpx(1)] color=Color(90,90,90)}
+  itemGap = const {rendObj=ROBJ_FRAME size = const [flex(),hdpx(1)] color=Color(90,90,90)}
 
-  rootBaseStyle = {}
+  rootBaseStyle = const {}
   boxCtor
   listItem
   closeButton

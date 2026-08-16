@@ -68,8 +68,7 @@ static uint32_t panoramaFmt = TEXFMT_R11G11B10F; // TEXCF_SRGBREAD|TEXCF_SRGBWRI
   VAR(clouds_panorama_patch_tex, false)        \
   VAR(rgbm_panorama_scale_factor, false)       \
   VAR(clouds_panorama_depth_out, true)         \
-  VAR(clouds_panorama_split, true)             \
-  VAR(skies_panorama_below_skies_fill_color, true)
+  VAR(clouds_panorama_split, true)
 
 #define VAR(a, opt) static ShaderVariableInfo a##VarId;
 GLOBAL_VARS_LIST
@@ -352,9 +351,6 @@ void DaSkies::renderPanorama(const Point3 &origin, const TMatrix &view_tm, const
 
   if (skyPanoramaPatchEnabled)
     ShaderGlobal::set_texture(clouds_panorama_patch_texVarId, cloudsPanoramaPatchTex[currentPanorama]);
-
-  if (skies_panorama_below_skies_fill_colorVarId != -1)
-    ShaderGlobal::set_float4(skies_panorama_below_skies_fill_colorVarId, panoramaBelowSkiesFillColor);
 
   {
     TIME_D3D_PROFILE(applyPanorama);

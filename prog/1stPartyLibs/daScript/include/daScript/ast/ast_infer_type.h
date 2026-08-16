@@ -35,9 +35,11 @@ namespace das {
         VariablePtr globalVar = nullptr;
         vector<VariablePtr> local;
         vector<ExpressionPtr> loop;
+        Expression *comprehensionFor = nullptr;  // comprehension-embedded ExprFor legally has a null body until lowering
         vector<ExprBlock *> blocks;
         vector<ExprBlock *> scopes;
         vector<ExprWith *> with;
+        vector<Module *> moduleScope;   // `with (module foo)` resolution override; top wins, nullptr = unresolved (poisoned)
         struct AssumeEntry {
             ExprAssume *   expr;
             das_hash_set<string>    vars;   // ExprVar names referenced in subexpr
@@ -64,6 +66,7 @@ namespace das {
         bool savedFoldingForStaticIf = true;    // preVisit(ExprIfThenElse) / visit(ExprIfThenElse) save-restore (block hooks skipped for static_if)
         bool savedFoldingForStaticAssert = true; // preVisit(ExprStaticAssert) / visit(ExprStaticAssert) save-restore
         bool disableAot = false;
+        bool noHeapArrayLiterals = false;       // options no_heap_array_literals: disable building gen2 [..]/{..} literals directly on the heap
         bool multiContext = false;
         bool standaloneContext = false;
         Expression *lastEnuValue = nullptr;
@@ -80,6 +83,8 @@ namespace das {
         bool relaxedAssign = false;
         bool relaxedPointerConst = false;
         bool unsafeTableLookup = false;
+        bool defaultInitContainers = true;
+        bool withModuleIsUnsafe = false;
         bool debugInferFlag = false;
         bool forceInscopePod = false;
         bool logInscopePod = false;
@@ -111,7 +116,7 @@ namespace das {
         string describeFunction(const Function *fun) const;
 
     protected:
-        void verifyType(const TypeDeclPtr &decl, bool allowExplicit = false, bool classMethod = false) const;
+        void verifyType(const TypeDeclPtr &decl, bool allowExplicit = false, bool classMethod = false, bool allowTemplate = false) const;
 
         bool jitEnabled() const;
 
@@ -154,6 +159,7 @@ namespace das {
         //      inWhichModule = this
         //      objModule = _b
         bool isVisibleFunc(Module *inWhichModule, Module *objModule) const;
+        bool isVisibleInstanceFunc(Module *inWhichModule, Function *pFn) const;
 
         MatchingFunctions findFuncAddr(const string &name) const;
 
@@ -184,6 +190,24 @@ namespace das {
         void findMatchingPipedFunctionsAndGenerics(MatchingFunctions &resultFunctions, MatchingFunctions &resultGenerics, const string &name, const vector<TypeDeclPtr> &types, bool visCheck, das_hash_map<Function *, pair<int, int>> &landing) const;
 
         bool tryPipedCallPadding(ExprLooksLikeCall *expr, vector<TypeDeclPtr> &types, MatchingFunctions &functions, MatchingFunctions &generics, bool visCheck);
+
+        // shared winner selection for piped padding (least pad -> functions over generics -> substitute distance).
+        // returns the single winner, or nullptr on ambiguity (ambiguousFunctions gets the non-generic tie set).
+        Function * selectPipedWinner(MatchingFunctions &pipedFns, MatchingFunctions &pipedGens, const vector<TypeDeclPtr> &types, das_hash_map<Function *, pair<int, int>> &landing, bool &useGenerics, MatchingFunctions &ambiguousFunctions) const;
+
+        // named analogue of the piped landing search: positionals fill 0..p-1, the block lands on a block-typed
+        // slot, named args map by name, defaults fill the rest.
+        bool isFunctionCompatiblePipedNamedAt(Function *pFn, const vector<TypeDeclPtr> &nonNamedTypes, const vector<MakeFieldDeclPtr> &arguments, int blockParam, bool inferAuto) const;
+        bool findPipedNamedLanding(Function *pFn, const vector<TypeDeclPtr> &nonNamedTypes, const vector<MakeFieldDeclPtr> &arguments, bool inferAuto, int &blockParam, int &padCount) const;
+        void findMatchingPipedNamedFunctionsAndGenerics(MatchingFunctions &resultFunctions, MatchingFunctions &resultGenerics, const string &name, const vector<TypeDeclPtr> &nonNamedTypes, const vector<MakeFieldDeclPtr> &arguments, bool visCheck, das_hash_map<Function *, pair<int, int>> &landing) const;
+        ExpressionPtr tryPipedNamedCallPadding(ExprNamedCall *expr, const vector<TypeDeclPtr> &nonNamedTypes, MatchingFunctions &ambiguousFunctions);
+        vector<ExpressionPtr> demotePipedNamedCallArguments(ExprNamedCall *expr, const FunctionPtr &pFn, int blockParam);
+        ExpressionPtr demoteNamedArgValue(MakeFieldDecl *arg) const;
+
+        // piped padding for a genuine class method: self at nonNamedArguments[0] and fullNonNamedTypes[0]
+        // (the caller prepends both for the implicit-self path), the block pads across defaults to reach
+        // a later block param, then the result is wrapped in invoke(type<st>.name, self, ...).
+        ExpressionPtr tryPipedMemberCallPadding(ExprNamedCall *expr, Structure *st, const ExpressionPtr &selfExpr, const vector<TypeDeclPtr> &fullNonNamedTypes);
 
         string reportAliasError(const TypeDeclPtr &type) const;
 
@@ -216,6 +240,8 @@ namespace das {
         void findMatchingFunctionsAndGenerics(MatchingFunctions &resultFunctions, MatchingFunctions &resultGenerics, const string &name, const vector<TypeDeclPtr> &types, const vector<MakeFieldDeclPtr> &arguments, bool inferBlock = false) const;
 
         void findMatchingFunctionsAndGenerics(MatchingFunctions &resultFunctions, MatchingFunctions &resultGenerics, const string &name, const vector<TypeDeclPtr> &types, bool inferBlock = false, bool visCheck = true) const;
+
+        Function * lockedNameGenericOrigin(const string &name, const MatchingFunctions &functions) const;
 
         bool trySeedTupleShorthand(ExprLooksLikeCall *expr, bool visCheck);
 
@@ -334,6 +360,7 @@ namespace das {
         // ExprPtr2Ref
         virtual ExpressionPtr visit(ExprPtr2Ref *expr) override;
         // ExprRef2Ptr
+        virtual void preVisit(ExprRef2Ptr *expr) override;
         virtual ExpressionPtr visit(ExprRef2Ptr *expr) override;
         // ExprNullCoalescing
         void propagateAlwaysSafe(ExpressionPtr expr);
@@ -386,6 +413,7 @@ namespace das {
         TypeDeclPtr castStruct(const LineInfo &at, const TypeDeclPtr &subexprType, const TypeDeclPtr &castType, bool upcast) const;
         TypeDeclPtr castFunc(const LineInfo &at, const TypeDeclPtr &subexprType, const TypeDeclPtr &castType, bool upcast) const;
 
+        virtual void preVisit(ExprCast *expr) override;
         virtual ExpressionPtr visit(ExprCast *expr) override;
         // ExprAscend
         void updateNewFlags(ExprAscend *expr);
@@ -483,6 +511,7 @@ namespace das {
         ExpressionPtr visit(ExprTryCatch *expr) override;
         // ExprReturn
         bool inferReturnType(TypeDeclPtr &resType, ExprReturn *expr);
+        void reportUnresolvedReturnValue(ExprReturn *expr);
         virtual void preVisit(ExprReturn *expr) override;
         void getDetailsAndSuggests(ExprReturn *expr, string &details, string &suggestions) const;
         virtual ExpressionPtr visit(ExprReturn *expr) override;
@@ -496,6 +525,7 @@ namespace das {
         // ExprIfThenElse
         bool isConstExprFunc(Function *fun) const;
         ExpressionPtr getConstExpr(Expression *expr);
+        das_set<Variable *> constExprFolding;   // globals whose init is mid-fold in getConstExpr — breaks init cycles (A = B + 1; B = A + 1)
         virtual bool canVisitIfSubexpr(ExprIfThenElse *expr) override;
         virtual void preVisit(ExprIfThenElse *expr) override;
         virtual ExpressionPtr visit(ExprIfThenElse *expr) override;
@@ -526,6 +556,7 @@ namespace das {
         virtual void preVisitLetInit(ExprLet *expr, const VariablePtr &var, Expression *init) override;
         bool isEmptyInit(const VariablePtr &var) const;
         virtual VariablePtr visitLet(ExprLet *expr, const VariablePtr &var, bool last) override;
+        ExpressionPtr promoteStringInitToClone(const VariablePtr &var);
         ExpressionPtr promoteToCloneToMove(const VariablePtr &var);
         bool canRelaxAssign(Expression *init) const;
         virtual ExpressionPtr visitLetInit(ExprLet *expr, const VariablePtr &var, Expression *init) override;
@@ -613,6 +644,7 @@ namespace das {
 
         virtual ExpressionPtr visit(ExprCall *expr) override;
         // StringBuilder
+        virtual void preVisitStringBuilderElement(ExprStringBuilder *sb, Expression *expr, bool last) override;
         virtual ExpressionPtr visitStringBuilderElement(ExprStringBuilder *, Expression *expr, bool) override;
         virtual ExpressionPtr visit(ExprStringBuilder *expr) override;
         // make variant
@@ -637,8 +669,12 @@ namespace das {
         virtual ExpressionPtr visitMakeArrayIndex(ExprMakeArray *expr, int index, Expression *init, bool last) override;
         virtual ExpressionPtr visit(ExprMakeArray *expr) override;
         // array comprehension
+        virtual void preVisit(ExprArrayComprehension *expr) override;
         virtual void preVisitArrayComprehensionSubexpr(ExprArrayComprehension *expr, Expression *subexpr) override;
         virtual void preVisitArrayComprehensionWhere(ExprArrayComprehension *expr, Expression *where) override;
         virtual ExpressionPtr visit(ExprArrayComprehension *expr) override;
     };
+
+    void inferTypes ( Program * program, TextWriter & logs, ModuleGroup & libGroup );
+    void inferTypesDirty ( Program * program, TextWriter & logs, bool verbose );
 }

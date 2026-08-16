@@ -27,21 +27,21 @@ def test_property_clone_assign(t : T?) {
     t |> run("clone-assign string via block") @(t : T?) {
         var res : string
         unsafe {
-            res := reinterpret<string#> "foo"
+            res := reinterpret<string#>("foo")
         }
         t |> equal(res, "foo")
     }
     t |> run("clone-assign to struct field directly") @(t : T?) {
         var f : Foo
         unsafe {
-            f.resz := reinterpret<string#> "bar"
+            f.resz := reinterpret<string#>("bar")
         }
         t |> equal(f.resz, "bar")
     }
     t |> run("clone-assign via property operator") @(t : T?) {
         var f : Foo
         unsafe {
-            f.res := reinterpret<string#> "baz"
+            f.res := reinterpret<string#>("baz")
         }
         t |> equal(f.resz, "baz")
     }

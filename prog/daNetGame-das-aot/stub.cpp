@@ -381,8 +381,6 @@ namespace camera_in_camera
 bool is_lens_only_zoom_enabled() { G_ASSERT_RETURN(false, false); }
 } // namespace camera_in_camera
 
-float get_scope_lens_magnification_limit_term() { return 1.0f; }
-
 bool is_looking_into_optics_scope() { return false; }
 
 #include "main/gameLoad.h"

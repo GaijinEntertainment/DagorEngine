@@ -43,6 +43,8 @@ void two_bones_ik_init_block_settings(PropPanel::ContainerPropertyControl *panel
     selectedBlock->getPoint3("flexDirection", DEFAULT_FLEX_DIRECTION), /*prec*/ 2, isEditable);
   panel->createEditBox(PID_CTRLS_TWO_BONES_IK_FLEX_LOCAL_TO_NODE, "flexLocalToNode", selectedBlock->getStr("flexLocalToNode", ""),
     isEditable);
+  panel->createEditBox(PID_CTRLS_TWO_BONES_IK_ROTATE_FLEX_DIRECTION_VAR, "rotateFlexDirectionVar",
+    selectedBlock->getStr("rotateFlexDirectionVar", ""), isEditable);
 }
 
 void two_bones_ik_save_block_settings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
@@ -67,6 +69,7 @@ void two_bones_ik_save_block_settings(PropPanel::ContainerPropertyControl *panel
   const bool forceReachTargetValue = panel->getBool(PID_CTRLS_TWO_BONES_IK_FORCE_REACH_TARGET);
   const Point3 flexDirectionValue = panel->getPoint3(PID_CTRLS_TWO_BONES_IK_FLEX_DIRECTION);
   const SimpleString flexLocalToNodeValue = panel->getText(PID_CTRLS_TWO_BONES_IK_FLEX_LOCAL_TO_NODE);
+  const SimpleString rotateFlexDirectionVarValue = panel->getText(PID_CTRLS_TWO_BONES_IK_ROTATE_FLEX_DIRECTION_VAR);
 
   if (!selectedBlock)
     selectedBlock = settings->addNewBlock("bones");
@@ -87,6 +90,8 @@ void two_bones_ik_save_block_settings(PropPanel::ContainerPropertyControl *panel
     selectedBlock->setPoint3("flexDirection", flexDirectionValue);
   if (!flexLocalToNodeValue.empty())
     selectedBlock->setStr("flexLocalToNode", flexLocalToNodeValue.c_str());
+  if (!rotateFlexDirectionVarValue.empty())
+    selectedBlock->setStr("rotateFlexDirectionVar", rotateFlexDirectionVarValue.c_str());
 
   if (listName != startValue)
     panel->setText(PID_CTRLS_NODES_LIST, startValue.c_str());
@@ -111,9 +116,10 @@ void two_bones_ik_set_selected_node_list_settings(PropPanel::ContainerPropertyCo
   panel->setBool(PID_CTRLS_TWO_BONES_IK_FORCE_REACH_TARGET, selectedBlock->getBool("forceReachTarget", false));
   panel->setPoint3(PID_CTRLS_TWO_BONES_IK_FLEX_DIRECTION, selectedBlock->getPoint3("flexDirection", DEFAULT_FLEX_DIRECTION));
   panel->setText(PID_CTRLS_TWO_BONES_IK_FLEX_LOCAL_TO_NODE, selectedBlock->getStr("flexLocalToNode", ""));
+  panel->setText(PID_CTRLS_TWO_BONES_IK_ROTATE_FLEX_DIRECTION_VAR, selectedBlock->getStr("rotateFlexDirectionVar", ""));
 
   const bool isEditable = panel->getInt(PID_CTRLS_NODES_LIST) >= 0;
-  for (int i = PID_CTRLS_TWO_BONES_IK_START; i <= PID_CTRLS_TWO_BONES_IK_FLEX_LOCAL_TO_NODE; ++i)
+  for (int i = PID_CTRLS_TWO_BONES_IK_START; i <= PID_CTRLS_TWO_BONES_IK_ROTATE_FLEX_DIRECTION_VAR; ++i)
     panel->setEnabledById(i, isEditable);
 }
 

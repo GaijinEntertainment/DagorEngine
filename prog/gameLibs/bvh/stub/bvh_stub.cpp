@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <bvh/bvh.h>
+#include <debug/dag_debug.h>
 
 namespace bvh
 {
@@ -126,6 +127,20 @@ void connect_smoke_tracers(ContextId, smoke_tracers_connect_callback) {}
 void update_smoke_tracer_instances(SmokeTracerManager *) {}
 
 void ensure_particle_buffer_capacity(int, int) {}
+
+bool connect_lru_collision(ContextId, LRURendinstCollision *, lru_collision_gather_fn, const LruCollisionSettings &)
+{
+  logerr("[BVH] connect_lru_collision: bvh is compiled out (BVHSupport = no)");
+  return false;
+}
+
+void remove_lru_collision(ContextId) {}
+
+void invalidate_lru_collision(ContextId) {}
+
+void set_lru_collision_range(ContextId, float, float) {}
+
+LruCollisionStats get_lru_collision_stats(ContextId) { return {}; }
 
 } // namespace bvh
 

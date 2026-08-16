@@ -184,7 +184,7 @@ public:
   const U *getIf(size_t index) const
   {
     G_ASSERT(index < size());
-    return getTypes()[index].template getIf<U>(getTypes()[index].addressOf());
+    return getTypes()[index].template getIf<U>(getValues()[index].addressOf());
   }
 
   template <typename U>

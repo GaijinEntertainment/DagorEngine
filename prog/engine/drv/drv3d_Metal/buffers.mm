@@ -506,6 +506,8 @@ namespace drv3d_metal
 
   bool Buffer::copyTo(Sbuffer * dest, uint32_t dst_ofs_bytes, uint32_t src_ofs_bytes, uint32_t size_bytes)
   {
+    if (size_bytes == 0)
+      return true;
     render.acquireOwnership();
     render.copyBuffer(this, src_ofs_bytes, dest, dst_ofs_bytes, size_bytes);
     render.releaseOwnership();

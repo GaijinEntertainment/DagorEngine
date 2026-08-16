@@ -5,6 +5,8 @@
 #include <daRg/dag_stringKeys.h>
 #include <daRg/dag_scriptHandlers.h>
 
+#include "statefulComp.h"
+
 #include <drv/hid/dag_hiPointing.h>
 #include <drv/hid/dag_hiGlobals.h>
 #include <drv/hid/dag_hiKeyboard.h>
@@ -38,6 +40,34 @@ namespace darg
 
 CONSOLE_FLOAT_VAL("darg", kinetic_vel_viscosity, 0.25f);
 CONSOLE_FLOAT_VAL("darg", overscroll_spring_freq, 200.0f);
+
+
+struct ChildSlot
+{
+  Sqrat::Object rawObj;
+  Component comp;
+  StatefulCompDesc *desc = nullptr;            // kept alive by rawObj
+  eastl::unique_ptr<StatefulInstance> mounted; // fresh mount, moved to the created element
+  Element *srcElem = nullptr;
+  bool isGap = false;
+};
+
+
+// Queued instead of deleted right away: fade-out completion handlers queued
+// during deletion may still read the instance state.
+class StatefulDisposeHandler final : public BaseScriptHandler
+{
+public:
+  StatefulDisposeHandler(eastl::unique_ptr<StatefulInstance> &&inst_) : inst(eastl::move(inst_)) { allowOnShutdown = true; }
+  virtual bool call() override
+  {
+    inst.reset();
+    return true;
+  }
+
+private:
+  eastl::unique_ptr<StatefulInstance> inst;
+};
 
 
 static bool is_same_tbl_component(const Element *elem, const Component &new_comp)
@@ -141,6 +171,9 @@ static bool match_elem_with_new_comp(const Element *elem, const Component &comp,
 {
 #define MATCH true // highlight return values in code to ease reading
 
+  if (elem->statefulInst)
+    return false;
+
   if (elem->rendObjType != comp.rendObjType)
     return false;
 
@@ -174,18 +207,14 @@ static bool match_elem_with_new_comp(const Element *elem, const Component &comp,
 
 
 void ElementTree::reuseUnchangedDynamicChildren(dag::Vector<Element *> &elem_children,
-  dag::Vector<Sqrat::Object, framemem_allocator> &comp_children, Tab<Element *> &new_children_src)
+  dag::Vector<ChildSlot, framemem_allocator> &slots)
 {
-  G_ASSERTF(comp_children.size() == new_children_src.size(), "Children array size mismatch: %d vs %d", int(comp_children.size()),
-    int(new_children_src.size()));
-
   if (elem_children.empty())
     return;
 
-  for (int icComp = 0, ncComp = comp_children.size(); icComp < ncComp; ++icComp)
+  for (ChildSlot &slot : slots)
   {
-    Sqrat::Object &childCompObj = comp_children[icComp];
-    if (childCompObj.GetType() != OT_CLOSURE)
+    if (slot.rawObj.GetType() != OT_CLOSURE)
       continue;
 
     for (int icElem = 0, ncElem = elem_children.size(); icElem < ncElem; ++icElem)
@@ -193,12 +222,14 @@ void ElementTree::reuseUnchangedDynamicChildren(dag::Vector<Element *> &elem_chi
       Element *childElem = elem_children[icElem];
       if (!childElem) // already reused and cleared
         continue;
+      if (childElem->statefulInst) // claimed only by descriptors
+        continue;
       if (childElem->props.scriptBuilder.IsNull()) // not a dynamic
         continue;
 
-      if (childElem->props.scriptBuilder.IsEqual(childCompObj))
+      if (childElem->props.scriptBuilder.IsEqual(slot.rawObj))
       {
-        new_children_src[icComp] = childElem;
+        slot.srcElem = childElem;
         elem_children[icElem] = nullptr;
         break;
       }
@@ -207,23 +238,47 @@ void ElementTree::reuseUnchangedDynamicChildren(dag::Vector<Element *> &elem_chi
 }
 
 
-void ElementTree::collectChildrenToReuse(dag::Vector<Element *> &elem_children,
-  const dag::Vector<Component, framemem_allocator> &comp_children, Tab<Element *> &new_children_src)
+// Matches by type reference and key value only. Siblings of the same type that
+// share a key (or have none) are matched in order.
+void ElementTree::matchStatefulChildren(dag::Vector<Element *> &elem_children, dag::Vector<ChildSlot, framemem_allocator> &slots)
 {
-  G_ASSERTF(comp_children.size() == new_children_src.size(), "Children array size mismatch: %d vs %d", int(comp_children.size()),
-    int(new_children_src.size()));
+  if (elem_children.empty())
+    return;
 
+  for (ChildSlot &slot : slots)
+  {
+    if (!slot.desc || slot.srcElem)
+      continue;
+
+    for (int icElem = 0, ncElem = elem_children.size(); icElem < ncElem; ++icElem)
+    {
+      Element *childElem = elem_children[icElem];
+      if (!childElem || !childElem->statefulInst)
+        continue;
+
+      if (stateful_desc_matches_instance(slot.desc, childElem->statefulInst.get()))
+      {
+        slot.srcElem = childElem;
+        elem_children[icElem] = nullptr;
+        break;
+      }
+    }
+  }
+}
+
+
+void ElementTree::collectChildrenToReuse(dag::Vector<Element *> &elem_children, dag::Vector<ChildSlot, framemem_allocator> &slots)
+{
   if (elem_children.empty())
     return;
 
   const StringKeys *csk = guiScene->getStringKeys();
 
-  for (int icComp = 0, ncComp = comp_children.size(); icComp < ncComp; ++icComp)
+  for (ChildSlot &slot : slots)
   {
-    const Component &childComp = comp_children[icComp];
-    if (childComp.scriptDesc.IsNull())
+    if (slot.desc || slot.comp.scriptDesc.IsNull())
       continue;
-    if (new_children_src[icComp]) // already assigned
+    if (slot.srcElem) // already assigned
       continue;
 
     for (int icElem = 0, ncElem = elem_children.size(); icElem < ncElem; ++icElem)
@@ -232,9 +287,9 @@ void ElementTree::collectChildrenToReuse(dag::Vector<Element *> &elem_children,
       if (!childElem) // already reused and cleared
         continue;
 
-      if (match_elem_with_new_comp(childElem, childComp, false, csk))
+      if (match_elem_with_new_comp(childElem, slot.comp, false, csk))
       {
-        new_children_src[icComp] = childElem;
+        slot.srcElem = childElem;
         elem_children[icElem] = nullptr;
         break;
       }
@@ -252,56 +307,52 @@ bool ElementTree::does_component_affect_layout(const darg::Component &comp, cons
 
 
 static void add_gaps(const Sqrat::Table &script_desc, dag::Vector<Element *> &cur_elem_children, const StringKeys *csk,
-  dag::Vector<Sqrat::Object, framemem_allocator> &children_objs, Component::TmpVector &children_comps,
-  Tab<Element *> &children_source_elems, Bitarray &gaps_mask, const Sqrat::Object &parent_builder)
+  dag::Vector<ChildSlot, framemem_allocator> &slots, const Sqrat::Object &parent_builder)
 {
-  G_ASSERTF(children_objs.size() == children_comps.size(), "Children array size mismatch (1): %d vs %d", int(children_objs.size()),
-    int(children_comps.size()));
-  G_ASSERTF(children_objs.size() == children_source_elems.size(), "Children array size mismatch (2): %d vs %d",
-    int(children_objs.size()), int(children_source_elems.size()));
-
   Sqrat::Object gapObj = script_desc.RawGetSlot(csk->gap);
   SQObjectType gapType = gapObj.GetType();
+  if (try_get_stateful_desc(gapObj))
+  {
+    darg_assert_trace_var("A stateful descriptor is not legal as 'gap'; wrap it: {children = <descriptor>}", script_desc, csk->gap);
+    return;
+  }
   if (gapType != OT_CLOSURE && gapType != OT_TABLE && gapType != OT_CLASS)
     return;
-
-  Component tmpComp;
-
-  gaps_mask.resize(children_objs.size() * 2);
 
   // TODO: match unchanged dynamic gaps also just like non-gap components
 
   bool needGap = false;
-  for (int iChild = 0, nChildren = children_objs.size(); iChild < nChildren; ++iChild)
+  for (int iChild = 0, nChildren = slots.size(); iChild < nChildren; ++iChild)
   {
-    Element *matchedSrcElem = children_source_elems[iChild];
-    darg::Component &candidateComp = children_comps[iChild];
     // insert gaps only if element is renderable or have children
-    bool haveValidElem = (matchedSrcElem && ElementTree::does_element_affect_layout(matchedSrcElem)) ||
-                         (!candidateComp.scriptDesc.IsNull() && ElementTree::does_component_affect_layout(candidateComp, csk));
+    bool haveValidElem =
+      (slots[iChild].srcElem && ElementTree::does_element_affect_layout(slots[iChild].srcElem)) ||
+      (!slots[iChild].comp.scriptDesc.IsNull() && ElementTree::does_component_affect_layout(slots[iChild].comp, csk));
 
     if (needGap && haveValidElem)
     {
+      Component tmpComp;
       if (Component::build_component(tmpComp, gapObj, csk, parent_builder))
       {
-        Element *source = nullptr;
+        ChildSlot gapSlot;
+        gapSlot.rawObj = gapObj;
+        gapSlot.comp = eastl::move(tmpComp);
+        gapSlot.isGap = true;
+
         for (int i = 0, n = cur_elem_children.size(); i < n; ++i)
         {
           if (!cur_elem_children[i])
             continue; // already reused and cleared
 
-          if (match_elem_with_new_comp(cur_elem_children[i], tmpComp, true, csk))
+          if (match_elem_with_new_comp(cur_elem_children[i], gapSlot.comp, true, csk))
           {
-            source = cur_elem_children[i];
+            gapSlot.srcElem = cur_elem_children[i];
             cur_elem_children[i] = nullptr;
             break;
           }
         }
 
-        children_objs.insert(children_objs.begin() + iChild, gapObj);
-        children_comps.insert(children_comps.begin() + iChild, tmpComp);
-        insert_items(children_source_elems, iChild, 1, &source);
-        gaps_mask.set(iChild);
+        slots.insert(slots.begin() + iChild, eastl::move(gapSlot));
 
         ++iChild; // handle indices change on insert
         ++nChildren;
@@ -362,6 +413,16 @@ Element *ElementTree::rebuild(HSQUIRRELVM vm, Element *existing, const Component
 
   elem->setup(comp, guiScene, existing ? SM_REBUILD_UPDATE : SM_INITIAL);
 
+  if (elem->statefulInst)
+  {
+    if (!elem->props.uniqueKey.IsNull())
+      darg_assert_trace_var("A stateful component description must not set 'key'; identity comes from the StatefulComp key function",
+        comp.scriptDesc, csk->key);
+    // setup() has just re-read 'key' from the description, so put the instance
+    // key back: findElementByKey and keyed matching rely on it.
+    elem->props.uniqueKey = elem->statefulInst->keyValue;
+  }
+
   if (elem->isHidden() != wasHidden)
     out_flags |= RESULT_ELEMS_ADDED_OR_REMOVED;
   if (!existing && !elem->hotkeyCombos.empty())
@@ -370,9 +431,7 @@ Element *ElementTree::rebuild(HSQUIRRELVM vm, Element *existing, const Component
     out_flags |= RESULT_INVALIDATE_RENDER_LIST;
 
   dag::Vector<Sqrat::Object, framemem_allocator> childrenDescObjs;
-  Component::TmpVector childrenComps;
-  Tab<Element *> newChildrenSrc(framemem_ptr());
-  Bitarray gapsMask(framemem_ptr());
+  dag::Vector<ChildSlot, framemem_allocator> slots;
 
   const Sqrat::Object &childrensParentBuilder = comp.scriptBuilder.IsNull() ? parent_builder : comp.scriptBuilder;
 
@@ -380,27 +439,33 @@ Element *ElementTree::rebuild(HSQUIRRELVM vm, Element *existing, const Component
   for (Behavior *bhv : elem->behaviors)
     bhv->contributeChildren(elem, childrenDescObjs);
 
-  newChildrenSrc.resize(childrenDescObjs.size());
-  mem_set_0(newChildrenSrc);
-
-  reuseUnchangedDynamicChildren(elem->children, childrenDescObjs, newChildrenSrc);
-
-  childrenComps.resize(childrenDescObjs.size()); // size should be synchronized with childrenDescObjs and newChildrenSrc
+  slots.resize(childrenDescObjs.size());
   for (size_t iChild = 0, nChildren = childrenDescObjs.size(); iChild < nChildren; ++iChild)
   {
-    const Sqrat::Object &o = childrenDescObjs[iChild];
-    bool reusedDynamic = newChildrenSrc[iChild] != nullptr;
-    if (!o.IsNull() && !reusedDynamic)
-      Component::build_component(childrenComps[iChild], o, csk, childrensParentBuilder);
+    slots[iChild].rawObj = eastl::move(childrenDescObjs[iChild]);
+    slots[iChild].desc = try_get_stateful_desc(slots[iChild].rawObj);
   }
-  collectChildrenToReuse(elem->children, childrenComps, newChildrenSrc);
+  childrenDescObjs.clear();
+
+  reuseUnchangedDynamicChildren(elem->children, slots);
+  matchStatefulChildren(elem->children, slots);
+
+  for (ChildSlot &slot : slots)
+    if (!slot.desc && !slot.srcElem && !slot.rawObj.IsNull())
+      Component::build_component(slot.comp, slot.rawObj, csk, childrensParentBuilder);
+
+  collectChildrenToReuse(elem->children, slots);
+
+  // Mount before gap insertion: a descriptor cannot answer the layout
+  // questions that gap insertion asks about a slot.
+  for (ChildSlot &slot : slots)
+    if (slot.desc && !slot.srcElem)
+      slot.mounted = stateful_mount(guiScene, slot.desc, slot.comp);
 
   if (elem->layout.flowType != FLOW_PARENT_RELATIVE)
   {
-    add_gaps(comp.scriptDesc, elem->children, csk, childrenDescObjs, childrenComps, newChildrenSrc, gapsMask, parent_builder);
+    add_gaps(comp.scriptDesc, elem->children, csk, slots, parent_builder);
   }
-
-  bool haveCompGaps = gapsMask.size() != 0;
 
   for (Element *child : elem->children)
   {
@@ -408,39 +473,56 @@ Element *ElementTree::rebuild(HSQUIRRELVM vm, Element *existing, const Component
       out_flags |= releaseChild(elem, child);
   }
   elem->children.clear();
-  elem->children.reserve(childrenComps.size());
+  elem->children.reserve(slots.size());
 
   if (removeExpiredFadeOutChildren(elem))
     out_flags |= RESULT_ELEMS_ADDED_OR_REMOVED;
 
-  G_ASSERT(newChildrenSrc.size() == childrenComps.size());
   bool sortChildren = comp.scriptDesc.RawGetSlotValue(csk->sortChildren, false);
-  for (int i = 0, n = newChildrenSrc.size(); i < n; ++i)
+  for (ChildSlot &slot : slots)
   {
-    Element *srcElem = newChildrenSrc[i];
-    if (srcElem && !srcElem->props.scriptBuilder.IsNull() && srcElem->props.scriptBuilder.IsEqual(childrenDescObjs[i]))
+    Element *srcElem = slot.srcElem;
+    if (srcElem && slot.desc)
+    {
+      // A matched instance is not re-setup: writing its argument cells is
+      // enough, it reacts through its own watches.
+      bool prevSuppress = guiScene->suppressNestedUpdateReport;
+      guiScene->suppressNestedUpdateReport = true;
+      stateful_update_args(guiScene, slot.desc, srcElem->statefulInst.get());
+      guiScene->suppressNestedUpdateReport = prevSuppress;
+      elem->children.push_back(srcElem);
+      continue;
+    }
+    if (srcElem && !srcElem->props.scriptBuilder.IsNull() && srcElem->props.scriptBuilder.IsEqual(slot.rawObj))
     {
       elem->children.push_back(srcElem); // reuse unchanged dynamic
       continue;
     }
+    if (slot.desc && !slot.mounted)
+      continue; // mount failed; the error already told the author
 
-    G_ASSERT(!srcElem || srcElem->hasFlags(Element::F_GAP) == (haveCompGaps && gapsMask[i] != 0));
+    G_ASSERT(!srcElem || srcElem->hasFlags(Element::F_GAP) == slot.isGap);
 
-    Element *child = rebuild(vm, srcElem, childrenComps[i], elem, childrensParentBuilder, call_depth + 1, out_flags);
+    Element *child = rebuild(vm, srcElem, slot.comp, elem, childrensParentBuilder, call_depth + 1, out_flags);
     if (child)
     {
+      if (slot.mounted)
+      {
+        child->statefulInst = eastl::move(slot.mounted);
+        child->props.uniqueKey = child->statefulInst->keyValue;
+      }
+
       if (!sortChildren)
         elem->children.push_back(child);
       else
         add_child_sorted(elem, child);
 
-      if (haveCompGaps && gapsMask[i])
+      if (slot.isGap)
         child->updFlags(Element::F_GAP, true);
     }
   }
 
-  childrenComps.clear();
-  childrenDescObjs.clear();
+  slots.clear();
 
   if (!elem->animations.empty())
     animated.insert(elem);
@@ -616,6 +698,11 @@ int ElementTree::detachElement(Element *elem)
   releaseXmbOnDetach(elem);
 
   elem->onDetach(guiScene);
+
+  // Detach is final for an instance: matching scans children, not fadeOutChildren.
+  if (elem->statefulInst)
+    elem->statefulInst->unsubscribe();
+
   return resFlags;
 }
 
@@ -659,6 +746,14 @@ int ElementTree::deleteElement(Element *elem)
   resFlags |= detachElement(elem) | RESULT_ELEMS_ADDED_OR_REMOVED;
 
   elem->onDelete();
+
+  if (elem->statefulInst)
+  {
+    if (isInternalTemporaryTree) // temporary trees queue nothing
+      elem->statefulInst.reset();
+    else
+      guiScene->queueScriptHandler(new StatefulDisposeHandler(eastl::move(elem->statefulInst)));
+  }
 
   freeElement(elem);
   return resFlags;

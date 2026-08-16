@@ -194,7 +194,7 @@ namespace das {
         das_hash_set<const Variable *> variables;
     };
 
-    void collectDependencies ( FunctionPtr fun, const TBlock<void,TArray<Function *>,TArray<Variable *>> & block, Context * context, LineInfoArg * line ) {
+    DAS_API void collectDependencies ( FunctionPtr fun, const TBlock<void,TArray<Function *>,TArray<Variable *>> & block, Context * context, LineInfoArg * line ) {
         auto program = daScriptEnvironment::getBound()->g_Program;
         if ( !program ) context->throw_error_at(line, "Can't collect dependencies outside of compilation.");
         program->markExecutableSymbolUse();
@@ -212,13 +212,14 @@ namespace das {
         for ( auto & fn : vecVars ) {
             tvar.push_back(fn.first);
         }
+        // Always call array_mark_locked, even when the dependency list is empty: an
+        // un-marked Array carries uninitialised `magic` which fails the lock-magic check
+        // on the das-side `for (... in ...)` iterator, crashing the macro with
+        // "array magic mismatch on lock" on a function whose body references neither
+        // a function dependency nor a global variable (e.g. an empty-body [compute_shader]).
         Array afun, avar;
-        if ( tfun.size() ) {
-            array_mark_locked(afun, tfun.data(), uint32_t(tfun.size()));
-        }
-        if ( tvar.size() ) {
-            array_mark_locked(avar, tvar.data(), uint32_t(tvar.size()));
-        }
+        array_mark_locked(afun, tfun.size() ? (void*)tfun.data() : nullptr, uint32_t(tfun.size()));
+        array_mark_locked(avar, tvar.size() ? (void*)tvar.data() : nullptr, uint32_t(tvar.size()));
         vec4f args[2];
         args[0] = cast<Array &>::from(afun);
         args[1] = cast<Array &>::from(avar);

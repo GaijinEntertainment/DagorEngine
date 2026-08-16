@@ -1,30 +1,44 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <string>
+#include <unordered_map>
+
 #include <max.h>
 #include "dagor.h"
 
 HINSTANCE hInstance;
 
-TCHAR *GetString(int id)
+const TCHAR *GetString(int id)
 {
-  static TCHAR buf[256];
+  if (!hInstance)
+    return NULL;
 
-  if (hInstance)
-    return LoadString(hInstance, id, buf, sizeof(buf) / sizeof(*buf)) ? buf : NULL;
-  return NULL;
+  // Callers such as ClassDesc::ClassName() keep the pointer, so each string gets its own entry
+  // whose address never moves, rather than a buffer shared by every id. The cache outlives the
+  // static destruction of the module on purpose, so those pointers never dangle.
+  static auto &cache = *new std::unordered_map<int, std::wstring>;
+  const auto it = cache.find(id);
+  if (it != cache.end())
+    return it->second.c_str();
+
+  // A zero buffer size makes LoadString return the resource itself, which is not null terminated.
+  TCHAR *res = NULL;
+  const int len = LoadString(hInstance, id, reinterpret_cast<TCHAR *>(&res), 0);
+  if (len <= 0)
+    return NULL;
+
+  return cache.emplace(id, std::wstring(res, len)).first->second.c_str();
 }
 
 void load_dagorpath_cfg();
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, ULONG fdwReason, LPVOID lpvReserved)
 {
-  static int controlsInit = FALSE;
+  if (fdwReason != DLL_PROCESS_ATTACH)
+    return TRUE;
+
   hInstance = hinstDLL;
-  if (!controlsInit)
-  {
-    controlsInit = TRUE;
-    InitCommonControls();
-  }
+  InitCommonControls();
   load_dagorpath_cfg();
   return TRUE;
 }

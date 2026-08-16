@@ -18,13 +18,7 @@ require daslib/macro_boost
 
 [tag_function(defer_tag), unused_argument(blk)]
 def public defer(blk : block<() : void>) {
-    //! defer a block of code. For example::
-    //!
-    //!     var a = fopen("filename.txt","r")
-    //!     defer <|
-    //!         fclose(a)
-    //!
-    //! Will close the file when 'a' is out of scope.
+    //! Defers a block of code until scope exit.
     pass
 }
 

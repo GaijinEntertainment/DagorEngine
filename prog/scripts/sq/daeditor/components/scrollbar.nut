@@ -1,5 +1,6 @@
 from "%darg/ui_imports.nut" import *
 from "%sqstd/frp.nut" import *
+from "types" import Array
 
 function Bar(has_scroll) {
   if (has_scroll) {
@@ -22,9 +23,9 @@ let Knob = freeze({
     : Color(110, 120, 140, 160)
 })
 
-let ContentRoot = freeze({
+const ContentRoot = {
   size = flex()
-})
+}
 
 
 function calcBarSize(bar_style, axis) {
@@ -73,7 +74,7 @@ function scrollbar(scroll_handler, options={}) {
     }
 
 
-    let minV = 0
+    const minV = 0
     let maxV = contentSize - elemSize
     let fValue = scrollPos
 
@@ -141,7 +142,7 @@ function makeSideScroll(content, options = DEF_SIDE_SCROLL_OPTIONS) {
 
   function contentRoot() {
     local bhv = rootBase?.behavior ?? []
-    if (type(bhv) != "array")
+    if (!(bhv instanceof Array))
       bhv = [bhv]
     else
       bhv = clone bhv
@@ -182,7 +183,7 @@ function makeHVScrolls(content, options={}) {
 
   function contentRoot() {
     local bhv = rootBase?.behavior ?? []
-    if (type(bhv) != "array")
+    if (!(bhv instanceof Array))
       bhv = [bhv]
     else
       bhv = clone bhv

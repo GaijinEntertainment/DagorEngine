@@ -38,11 +38,3 @@ ground_hole{
   ground_hole_shape_intersection:b=no
   ground_hole_sphere_shape:b=no
 }
-
-underground_zones_updater{
-  _use:t="replicating"
-  _singleton:b=yes
-  _tags:t="render"
-  "hmapHolesZonesBuf:UniqueBufWithShaderVar" {}
-  should_update_ground_holes_zones:b=yes
-}

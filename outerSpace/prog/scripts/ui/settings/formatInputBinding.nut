@@ -1,5 +1,6 @@
 from "%scripts/ui/ui_library.nut" import *
 import "dainput2" as dainput
+from "types" import String
 
 let { controlsGeneration } = require("%scripts/ui/settings/input_generation.nut")
 let {isGamepad} = require("%scripts/ui/settings/active_input.nut")
@@ -189,7 +190,7 @@ function buildElems(textlist, params = {imgFunc=null, textFunc=mkText, eventText
     return function(){
       if (eventTypeValues.indexof(text)!=null)
         return eventTextFunc?(inParents(loc(text)))
-      else if (type(text)=="string")
+      else if (text instanceof String)
         return textFunc(loc(text))
       else
         return null

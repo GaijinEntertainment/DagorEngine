@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 options infer_time_folding = false   // mirror the lint runner's policy via the source-level option;
                                      // dastest otherwise compiles with folding on, which would
                                      // fold the const probe below before perf_lint runs.

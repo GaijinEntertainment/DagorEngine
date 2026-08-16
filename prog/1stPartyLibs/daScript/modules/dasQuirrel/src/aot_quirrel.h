@@ -12,6 +12,6 @@ __forceinline SQRESULT sq_getstring(HSQUIRRELVM v,SQInteger idx,const char * con
 void sqdas_register(HSQUIRRELVM v);
 void sqdas_bind_func( Context &ctx, uint64_t fnHash, const char * name, const char * module_name, int argsNum, const char * paramsCheck);
 SQInteger call_binded_func(HSQUIRRELVM vm);
-void register_bound_funcs(HSQUIRRELVM vm, function<void(const char *module_name, HSQOBJECT tab)> cb);
+void register_bound_funcs(HSQUIRRELVM vm, function<void(const char *module_name, HSQOBJECT tab)> cb, daScriptEnvironment *environment);
 
 }

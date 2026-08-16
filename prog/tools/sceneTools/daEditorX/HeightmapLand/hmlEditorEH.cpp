@@ -310,7 +310,7 @@ bool HmapLandObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, b
       bool is = false;
       for (int i = 0; i < splines.size(); i++)
       {
-        if (EditLayerProps::layerProps[splines[i]->getEditLayerIdx()].lock)
+        if (EditLayerProps::layerProps[splines[i]->getEditLayerIdx()].isLayerOrTypeLocked())
           continue;
 
         Point3 p;
@@ -683,7 +683,7 @@ bool HmapLandObjectEditor::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y
     }
     else if (getEditMode() == CM_REFINE_SPLINE)
     {
-      if (curPt->visible && refSpline && !EditLayerProps::layerProps[refSpline->getEditLayerIdx()].lock)
+      if (curPt->visible && refSpline && !EditLayerProps::layerProps[refSpline->getEditLayerIdx()].isLayerOrTypeLocked())
       {
         real refT;
         int segId;
@@ -1744,6 +1744,23 @@ void HmapLandObjectEditor::makeBottomSplines()
   updateToolbarButtons();
 }
 
+void HmapLandObjectEditor::setNewObjInteractiveMove(bool on)
+{
+  if (newObj.get())
+    newObj->setInteractiveMove(on);
+}
+
+// The sample outlives create mode, so every exit has to stop it from following the mouse. This is the
+// one place all of them go through; newObj itself is released on only one of those paths.
+void HmapLandObjectEditor::setCreateBySampleMode(RenderableEditableObject *sample_)
+{
+  if (!sample_)
+    setNewObjInteractiveMove(false);
+  ObjectEditor::setCreateBySampleMode(sample_);
+  if (sample_ && sample_ == newObj.get())
+    setNewObjInteractiveMove(true);
+}
+
 void HmapLandObjectEditor::selectNewObjEntity(const char *name)
 {
   if (!newObj.get())
@@ -1771,7 +1788,10 @@ void HmapLandObjectEditor::selectNewObjEntity(const char *name)
     newObj->getEntity()->setSubtype(IObjEntity::ST_NOT_COLLIDABLE);
 
   if (!name && !is_creating_entity_mode(getEditMode()))
+  {
+    setNewObjInteractiveMove(false);
     newObj = NULL;
+  }
 }
 
 void HmapLandObjectEditor::createObjectBySample(RenderableEditableObject *sample)
@@ -1800,6 +1820,7 @@ void HmapLandObjectEditor::createObjectBySample(RenderableEditableObject *sample
   no->setProps(o->getProps());
   no->setSavedPlacementNormal(sample->getSavedPlacementNormal());
   no->setWtm(tm);
+  no->generatePinnedPerInstSeed();
   getUndoSystem()->begin();
   addObject(no);
   unselectAll();
@@ -1865,10 +1886,6 @@ void HmapLandObjectEditor::showOutlinerWindow(bool show)
   if (!outlinerWindow)
   {
     outlinerWindow.reset(DAEDITOR3.createOutlinerWindow());
-
-    G_ASSERT(!outlinerInterface);
-    outlinerInterface.reset(new HeightmapLandOutlinerInterface(*this));
-
     outlinerWindow->setTreeInterface(outlinerInterface.get());
     outlinerWindow->fillTypesAndLayers();
     outlinerWindow->loadOutlinerSettings(outlinerSettings);

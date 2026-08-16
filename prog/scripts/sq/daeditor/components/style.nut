@@ -1,6 +1,6 @@
 from "%darg/ui_imports.nut" import *
 
-let margin = fsh(0.3)
+const margin = fsh(0.3)
 let height = calc_str_box({text="A"})[1] + 2*margin
 
 return freeze({

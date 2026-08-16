@@ -231,8 +231,9 @@ VECTORCALL VECMATH_FINLINE vec4f v_cast_vec4f(vec4i a);
 
 //! convert to integer using round-to-zero mode
 VECTORCALL VECMATH_FINLINE vec4i v_cvti_vec4i(vec4f a);
-VECTORCALL VECMATH_FINLINE vec4i v_cvtu_vec4i(vec4f a);//works correctly on all correct values (positive). on negative - implementation defined
-VECTORCALL VECMATH_FINLINE vec4i v_cvtu_vec4i_ieee(vec4f a);//works same as scalar operations on all values
+VECTORCALL VECMATH_FINLINE vec4i v_cvtu_vec4i(vec4f a);//truncates, like the cast. correct for [0, 1<<32); on negative - implementation defined
+//! truncates. out of range and NaN differ per platform (SSE wraps like the scalar cast, NEON saturates), as they do in C
+VECTORCALL VECMATH_FINLINE vec4i v_cvtu_vec4i_ieee(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4i v_cvt_vec4i(vec4f a){return v_cvti_vec4i(a);}
 //! convert to float
 VECTORCALL VECMATH_FINLINE vec4f v_cvti_vec4f(vec4i a);
@@ -691,6 +692,8 @@ VECTORCALL VECMATH_FINLINE vec4f v_dot3_x(vec4f a, vec4f b);
 //! dot product: .x = (a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w)
 VECTORCALL VECMATH_FINLINE vec4f v_dot4_x(vec4f a, vec4f b);
 //! cross product: a x b; ; a.w,b.w could be anything, even NAN
+//! both products stay rounded (never contracted to FMA): a x a == 0 exactly and
+//! a x b == -(b x a) bitwise, identical on every platform and build
 VECTORCALL VECMATH_FINLINE vec3f v_cross3(vec3f a, vec3f b);
 
 //! make plane from 3 points
@@ -1225,7 +1228,7 @@ VECTORCALL VECMATH_FINLINE bool v_test_segment_box_intersection(vec3f start, vec
 // both can be negative
 // ray intersects box if tmax >= max(ray.tmin, tmin) && tmin <= ray.tmax
 VECTORCALL VECMATH_INLINE  vec4f v_ray_box_intersect_dist(vec3f bmin, vec3f bmax, vec3f ray_origin, vec3f ray_dir, vec3f is_empty_box);
-//approximate distance to box intersection (uses v_rcp_est instead of 1/rayDir). A bit faster, v_rcp_est error is < 1e-12
+//approximate distance to box intersection (uses v_rcp_est instead of 1/rayDir). A bit faster, v_rcp_est is good to ~22 bits
 VECTORCALL VECMATH_INLINE  vec4f v_ray_box_intersect_dist_est(vec3f bmin, vec3f bmax, vec3f ray_origin, vec3f ray_dir, vec3f is_empty_box);
 
 // return -1 if no intersection found, or box side index in [0; 5]

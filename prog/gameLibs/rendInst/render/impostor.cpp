@@ -104,7 +104,7 @@ void ImpostorRenderer::coalesce_packed_drawcalls()
 
 void ImpostorRenderer::render(dag::Span<const ShaderMesh::RElem> elems)
 {
-  TIME_D3D_PROFILE(render);
+  TIME_PROFILE(render);
 
   multidrawList.clear();
   drawcallRanges.clear();
@@ -895,7 +895,10 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
     d3d::set_render_target(); // Remove other MRTs
     bool hasShadow = shadowDistance > range;
     // debug("impostor range = %g, original range =%g shadowD=%g", range, pool.lodRange[sourceLodNo], shadowDistance);
-    if ((hasShadow || res->isBakedImpostor()) && !pool.hasUpdatedShadowImpostor)
+    bool needsPreshadow = hasShadow || res->isBakedImpostor();
+    if (res->isBakedImpostor())
+      needsPreshadow &= res->getImpostorParams().preshadowEnabled;
+    if (needsPreshadow && !pool.hasUpdatedShadowImpostor)
       pool.hasUpdatedShadowImpostor = updateImpostorsPreshadow(poolNo, sunDir0);
 
     // Set new matrices.
@@ -941,8 +944,8 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
 
     if (res->isBakedImpostor())
     {
-      // if preshadow baking is failed, we need to try again next frame
-      if (!hasShadow || pool.hasUpdatedShadowImpostor)
+      // if preshadow baking was not skipped and has failed, we need to try again next frame
+      if (!needsPreshadow || !hasShadow || pool.hasUpdatedShadowImpostor)
         updatePoolNo++;
       break;
     }
@@ -1226,6 +1229,8 @@ bool rendinst::render::areImpostorsUpToDate()
     return false;
   if (rendinst::render::impostorPreshadowNeedUpdate)
     return false;
+  if (rendinst::render::dynamic_impostor_texture_const_no < 0)
+    return true;
   FOR_EACH_RG_LAYER_DO (rgl)
   {
     if (!rgl->rtData)

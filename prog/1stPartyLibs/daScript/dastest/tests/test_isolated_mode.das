@@ -116,4 +116,28 @@ def test_isolated_mode(tt : T?) {
         t |> success(!(output2 |> contains("CALL STACK")),
             "without --stack-on-exception there must be no stack walk, got:\n{output2}")
     }
+
+    tt |> run("--run worker path honors --failures-only (PASS lines suppressed at the source)") <| @(t : T?) {
+        // The worker (--run) path used to return before log::failuresOnly was set,
+        // AND the parent never forwarded the flag — so every per-test RUN/PASS line
+        // of every passing file streamed through the captured pipe. The JSON report
+        // must keep streaming regardless (it is the parent's IPC, emitted raw).
+        let exe = get_command_line_arguments()[0]
+        let file = "{fixture_dir()}/test_one.das"
+        var output : string
+        var exit_code : int
+        run_dastest("{exe} {dastest_root()}/dastest.das -- --run {file} --failures-only", output, exit_code)
+        t |> equal(exit_code, 0)
+        t |> success(output |> contains("##dastest##"),
+            "JSON report must stream regardless of --failures-only, got:\n{output}")
+        t |> success(!(output |> contains("--- PASS")),
+            "worker must suppress per-test PASS lines under --failures-only, got:\n{output}")
+
+        // Control: the same invocation WITHOUT the flag does print them (proves the
+        // assertion above is meaningful, not a fixture that never logs).
+        run_dastest("{exe} {dastest_root()}/dastest.das -- --run {file}", output, exit_code)
+        t |> equal(exit_code, 0)
+        t |> success(output |> contains("--- PASS"),
+            "control run without --failures-only should print PASS lines, got:\n{output}")
+    }
 }

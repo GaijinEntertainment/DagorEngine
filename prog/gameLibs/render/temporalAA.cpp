@@ -75,10 +75,11 @@ TemporalAA::TemporalAA(const char *shader, const IPoint2 &input_resolution, cons
   if (!name)
     name = defaultName;
 
-  int historyFmt = mobile_taa ? resolve_tex_fmt : TEXFMT_A16B16G16R16F;
+  historyFmt = mobile_taa ? resolve_tex_fmt : TEXFMT_A16B16G16R16F;
   historyFmt |= TEXCF_RTARGET;
 
-  historyTexPool = RTargetPool::get(outputResolution.x, outputResolution.y, historyFmt, 1);
+  historyResolution = outputResolution;
+  historyTexPool = RTargetPool::get(historyResolution.x, historyResolution.y, historyFmt, 1);
 
   wasDynamicTexPool =
     req_dynamic_tex ? RTargetPool::get(outputResolution.x, outputResolution.y, TEXCF_RTARGET | TEXFMT_R8, 1) : nullptr;
@@ -139,6 +140,15 @@ void TemporalAA::applyImpl(Texture *currentFrameTex, Texture *target)
     precompute.render();
     taaPrecomputedWeights.setVar();
     precomputedWeightsReady = true;
+  }
+
+  TextureInfo targetInfo;
+  target->getinfo(targetInfo);
+  if (targetInfo.w != historyResolution.x || targetInfo.h != historyResolution.y)
+  {
+    historyResolution = IPoint2(targetInfo.w, targetInfo.h);
+    historyTexPool = RTargetPool::get(historyResolution.x, historyResolution.y, historyFmt, 1);
+    historyTex.forEach([](RTarget::Ptr &t) { t = nullptr; });
   }
 
   RTarget::Ptr nextHistory = historyTexPool->acquire();

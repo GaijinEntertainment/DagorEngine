@@ -33,7 +33,7 @@ public:
   }
 
   // Rubber-band preview from the anchor pin to the cursor (no-op until the anchor position is known).
-  void drawPreview(ImDrawList *draw_list, const ImVec2 &cursor) const;
+  void drawPreview(ImDrawList *draw_list, const ImVec2 &cursor, uint32_t color, float thickness) const;
 
   // If pin (node_id, pin_index) forms a valid edge with the anchor, fill out_edge (oriented
   // output -> input, id left unset for the caller to assign) and return true. Pure query: it does

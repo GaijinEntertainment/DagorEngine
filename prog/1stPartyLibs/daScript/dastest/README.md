@@ -33,8 +33,9 @@ Running only **some** selected benchmarks (uses `vector_alloc` as a filtering pr
 - `--color`: Print colored output
 - `--verbose`: Print verbose output
 - `--timeout <seconds>`: If tests run longer than duration d, panic. If d is 0, the timeout is disabled. The default is 10 minutes
+- `--max-file-time <seconds>`: Fail after the suite finishes if any completed test file exceeded this wall-clock duration. `0` (default) disables the limit; this is independent of the global `--timeout` deadlock guard.
 - `--isolated-mode`: Run tests in isolated processes, useful to catch crashes
-- `--isolated-mode-threads <n>`: Number of worker threads in isolated mode (defaults to 2x hardware threads when 0)
+- `--isolated-mode-threads <n>`: Number of worker threads in isolated mode. `0` uses a conservative JIT rule (`min(32, max(4, logical_threads / 2))`) and 2x hardware threads otherwise. Preflight can override the JIT width per machine through its user config.
 - `--batch <n>`: Files per worker subprocess in isolated mode (semi-isolated sharding). `1` (default) is one process per test (full isolation). `>1` amortizes process/compile cold-start across a batch — much faster, especially on Windows. A crash in a batch is auto-recovered: the file that died is reported as crashed and the rest of the batch is re-run one-process-per-file, so isolation is preserved exactly where it is needed.
 - `--stack-on-exception`: On a test panic, walk the call stack *at throw time* (frames intact) and print a real `CALL STACK` trace, instead of the default that reports only the panic message and location. Off by default (a test that swallows a panic via `try`/`recover` would also emit a walk); enable for one-iteration debugging of a failing/crashing test. Works in isolated mode too — the trace is folded under the failing test's log.
 - `--bench`: Enable benchmark execution (all of them)

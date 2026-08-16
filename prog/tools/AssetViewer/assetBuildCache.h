@@ -9,6 +9,8 @@ class DagorAssetMgr;
 class DagorAsset;
 class DataBlock;
 
+using PackId = uint64_t;
+static constexpr uint64_t INVALID_PACK_ID = ~uint64_t(0);
 
 bool init_dabuild_cache(const char *start_dir);
 void term_dabuild_cache();
@@ -31,6 +33,18 @@ void set_dabuild_jobs(int jobs);
 int get_dabuild_max_jobs();
 bool get_dabuild_current_build_uses_jobs();
 void render_dabuild_imgui();
+void bring_dabuild_to_front_explicit();
+
+void queue_add_pack(uint64_t pack_id, unsigned tc);
+void queue_remove_pack(uint64_t pack_id, unsigned tc);
+void queue_toggle_pack(uint64_t pack_id, unsigned tc);
+void queue_add_pack_all_platforms(uint64_t pack_id);
+void queue_toggle_all_platforms(uint64_t pack_id);
+void queue_remove_all();
+void queue_select_all_known_packs();
+void export_queue();
+
+dag::ConstSpan<unsigned> queue_get_pack_tcs(uint64_t pack_id);
 
 int bind_dabuild_cache_with_mgr(DagorAssetMgr &mgr, DataBlock &appblk, const char *appdir);
 
@@ -38,6 +52,7 @@ void post_base_update_notify_dabuild();
 
 String get_asset_pack_name(DagorAsset *asset);
 String get_asset_pkg_name(DagorAsset *asset);
+uint64_t make_pack_id(const char *pkg, const char *pack);
 
 bool check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, bool tex, bool res);
 

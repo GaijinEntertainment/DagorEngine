@@ -1,5 +1,7 @@
 #pragma once
 
+#include "daScript/misc/platform.h"
+
 #ifndef URI_STATIC_BUILD
 #define URI_STATIC_BUILD
 #endif
@@ -24,7 +26,7 @@ namespace das {
         return storage.c_str();
     }
 
-    class Uri {
+    class DAS_API Uri {
     public:
         Uri();
         Uri(UriUriA && uriA);

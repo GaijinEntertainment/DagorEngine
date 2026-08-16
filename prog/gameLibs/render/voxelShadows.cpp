@@ -98,12 +98,6 @@ VoxelShadows::VoxelShadows(const Settings &c) :
   validate_warp_size(sparseFullUpdateCs.get(), cfg);
   validate_warp_size(copyPaddingCs.get(), cfg);
 
-  d3d::SamplerInfo smpInfo;
-  smpInfo.filter_mode = d3d::FilterMode::Linear;
-  smpInfo.mip_map_mode = d3d::MipMapMode::Linear;
-  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
-  ShaderGlobal::set_sampler(::get_shader_variable_id("voxel_shadows_tex_samplerstate"), d3d::request_sampler(smpInfo));
-
   const ToroidalVoxelGrid::ShaderVars &gv = grids[0].getShaderVars();
   voxel_shadows_cascade_countVarId.set_int(cfg.cascadeCount);
   ShaderVariableInfo("voxel_shadows_tex_dim").set_int4(gv.texDim);

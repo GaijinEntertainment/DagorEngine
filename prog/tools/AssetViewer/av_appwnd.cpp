@@ -484,53 +484,6 @@ void AssetViewerApp::init(const char *select_workspace)
   editor_core_initialize_imgui();
   editor_core_load_imgui_theme(getThemeFileName());
   GenericEditorAppWindow::init(select_workspace);
-
-  PropPanel::load_toast_message_icons();
-
-  IGenViewportWnd *curVP = ged.getViewport(0);
-  if (curVP)
-  {
-    curVP->setCameraPos(Point3(0, 0, 0));
-    curVP->setCameraDirection(Point3(0, -0.36, 0.64), Point3(0, 0.64, 0.36));
-    curVP->activate();
-    ged.setCurrentViewportId(0);
-    ged.setViewportCacheMode(VCM_NoCacheAll);
-    zoomAndCenter();
-  }
-
-  registerEditorCommands();
-
-  // Normally it would be enough to just call addAccelerators() here but because both fillMenu() and fillToolbar() ran
-  // before registerEditorCommands() so we have to update the menu and toolbar button shortcuts too. So we simply call
-  // onEditorCommandKeyChordChanged() to do all these.
-  onEditorCommandKeyChordChanged();
-
-  { // Wait till the window layout is ready.
-    // Temporarily lift the FPS limit to prevent dagor_work_cycle() from returning because of not enough elapsed time.
-    const bool oldLimitFps = dgs_limit_fps;
-    dgs_limit_fps = false;
-
-    // The first AssetViewerApp::renderUI() call loads the last used layout or sets the default one, then ImGui needs two
-    // frames to handle auto sizing. The fourth call ensures that the camera is set up with the final viewport resolution
-    // in ViewportWindow::act() (to make zoomAndCenter() work correctly when called by selectAsset()).
-    for (int i = 0; i < 4; i++)
-      dagor_work_cycle();
-
-    dgs_limit_fps = oldLimitFps;
-  }
-
-  if (!assetToInitiallySelect.empty())
-  {
-    if (const DagorAsset *asset = DAEDITOR3.getAssetByName(assetToInitiallySelect))
-      selectAsset(*asset);
-    assetToInitiallySelect.clear();
-
-    if (mPropPanel)
-      mPropPanel->loadState(propPanelStateOfTheAssetToInitiallySelect, true);
-    propPanelStateOfTheAssetToInitiallySelect.reset();
-  }
-
-  logdbg("Asset Viewer has loaded and ready for interaction");
 }
 
 void AssetViewerApp::onEditorCommandKeyChordChanged()
@@ -1858,6 +1811,10 @@ void AssetViewerApp::showSelectWindow(IObjectsList *obj_list, const char *obj_li
 
 void AssetViewerApp::zoomAndCenter()
 {
+  // During sub-composite enter/exit transitions, apply the pre-computed camera instead of zooming.
+  if (getCompositeEditor().applyPendingCameraTransform())
+    return;
+
   IGenEditorPlugin *current = curPlugin();
   BBox3 bounds;
 
@@ -2923,7 +2880,68 @@ bool AssetViewerApp::loadProject(const char *)
 
   if (useDngBasedSceneRender)
     assetLtData.setPaintDetailsTexture();
+
+  PropPanel::load_toast_message_icons();
+
+  if (IGenViewportWnd *curVP = ged.getViewport(0))
+  {
+    curVP->setCameraPos(Point3(0, 0, 0));
+    curVP->setCameraDirection(Point3(0, -0.36, 0.64), Point3(0, 0.64, 0.36));
+    curVP->activate();
+    ged.setCurrentViewportId(0);
+    ged.setViewportCacheMode(VCM_NoCacheAll);
+    zoomAndCenter();
+  }
+
+  registerEditorCommands();
+
+  // Normally it would be enough to just call addAccelerators() here but because both fillMenu() and fillToolbar() ran
+  // before registerEditorCommands() so we have to update the menu and toolbar button shortcuts too. So we simply call
+  // onEditorCommandKeyChordChanged() to do all these.
+  onEditorCommandKeyChordChanged();
+
+  // Keep the last rendered frame on screen until the window layout is settled.
+  queryEditorInterface<IDynRenderService>()->suppressScenePresent(true);
+
+  { // Wait till the window layout is ready.
+    // Temporarily lift the FPS limit to prevent dagor_work_cycle() from returning because of not enough elapsed time.
+    const bool oldLimitFps = dgs_limit_fps;
+    dgs_limit_fps = false;
+
+    // The first AssetViewerApp::renderUI() call loads the last used layout or sets the default one, then ImGui needs two
+    // frames to handle auto sizing. The fourth call ensures that the camera is set up with the final viewport resolution
+    // in ViewportWindow::act() (to make zoomAndCenter() work correctly when called by selectAsset()).
+    for (int i = 0; i < 4; i++)
+    {
+      dagor_work_cycle();
+
+      // Supressing present() also suppresses tql::on_frame_finished(), but we want streaming texture loading to work.
+      dagor_idle_cycle();
+    }
+
+    dgs_limit_fps = oldLimitFps;
+  }
+
+  queryEditorInterface<IDynRenderService>()->suppressScenePresent(false);
+
+  if (!assetToInitiallySelect.empty())
+  {
+    if (const DagorAsset *asset = DAEDITOR3.getAssetByName(assetToInitiallySelect))
+      selectAsset(*asset);
+    assetToInitiallySelect.clear();
+
+    if (mPropPanel)
+      mPropPanel->loadState(propPanelStateOfTheAssetToInitiallySelect, true);
+    propPanelStateOfTheAssetToInitiallySelect.reset();
+  }
+
+  const DataBlock *profilerBlk = dgs_get_settings()->getBlockByNameEx("debug")->getBlockByName("profiler");
+  if (profilerBlk && profilerBlk->getBool("auto_dump_startup", false))
+    da_profiler::request_dump();
+
   projectLoaded = true;
+  logdbg("Asset Viewer has loaded and ready for interaction");
+
   return true;
 }
 
@@ -2966,8 +2984,6 @@ void AssetViewerApp::afterUpToDateCheck(bool)
   mTreeView->getAllAssetsTab().markExportedTree(treeUpToDateFlags);
   DEBUG_CP();
 }
-
-bool AssetViewerApp::trackChangesContinuous(int assets_to_check) { return assetMgr.trackChangesContinuous(assets_to_check); }
 
 void AssetViewerApp::invalidateAssetIfChanged(DagorAsset &a)
 {
@@ -3348,6 +3364,26 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     ind = id - CM_INC_BUILD_ALL_H;
     id = CM_INC_BUILD_ALL_H;
   }
+  else if ((id >= CM_ADD_TO_QUEUE_CUR_PACK) && (id < CM_ADD_TO_QUEUE_CUR_PACK + CM_PLATFORM_COUNT))
+  {
+    ind = id - CM_ADD_TO_QUEUE_CUR_PACK;
+    id = CM_ADD_TO_QUEUE_CUR_PACK;
+  }
+  else if ((id >= CM_ADD_TO_QUEUE_GROUP_PACK) && (id < CM_ADD_TO_QUEUE_GROUP_PACK + CM_PLATFORM_COUNT))
+  {
+    ind = id - CM_ADD_TO_QUEUE_GROUP_PACK;
+    id = CM_ADD_TO_QUEUE_CUR_PACK;
+  }
+  else if ((id >= CM_BUILD_FROM_QUEUE_CUR_PACK) && (id < CM_BUILD_FROM_QUEUE_CUR_PACK + CM_PLATFORM_COUNT))
+  {
+    ind = id - CM_BUILD_FROM_QUEUE_CUR_PACK;
+    id = CM_BUILD_FROM_QUEUE_CUR_PACK;
+  }
+  else if ((id >= CM_BUILD_FROM_QUEUE_GROUP_PACK) && (id < CM_BUILD_FROM_QUEUE_GROUP_PACK + CM_PLATFORM_COUNT))
+  {
+    ind = id - CM_BUILD_FROM_QUEUE_GROUP_PACK;
+    id = CM_BUILD_FROM_QUEUE_CUR_PACK;
+  }
 
   // main menu
   if ((id >= CM_BUILD_RESOURCES) && ((id < CM_BUILD_RESOURCES + CM_PLATFORM_COUNT)))
@@ -3569,8 +3605,68 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
       return 1;
 
 
-    case CM_INC_BUILD_ALL_PLATFORM_CUR_PACK:
-      ::build_currently_assets(&mTreeView->getAllAssetsTab().getTree());
+    case CM_INC_BUILD_ALL_PLATFORM_CUR_PACK: ::build_currently_assets(&mTreeView->getAllAssetsTab().getTree()); return 1;
+
+    case CM_ADD_TO_QUEUE_CUR_PACK:
+      if (DagorAsset *asset = mTreeView->getAllAssetsTab().getSelectedAsset())
+      {
+        String packName = ::get_asset_pack_name(asset);
+        String pkgName = ::get_asset_pkg_name(asset);
+        if (!packName.empty())
+          ::queue_toggle_pack(::make_pack_id(pkgName.c_str(), packName.c_str()), p == 0 ? _MAKE4C('PC') : p);
+      }
+      return 1;
+
+    case CM_ADD_TO_QUEUE_CUR_PACK_ALL_PLATFORM:
+      if (DagorAsset *asset = mTreeView->getAllAssetsTab().getSelectedAsset())
+      {
+        String packName = ::get_asset_pack_name(asset);
+        String pkgName = ::get_asset_pkg_name(asset);
+        if (!packName.empty())
+          ::queue_toggle_all_platforms(::make_pack_id(pkgName.c_str(), packName.c_str()));
+      }
+      return 1;
+
+    case CM_BUILD_FROM_QUEUE_CUR_PACK:
+      if (DagorAsset *asset = mTreeView->getAllAssetsTab().getSelectedAsset())
+      {
+        String packName = ::get_asset_pack_name(asset);
+        String pkgName = ::get_asset_pkg_name(asset);
+        if (!packName.empty())
+        {
+          uint64_t packId = ::make_pack_id(pkgName.c_str(), packName.c_str());
+          unsigned tc = (p == 0 ? _MAKE4C('PC') : p);
+          dag::ConstSpan<unsigned> queued = ::queue_get_pack_tcs(packId);
+          bool tcInQueue = false;
+          for (unsigned q : queued)
+            if (q == tc)
+            {
+              tcInQueue = true;
+              break;
+            }
+          if (!tcInQueue)
+            ::queue_add_pack(packId, tc);
+          ::export_queue();
+        }
+      }
+      return 1;
+
+    case CM_BUILD_FROM_QUEUE_ALL_PLATFORM:
+      if (DagorAsset *asset = mTreeView->getAllAssetsTab().getSelectedAsset())
+      {
+        String packName = ::get_asset_pack_name(asset);
+        String pkgName = ::get_asset_pkg_name(asset);
+        if (!packName.empty())
+        {
+          uint64_t packId = ::make_pack_id(pkgName.c_str(), packName.c_str());
+          dag::ConstSpan<unsigned> allPlatforms = getWorkspace().getAdditionalPlatforms();
+          dag::ConstSpan<unsigned> queued = ::queue_get_pack_tcs(packId);
+          bool allIn = queued.size() == (allPlatforms.size() + 1);
+          if (!allIn)
+            ::queue_add_pack_all_platforms(packId);
+          ::export_queue();
+        }
+      }
       return 1;
 
       // settings
@@ -3759,17 +3855,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
 
     case CM_WINDOW_PPANEL: showPropWindow(mPropPanel == nullptr); return 1;
 
-    case CM_WINDOW_PPANEL_ACCELERATOR:
-    {
-      // The hotkey is simply 'P', so only handle it if the viewport is active.
-      IGenViewportWnd *vp = getCurrentViewport();
-      if (vp && vp->isActive())
-      {
-        showPropWindow(mPropPanel == nullptr);
-        return 1;
-      }
-    }
-    break;
+    case CM_WINDOW_PPANEL_ACCELERATOR: showPropWindow(mPropPanel == nullptr); return 1;
 
     case CM_WINDOW_VIEWPORT:
       if (!ged.getViewportCount())
@@ -3782,16 +3868,24 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     case CM_WINDOW_CANOPY_EDITOR: showCanopyEditor(canopyEditorWindow == nullptr); return 1;
 
     case CM_WINDOW_DABUILD:
-      dabuildWindowVisible = !dabuildWindowVisible;
+      if (dabuildWindowVisible)
+      {
+        dabuildWindowVisible = false;
+      }
+      else
+      {
+        dabuildWindowVisible = true;
+        ::bring_dabuild_to_front_explicit();
+      }
       getMainMenu()->setCheckById(CM_WINDOW_DABUILD, dabuildWindowVisible);
       return 1;
 
     case CM_WINDOW_COMPOSITE_EDITOR_ACCELERATOR:
     {
-      // The hotkey is simply 'C', so only handle it if the viewport is active, and the current camera mode does not
-      // need it to move the camera down.
+      // TODO: instead of this hardcoding, add contexts for hotkeys
+      // The hotkey is simply 'C', so only handle if the current camera mode does not need it to move the camera down.
       IGenViewportWnd *vp = getCurrentViewport();
-      if (vp && vp->isActive() && !vp->isFlyMode())
+      if (!vp || !vp->isFlyMode())
       {
         showCompositeEditor(!isCompositeEditorShown());
         return 1;
@@ -4087,6 +4181,16 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
       return 1;
     }
 
+    case CM_OBJED_OBJPROP_PANEL:
+    case CM_OBJED_SELECT_BY_NAME:
+      if (IGenEditorPlugin *plug = curPlugin())
+        if (ViewportWindow *viewport = ged.getCurrentViewport())
+        {
+          plug->handleViewportAcceleratorCommand(*viewport, id);
+          return 1;
+        }
+      break;
+
     default: break;
   }
 
@@ -4241,7 +4345,22 @@ static inline void create_popup_build_menu(PropPanel::IMenu &menu, bool exported
 static inline void create_popup_build_assets_menu(PropPanel::IMenu &menu, DagorAsset *e)
 {
   String pack_name = ::get_asset_pack_name(e);
+  String pkg_name = ::get_asset_pkg_name(e);
+  uint64_t pack_id = ::make_pack_id(pkg_name.c_str(), pack_name.c_str());
+  dag::ConstSpan<unsigned> queued = ::queue_get_pack_tcs(pack_id);
+
+  auto isPcQueued = [&]() {
+    for (unsigned tc : queued)
+      if (tc == _MAKE4C('PC'))
+        return true;
+    return false;
+  };
+
   menu.addItem(ROOT_MENU_ITEM, CM_INC_BUILD_CUR_PACK, String(256, "Export pack '%s' [PC]", pack_name));
+  menu.addItem(ROOT_MENU_ITEM, CM_ADD_TO_QUEUE_CUR_PACK, isPcQueued() ? "Remove pack from queue [PC]" : "Add pack to queue [PC]");
+  menu.addItem(ROOT_MENU_ITEM, CM_BUILD_FROM_QUEUE_CUR_PACK,
+    isPcQueued() ? "Build with queue [PC]" : "Add pack & build with queue [PC]");
+
   if (e && e->getType() == e->getMgr().getTexAssetTypeId() && !strchr(e->getName(), '$'))
   {
     DagorAsset *e_hq = e->getMgr().findAsset(String(0, "%s$hq", e->getName()), e->getType());
@@ -4260,26 +4379,43 @@ static inline void create_popup_build_assets_menu(PropPanel::IMenu &menu, DagorA
       menu.addItem(ROOT_MENU_ITEM, CM_INC_BUILD_CUR_PACK_TQ_PC, String(256, "Export TQ pack %s [PC]", ::get_asset_pack_name(e_tq)));
   }
 
-
-  int platformCnt = get_app().getWorkspace().getAdditionalPlatforms().size();
-
-  if (!platformCnt)
+  dag::ConstSpan<unsigned> additionalPlatforms = get_app().getWorkspace().getAdditionalPlatforms();
+  if (additionalPlatforms.empty())
     return;
 
   menu.addSeparator(ROOT_MENU_ITEM);
 
   String menuStr(256, "Export pack '%s'", pack_name);
-  for (int i = 0; i < platformCnt; i++)
+  for (int i = 0; i < (int)additionalPlatforms.size(); i++)
   {
-    String group(256, "%c%c%c%c", _DUMP4C(get_app().getWorkspace().getAdditionalPlatforms()[i]));
+    unsigned ptc = additionalPlatforms[i];
+    String group(256, "%c%c%c%c", _DUMP4C(ptc));
+    bool tcQueued = false;
+    for (unsigned tc : queued)
+      if (tc == ptc)
+      {
+        tcQueued = true;
+        break;
+      }
 
     menu.addSubMenu(ROOT_MENU_ITEM, CM_INC_BUILD_GROUP_PACK + (i + 1), group);
     menu.addItem(CM_INC_BUILD_GROUP_PACK + (i + 1), CM_INC_BUILD_CUR_PACK + (i + 1), menuStr);
+    menu.addItem(CM_INC_BUILD_GROUP_PACK + (i + 1), CM_ADD_TO_QUEUE_GROUP_PACK + (i + 1),
+      tcQueued ? "Remove pack from queue" : "Add pack to queue");
+    menu.addItem(CM_INC_BUILD_GROUP_PACK + (i + 1), CM_BUILD_FROM_QUEUE_GROUP_PACK + (i + 1),
+      tcQueued ? "Build with queue" : "Add pack & build with queue");
   }
 
   menu.addSeparator(ROOT_MENU_ITEM);
 
+  bool anyQueued = !queued.empty();
+  bool allQueued = queued.size() == additionalPlatforms.size() + 1;
+
   menu.addItem(ROOT_MENU_ITEM, CM_INC_BUILD_ALL_PLATFORM_CUR_PACK, "Export pack for All platform");
+  menu.addItem(ROOT_MENU_ITEM, CM_ADD_TO_QUEUE_CUR_PACK_ALL_PLATFORM,
+    anyQueued ? "Remove pack from queue for All platform" : "Add pack to queue for All platform");
+  menu.addItem(ROOT_MENU_ITEM, CM_BUILD_FROM_QUEUE_ALL_PLATFORM,
+    allQueued ? "Build with queue [All platform]" : "Add pack & build with queue [All platform]");
 }
 
 
@@ -4423,18 +4559,6 @@ void AssetViewerApp::renderUIViewport(ViewportWindow &viewport, const Point2 &si
   ImGui::PushID(&viewport);
 
   const ImGuiID viewportCanvasId = ImGui::GetCurrentWindow()->GetID("canvas");
-
-  if (viewport.isActive())
-  {
-    unsigned commandId = mManager->processImguiViewportAccelerator(viewportCanvasId);
-    if (commandId != 0)
-    {
-      G_ASSERT((commandId & DELAYED_CALLBACK_VIEWPORT_COMMAND_BIT) == 0);
-      commandId |= DELAYED_CALLBACK_VIEWPORT_COMMAND_BIT;
-      PropPanel::request_delayed_callback(*this, (void *)((uintptr_t)commandId));
-    }
-  }
-
   viewport.updateImgui(viewportCanvasId, size, item_spacing, vr_mode);
 
   ImGui::PopID();
@@ -4590,7 +4714,6 @@ void AssetViewerApp::renderUI()
     ImGuiID dockSpaceLeft1Bottom = ImGui::DockBuilderSplitNode(dockSpaceLeft1, ImGuiDir_Down, 0.15f, nullptr, &dockSpaceLeft1);
     ImGuiID dockSpaceLeft2 = ImGui::DockBuilderSplitNode(dockSpaceViewport, ImGuiDir_Left, 0.25f, nullptr, &dockSpaceViewport);
     ImGuiID dockSpaceLeft3 = ImGui::DockBuilderSplitNode(dockSpaceViewport, ImGuiDir_Left, 0.25f, nullptr, &dockSpaceViewport);
-    ImGuiID dockSpaceBottom = ImGui::DockBuilderSplitNode(dockSpaceViewport, ImGuiDir_Down, 0.25f, nullptr, &dockSpaceViewport);
 
     ImGuiDockNode *viewportNode = ImGui::DockBuilderGetNode(dockSpaceViewport);
     if (viewportNode)
@@ -4606,7 +4729,7 @@ void AssetViewerApp::renderUI()
     ImGui::DockBuilderDockWindow("Properties", dockSpaceRightBottom);
     ImGui::DockBuilderDockWindow("Composit Outliner", dockSpaceRightTop);
     ImGui::DockBuilderDockWindow("Canopy Editor", dockSpaceRightTop);
-    ImGui::DockBuilderDockWindow("daBuild", dockSpaceBottom);
+    ImGui::DockBuilderDockWindow("daBuild##v2", dockSpaceRightBottom);
 
     ImGui::DockBuilderFinish(rootDockSpaceId);
   }
@@ -4745,10 +4868,13 @@ void AssetViewerApp::updateImgui()
   // renderUI (that calls ImGui's NewFrame that updates ImGui's key states), and onMenuItemClick could fire more than
   // once.
 
-  const unsigned commandId = mManager->processImguiAccelerator();
+  bool viewportAccelerator = false;
+  unsigned commandId = mManager->processImguiAccelerator(ged.getActiveViewport() != nullptr, viewportAccelerator);
   if (commandId != 0)
   {
     G_ASSERT((commandId & DELAYED_CALLBACK_VIEWPORT_COMMAND_BIT) == 0);
+    if (viewportAccelerator)
+      commandId |= DELAYED_CALLBACK_VIEWPORT_COMMAND_BIT;
     PropPanel::request_delayed_callback(*this, (void *)((uintptr_t)commandId));
   }
 

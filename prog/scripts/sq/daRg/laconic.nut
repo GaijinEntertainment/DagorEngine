@@ -2,6 +2,7 @@ from "daRg" import *
 import "daRg.behaviors" as Behaviors
 from "%sqstd/underscore.nut" import partition, flatten
 from "%darg/ui_imports.nut" import logerr
+from "types" import Table, Array
 
 /*
 laconic framework
@@ -43,7 +44,7 @@ let Style = class { //to be able distinguish style elements from components
         val.__update(v.value)
       }
       else {
-        if (type(v) != "table")
+        if (!(v instanceof Table))
           logerr($"incorrect type of style: {type(v)}")
         val.__update(v)
       }
@@ -53,7 +54,7 @@ let Style = class { //to be able distinguish style elements from components
 }
 
 let extendable = {["behavior"]=true}
-let toArray = @(v) type(v) == "array" ? v : [v]
+let toArray = @(v) v instanceof Array ? v : [v]
 
 function comp(...) {
   local [styles, children] = partition(flatten(vargv), @(v) v instanceof Style)
@@ -85,7 +86,7 @@ function comp(...) {
     ret = ret.__update({children})
   }
   if (ret.len()==1 && "children" in ret)
-    ret = type(ret.children) != "array" ? ret.children : (ret.children.len()==1 ? ret.children[0] : ret)
+    ret = !(ret.children instanceof Array) ? ret.children : (ret.children.len()==1 ? ret.children[0] : ret)
   if ("watch" in ret)
     logerr("component with 'watch' field should be set as function")
   return ret
@@ -113,7 +114,7 @@ let Button = Style({behavior = Behaviors.Button})
 function Size(...) {
   assert(vargv.len()<3)
   local size = vargv
-  if (size.len()==1 && type(size?[0]) != "array")
+  if (size.len()==1 && !(size?[0] instanceof Array))
     size = [size[0], size[0]]
   else if (size.len()==1)
     size = size[0]
@@ -129,7 +130,7 @@ let YOfs = @(y) Style({pos=[0,y]})
 let XOfs = @(x) Style({pos=[x,0]})
 
 function updateWithStyle(obj, style){
-  if (type(style) == "table") {
+  if (style instanceof Table) {
     foreach (k, _ in style)
       assert(k not in obj)
     obj.__update(style)
@@ -143,14 +144,14 @@ function updateWithStyle(obj, style){
 }
 
 function txt(text, style = null) {
-  let obj = (type(text) == "table")
+  let obj = (text instanceof Table)
     ? text.__merge({rendObj = ROBJ_TEXT})
     : {rendObj = ROBJ_TEXT text}
   return updateWithStyle(obj, style)
 }
 
 function img(image, style = null) {
-  let obj = (type(image) == "table") ? image.__merge({rendObj = ROBJ_IMAGE}) : {rendObj = ROBJ_IMAGE image}
+  let obj = (image instanceof Table) ? image.__merge({rendObj = ROBJ_IMAGE}) : {rendObj = ROBJ_IMAGE image}
   return updateWithStyle(obj, style)
 }
 

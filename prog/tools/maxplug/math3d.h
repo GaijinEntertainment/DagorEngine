@@ -878,7 +878,7 @@ INLINE BBox3 operator*(const Matrix3 &tm, const BBox3 &b)
 class StaticMeshRayTracer
 {
 public:
-  virtual ~StaticMeshRayTracer() {}
+  virtual ~StaticMeshRayTracer() = default;
   //! Tests ray hit to object and returns parameters of hit (if happen)
   virtual bool traceray(const Point3 &p, const Point3 &dir, real &t, int &fi, Point3 &bc) = 0;
 

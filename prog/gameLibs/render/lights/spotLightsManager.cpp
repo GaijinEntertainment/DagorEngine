@@ -9,78 +9,30 @@
 #include <render/lights/shadowSystem.h>
 
 
-SpotLightsManager::SpotLightsManager() : LightsManager<SpotLight>("spot"), maxLightIndex(-1)
+SpotLightsManager::SpotLightsManager(const char *name) : LightsManager(name)
 {
-  G_STATIC_ASSERT(1ULL << (sizeof(*freeLightIds.data()) * 8) >= MAX_LIGHTS);
-
-  photometryTextures = IesTextureCollection::acquireRef();
-}
-
-
-SpotLightsManager::~SpotLightsManager() { close(); }
-
-
-void SpotLightsManager::init()
-{
-  mem_set_0(rawLights);
-  mem_set_0(freeLightIds);
-  freeLightIds.clear();
+  mem_set_0(boundingSpheres);
+  mem_set_0(boundingBoxes);
+  mem_set_0(cosHalfAngles);
   nonOptLightIds.reset();
 }
 
-void SpotLightsManager::close()
-{
-  destroyAllLights();
-  if (photometryTextures)
-  {
-    IesTextureCollection::releaseRef();
-    photometryTextures = nullptr;
-  }
-}
+SpotLightsManager::SpotLightsManager() : SpotLightsManager("spot") {}
 
-int SpotLightsManager::addLight(const RawLight &light)
+int SpotLightsManager::addLight(const RawLight &light) { return allocateLight(light, SpotLightMaskType::SPOT_LIGHT_MASK_DEFAULT); }
+
+void SpotLightsManager::afterLightAllocation(unsigned int id)
 {
-  int id = -1;
-  if (freeLightIds.size())
-  {
-    id = freeLightIds.back();
-    freeLightIds.pop_back();
-  }
-  else
-  {
-    if (maxLightIndex < (MAX_LIGHTS - 1))
-      id = ++maxLightIndex;
-    else
-      logerr("Adding spotlight failed, already have %d lights in scene!", MAX_LIGHTS);
-  }
-  if (id < 0)
-    return id;
-  masks[id] = SpotLightMaskType::SPOT_LIGHT_MASK_DEFAULT;
-  rawLights[id] = light;
+  LightsManager::afterLightAllocation(id);
   resetLightOptimization(id);
   updateBoundingSphere(id);
-  return id;
-}
-
-struct AscCompare
-{
-  bool operator()(const uint16_t a, const uint16_t b) const { return a < b; }
-};
-
-void SpotLightsManager::removeEmpty()
-{
-  fast_sort(freeLightIds, AscCompare());
-  for (int i = freeLightIds.size() - 1; i >= 0 && maxLightIndex == freeLightIds[i]; --i)
-  {
-    freeLightIds.pop_back();
-    maxLightIndex--;
-  }
 }
 
 void SpotLightsManager::renderDebugBboxes()
 {
   begin_draw_cached_debug_lines();
-  for (int i = 0; i <= maxLightIndex; ++i)
+  int maxIdx = maxIndex();
+  for (int i = 0; i <= maxIdx; ++i)
   {
     const RawLight &l = rawLights[i];
     if (l.pos_radius.w <= 0)
@@ -92,37 +44,12 @@ void SpotLightsManager::renderDebugBboxes()
   end_draw_cached_debug_lines();
 }
 
-void SpotLightsManager::destroyLight(unsigned int id)
-{
-  G_ASSERT_RETURN(id <= maxLightIndex, );
+void SpotLightsManager::destroyLight(unsigned int id) { deallocateLight(id); }
 
+void SpotLightsManager::beforeLightDeallocation(unsigned int id)
+{
+  LightsManager::beforeLightDeallocation(id);
   setLightOptimized(id);
-  memset(&rawLights[id], 0, sizeof(rawLights[id]));
-  masks[id] = SpotLightMaskType::SPOT_LIGHT_MASK_NONE;
-
-  if (id == maxLightIndex)
-  {
-    maxLightIndex--;
-    return;
-  }
-
-#if DAGOR_DBGLEVEL > 0
-  for (int i = 0; i < freeLightIds.size(); ++i)
-    if (freeLightIds[i] == id)
-    {
-      G_ASSERTF(freeLightIds[i] != id, "Light %d is already destroyed, re-destroy is invalid", id);
-      return;
-    }
-#endif
-  freeLightIds.push_back(id);
-}
-
-
-void SpotLightsManager::destroyAllLights()
-{
-  maxLightIndex = -1;
-  freeLightIds.clear();
-  nonOptLightIds.reset();
 }
 
 void SpotLightsManager::updateBoundingBox(unsigned id)
@@ -189,11 +116,6 @@ int SpotLightsManager::addLight(const Point3 &pos, const Color3 &color, const Po
   IesTextureCollection::PhotometryData photometryData = getPhotometryData(tex);
   return addLight(Light(pos, color, radius, attenuation_k, dir, light_up_dir, angle, contact_shadows, false, tex, photometryData.zoom,
     photometryData.rotated, illuminating_plane));
-}
-
-IesTextureCollection::PhotometryData SpotLightsManager::getPhotometryData(int texId) const
-{
-  return photometryTextures->getTextureData(texId);
 }
 
 void SpotLightsManager::getLightPersp(unsigned int id, mat44f &proj)

@@ -24,7 +24,7 @@ def test_push_inside_panics(t : T?) {
     var arr <- [A(f1=1), A(f1=2)]
     var panicked = false
     try {
-        with_(arr[0]) $(a) {
+        with_(arr[0]) $(_a) {
             arr |> push(A(f1 = 99))
         }
     } recover {
@@ -38,7 +38,7 @@ def test_erase_inside_panics(t : T?) {
     var arr <- [A(f1=1), A(f1=2), A(f1=3)]
     var panicked = false
     try {
-        with_(arr[1]) $(a) {
+        with_(arr[1]) $(_a) {
             arr |> erase(0)
         }
     } recover {
@@ -52,7 +52,7 @@ def test_resize_inside_panics(t : T?) {
     var arr <- [A(f1=1)]
     var panicked = false
     try {
-        with_(arr[0]) $(a) {
+        with_(arr[0]) $(_a) {
             arr |> resize(100)
         }
     } recover {
@@ -66,7 +66,7 @@ def test_clear_inside_panics(t : T?) {
     var arr <- [A(f1=1)]
     var panicked = false
     try {
-        with_(arr[0]) $(a) {
+        with_(arr[0]) $(_a) {
             arr |> clear
         }
     } recover {
@@ -81,7 +81,7 @@ def test_table_insert_inside_panics(t : T?) {
     tab |> insert("a", A(f1 = 1))
     var panicked = false
     try {
-        with_(tab["a"]) $(v) {
+        with_(tab["a"]) $(_v) {
             tab |> insert("b", A(f1 = 2))
         }
     } recover {
@@ -92,12 +92,10 @@ def test_table_insert_inside_panics(t : T?) {
 
 [test]
 def test_table_erase_inside_panics(t : T?) {
-    var tab : table<string; A>
-    tab |> insert("a", A(f1 = 1))
-    tab |> insert("b", A(f1 = 2))
+    var tab <- { "a" => A(f1 = 1), "b" => A(f1 = 2) }
     var panicked = false
     try {
-        with_(tab["a"]) $(v) {
+        with_(tab["a"]) $(_v) {
             tab |> erase("b")
         }
     } recover {
@@ -112,7 +110,7 @@ def test_multi_arg_inner_push_panics(t : T?) {
     var b <- [A(f1=2)]
     var panicked = false
     try {
-        with_(a[0], b[0]) $(va, vb) {
+        with_(a[0], b[0]) $(_va, _vb) {
             b |> push(A(f1 = 99))
         }
     } recover {

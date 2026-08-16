@@ -389,6 +389,23 @@ static int createBVHNodeSAH(bbox3f *bboxData, bbox3f *end, SplitHelper &h, int d
           widest = i;
       if (widest < 0)
         break; // no flattened slots left: totalChildrenCount == childrenCount <= maxChildrenCount
+      if (childrenCount == 1)
+      {
+        // The whole range is one oversize unsplittable cluster: un-flattening it whole would emit
+        // a node with ONE recursive child -- a useless indirection (the child's box IS this node's)
+        // that fixed-fanout consumers cannot even represent. Force the split at THIS level instead;
+        // both halves recurse with the same infinite cost the single child would have carried.
+        const ChildInfo w = children[0];
+        Point2 area(0, 0), cost(0, 0);
+        int bestAxis = 0;
+        const uint32_t split = findBestSplit(bboxData + w.s, bboxData + w.s + w.c, h, bestAxis, area, cost, nullptr);
+        partitionNode(h, s + w.s, s + w.s + w.c, bestAxis, split);
+        children[0] = ChildInfo{w.s, split, area.x, 1e29f};
+        children[1] = ChildInfo{w.s + split, w.c - split, area.y, 1e29f};
+        childrenCount = 2;
+        totalChildrenCount = 2;
+        break;
+      }
       totalChildrenCount -= children[widest].c - 1;
       children[widest].cost = 1e29f;
     }

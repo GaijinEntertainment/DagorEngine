@@ -6,6 +6,7 @@
 #if DAGOR_DBGLEVEL > 0
 
 #include "bvh_context.h"
+#include "bvh_tlas_debug.h"
 #include <bvh/bvh_processors.h>
 #include <shaders/dag_computeShaders.h>
 #include <perfMon/dag_statDrv.h>
@@ -350,6 +351,10 @@ RtMemoryOverhead get_rt_memory_overhead(ContextId context_id)
   o.add("Landscape BLAS", "cable", cableBlas, note("vb %dM", int(cableGeom >> 20)));
   o.add("Landscape BLAS", "grass", grassBlas, note("vb %dM", int((grassVB + grassIB) >> 20)));
   o.add("Landscape BLAS", "smoke tracer", smokeBlas, note("x%d vb %dM", smokeCount, int(smokeVB >> 20)));
+  const auto lruCollisionStats = bvh::get_lru_collision_stats(context_id);
+  o.add("Landscape BLAS", "lru collision", int64_t(lruCollisionStats.cachedBytes),
+    note("x%d limit %dM normals %dM", int(lruCollisionStats.builtModels), int(lruCollisionStats.cacheLimit >> 20),
+      int(lruCollisionStats.normalsHeapBytes >> 20)));
 
   // 5) Opacity micromaps.
   o.add("Opacity micromaps", "AS", ommAS, note("x%d", ommCount));
@@ -362,8 +367,10 @@ RtMemoryOverhead get_rt_memory_overhead(ContextId context_id)
   o.add("TLAS", "main", tas(context_id->tlasMain));
   o.add("TLAS", "terrain", tas(context_id->tlasTerrain));
   o.add("TLAS", "particles", tas(context_id->tlasParticles));
+  o.add("TLAS", "lru collision", tas(context_id->tlasLruCollision));
   o.add("TLAS", "upload",
-    context_id->tlasUploadMain.totalSize() + context_id->tlasUploadTerrain.totalSize() + bs(context_id->tlasUploadParticles));
+    context_id->tlasUploadMain.totalSize() + context_id->tlasUploadTerrain.totalSize() + bs(context_id->tlasUploadParticles) +
+      context_id->tlasUploadLruCollision.totalSize());
 
   // 7) Geometry buffers (RT-owned VB/IB).
   int64_t dynamicVB = 0, dynamicVBFree = 0;
@@ -505,6 +512,7 @@ inline const char *operator!(bvh::DebugMode mode)
     case bvh::DebugMode::Instances: return "Instances";
     case bvh::DebugMode::NaN: return "NaN";
     case bvh::DebugMode::Lod: return "LOD (RI)";
+    case bvh::DebugMode::LruCollision: return "LRU collision";
     default: return "Unknown";
   }
 }
@@ -516,10 +524,14 @@ static void imguiWindow()
 
   if (debug_mode == bvh::DebugMode::Unknown)
   {
-    if (debugged_context_id->name == "GI")
-      debug_mode = bvh::DebugMode::GI;
-    else
-      debug_mode = bvh::DebugMode::Lit;
+    debug_mode = debugged_context_id->name == "GI" ? bvh::DebugMode::GI : bvh::DebugMode::Lit;
+#if _TARGET_PC_WIN || _TARGET_PC_LINUX
+    // a collision only context keeps an empty main TLAS: its own view is the
+    // only one with content, every other mode starts on a black image
+    if (debugged_context_id->hasAny(bvh::Features::LruCollision) &&
+        !debugged_context_id->hasAny(~static_cast<uint32_t>(bvh::Features::LruCollision)))
+      debug_mode = bvh::DebugMode::LruCollision;
+#endif
   }
 
   ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -527,7 +539,13 @@ static void imguiWindow()
   {
     for (auto &context_id : context_ids)
       if (ImGui::Selectable(context_id->name.data(), debugged_context_id == context_id))
+      {
+        // recompute the per context default; the explicit mode choice resets
+        // with it, which beats keeping a mode the new context cannot show
+        if (debugged_context_id != context_id)
+          debug_mode = bvh::DebugMode::Unknown;
         debugged_context_id = context_id;
+      }
     ImGui::EndCombo();
   }
 
@@ -598,7 +616,13 @@ static void imguiWindow()
 
   ImGui::Separator();
 
-  ImGuiDagor::EnumCombo("Debug mode", bvh::DebugMode::None, bvh::DebugMode::Lod, debug_mode, &operator!);
+  // the LRU collision view needs the pc-only inline ray query path in bvh_debug.dshl
+#if _TARGET_PC_WIN || _TARGET_PC_LINUX
+  constexpr bvh::DebugMode lastDebugMode = bvh::DebugMode::LruCollision;
+#else
+  constexpr bvh::DebugMode lastDebugMode = bvh::DebugMode::Lod;
+#endif
+  ImGuiDagor::EnumCombo("Debug mode", bvh::DebugMode::None, lastDebugMode, debug_mode, &operator!);
 
   ImGui::Checkbox("Super sampling", &do_super_sampling);
   ImGui::SameLine();
@@ -635,6 +659,9 @@ static void imguiWindow()
     ImGui::SliderFloat("Intersection count threshold", &intersection_count_threshold, 0.f, 256.f);
   }
 
+  ImGui::Separator();
+  bvh::debug::draw_tlas_debug_imgui();
+
   if (debug_mode != bvh::DebugMode::None && debugTex)
     ImGuiDagor::Image(debugTex.getTexId(), d3d::get_screen_aspect_ratio());
 }
@@ -663,6 +690,8 @@ void teardown(ContextId id)
       debugged_context_id = bvh::InvalidContextId;
     else
       debugged_context_id = *context_ids.begin();
+    // the replacement context recomputes its own default, same as the combo
+    debug_mode = bvh::DebugMode::Unknown;
   }
 }
 

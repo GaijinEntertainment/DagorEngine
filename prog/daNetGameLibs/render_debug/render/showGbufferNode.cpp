@@ -6,6 +6,7 @@
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_DynamicShaderHelper.h>
 
+bool should_hide_debug();
 
 void set_up_show_gbuffer_entity()
 {
@@ -31,12 +32,19 @@ void set_up_show_gbuffer_entity()
     registry.read("ssao_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("ssao_tex_samplerstate").optional();
     registry.readTexture("ssr_target").atStage(dafg::Stage::POST_RASTER).bindToShaderVar("ssr_target").optional();
     registry.read("ssr_target_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("ssr_target_samplerstate").optional();
+    registry.readTexture("csm_texture").atStage(dafg::Stage::POST_RASTER).optional();
     registry.requestRenderPass().color({(colorTarget)});
     auto gdepth = registry.readTexture("depth_for_postfx").atStage(dafg::Stage::POST_RASTER).bindToShaderVar("depth_gbuf").handle();
     return [debugRenderer = PostFxRenderer(DEBUG_RENDER_GBUFFER_SHADER_NAME),
              debugVecShader = DynamicShaderHelper(DEBUG_RENDER_GBUFFER_WITH_VECTORS_SHADER_NAME), gdepth]() {
-      debug_render_gbuffer(debugRenderer, gdepth.view().getTex2D());
-      debug_render_gbuffer_with_vectors(debugVecShader, gdepth.view().getTex2D());
+      Texture *depth = gdepth.view().getTex2D();
+      if (show_gbuffer_composition != DebugGbufferComposition::Single)
+        debug_render_gbuffer_tiles(debugRenderer, show_gbuffer_composition, !should_hide_debug());
+      else
+      {
+        debug_render_gbuffer(debugRenderer, depth);
+        debug_render_gbuffer_with_vectors(debugVecShader, depth);
+      }
     };
   });
   g_entity_mgr->createEntityAsync("show_gbuffer", eastl::move(init));

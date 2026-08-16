@@ -91,6 +91,9 @@ void updateRiDestrFxIds(FxTypeByNameCallback get_fx_type_by_name);
 float debugGetSoundOcclusion(const char *ri_name, float def_value);
 
 void precomputeRIGenCellsAndPregenerateRIExtra();
+// Builds the riExtra grid leaf trees. The streaming path calls this itself once its last cell job
+// lands; a host that pregenerates every cell instead replaces that path and has to call it.
+void optimizeRIGenExtra();
 
 const DataBlock *getRIGenExtraConfig();
 const DataBlock *registerRIGenExtraConfig(const DataBlock *persist_props);

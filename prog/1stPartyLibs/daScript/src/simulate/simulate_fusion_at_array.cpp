@@ -35,6 +35,12 @@ namespace das {
         uint32_t  stride, offset;
     };
 
+    // the 32-bit array bounds check, toggled per node family: checked op-name (ArrayAt/ArrayAtR2V)
+    // instantiates with it ON, the unchecked op-name (ArrayAtU/ArrayAtR2VU, emitted only where the
+    // index is proven in range) with it OFF - both families share one node-body macro.
+#define DAS_ARRAYAT_CHECK_ON(rr)  if ( rr<0 || uint64_t(rr) >= pl->size ) context.throw_error_at(debugInfo,"array index out of range, %d of %llu", rr, (unsigned long long)pl->size)
+#define DAS_ARRAYAT_CHECK_OFF(rr)
+
     // int64-indexed parallel base for fused arr[i64] access
     struct SimNode_Op2ArrayAt_I64 : SimNode_Op2ArrayAt {};
 
@@ -49,7 +55,7 @@ namespace das {
             DAS_PROFILE_NODE \
             auto pl = (Array *) l.compute##COMPUTEL(context); \
             int32_t rr = r.subexpr->evalInt(context); \
-            if ( rr<0 || uint64_t(rr) >= pl->size ) context.throw_error_at(debugInfo,"array index out of range, %d of %llu", rr, (unsigned long long)pl->size); \
+            DAS_ARRAYAT_CHECK(rr); \
             return *((CTYPE *)(pl->data + uint64_t(rr)*uint64_t(stride) + offset)); \
         } \
         DAS_NODE(TYPE,CTYPE); \
@@ -61,7 +67,7 @@ namespace das {
             DAS_PROFILE_NODE \
             auto pl = (Array *) l.compute##COMPUTEL(context); \
             int32_t rr = *((int32_t *)r.compute##COMPUTER(context)); \
-            if ( rr<0 || uint64_t(rr) >= pl->size ) context.throw_error_at(debugInfo,"array index out of range, %d of %llu", rr, (unsigned long long)pl->size); \
+            DAS_ARRAYAT_CHECK(rr); \
             return *((CTYPE *)(pl->data + uint64_t(rr)*uint64_t(stride) + offset)); \
         } \
         DAS_NODE(TYPE,CTYPE); \
@@ -79,7 +85,12 @@ namespace das {
 #include "daScript/simulate/simulate_fusion_op2_set_impl.h"
 #include "daScript/simulate/simulate_fusion_op2_set_perm.h"
 
+#define DAS_ARRAYAT_CHECK DAS_ARRAYAT_CHECK_ON
     IMPLEMENT_SETOP_SCALAR(ArrayAtR2V);
+#undef DAS_ARRAYAT_CHECK
+#define DAS_ARRAYAT_CHECK DAS_ARRAYAT_CHECK_OFF
+    IMPLEMENT_SETOP_SCALAR(ArrayAtR2VU);
+#undef DAS_ARRAYAT_CHECK
 
 /* ArrayAtR2V VECTOR */
 
@@ -90,7 +101,7 @@ namespace das {
             DAS_PROFILE_NODE \
             auto pl = (Array *) l.compute##COMPUTEL(context); \
             int32_t rr = r.subexpr->evalInt(context); \
-            if ( rr<0 || uint64_t(rr) >= pl->size ) context.throw_error_at(debugInfo,"array index out of range, %d of %llu", rr, (unsigned long long)pl->size); \
+            DAS_ARRAYAT_CHECK(rr); \
             vec4f __r; \
             DAS_LDU_WORKHORSE(__r, pl->data + uint64_t(rr)*uint64_t(stride) + offset, CTYPE); \
             return __r; \
@@ -104,7 +115,7 @@ namespace das {
             DAS_PROFILE_NODE \
             auto pl = (Array *) l.compute##COMPUTEL(context); \
             int32_t rr = *((int32_t *)r.compute##COMPUTER(context)); \
-            if ( rr<0 || uint64_t(rr) >= pl->size ) context.throw_error_at(debugInfo,"array index out of range, %d of %llu", rr, (unsigned long long)pl->size); \
+            DAS_ARRAYAT_CHECK(rr); \
             vec4f __r; \
             DAS_LDU_WORKHORSE(__r, pl->data + uint64_t(rr)*uint64_t(stride) + offset, CTYPE); \
             return __r; \
@@ -114,7 +125,12 @@ namespace das {
 #include "daScript/simulate/simulate_fusion_op2_set_impl.h"
 #include "daScript/simulate/simulate_fusion_op2_set_perm.h"
 
+#define DAS_ARRAYAT_CHECK DAS_ARRAYAT_CHECK_ON
     IMPLEMENT_SETOP_NUMERIC_VEC(ArrayAtR2V);
+#undef DAS_ARRAYAT_CHECK
+#define DAS_ARRAYAT_CHECK DAS_ARRAYAT_CHECK_OFF
+    IMPLEMENT_SETOP_NUMERIC_VEC(ArrayAtR2VU);
+#undef DAS_ARRAYAT_CHECK
 
 /* ArrayAt */
 
@@ -125,7 +141,7 @@ namespace das {
             DAS_PROFILE_NODE \
             auto pl = (Array *) l.compute##COMPUTEL(context); \
             int32_t rr = r.subexpr->evalInt(context); \
-            if ( rr<0 || uint64_t(rr) >= pl->size ) context.throw_error_at(debugInfo,"array index out of range, %d of %llu", rr, (unsigned long long)pl->size); \
+            DAS_ARRAYAT_CHECK(rr); \
             return pl->data + uint64_t(rr)*uint64_t(stride) + offset; \
         } \
         DAS_PTR_NODE; \
@@ -138,7 +154,7 @@ namespace das {
             DAS_PROFILE_NODE \
             auto pl = (Array *) l.compute##COMPUTEL(context); \
             int32_t rr = *((int32_t *)r.compute##COMPUTER(context)); \
-            if ( rr<0 || uint64_t(rr) >= pl->size ) context.throw_error_at(debugInfo,"array index out of range, %d of %llu", rr, (unsigned long long)pl->size); \
+            DAS_ARRAYAT_CHECK(rr); \
             return pl->data + uint64_t(rr)*uint64_t(stride) + offset; \
         } \
         DAS_PTR_NODE; \
@@ -155,7 +171,12 @@ namespace das {
 #include "daScript/simulate/simulate_fusion_op2_set_impl.h"
 #include "daScript/simulate/simulate_fusion_op2_set_perm.h"
 
+#define DAS_ARRAYAT_CHECK DAS_ARRAYAT_CHECK_ON
     IMPLEMENT_ANY_SETOP(__forceinline, ArrayAt, Ptr, StringPtr, StringPtr);
+#undef DAS_ARRAYAT_CHECK
+#define DAS_ARRAYAT_CHECK DAS_ARRAYAT_CHECK_OFF
+    IMPLEMENT_ANY_SETOP(__forceinline, ArrayAtU, Ptr, StringPtr, StringPtr);
+#undef DAS_ARRAYAT_CHECK
 
 /* ArrayAtR2V_I64 SCALAR */
 
@@ -403,6 +424,9 @@ namespace das {
         REGISTER_SETOP_SCALAR(ArrayAtR2V);
         REGISTER_SETOP_NUMERIC_VEC(ArrayAtR2V);
         (*getFusionEngine())["ArrayAt"].emplace_back(new FusionPoint_Set_ArrayAt_StringPtr());
+        REGISTER_SETOP_SCALAR(ArrayAtR2VU);
+        REGISTER_SETOP_NUMERIC_VEC(ArrayAtR2VU);
+        (*getFusionEngine())["ArrayAtU"].emplace_back(new FusionPoint_Set_ArrayAtU_StringPtr());
         REGISTER_SETOP_SCALAR(ArrayAtR2V_I64);
         REGISTER_SETOP_NUMERIC_VEC(ArrayAtR2V_I64);
         (*getFusionEngine())["ArrayAt_I64"].emplace_back(new FusionPoint_Set_ArrayAt_I64_StringPtr());

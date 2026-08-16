@@ -391,7 +391,7 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
             return true;
         }
 #if !DAS_BIND_EXTERNAL
-        virtual bool apply ( const FunctionPtr & fun, ModuleGroup &, const AnnotationArgumentList &, string & err )  override {
+        virtual bool apply ( const FunctionPtr &, ModuleGroup &, const AnnotationArgumentList &, string & err )  override {
             err = "daslang is configured with extern functions disabled";
             return false;
         }
@@ -584,6 +584,7 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
         string err;
         return getDllAddress(dm.library, dm.symbol, dm.api == ApiType::api_opengl, err);
 #else
+        (void)mangledName;
         return nullptr;
 #endif
     }

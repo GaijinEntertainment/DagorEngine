@@ -126,19 +126,12 @@ resultCode = include_preamble + resultCode
 if len(gets_code) > 0:
   resultCode = "#include <daECS/core/internal/ltComponentList.h>\n" + gets_code + resultCode + gets_type_code
 
-is_file_changed = True
-if len(sys.argv) > 4 and sys.argv[4] == 'CHECK':
-  is_file_changed = False
-
 existing_lines = ''
 
 if os.path.isfile(output_file_name):
   with io.open(output_file_name, 'rt', encoding='utf-8') as f:
     existing_lines = f.read()
-
-  if resultCode != existing_lines:
-    is_file_changed = True
-
+  is_file_changed = (resultCode != existing_lines)
 else:
   is_file_changed = True
 
@@ -162,3 +155,6 @@ if is_file_changed:
     '\r\n' if ('linux' in sys.platform and 'Microsoft' in open('/proc/sys/kernel/osrelease').read()) else None)
   with io.open(output_file_name, 'wt', encoding='utf-8', newline=nl) as f:
     f.write(unicode(resultCode, 'utf-8') if sys.version_info[0] == 2 else resultCode)
+elif os.path.isfile(output_file_name):
+  # bump the target's mtime to mark generation up to date for build systems
+  os.utime(output_file_name, None)

@@ -754,7 +754,7 @@ bool reload_changed()
   if (reloaded)
   {
     bind_dascript::bind_das_events(moduleMgr.get());
-    bind_dascript::bind_das(moduleMgr.get());
+    bind_dascript::bind_das(moduleMgr.get(), das::daScriptEnvironment::getBound());
   }
   return reloaded;
 }
@@ -803,7 +803,7 @@ bool main_thread_post_load()
 
   const bool res = bind_dascript::main_thread_post_load();
   bind_dascript::bind_das_events(moduleMgr.get());
-  bind_dascript::bind_das(moduleMgr.get());
+  bind_dascript::bind_das(moduleMgr.get(), das::daScriptEnvironment::getBound());
   return res;
 }
 
@@ -861,7 +861,7 @@ void reload_das_init()
       bind_dascript::load_das_script(dasInitPoint);
       bind_dascript::drop_multiple_scripts_loading(); // unset das_is_in_init_phase, es_reset_order should be called later
       bind_dascript::bind_das_events(moduleMgr.get());
-      bind_dascript::bind_das(moduleMgr.get());
+      bind_dascript::bind_das(moduleMgr.get(), das::daScriptEnvironment::getBound());
     }
     else
     {

@@ -16,6 +16,7 @@
 #include "daScript/simulate/aot.h"
 #include "daScript/simulate/aot_builtin_jit.h"
 #include "daScript/simulate/aot_builtin.h"
+#include "daScript/simulate/aot_builtin_rtti.h"       // builtin_getFunctionByMnh
 #include "daScript/simulate/debug_info.h"
 #include "daScript/simulate/debug_print.h"
 #include "daScript/simulate/hash.h"               // stringLength
@@ -28,7 +29,6 @@
 #include "misc/include_fmt.h"
 
 #include "module_builtin_rtti.h"
-#include "module_builtin_ast.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -49,8 +49,10 @@ namespace das {
     void * register_dynamic_module(const char *, const char *, int, Context *, LineInfoArg *);
     void register_native_path(const char *, const char *, const char *, Context *, LineInfoArg *);
     bool builtin_fexist ( const char * path );
+    DAS_API void retry_pending_dynamic_modules();
+    DAS_API int report_pending_dynamic_modules();
 
-    typedef vec4f ( * JitFunction ) ( Context * , vec4f *, void * );
+    // JitFunction typedef lives in arraytype.h (the SimFunction::jitFunction mirror shares it)
 
     struct SimNode_Jit : SimNode {
         SimNode_Jit ( const LineInfo & at, JitFunction eval )
@@ -64,6 +66,42 @@ namespace das {
         bool saved_aot = false;
         void * saved_aot_function = nullptr;
     };
+
+    SimNode * makeAotJitNode ( Context & ctx, void * publ ) {
+        return ctx.code->makeNode<SimNode_Jit>(LineInfo(), (JitFunction)publ);
+    }
+
+    extern "C" void * das_aot_get_func_by_mnh ( uint64_t mnh, Context * ctx ) {
+        return builtin_getFunctionByMnh(mnh, ctx).PTR;
+    }
+
+    static vector<pair<uint64_t,void*>> & llvmAotEntries() {
+        static vector<pair<uint64_t,void*>> entries;
+        return entries;
+    }
+
+    static vector<void(*)(Context*)> & llvmAotGlobInits() {
+        static vector<void(*)(Context*)> inits;
+        return inits;
+    }
+    static void registerLlvmAotFunctions ( AotLibrary & lib ) {
+        for ( auto & e : llvmAotEntries() ) {
+            lib.emplace(e.first, AotFactory(e.second));
+        }
+    }
+    static AotListBase g_llvmAotList(registerLlvmAotFunctions);
+
+    extern "C" void das_aot_register ( uint64_t aotHash, void * publ ) {
+        llvmAotEntries().emplace_back(aotHash, publ);
+    }
+
+    extern "C" void das_aot_register_globinit ( void (*fn)(Context*) ) {
+        llvmAotGlobInits().push_back(fn);
+    }
+
+    void runLlvmAotGlobInits ( Context & ctx ) {
+        for ( auto fn : llvmAotGlobInits() ) fn(&ctx);
+    }
 
     struct SimNode_JitBlock;
 
@@ -124,11 +162,18 @@ namespace das {
             simfn->code = jitNode->saved_code;
             simfn->aot = jitNode->saved_aot;
             simfn->aotFunction = jitNode->saved_aot_function;
+            simfn->jitFunction = nullptr;   // pre-instrument mirror is always null (aot/jit exclusive)
             simfn->jit = false;
             return true;
         } else {
             return false;
         }
+    }
+
+    bool das_has_jit_fastpath ( const Func func ) {
+        // test rail: is the invoke fastpath armed for this function (SimFunction::jitFunction mirror set)?
+        auto simfn = func.PTR;
+        return simfn && simfn->jitFunction;
     }
 
     bool das_instrument_jit ( void * pfun, const Func func, const LineInfo & lineInfo, Context & context ) {
@@ -139,6 +184,7 @@ namespace das {
             auto jitNode = static_cast<SimNode_Jit *>(simfn->code);
             jitNode->func = (JitFunction) pfun;
             jitNode->debugInfo = lineInfo;
+            simfn->jitFunction = pfun;
         } else {
             auto node = context.code->makeNode<SimNode_Jit>(lineInfo, (JitFunction)pfun);
             node->saved_code = simfn->code;
@@ -147,6 +193,7 @@ namespace das {
             simfn->code = node;
             simfn->aot = false;
             simfn->aotFunction = nullptr;
+            simfn->jitFunction = pfun;      // the invoke-fastpath mirror of node->func
             simfn->jit = true;
         }
         return true;
@@ -158,6 +205,14 @@ extern "C" {
     }
 
     DAS_API vec4f jit_call_or_fastcall ( SimFunction * fn, vec4f * args, Context * context ) {
+        if ( !fn ) context->throw_error("jit_call_or_fastcall: null function (unresolved LLVM-AOT call target)");
+        if ( fn->jitFunction ) {
+            // JIT->JIT direct call: skip the stack push/prologue (JIT'd bodies push their own
+            // frame via jit_prologue when they need one) and the virtual SimNode_Jit::eval.
+            auto res = ((JitFunction) fn->jitFunction)(context, args, nullptr);
+            context->stopFlags = 0;     // mirror callOrFastcall (an invoked interpreted block may leak stopForReturn)
+            return res;
+        }
         return context->callOrFastcall(fn, args, nullptr);
     }
 
@@ -170,6 +225,7 @@ extern "C" {
     }
 
     DAS_API vec4f jit_call_with_cmres ( SimFunction * fn, vec4f * args, void * cmres, Context * context ) {
+        if ( !fn ) context->throw_error("jit_call_with_cmres: null function (unresolved LLVM-AOT call target)");
         return context->callWithCopyOnReturn(fn, args, cmres, nullptr);
     }
 
@@ -225,16 +281,22 @@ extern "C" {
     public:
         ~JitContext() = default;
         JitContext(size_t totalVariables, size_t totalFunctions, size_t globalStringHeapSize,
-                  size_t globSize, size_t shrSize, bool pinvoke, uint32_t stackSize = 16*1024)
+                  size_t globSize, size_t shrSize, bool pinvoke, uint32_t stackSize = 16*1024,
+                  bool persistentHeap = false, bool gcEnabled = false)
             : Context(stackSize) {
             auto &context = *this;
             CodeOfPolicies policies;
             policies.debugger = false;
+            // standalone exe skips Program::simulate (which would read `options
+            // persistent_heap` / `options gc`), so set the heap mode here. Without a
+            // persistent heap + gcEnabled, heap_collect() throws at runtime.
+            policies.persistent_heap = persistentHeap;
             context.setup(totalVariables, globalStringHeapSize, policies, {});
+            context.gcEnabled = gcEnabled;
             context.globalsSize = globSize;
             context.sharedSize = shrSize;
             context.sharedOwner = true;
-            for (int i = 0; i < totalVariables; i++) {
+            for (size_t i = 0; i < totalVariables; i++) {
                 globalVariables[i] = GlobalVariable{};
             }
             context.allocateGlobalsAndShared();
@@ -263,12 +325,12 @@ extern "C" {
             tabGMnLookup = make_shared<das_hash_map<uint64_t,uint32_t>>();
         }
 
-        void *registerJitFunction ( uint64_t index, const char * name, const char * mangledName,
+        void *registerJitFunction ( uint64_t index, const char * funcName, const char * mangledName,
                                    uint64_t mnh, uint32_t stackSize, void * fnPtr,
                                    bool cmres, bool fastcall, bool pinvoke, uint32_t nArguments ) {
             DAS_ASSERT(index < (uint64_t) totalFunctions);
             auto & fn = functions[index];
-            fn.name = code->allocateName(name);
+            fn.name = code->allocateName(funcName);
             fn.mangledName = code->allocateName(mangledName);
             fn.mangledNameHash = mnh;
             fn.stackSize = stackSize;
@@ -285,12 +347,26 @@ extern "C" {
             fn.debugInfo = finfo;
             auto node = code->makeNode<SimNode_Jit>(LineInfo{}, (JitFunction) fnPtr);
             fn.code = node;
+            fn.jitFunction = fnPtr;         // the invoke-fastpath mirror
             (*tabMnLookup)[mnh] = &fn;
             return &fn;
         }
 
         void registerJitGlobalVariable(uint64_t mnh, size_t offset) {
             (*tabGMnLookup)[mnh] = offset;
+        }
+
+        // A standalone -exe leaves globalVariables[] zeroed (registerJitGlobalVariable
+        // only fills tabGMnLookup). collectHeap walks globalVariables[i] via
+        // .offset/.debugInfo/.shared, so they must be populated or the GC dereferences
+        // a NULL debugInfo. Called from the JIT'd init function (debugInfo is the
+        // exe-resident TypeInfo emitted by create_type_info_global).
+        void setStandaloneGlobalInfo(uint64_t index, uint64_t offset, void* debugInfo, int shared) {
+            DAS_ASSERT(index < (uint64_t) totalVariables);
+            auto & gv = globalVariables[index];
+            gv.offset = (uint32_t) offset;
+            gv.debugInfo = (VarInfo *) debugInfo;
+            gv.flags = shared ? 1u : 0u;
         }
 
         void initFunctionAddr ( uint64_t index, void * globPtr ) {
@@ -310,7 +386,8 @@ extern "C" {
                                                   uint64_t stackSize) {
         Context *context = new JitContext(totalVariables, totalFunctions, globalStringHeapSize,
                                          globalsSize, sharedSize, pinvoke,
-                                         stackSize ? (uint32_t)stackSize : 16*1024);
+                                         stackSize ? (uint32_t)stackSize : 16*1024,
+                                         /*persistentHeap*/ true, /*gcEnabled*/ true);
         static_cast<JitContext *>(context)->allocFunctions(totalFunctions);
         return context;
     }
@@ -329,12 +406,31 @@ extern "C" {
         static_cast<JitContext *>(ctx)->registerJitGlobalVariable(mangledNameHash, offset);
     }
 
+    // Populate globalVariables[index] so the GC can trace standalone-exe globals.
+    // Emitted by generate_globals_initialization_fn into the init function (debugInfo
+    // is the exe-resident TypeInfo, so it can only be wired at codegen time).
+    DAS_API void jit_set_global_var ( Context * ctx, uint64_t index, uint64_t offset, void* debugInfo, int shared ) {
+        static_cast<JitContext *>(ctx)->setStandaloneGlobalInfo(index, offset, debugInfo, shared);
+    }
+
     DAS_API void jit_set_init_script ( Context * ctx, Context::JitInitScriptFn fn ) {
         ctx->jitInitScript = fn;
     }
 
     DAS_API void jit_init_function_addr ( Context * ctx, uint64_t index, void * globPtr ) {
         static_cast<JitContext *>(ctx)->initFunctionAddr(index, globPtr);
+    }
+
+    // A missing MODULE and a missing FUNCTION die on the same lookup — distinguish them,
+    // because the former is a load failure (dlopen), not a signature mismatch.
+    static bool jit_module_is_registered ( const char * moduleName ) {
+        bool exists = false;
+        Module::foreach([&](Module * module) -> bool {
+            if ( module->name != moduleName ) return true;
+            exists = true;
+            return false;
+        });
+        return exists;
     }
 
     DAS_API void jit_init_extern_function ( const char * moduleName,
@@ -367,6 +463,9 @@ extern "C" {
             });
         }
         if (!found) {
+            if ( !jit_module_is_registered(moduleName) ) {
+                DAS_FATAL_ERROR("Failed to find %s: module %s is not registered (its .shared_module may have failed to load - see errors above).\n", funcMangledName, moduleName);
+            }
             DAS_FATAL_ERROR("Failed to find %s in module %s.\n", funcMangledName, moduleName);
         }
     }
@@ -380,6 +479,9 @@ extern "C" {
             return false;
         });
         if (!result) {
+            if ( !jit_module_is_registered(moduleName) ) {
+                DAS_FATAL_ERROR("Failed to find annotation %s: module %s is not registered (its .shared_module may have failed to load - see errors above).\n", annName, moduleName);
+            }
             DAS_FATAL_ERROR("Failed to find annotation %s in module %s.\n", annName, moduleName);
         }
         return result;
@@ -405,21 +507,115 @@ extern "C" {
         return context.shared + context.globalOffsetByMangledName(mnh);
     }
 
-    // Return the raw globals / shared base pointers from the Context. Existed
-    // before as JIT IR doing `GEP ctx+CONTEXT_OFFSET_OF_GLOBALS + load`, but
-    // CONTEXT_OFFSET_OF_GLOBALS is a `static const uint32_t` baked at C++
-    // compile time of THIS file using the host's `offsetof(Context, globals)`.
-    // When cross-compiling JIT'd code to wasm32, the wasm32 Context struct
-    // has 4-byte pointers and a different offsetof — emitting the host's
-    // offset reads garbage. The runtime archive (libDaScript_runtime.a) is
-    // built for the target with the right layout, so calling this helper
-    // gives the right pointer.
-    DAS_API void * jit_get_globals_base ( Context * context ) {
-        return context->globals;
+    // Resolve a handled-type (C++) field offset at runtime. The JIT bakes field
+    // offsets via the HOST annotation's offsetof, which is wrong when cross-compiling
+    // to a target whose C++ ABI lays the struct out differently — even at equal pointer
+    // width (e.g. an MSVC host vs a clang/wasm64 target: vptr + multiple-base ordering
+    // diverge for polymorphic classes like Context). The runtime archive (built for the
+    // target) registers each handled type's annotation with the right offsetof, so
+    // resolve by (module, type, field) here. Called once per offset-global at init,
+    // after initialize_modules() has registered the modules.
+    DAS_API uint32_t jit_get_handled_field_offset ( const char * moduleName,
+                                                    const char * typeName,
+                                                    const char * fieldName ) {
+        uint32_t offset = (uint32_t)-1;
+        Module::foreach([&](Module * module) -> bool {
+            if ( module->name != moduleName ) return true;
+            auto ann = module->findAnnotation(typeName);
+            // handled-type annotations only — StructureAnnotation isn't a TypeAnnotation (see note in
+            // jit_find_handled_annotation); the JIT only resolves offsets for handled-type fields.
+            if ( ann && ann->rtti_isHandledTypeAnnotation() ) {
+                offset = ((TypeAnnotation *)ann)->getFieldOffset(fieldName);
+                return false; // stop iterating
+            }
+            return true;
+        });
+        // Compiler only requests offsets for fields it resolved on the host annotation; a
+        // miss = target runtime annotation diverges (ABI/module mismatch). Fail loud, not -1.
+        if ( offset == (uint32_t)-1 ) {
+            DAS_FATAL_ERROR("jit: unresolved handled-type field offset %s::%s.%s (target runtime annotation diverges from the host).\n",
+                moduleName, typeName, fieldName);
+        }
+        return offset;
     }
 
-    DAS_API void * jit_get_shared_base ( Context * context ) {
-        return context->shared;
+    // ---- ABI safe-check (opt-in via --jit-check-abi) ------------------------
+    // Cross-compiling from an MSVC host to a wasm/clang target can bake a wrong
+    // handled-type (C++ struct) SIZE or field OFFSET when the two C++ ABIs lay the
+    // struct out differently (vptr/base ordering, or #ifdef WIN32/EMSCRIPTEN-
+    // conditional members). The codegen emits, at startup, one check call per used
+    // handled type (size) and per field (offset) carrying the HOST-baked value;
+    // each compares against the TARGET runtime annotation and records every
+    // divergence. jit_handled_abi_check_report() dumps them all at once and aborts,
+    // so a single run reveals the full magnitude of the layout disaster.
+    static string g_abi_check_report;
+    static int    g_abi_check_count = 0;        // mismatches
+    static int    g_abi_types_checked = 0;      // type-size checks where the target annotation was found
+    static int    g_abi_types_skipped = 0;      // ... not registered on target (module not linked here)
+    static int    g_abi_fields_checked = 0;
+    static int    g_abi_fields_skipped = 0;
+
+    static TypeAnnotation * jit_find_handled_annotation ( const char * moduleName, const char * typeName ) {
+        TypeAnnotation * found = nullptr;
+        Module::foreach([&](Module * module) -> bool {
+            if ( module->name != moduleName ) return true;
+            auto ann = module->findAnnotation(typeName);
+            // handled-type annotations only: StructureAnnotation derives from Annotation (not
+            // TypeAnnotation), so casting one to TypeAnnotation* would be UB. The ABI sweep only
+            // emits checks for handled (BasicStructureAnnotation) types, so this is also exact.
+            if ( ann && ann->rtti_isHandledTypeAnnotation() ) {
+                found = (TypeAnnotation *) ann;
+                return false; // stop iterating
+            }
+            return true;
+        });
+        return found;
+    }
+
+    DAS_API void jit_check_handled_type_size ( const char * moduleName, const char * typeName, uint32_t hostSize ) {
+        auto ann = jit_find_handled_annotation(moduleName, typeName);
+        if ( !ann ) { g_abi_types_skipped ++; return; } // not registered on target -> module not linked here
+        g_abi_types_checked ++;
+        uint32_t targetSize = uint32_t(ann->getSizeOf());
+        if ( targetSize != hostSize ) {
+            char buf[256];
+            snprintf(buf, sizeof(buf), "  size   %s::%s  host=%u target=%u\n",
+                moduleName, typeName, hostSize, targetSize);
+            g_abi_check_report += buf;
+            g_abi_check_count ++;
+        }
+    }
+
+    DAS_API void jit_check_handled_field_offset ( const char * moduleName, const char * typeName,
+                                                  const char * fieldName, uint32_t hostOffset ) {
+        auto ann = jit_find_handled_annotation(moduleName, typeName);
+        if ( !ann ) { g_abi_fields_skipped ++; return; }
+        g_abi_fields_checked ++;
+        uint32_t targetOffset = ann->getFieldOffset(fieldName);
+        if ( targetOffset != hostOffset ) {
+            char buf[256];
+            if ( targetOffset == (uint32_t)-1 ) // field absent on the target annotation
+                snprintf(buf, sizeof(buf), "  offset %s::%s.%s  host=%u target=MISSING\n",
+                    moduleName, typeName, fieldName, hostOffset);
+            else
+                snprintf(buf, sizeof(buf), "  offset %s::%s.%s  host=%u target=%u\n",
+                    moduleName, typeName, fieldName, hostOffset, targetOffset);
+            g_abi_check_report += buf;
+            g_abi_check_count ++;
+        }
+    }
+
+    DAS_API void jit_handled_abi_check_report () {
+        DAS_FATAL_LOG("JIT ABI CHECK: types %d checked / %d skipped, fields %d checked / %d skipped, %d mismatch(es)\n",
+            g_abi_types_checked, g_abi_types_skipped, g_abi_fields_checked, g_abi_fields_skipped, g_abi_check_count);
+        if ( g_abi_check_count==0 ) {
+            // reset so a subsequent sweep in the same process reports only its own results
+            g_abi_types_checked = g_abi_types_skipped = g_abi_fields_checked = g_abi_fields_skipped = 0;
+            g_abi_check_report.clear();
+            return;
+        }
+        DAS_FATAL_ERROR("JIT ABI CHECK: %d handled-type layout mismatch(es) (host-baked vs target runtime):\n%s",
+            g_abi_check_count, g_abi_check_report.c_str());
     }
 
     DAS_API void * jit_alloc_heap ( uint32_t bytes, Context * context ) {
@@ -445,6 +641,18 @@ extern "C" {
 
     DAS_API void jit_array_unlock ( const Array & arr, Context * context, LineInfoArg * at ) {
         builtin_array_unlock_mutable(arr, context, at);
+    }
+
+    DAS_API void jit_table_lock ( Table & tab, Context * context, LineInfoArg * at ) {
+        builtin_table_lock(tab, context, at);
+    }
+
+    DAS_API void jit_table_unlock ( Table & tab, Context * context, LineInfoArg * at ) {
+        builtin_table_unlock(tab, context, at);
+    }
+
+    DAS_API void jit_array_resize ( Array & arr, int newSize, int stride, Context * context, LineInfoArg * at ) {
+        builtin_array_resize(arr, newSize, stride, context, at);
     }
 
     DAS_API int32_t jit_str_cmp ( char * a, char * b ) {
@@ -505,6 +713,12 @@ extern "C" {
         block->functionArguments = context->abiArguments();
         block->info = (FuncInfo *) funcInfo;
         new (block->node) SimNode_JitBlock(*static_cast<LineInfo*>(lineInfo), (JitBlockFunction) bodyNode, blk, ad);
+    }
+
+    DAS_API uint64_t jit_ad_by_sid ( uint64_t sid, Context * context ) {
+        if ( !context || !context->tabAdLookup ) return 0;
+        auto it = context->tabAdLookup->find(sid);
+        return it != context->tabAdLookup->end() ? it->second : 0;
     }
 
     DAS_API void jit_debug ( vec4f res, TypeInfo * typeInfo, char * message, Context * context, LineInfoArg * at ) {
@@ -581,36 +795,6 @@ extern "C" {
         reinterpret_cast<FileInfo*>(dummy)->~FileInfo();
     }
 
-    struct JitAnnotationArgPod {
-        const char * name;
-        const char * sValue;
-        int32_t      type;
-        int32_t      iValue;  // covers bool/int/float (union bit-cast)
-    };
-
-    DAS_API void jit_initialize_varinfo_annotations ( void * varinfo_ptr, int32_t nArgs, JitAnnotationArgPod * args ) {
-        auto vi = (VarInfo *) varinfo_ptr;
-        auto aa = new AnnotationArguments();
-        aa->reserve(nArgs);
-        for ( int32_t i = 0; i < nArgs; i++ ) {
-            AnnotationArgument arg;
-            arg.type   = (Type) args[i].type;
-            arg.name   = args[i].name   ? args[i].name   : "";
-            arg.sValue = args[i].sValue ? args[i].sValue : "";
-            arg.iValue = args[i].iValue;
-            aa->push_back(std::move(arg));
-        }
-        vi->annotation_arguments = aa;
-    }
-
-    DAS_API void jit_free_varinfo_annotations ( void * varinfo_ptr ) {
-        auto vi = (VarInfo *) varinfo_ptr;
-        if ( vi->annotation_arguments ) {
-            delete (AnnotationArguments *) vi->annotation_arguments;
-            vi->annotation_arguments = nullptr;
-        }
-    }
-
     DAS_API void * jit_ast_typedecl ( uint64_t hash, Context * context, LineInfoArg * at ) {
         if ( !context->thisProgram ) context->throw_error_at(at, "can't get ast_typeinfo, no program. is 'options rtti' missing?");
         auto ti = context->thisProgram->astTypeInfo.find(hash);
@@ -631,18 +815,24 @@ extern "C" {
     void *das_get_jit_string_builder_temp() { return (void *)&jit_string_builder_temp; }
     void *das_get_jit_get_global_mnh() { return (void *)&jit_get_global_mnh; }
     void *das_get_jit_get_shared_mnh() { return (void *)&jit_get_shared_mnh; }
-    void *das_get_jit_get_globals_base() { return (void *)&jit_get_globals_base; }
-    void *das_get_jit_get_shared_base() { return (void *)&jit_get_shared_base; }
+    void *das_get_jit_get_handled_field_offset() { return (void *)&jit_get_handled_field_offset; }
+    void *das_get_jit_check_handled_type_size() { return (void *)&jit_check_handled_type_size; }
+    void *das_get_jit_check_handled_field_offset() { return (void *)&jit_check_handled_field_offset; }
+    void *das_get_jit_handled_abi_check_report() { return (void *)&jit_handled_abi_check_report; }
     void *das_get_jit_alloc_heap() { return (void *)&jit_alloc_heap; }
     void *das_get_jit_alloc_persistent() { return (void *)&jit_alloc_persistent; }
     void *das_get_jit_free_heap() { return (void *)&jit_free_heap; }
     void *das_get_jit_free_persistent() { return (void *)&jit_free_persistent; }
     void *das_get_jit_array_lock() { return (void *)&builtin_array_lock; }
     void *das_get_jit_array_unlock() { return (void *)&builtin_array_unlock; }
+    void *das_get_jit_table_lock() { return (void *)&builtin_table_lock; }
+    void *das_get_jit_table_unlock() { return (void *)&builtin_table_unlock; }
+    void *das_get_jit_array_resize() { return (void *)&builtin_array_resize; }
     void *das_get_jit_str_cmp() { return (void *)&jit_str_cmp; }
     void *das_get_jit_prologue() { return (void *)&jit_prologue; }
     void *das_get_jit_epilogue() { return (void *)&jit_epilogue; }
     void *das_get_jit_make_block() { return (void *)&jit_make_block; }
+    void *das_get_jit_ad_by_sid() { return (void *)&jit_ad_by_sid; }
     void *das_get_jit_debug() { return (void *)&jit_debug; }
     void *das_get_jit_iterator_iterate() { return (void *)&builtin_iterator_iterate; }
     void *das_get_jit_iterator_delete() { return (void *)&builtin_iterator_delete; }
@@ -655,8 +845,6 @@ extern "C" {
     void *das_get_jit_debug_line() { return (void *)&jit_debug_line; }
     void *das_get_jit_initialize_fileinfo () { return (void*)&jit_initialize_fileinfo; }
     void *das_get_jit_free_fileinfo () { return (void*)&jit_free_fileinfo; }
-    void *jit_get_initialize_varinfo_annotations () { return (void*)&jit_initialize_varinfo_annotations; }
-    void *jit_get_free_varinfo_annotations () { return (void*)&jit_free_varinfo_annotations; }
     void *das_get_jit_ast_typedecl () { return (void*)&jit_ast_typedecl; }
 
     template <typename KeyType>
@@ -738,6 +926,14 @@ extern "C" {
 
     uint64_t das_get_global_variable_mnh( const Context * ctx, int id ) {
         return ctx->getGlobalVariable(id).mangledNameHash;
+    }
+
+    void * das_get_global_variable_debug_info( const Context * ctx, int id ) {
+        return (void *) ctx->getGlobalVariable(id).debugInfo;
+    }
+
+    int das_get_global_variable_shared( const Context * ctx, int id ) {
+        return ctx->getGlobalVariable(id).shared ? 1 : 0;
     }
 
     uint64_t das_get_context_globals_size( const Context * ctx ) {
@@ -869,7 +1065,10 @@ extern "C" {
             #if defined(_WIN32) || defined(_WIN64)
                 // Two distinct Windows toolchains share the _WIN32 macro:
                 //   MSVC (incl. clang-cl) → MSVC-style import libs (libFoo.lib),
-                //     linked via clang-cl.exe with -DLL / -link / -OUT: syntax.
+                //     linked via lld-link.exe with /DLL /OUT: link.exe syntax.
+                //     lld-link (LLVM ≥14) autodetects the MSVC + WinSDK lib
+                //     paths itself (llvm/WindowsDriver, shared with clang), so
+                //     no compiler driver sits in front of the link.
                 //   mingw (clang-mingw / gcc-mingw) → mingw import libs
                 //     (libFoo.dll.a), linked via clang.exe with -shared / -o
                 //     syntax (Unix-like — clang.exe driver is identical to
@@ -877,7 +1076,7 @@ extern "C" {
                 //     toolchain talking to a JIT'd DLL built with the same one.
                 #if defined(_MSC_VER)
                     if (result.linker.empty()) {
-                        result.linker = find_linker(nullptr, "clang-cl.exe", "clang-cl");
+                        result.linker = find_linker(nullptr, "lld-link.exe", "lld-link");
                     }
                     if (result.runtimeLibrary.empty()) {
                         const auto path = get_prefix(getExecutableFileName());
@@ -969,7 +1168,7 @@ extern "C" {
         return true;
     }
 
-    bool create_shared_library ( const char * objFilePath, const char * libraryName, [[maybe_unused]] const char * dasLib, const char * customLinker, const char * extraLinkerArgs, bool isShared, bool linkWholeLib, Context *context ) {
+    bool create_shared_library ( const char * objFilePath, const char * libraryName, [[maybe_unused]] const char * dasLib, const char * customLinker, const char * extraLinkerArgs, bool isShared, bool linkWholeLib, [[maybe_unused]] bool debugInfo, Context *context ) {
         // cmd is built via fmt::format (heap-allocated std::string) rather
         // than a fixed stack buffer — long paths (deep build roots, spaces,
         // long extraLinkerArgs) can easily exceed a few hundred bytes, and
@@ -994,15 +1193,32 @@ extern "C" {
         std::string cmd;
         #if defined(_WIN32) || defined(_WIN64)
             #if defined(_MSC_VER)
-                // MSVC clang-cl: -DLL marks shared, -link separates link-only
-                // flags, -OUT: names the output, msvcrt.lib pulls the import
-                // CRT. Outer doubled quotes wrap the whole command for cmd.exe
-                // because the linker path itself contains spaces on Program
-                // Files installs.
-                const auto linkerParam = isShared ? "-DLL" : "";
+                // MSVC lld-link: link.exe-flavored args — /DLL marks shared,
+                // /OUT: names the output, msvcrt.lib pulls the import CRT
+                // (the JIT object carries no /DEFAULTLIB directive, so the CRT
+                // must be named explicitly). `extra` is raw linker flags here,
+                // not compiler-driver flags. Outer doubled quotes wrap the
+                // whole command for cmd.exe because the linker path itself
+                // contains spaces on Program Files installs.
+                const auto linkerParam = isShared ? "/DLL" : "";
+                // /DEBUG makes lld-link emit a PDB next to /OUT. Without CodeView in the
+                // object it carries publics only; once the emitter attaches DI it upgrades
+                // to full line info for the same flag.
+                const auto debugParam = debugInfo ? "/DEBUG" : "";
+                // Keep a compact linker map beside every JIT PE. A normal minidump deliberately
+                // omits the process heap (and therefore model weights), while the map plus the
+                // retained COFF object resolves generated module+RVA frames after a crash.
+                std::string mapPath = libraryName;
+                const auto slash = mapPath.find_last_of("/\\");
+                const auto dot = mapPath.find_last_of('.');
+                if ( dot == std::string::npos || (slash != std::string::npos && dot < slash) ) {
+                    mapPath += ".map";
+                } else {
+                    mapPath.replace(dot, std::string::npos, ".map");
+                }
                 cmd = compilerLibrary.empty()
-                    ? fmt::format(FMT_STRING("\"\"{}\" \"{}\" \"{}\" msvcrt.lib {} -link {} -OUT:\"{}\" 2>&1\""), linker.c_str(), objFilePath, runtimeLibrary.c_str(), extra, linkerParam, libraryName)
-                    : fmt::format(FMT_STRING("\"\"{}\" \"{}\" \"{}\" \"{}\" msvcrt.lib {} -link {} -OUT:\"{}\" 2>&1\""), linker.c_str(), objFilePath, runtimeLibrary.c_str(), compilerLibrary.c_str(), extra, linkerParam, libraryName);
+                    ? fmt::format(FMT_STRING("\"\"{}\" \"{}\" \"{}\" msvcrt.lib {} {} {} /OUT:\"{}\" /MAP:\"{}\" 2>&1\""), linker.c_str(), objFilePath, runtimeLibrary.c_str(), extra, linkerParam, debugParam, libraryName, mapPath.c_str())
+                    : fmt::format(FMT_STRING("\"\"{}\" \"{}\" \"{}\" \"{}\" msvcrt.lib {} {} {} /OUT:\"{}\" /MAP:\"{}\" 2>&1\""), linker.c_str(), objFilePath, runtimeLibrary.c_str(), compilerLibrary.c_str(), extra, linkerParam, debugParam, libraryName, mapPath.c_str());
             #else
                 // mingw clang/gcc: Unix-flavored driver, -shared/-o syntax.
                 // No rpath on Windows (DLLs resolve via PATH / LoadLibrary
@@ -1054,7 +1270,7 @@ extern "C" {
         return run_link_cmd(cmd.c_str(), libraryName, "Library", context);
     }
 #else
-    bool create_shared_library ( const char * objFilePath, const char * libraryName, [[maybe_unused]] const char * dasLib, const char * customLinker, const char * extraLinkerArgs, bool isShared, bool linkWholeLib, Context *context ) { return true; }
+    bool create_shared_library ( const char * objFilePath, const char * libraryName, [[maybe_unused]] const char * dasLib, const char * customLinker, const char * extraLinkerArgs, bool isShared, bool linkWholeLib, bool debugInfo, Context *context ) { return true; }
 #endif
 
 #if (defined(_WIN32) || defined(__linux__) || defined(__APPLE__)) && !defined(_GAMING_XBOX) && !defined(_DURANGO)
@@ -1069,14 +1285,14 @@ extern "C" {
     // is self-contained -sSTANDALONE_WASM (only wasi imports).
     bool link_wasm ( const char * objFilePath, const char * wasmPath,
                      const char * runtimeLibPath, const char * customEmcc,
-                     Context * context ) {
+                     bool memory64, Context * context ) {
         #if defined(_WIN32) || defined(_WIN64)
             const auto linker = find_linker(customEmcc, "emcc.bat", "emcc");
         #else
             const auto linker = find_linker(customEmcc, "emcc", "emcc");
         #endif
         if ( !check_file_present(objFilePath) ) {
-            LOG(LogLevel::error) << "File '" << objFilePath << "' , containing wasm32 object, does not exist\n";
+            LOG(LogLevel::error) << "File '" << objFilePath << "' , containing wasm object, does not exist\n";
             return false;
         }
         const bool withRuntime = runtimeLibPath != nullptr && runtimeLibPath[0] != '\0'
@@ -1088,20 +1304,45 @@ extern "C" {
         // -sSTANDALONE_WASM: emit self-contained .wasm with wasi imports only.
         // -fwasm-exceptions + -sWASM_LEGACY_EXCEPTIONS=0: match the runtime
         // archive's modern wasm EH, avoid emcc's JS invoke_* trampolines.
-        // -sINITIAL_MEMORY=128MB: standalone wasm cannot grow memory under
-        // wasmtime (-sALLOW_MEMORY_GROWTH adds an unsatisfiable
-        // emscripten_notify_memory_growth import), so reserve up front. Cost
-        // is virtual address space only — lazy paging keeps RSS proportional
-        // to actual use. 128MB covers all current playground benchmarks; see
-        // #2805.
+        // -sINITIAL_MEMORY=128MB: reserve up front so typical programs never pay
+        // growth churn. Cost is virtual address space only — lazy paging keeps RSS
+        // proportional to actual use.
+        // -sABORTING_MALLOC=0: state the contract we rely on rather than inherit it.
+        // Every das allocation path null-checks (LinearChunkAllocator::allocate ->
+        // StringHeapAllocator::impl_allocateString -> context->throw_out_of_memory),
+        // which only works while a failed malloc RETURNS. ALLOW_MEMORY_GROWTH happens
+        // to imply this today; spelling it out keeps the guarantee if growth is ever
+        // turned back off for a host that needs a fixed memory.
+        // -sALLOW_MEMORY_GROWTH=1: 128MB is NOT enough for every program (the f2s
+        // playground benchmark retains ~130MB of string heap and died at the cap).
+        // Previously omitted because growth added an unsatisfiable
+        // emscripten_notify_memory_growth import under a bare wasi host (#2805);
+        // that is fixed upstream — verified on the pinned emsdk 5.0.7 that a
+        // STANDALONE_WASM build with growth imports NOTHING from env, so wasmtime is
+        // unaffected. Measured on that emsdk: usable heap 120MB -> 2040MB.
         const std::string runtimeArg = withRuntime ? fmt::format("\"{}\" ", runtimeLibPath) : "";
+        // -sMEMORY64=1: wasm64 (memory64) target — 8-byte pointers. The object and
+        // runtime archive must also be wasm64 (built with -sMEMORY64=1); the linker
+        // setting must match or wasm-ld rejects the mixed-ABI inputs.
+        const char * mem64Arg = memory64 ? " -sMEMORY64=1" : "";
+        // Windows: wrap the whole command in an extra outer quote pair
+        // (`""emcc.bat" ... 2>&1"`). popen → cmd.exe strips the outermost pair,
+        // leaving the inner quoted argv intact; without this wrap cmd.exe mangles
+        // the quoted linker/paths and fails with "filename/directory syntax
+        // incorrect". Same trick create_shared_library uses (see above).
+        #if defined(_WIN32) || defined(_WIN64)
         const std::string cmd = fmt::format(
-            FMT_STRING("\"{}\" \"{}\" {}-o \"{}\" -sSTANDALONE_WASM -fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=0 -sINITIAL_MEMORY=128MB 2>&1"),
-            linker.c_str(), objFilePath, runtimeArg, wasmPath);
+            FMT_STRING("\"\"{}\" \"{}\" {}-o \"{}\" -sSTANDALONE_WASM -fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=0 -sINITIAL_MEMORY=128MB -sABORTING_MALLOC=0 -sALLOW_MEMORY_GROWTH=1{} 2>&1\""),
+            linker.c_str(), objFilePath, runtimeArg, wasmPath, mem64Arg);
+        #else
+        const std::string cmd = fmt::format(
+            FMT_STRING("\"{}\" \"{}\" {}-o \"{}\" -sSTANDALONE_WASM -fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=0 -sINITIAL_MEMORY=128MB -sABORTING_MALLOC=0 -sALLOW_MEMORY_GROWTH=1{} 2>&1"),
+            linker.c_str(), objFilePath, runtimeArg, wasmPath, mem64Arg);
+        #endif
         return run_link_cmd(cmd.c_str(), wasmPath, "Wasm", context);
     }
 #else
-    bool link_wasm ( const char *, const char *, const char *, const char *, Context * ) { return true; }
+    bool link_wasm ( const char *, const char *, const char *, const char *, bool, Context * ) { return true; }
 #endif
 
     void jit_set_jit_state(Context & context, void *shared_lib, void *llvm_ee, void *llvm_context) {
@@ -1135,6 +1376,9 @@ extern "C" {
             addExtern<DAS_BIND_FUN(das_remove_jit)>(*this, lib, "remove_jit",
                 SideEffects::worstDefault, "das_remove_jit")
                     ->args({"function"})->unsafeOperation = true;
+            addExtern<DAS_BIND_FUN(das_has_jit_fastpath)>(*this, lib, "has_jit_fastpath",
+                SideEffects::none, "das_has_jit_fastpath")
+                    ->args({"function"});
             addExtern<DAS_BIND_FUN(das_instrument_line_info)>(*this, lib, "instrument_line_info",
                 SideEffects::worstDefault, "das_instrument_line_info")
                     ->args({"info","context","at"});
@@ -1162,10 +1406,14 @@ extern "C" {
                 SideEffects::none, "das_get_jit_get_global_mnh");
             addExtern<DAS_BIND_FUN(das_get_jit_get_shared_mnh)>(*this, lib, "get_jit_get_shared_mnh",
                 SideEffects::none, "das_get_jit_get_shared_mnh");
-            addExtern<DAS_BIND_FUN(das_get_jit_get_globals_base)>(*this, lib, "get_jit_get_globals_base",
-                SideEffects::none, "das_get_jit_get_globals_base");
-            addExtern<DAS_BIND_FUN(das_get_jit_get_shared_base)>(*this, lib, "get_jit_get_shared_base",
-                SideEffects::none, "das_get_jit_get_shared_base");
+            addExtern<DAS_BIND_FUN(das_get_jit_get_handled_field_offset)>(*this, lib, "get_jit_get_handled_field_offset",
+                SideEffects::none, "das_get_jit_get_handled_field_offset");
+            addExtern<DAS_BIND_FUN(das_get_jit_check_handled_type_size)>(*this, lib, "get_jit_check_handled_type_size",
+                SideEffects::none, "das_get_jit_check_handled_type_size");
+            addExtern<DAS_BIND_FUN(das_get_jit_check_handled_field_offset)>(*this, lib, "get_jit_check_handled_field_offset",
+                SideEffects::none, "das_get_jit_check_handled_field_offset");
+            addExtern<DAS_BIND_FUN(das_get_jit_handled_abi_check_report)>(*this, lib, "get_jit_handled_abi_check_report",
+                SideEffects::none, "das_get_jit_handled_abi_check_report");
             addExtern<DAS_BIND_FUN(das_get_jit_alloc_heap)>(*this, lib, "get_jit_alloc_heap",
                 SideEffects::none, "das_get_jit_alloc_heap");
             addExtern<DAS_BIND_FUN(das_get_jit_alloc_persistent)>(*this, lib, "get_jit_alloc_persistent",
@@ -1178,6 +1426,12 @@ extern "C" {
                 SideEffects::none, "das_get_jit_array_lock");
             addExtern<DAS_BIND_FUN(das_get_jit_array_unlock)>(*this, lib, "get_jit_array_unlock",
                 SideEffects::none, "das_get_jit_array_unlock");
+            addExtern<DAS_BIND_FUN(das_get_jit_table_lock)>(*this, lib, "get_jit_table_lock",
+                SideEffects::none, "das_get_jit_table_lock");
+            addExtern<DAS_BIND_FUN(das_get_jit_table_unlock)>(*this, lib, "get_jit_table_unlock",
+                SideEffects::none, "das_get_jit_table_unlock");
+            addExtern<DAS_BIND_FUN(das_get_jit_array_resize)>(*this, lib, "get_jit_array_resize",
+                SideEffects::none, "das_get_jit_array_resize");
             addExtern<DAS_BIND_FUN(das_get_jit_table_at)>(*this, lib, "get_jit_table_at",
                 SideEffects::none, "das_get_jit_table_at");
             addExtern<DAS_BIND_FUN(das_get_jit_table_erase)>(*this, lib, "get_jit_table_erase",
@@ -1192,6 +1446,10 @@ extern "C" {
                 SideEffects::none, "das_get_global_variable_offset");
             addExtern<DAS_BIND_FUN(das_get_global_variable_mnh)>(*this, lib, "get_global_variable_mnh",
                 SideEffects::none, "das_get_global_variable_mnh");
+            addExtern<DAS_BIND_FUN(das_get_global_variable_debug_info)>(*this, lib, "get_global_variable_debug_info",
+                SideEffects::none, "das_get_global_variable_debug_info");
+            addExtern<DAS_BIND_FUN(das_get_global_variable_shared)>(*this, lib, "get_global_variable_shared",
+                SideEffects::none, "das_get_global_variable_shared");
             addExtern<DAS_BIND_FUN(das_get_context_globals_size)>(*this, lib, "get_context_globals_size",
                 SideEffects::none, "das_get_context_globals_size");
             addExtern<DAS_BIND_FUN(das_get_context_shared_size)>(*this, lib, "get_context_shared_size",
@@ -1206,6 +1464,8 @@ extern "C" {
                 SideEffects::none, "das_get_jit_epilogue");
             addExtern<DAS_BIND_FUN(das_get_jit_make_block)>(*this, lib, "get_jit_make_block",
                 SideEffects::none, "das_get_jit_make_block");
+            addExtern<DAS_BIND_FUN(das_get_jit_ad_by_sid)>(*this, lib, "get_jit_ad_by_sid",
+                SideEffects::none, "das_get_jit_ad_by_sid");
             addExtern<DAS_BIND_FUN(das_get_jit_debug)>(*this, lib, "get_jit_debug",
                 SideEffects::none, "das_get_jit_debug");
             addExtern<DAS_BIND_FUN(das_get_jit_iterator_iterate)>(*this, lib, "get_jit_iterator_iterate",
@@ -1236,10 +1496,6 @@ extern "C" {
                 SideEffects::none, "das_get_jit_initialize_fileinfo");
             addExtern<DAS_BIND_FUN(das_get_jit_free_fileinfo)>(*this, lib,  "get_jit_free_fileinfo",
                 SideEffects::none, "das_get_jit_free_fileinfo");
-            addExtern<DAS_BIND_FUN(jit_get_initialize_varinfo_annotations)>(*this, lib,  "get_initialize_varinfo_annotations",
-                SideEffects::none, "jit_get_initialize_varinfo_annotations");
-            addExtern<DAS_BIND_FUN(jit_get_free_varinfo_annotations)>(*this, lib,  "get_free_varinfo_annotations",
-                SideEffects::none, "jit_get_free_varinfo_annotations");
             addExtern<DAS_BIND_FUN(das_recreate_fileinfo_name)>(*this, lib,  "recreate_fileinfo_name",
                 SideEffects::worstDefault, "das_recreate_fileinfo_name");
             addExtern<DAS_BIND_FUN(loadDynamicLibrary)>(*this, lib,  "load_dynamic_library",
@@ -1253,12 +1509,12 @@ extern "C" {
                     ->args({"library"});
             addExtern<DAS_BIND_FUN(create_shared_library)>(*this, lib,  "create_shared_library",
                 SideEffects::worstDefault, "create_shared_library")
-                    ->args({"objFilePath","libraryName","dasLib","customLinker","extraLinkerArgs","isShared","linkWholeLib","context"});
+                    ->args({"objFilePath","libraryName","dasLib","customLinker","extraLinkerArgs","isShared","linkWholeLib","debugInfo","context"});
             addExtern<DAS_BIND_FUN(host_jit_triple)>(*this, lib, "host_jit_triple",
                 SideEffects::none, "host_jit_triple");
             addExtern<DAS_BIND_FUN(link_wasm)>(*this, lib,  "link_wasm",
                 SideEffects::worstDefault, "link_wasm")
-                    ->args({"objFilePath","wasmPath","runtimeLibPath","customEmcc","context"});
+                    ->args({"objFilePath","wasmPath","runtimeLibPath","customEmcc","memory64","context"});
             addExtern<DAS_BIND_FUN(jit_set_jit_state)>(*this, lib,  "set_jit_state",
                 SideEffects::worstDefault, "jit_set_jit_state")
                     ->args({"context","shared_lib","llvm_ee","llvm_ctx"});
@@ -1362,7 +1618,86 @@ static das::string resolve_dynamic_module_path ( const char *, const char * ) {
 }
 #endif
 
+// Standalone-exe browser lifecycle (matches the interpreter's WebLoop in
+// utils/daScript/main.cpp). A cross-compiled wasm graphics app exports
+// init/update/shutdown, but its `main` is the blocking desktop driver. On the web
+// the generated entry (llvm_exe.das) runs init() then calls jit_run_web_lifecycle
+// instead of main: it installs an rAF loop on update() and runs shutdown() when
+// update() returns false. updateFn/shutdownFn are jitted `RetT(Context*)` pointers;
+// updateReturnsValue selects the void vs bool/int call signature (bool/int both
+// return wasm i32, so they share one signature).
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+namespace {
+    struct JitWebLifecycle {
+        das::Context *  ctx;
+        void *          updateFn;
+        bool            updateReturnsValue;
+        void *          shutdownFn;             // nullable
+    };
+    void jit_web_lifecycle_tick ( void * arg ) {
+        auto * lc = (JitWebLifecycle *) arg;
+        bool keepGoing = true;
+        if ( lc->updateReturnsValue ) {
+            keepGoing = ((int32_t(*)(das::Context*))lc->updateFn)(lc->ctx) != 0;
+        } else {
+            ((void(*)(das::Context*))lc->updateFn)(lc->ctx);
+        }
+        if ( !keepGoing ) {
+            emscripten_cancel_main_loop();
+            if ( lc->shutdownFn ) ((void(*)(das::Context*))lc->shutdownFn)(lc->ctx);
+        }
+    }
+}
+#endif
+
 extern "C" {
+// See JitWebLifecycle note above. Defined for every target so the symbol always
+// links; only the emscripten build installs the rAF loop (others block, but the
+// generated entry only emits this call on the wasm target).
+DAS_API void jit_run_web_lifecycle ( das::Context * ctx, void * updateFn,
+                                     int32_t updateReturnsValue, void * shutdownFn ) {
+#ifdef __EMSCRIPTEN__
+    // arg leaks by design (lives the whole program). 0 = browser rAF cadence;
+    // true = simulate_infinite_loop, so this never returns and the entry's
+    // jit_shutdown() stays unreachable — the runtime persists for the rAF callbacks.
+    auto * lc = new JitWebLifecycle{ ctx, updateFn, updateReturnsValue != 0, shutdownFn };
+    emscripten_set_main_loop_arg(jit_web_lifecycle_tick, lc, 0, true);
+#else
+    bool keepGoing = true;
+    while ( keepGoing ) {
+        if ( updateReturnsValue ) keepGoing = ((int32_t(*)(das::Context*))updateFn)(ctx) != 0;
+        else ((void(*)(das::Context*))updateFn)(ctx);
+    }
+    if ( shutdownFn ) ((void(*)(das::Context*))shutdownFn)(ctx);
+#endif
+}
+
+// Standalone-exe main guard: the generated entry (llvm_exe.das) routes das main through this
+// so a runtime exception prints and exits nonzero instead of unwinding out of the entry with
+// no message (hosted runs get this boundary from their runWithCatch call sites; a bare exe
+// had none — fix for the silent-exit-127 class). resultKind: 0 = void main, 1 = int main
+// (value = exit code), 2 = bool main (true -> 0, false -> 1).
+DAS_API int32_t jit_run_main_guarded ( das::Context * ctx, void * mainFn, int32_t resultKind ) {
+    int32_t rc = 0;
+    bool ok = ctx->runWithCatch([&]() {
+        if ( resultKind == 1 ) {
+            rc = ((int32_t(*)(das::Context*))mainFn)(ctx);
+        } else if ( resultKind == 2 ) {
+            rc = ((bool(*)(das::Context*))mainFn)(ctx) ? 0 : 1;
+        } else {
+            ((void(*)(das::Context*))mainFn)(ctx);
+        }
+    });
+    if ( !ok ) {
+        das::TextPrinter tp;
+        tp << "EXCEPTION: " << (ctx->getException() ? ctx->getException() : "unknown") << "\n";
+        tp.output();    // TextWriter's dtor only frees its buffer — output() is what prints
+        return 1;
+    }
+    return rc;
+}
+
 DAS_API void das_ensure_environment () {
     das::daScriptEnvironment::ensure();
 }
@@ -1417,6 +1752,18 @@ DAS_API void * jit_register_dynamic_module_resolve ( const char * rel_path,
                                                      const char * mod_name ) {
     das::string chosen = resolve_dynamic_module_path(rel_path, fallback_abs_path);
     return das::register_dynamic_module(chosen.c_str(), mod_name, 0/*Quiet*/, nullptr, nullptr);
+}
+
+// Emitted by inject_main after the per-module jit_register_dynamic_module_resolve calls.
+// Those load Quiet (sibling DT_NEEDED ordering makes a first-attempt failure normal), so
+// run the fixed-point retry, then treat anything still unloadable as fatal: every module
+// the exe registers is required by its program, and continuing only defers the death to
+// the first extern lookup, whose message no longer names the real cause.
+DAS_API void jit_finalize_dynamic_modules () {
+    das::retry_pending_dynamic_modules();
+    if ( int failed = das::report_pending_dynamic_modules() ) {
+        DAS_FATAL_ERROR("%d dynamic module(s) failed to load (see above).\n", failed);
+    }
 }
 
 DAS_API void jit_register_native_path ( const char * mod_name, const char * src_path, const char * dst_path ) {

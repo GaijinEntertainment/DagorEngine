@@ -99,6 +99,7 @@ CMD(CmdFlushDraws, silent, DUMP_DEFAULT);
 CMD(CmdFlushAndWait, silent, DUMP_DEFAULT);
 CMD(CmdImageBarrier, silent, DUMP_DEFAULT);
 CMD(CmdBufferBarrier, silent, DUMP_DEFAULT);
+CMD(CmdEnhancedBarrierBatch, measured, DUMP_DEFAULT);
 CMD(CmdDelaySyncCompletion, measured, DUMP_DEFAULT);
 CMD(CmdQueueSwitch, measured, DUMP_CUSTOM);
 CMD(CmdQueueSignal, measured, DUMP_CUSTOM);

@@ -336,6 +336,7 @@ namespace das {
         addExpressionAnnotation(new AstExprConstTAnnotation<ExprConstRange64 ,range64> ("ExprConstRange64",lib))->from("ExprConst");
         addExpressionAnnotation(new AstExprConstTAnnotation<ExprConstURange64,urange64>("ExprConstURange64",lib))->from("ExprConst");
         addExpressionAnnotation(new AstExprConstTAnnotation<ExprConstFloat  ,float> ("ExprConstFloat",lib))->from("ExprConst");
+        addExpressionAnnotation(new AstExprConstTAnnotation<ExprConstFloat16,float16_t>("ExprConstFloat16",lib))->from("ExprConst");
         addExpressionAnnotation(new AstExprConstTAnnotation<ExprConstFloat2 ,float2>("ExprConstFloat2",lib))->from("ExprConst");
         addExpressionAnnotation(new AstExprConstTAnnotation<ExprConstFloat3 ,float3>("ExprConstFloat3",lib))->from("ExprConst");
         addExpressionAnnotation(new AstExprConstTAnnotation<ExprConstFloat4 ,float4>("ExprConstFloat4",lib))->from("ExprConst");

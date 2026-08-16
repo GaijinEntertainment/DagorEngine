@@ -116,7 +116,7 @@ constexpr T pow2(const T &t)
   return t * t;
 }
 
-ObjectManager::ObjectManager(const char *name, rendinst::ClientRiexPool ri_pool_id, int cell_tile, int cells_size_count,
+ObjectManager::ObjectManager(const char *name, rendinst::ClientRiexPoolId ri_pool_id, int cell_tile, int cells_size_count,
   float cell_size, float bounding_sphere_radius, dag::ConstSpan<float> dist_sq_lod, const PlacingParameters &parameters) :
   assetName(name),
   riPoolId(ri_pool_id),
@@ -273,11 +273,18 @@ void ObjectManager::setShaderVarsAndConsts()
   }
   else
   {
-    ShaderGlobal::set_int(gpu_objects_biomes_countVarId, parameters.biomes.size());
-    if (parameters.biomes.size() > 0)
-    {
-      d3d::set_cs_const(biom_indexes_const_no, &parameters.biomes[0].x, parameters.biomes.size());
-    }
+    if ((int)parameters.biomes.size() > MAX_GPU_OBJECT_BIOMES)
+      LOGERR_ONCE("gpu_objects: <%s> has %u biomes, max is %d", assetName.c_str(), parameters.biomes.size(), MAX_GPU_OBJECT_BIOMES);
+
+    const int biomesCount = min((int)parameters.biomes.size(), (int)MAX_GPU_OBJECT_BIOMES);
+    ShaderGlobal::set_int(gpu_objects_biomes_countVarId, biomesCount);
+
+    Point4 biomes[MAX_GPU_OBJECT_BIOMES];
+    if (biomesCount > 0)
+      memcpy(biomes, parameters.biomes.data(), biomesCount * sizeof(biomes[0]));
+    for (int i = biomesCount; i < MAX_GPU_OBJECT_BIOMES; ++i)
+      biomes[i] = Point4(-1, 1, 0, 0);
+    d3d::set_cs_const(biom_indexes_const_no, &biomes[0].x, MAX_GPU_OBJECT_BIOMES);
   }
   ShaderGlobal::set_float4(gpu_objects_color_fromVarId, parameters.colorFrom);
   ShaderGlobal::set_float4(gpu_objects_color_toVarId, parameters.colorTo);

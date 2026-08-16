@@ -36,11 +36,12 @@ require daslib/linq_fold_common public
 require daslib/linq_fold_array public
 require daslib/linq_fold_decs public
 require daslib/linq_fold_json public          // in-tree JSON source adapter — emits by name, pulls in no json dep
+require daslib/linq_fold_table public         // in-tree table source adapter — each_kv/keys/values chain heads
 require ?pugixml pugixml/linq_fold_xml       // optional XML source adapter — loaded only when pugixml is linked
-require ?sqlite sqlite/linq_fold_sql         // optional SQL source pass-through — loaded only when sqlite is linked
+require daslib/linq_fold_sql                 // SQL source pass-through — provider-neutral, fires only when sql_linq is in the program
 
 [macro_function]
-def private fold_linq_default(var expr : Expression?) : Expression? {
+def private fold_linq_default(var expr : Expression?) : Expression? {   // nolint:STYLE037 - one arm per linq call shape in the folded chain
     var blk = new ExprBlock(at = expr.at)
     var (top, calls) = flatten_linq(expr)
     if (empty(calls)) return null
@@ -87,7 +88,7 @@ def private fold_linq_default(var expr : Expression?) : Expression? {
             } else {
                 // Macro emits `var pass_N = call` and a later `return <- pass_N`;
                 blk.list |> emplace_new <| qmacro_expr() {
-                    var $i(newArgName) = $e(newCall)  // nolint:PERF009
+                    var $i(newArgName) = $e(newCall)  // nolint:PERF009,LINT019 - qmacro template line; PERF009 fires only in the downstream expansion
                 }
                 (blk.list.back() as ExprLet).variables[0].flags.can_shadow = true
                 if (argIndex != 0) {
@@ -171,13 +172,11 @@ def private run_splice_adapter(var calls : array<tuple<ExprCall?; LinqCall?>>; v
 def private try_splice_patterns(prog : ProgramPtr; var expr : Expression?) : Expression? {
     var (top, calls) = flatten_linq(expr)
     if (expr._type == null) return null
-    // SQL pass-through (static_if drops it pre name-resolution when sqlite is absent). A `[sql_table]` `select_from` source means the whole chain is SQL-mappable — hand the pristine `expr` (before any chain normalization, and even with no chain ops) to `_sql`, which re-expands on the next infer pass. Walks `expr` itself (not flattened `top`): the SQL DSL ops aren't `linqCalls`, so flatten stops before the source. `sqlite_linq_loaded()` gates on `_sql` actually being in this program (a consumer may have `select_from` via `sqlite_boost` but not `sqlite_linq`) — if absent, fall through to the in-memory array path.
-    static_if (typeinfo builtin_module_exists(sqlite)) {
-        if (extract_sql_source(expr) != null && sqlite_linq_loaded(prog)) {
-            var sqlCall = make_call(expr.at, "_sql")
-            (sqlCall as ExprCallMacro).arguments |> emplace_new <| clone_expression(expr)
-            return sqlCall
-        }
+    // SQL pass-through. A `[sql_table]` `select_from` source means the whole chain is SQL-mappable — hand the pristine `expr` (before any chain normalization, and even with no chain ops) to `_sql`, which re-expands on the next infer pass. Walks `expr` itself (not flattened `top`): the SQL DSL ops aren't `linqCalls`, so flatten stops before the source. `sql_linq_loaded()` gates on `_sql` actually being in this program (a consumer may have `select_from` via a provider boost but not `daslib/sql_linq`) — if absent, fall through to the in-memory array path.
+    if (extract_sql_source(expr) != null && sql_linq_loaded(prog)) {
+        var sqlCall = make_call(expr.at, "_sql")
+        (sqlCall as ExprCallMacro).arguments |> emplace_new <| clone_expression(expr)
+        return sqlCall
     }
     if (empty(calls)) return null
     normalize_order_reverse(calls)
@@ -211,6 +210,33 @@ def private try_splice_patterns(prog : ProgramPtr; var expr : Expression?) : Exp
             new JsonAdapter(jsonExpr = clone_expression(jsonCall.arguments[0]), srcName = qn("jsrc", at),
                             elemType = clone_type(jsonCall._type.firstType)), exprIsIter, at)
     }
+    // Table adapter (in-tree, no static_if — extract_table_source name-matches each_kv/keys/values with a table-typed arg). The kv lane fuses only copyable values: a non-copyable-valued each_kv falls through to the array tier, where the surviving each_kv instantiation concept-asserts with the user-facing message.
+    var tabCall = extract_table_source(top)
+    if (tabCall != null) {
+        let tabName = get_call_short_name(tabCall)
+        let valT = tabCall.arguments[0]._type.secondType
+        if (tabName != "each_kv" || (valT != null && valT.canCopy)) {
+            let lane = tabName == "each_kv" ? TableLane.KV : (tabName == "keys" ? TableLane.KEYS : TableLane.VALUES)
+            var ttopClone = clone_expression(top)
+            // keys/each_kv spell their element `-const` (iterator-variance concern); that flag must not leak into emitted var/buffer type spellings (`array<tuple<…> -const>` breaks push_clone unification).
+            if (ttopClone._type != null && ttopClone._type.firstType != null) {
+                ttopClone._type.firstType.flags.removeConstant = false
+            }
+            var elemT = clone_type(tabCall._type.firstType)
+            elemT.flags.removeConstant = false
+            var tadapter = new TableAdapter(tabExpr = clone_expression(tabCall.arguments[0]), srcName = qn("tsrc", at),
+                                            elemType = elemT, lane = lane)
+            if (!exprIsIter) {
+                // `where(kv.key == X)` + terminator → O(1) key probe instead of the walk
+                var probe = try_table_point_lookup(calls, tadapter, at)
+                if (probe != null) return probe
+            }
+            if (lane != TableLane.VALUES) {
+                drop_redundant_distinct(calls)   // keys are unique by construction; values can repeat
+            }
+            return run_splice_adapter(calls, ttopClone, ttopClone, tadapter, exprIsIter, at)
+        }
+    }
     top = peel_each(top)
     var topClone = clone_expression(top)
     return run_splice_adapter(calls, top, topClone,
@@ -222,14 +248,15 @@ class private LinqFold : AstCallMacro {
     def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : Expression? {
         macro_verify(call.arguments |> length == 1, prog, call.at, "expecting _fold(expression)")
         macro_verify(call.arguments[0]._type != null, prog, call.at, "expecting linq expression")
+        // defer while the chain type carries a dependent spelling (`select`'s declared typedecl return, pre-instance) — firing then bakes the unresolved typedecl into the emitted buffer decl
+        macro_verify(!call.arguments[0]._type.isAutoOrAlias, prog, call.at, "_fold: chain type is not fully inferred yet")
         var res = try_splice_patterns(prog, call.arguments[0])
         if (res != null) return res
-        // Theme 6 — warn when an adapter source (today: `from_decs_template`) survives every splice arm with a
-        // non-empty chain, so the bridge materializes a temp `res` array before the cascade. Suppress: `options _no_linq_perf_warn = true`.
+        // Theme 6 — warn when an adapter source (today: `from_decs_template`) survives every splice arm with a non-empty chain, so the bridge materializes a temp `res` array before the cascade. Suppress: `options _no_linq_perf_warn = true`.
         if (!(prog._options |> find_arg("_no_linq_perf_warn") ?as tBool ?? false)) {
             var (top, calls) = flatten_linq(call.arguments[0])
             if (!empty(calls) && extract_decs_bridge(top) != null) {
-                to_compiler_log("{describe(call.at)}: *warning* `_fold`: from_decs_template source survived dispatch — no splice arm claimed this chain, so the bridge materializes a temp `res` array and the tier-2 cascade runs on the materialized buffer. Rewrite the chain to a recognized decs shape (see doc/source/reference/linq_fold_patterns.rst), or suppress with `options _no_linq_perf_warn = true`.\n")
+                to_compiler_log("{describe(call.at)}: *warning* `_fold`: from_decs_template source survived dispatch - no splice arm claimed this chain, so the bridge materializes a temp `res` array and the tier-2 cascade runs on the materialized buffer. Rewrite the chain to a recognized decs shape (see doc/source/reference/linq_fold_patterns.rst), or suppress with `options _no_linq_perf_warn = true`.\n")
             }
         }
         // Tier 2 — array-shape pipeline with `_inplace` reuse + explicit `delete`.

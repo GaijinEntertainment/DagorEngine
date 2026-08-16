@@ -204,7 +204,7 @@ allModifiableScenes.subscribe_with_nasty_disregard_of_frp_update(function(v) {
 
 function dialogRoot() {
   let templatesGroups = entity_editor?.get_instance().getEcsTemplatesGroups()
-  let maxTemplatesInList = 1000
+  const maxTemplatesInList = 1000
 
   local scenes = getAllScenes().map(function (item, ind) {
       item.index <- ind
@@ -282,14 +282,14 @@ function dialogRoot() {
   }
 
   return {
-    size = [flex(), flex()]
+    size = const [flex(), flex()]
     flow = FLOW_HORIZONTAL
 
     watch = [filteredTemplatesCount, selectedGroupTemplatesCount, showDebugButtons, templateTooltip, selectedScene, allScenesWatcher]
 
     children = [
       {
-        size = [sw(17), sh(75)]
+        size = const [sw(17), sh(75)]
         hplace = ALIGN_LEFT
         vplace = ALIGN_CENTER
         rendObj = ROBJ_SOLID
@@ -316,7 +316,7 @@ function dialogRoot() {
             ]
           }
           {
-            size = [flex(),fontH(100)]
+            size = const [flex(),fontH(100)]
             children = combobox({
               value = selectedScene
               update = function(v) {
@@ -335,7 +335,7 @@ function dialogRoot() {
           }
 
           {
-            size = [flex(),fontH(100)]
+            size = const [flex(),fontH(100)]
             children = combobox(selectedTemplatesGroup, templatesGroups)
           }
           filter
@@ -358,7 +358,7 @@ function dialogRoot() {
         ]
       }
       {
-        size = [sw(17), sh(60)]
+        size = const [sw(17), sh(60)]
         hplace = ALIGN_LEFT
         vplace = ALIGN_CENTER
         children = templateTooltip.get()

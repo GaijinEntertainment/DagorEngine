@@ -5,6 +5,7 @@ import "dagor.localize" as dagorLocalize
 from "%sqstd/functools.nut" import memoize
 import "console" as console
 from "nestdb" import ndbTryRead, ndbWrite
+from "types" import String
 
 let nativeLoc = dagorLocalize.loc
 let {doesLocTextExist} = dagorLocalize
@@ -22,7 +23,7 @@ function locWithCheck(locId, ...) {
      return locId
   local defaultLoc
   foreach (v in vargv) {
-    if (type(v) == "string")
+    if (v instanceof String)
       defaultLoc = v
   }
 

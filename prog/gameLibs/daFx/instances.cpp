@@ -227,6 +227,8 @@ static inline InstanceId create_subinstance(Context &ctx, InstanceId queued_iid,
   SETV(INST_VISIBILITY, 0xffffffff);
   if constexpr (INST_RENDERABLE_TRIS >= 0)
     *stream.getOpt<INST_RENDERABLE_TRIS, uint>(sid) = 0;
+  if constexpr (INST_STAT_GROUP >= 0)
+    *stream.getOpt<INST_STAT_GROUP, uint8_t>(sid) = sys.statGroup;
 
   RefData *renderRefData = ctx.refDatas.get(sys.renderRefDataId);
   RefData *simulationRefData = ctx.refDatas.get(sys.simulationRefDataId);

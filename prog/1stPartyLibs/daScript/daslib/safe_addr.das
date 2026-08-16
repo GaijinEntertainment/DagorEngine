@@ -20,7 +20,7 @@ require daslib/is_local
 def public safe_addr(var x : auto(T)& ==const) : T -&?# {
     //! returns temporary pointer to the given expression
     unsafe {
-        return reinterpret<T -&?#>(addr(x))
+        return addr<T -&?#>(x)
     }
 }
 
@@ -28,7 +28,7 @@ def public safe_addr(var x : auto(T)& ==const) : T -&?# {
 def public safe_addr(x : auto(T)& ==const) : T -&? const# {
     //! returns temporary pointer to the given expression
     unsafe {
-        return reinterpret<T -&? const#>(addr(x))
+        return addr<T -&? const#>(x)
     }
 }
 
@@ -36,7 +36,7 @@ def public safe_addr(x : auto(T)& ==const) : T -&? const# {
 def public safe_addr(var x : auto(T)[]& ==const) : T -&?# {
     //! returns temporary pointer to the first element of a fixed array (C-style array decay)
     unsafe {
-        return reinterpret<T -&?#>(addr(x))
+        return addr<T -&?#>(x)
     }
 }
 
@@ -44,7 +44,7 @@ def public safe_addr(var x : auto(T)[]& ==const) : T -&?# {
 def public safe_addr(x : auto(T)[]& ==const) : T -&? const# {
     //! returns temporary pointer to the first element of a fixed array (C-style array decay)
     unsafe {
-        return reinterpret<T -&? const#>(addr(x))
+        return addr<T -&? const#>(x)
     }
 }
 

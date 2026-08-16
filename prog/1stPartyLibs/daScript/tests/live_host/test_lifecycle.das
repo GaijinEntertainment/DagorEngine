@@ -24,6 +24,14 @@ def test_timing(t : T?) {
         let fps = get_fps()
         t |> success(fps >= 0.0f, "fps should be >= 0")
     }
+    // Must come last: advance_frame_clock latches the frame-driven clock for the rest of the process,
+    // after which get_dt() returns the stable per-frame cache (the standalone-loop fix).
+    t |> run("advance_frame_clock makes get_dt idempotent within a frame") @(t : T?) {
+        advance_frame_clock()
+        let a = get_dt()
+        let b = get_dt()
+        t |> success(a == b, "every get_dt() in one frame must return the same value")
+    }
 }
 
 [test]

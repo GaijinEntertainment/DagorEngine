@@ -195,18 +195,16 @@ static bool is_asset_in_pack(dag::ConstSpan<AssetPack *> pack, int package_id, c
   return false;
 }
 
-String get_name_of_package_containing_asset(const DataBlock &app_blk, DagorAssetMgr &mgr, unsigned target_code, const char *profile,
-  ILogWriter &log, DagorAsset *asset)
+String get_name_of_package_containing_asset(const DataBlock &app_blk, DagorAssetMgr &mgr, dag::ConstSpan<bool> exp_types_mask,
+  unsigned target_code, const char *profile, ILogWriter &log, DagorAsset *asset)
 {
   const DataBlock &expblk = *app_blk.getBlockByNameEx("assets")->getBlockByNameEx("export");
-  Tab<bool> expTypesMask(tmpmem);
-  make_exp_types_mask(expTypesMask, mgr, expblk, log);
 
   Tab<AssetPack *> grpPack(tmpmem), texPack(tmpmem);
   FastNameMapEx packages;
   uint64_t tc_storage = 0;
   const char *targetStr = mkbindump::get_target_str(target_code, tc_storage);
-  preparePacks(mgr, make_span_const<DagorAsset *>(&asset, 1), expTypesMask, expblk, texPack, grpPack, packages, log,
+  preparePacks(mgr, make_span_const<DagorAsset *>(&asset, 1), exp_types_mask, expblk, texPack, grpPack, packages, log,
     /*export_tex = */ true, /*export_res = */ true, targetStr, profile);
 
   String packageName;
@@ -425,7 +423,8 @@ public:
 
   String __stdcall getPkgName(DagorAsset *asset) override
   {
-    return get_name_of_package_containing_asset(appBlk, *mgr, /*target_code = */ _MAKE4C('PC'), /*profile = */ nullptr, *log, asset);
+    return get_name_of_package_containing_asset(appBlk, *mgr, expTypesMask, /*target_code = */ _MAKE4C('PC'), /*profile = */ nullptr,
+      *log, asset);
   }
 
   bool __stdcall checkUpToDate(dag::ConstSpan<unsigned> tc, dag::Span<int> tc_flags, dag::ConstSpan<const char *> packs_to_check,
@@ -651,21 +650,33 @@ public:
 
     if (loaded && !checkCacheChanged(c4, a, exp))
     {
-      FullFileLoadCB crd(cache_path);
-      if (crd.fileHandle && (crd.readInt() == _MAKE4C('fC1')) && (crd.readInt() >= 2))
+      DAGOR_TRY
       {
-        crd.seekto(cacheEndPos);
-
-        int sz = crd.beginBlock();
-        if (sz > 0)
+        FullFileLoadCB crd(cache_path);
+        if (crd.fileHandle && (crd.readInt() == _MAKE4C('fC1')) && (crd.readInt() >= 2))
         {
-          cwr.copyRaw(crd, sz);
-          crd.endBlock();
-          // Persist a corrected mtime so future calls skip rehashing this asset's source files.
-          if (c4.isTimeChanged())
-            c4.save(cache_path, *mgr);
-          return true;
+          crd.seekto(cacheEndPos);
+
+          int sz = crd.beginBlock();
+          if (sz > 0)
+          {
+            cwr.copyRaw(crd, sz);
+            crd.endBlock();
+            // Persist a corrected mtime so future calls skip rehashing this asset's source files.
+            if (c4.isTimeChanged())
+            {
+              crd.close(); // save() below reopens cache_path for write - must close our own read handle on it first
+              c4.save(cache_path, *mgr, &cwr, &data_offset);
+              data_offset += sizeof(int); // see first data_offset calculation
+            }
+            return true;
+          }
         }
+      }
+      DAGOR_CATCH(const IGenLoad::LoadException &)
+      {
+        logerr("Failed to read cache file \"%s\".", cache_path);
+        cwr.reset(0);
       }
     }
 
@@ -691,7 +702,7 @@ public:
     c4.setWarnings(warnings);
     c4.save(cache_path, *mgr, &cwr, &data_offset);
 
-    data_offset += sizeof(int); // see first data_offset caclulation
+    data_offset += sizeof(int); // see first data_offset calculation
 
     return true;
   }

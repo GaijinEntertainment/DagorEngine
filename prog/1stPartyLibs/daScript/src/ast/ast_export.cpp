@@ -7,15 +7,44 @@ namespace das {
 
     class ClearUnusedSymbols : public Visitor {
     public:
+        ClearUnusedSymbols ( Module * tm ) : thisModule(tm) {}
         virtual bool canVisitFunction ( Function * fun ) override {
             return !fun->stub && !fun->isTemplate;    // we don't do a thing with templates
         }
         virtual bool canVisitStructureFieldInit ( Structure * ) override { return true; }
-        virtual bool canVisitArgumentInit ( Function *, const VariablePtr &, Expression * ) override { return false; }
+        // default-argument initializers are the same dangling-ref story as field inits:
+        // MarkSymbolUse never visits them (canVisitArgumentInit is false there), so a
+        // function/global whose ONLY anchor is `def f(x = helper())` is never marked used,
+        // removeUnusedSymbols frees it, and the surviving f keeps the raw pointer in
+        // arg->init - serialization then reads it (SIGSEGV in getMangledName under --ser).
+        // infer already inlined every default into its call sites, so nulling the husk here
+        // costs nothing
+        virtual bool canVisitArgumentInit ( Function *, const VariablePtr &, Expression * ) override { return true; }
         virtual void preVisit(ExprAddr * expr) override {
             Visitor::preVisit(expr);
             if ( expr->func && !expr->func->used && !expr->func->builtIn ) {
                 expr->func = nullptr;
+            }
+        }
+        // `WithInit()` in a struct field initializer infers to ExprMakeStruct, whose
+        // constructor ref is NOT an ExprCallFunc - left unnulled, removeUnusedSymbols frees
+        // the ctor while the surviving structure's field-init expression keeps the raw
+        // pointer, and AST serialization reads a dangling Function* (nondeterministic
+        // SIGSEGV in getMangledName under --ser)
+        virtual void preVisit(ExprMakeStruct * expr) override {
+            Visitor::preVisit(expr);
+            if ( expr->constructor && !expr->constructor->used && !expr->constructor->builtIn ) {
+                expr->constructor = nullptr;
+            }
+        }
+        // same dangling-pointer story for a global referenced only from a field initializer
+        // (`s : int = g_seed`). only this module's globals get freed (RemoveUnusedSymbols
+        // runs on thisModule alone), so cross-module refs - e.g. folded builtin constants
+        // like math::PI - stay untouched and keep their valid metadata
+        virtual void preVisit(ExprVar * expr) override {
+            Visitor::preVisit(expr);
+            if ( expr->variable && expr->variable->module == thisModule && !expr->variable->used ) {
+                expr->variable = nullptr;
             }
         }
         virtual void preVisitExpression(Expression * expr) override {
@@ -27,6 +56,8 @@ namespace das {
                 }
             }
         }
+    protected:
+        Module * thisModule = nullptr;
     };
 
     class MarkSymbolUse : public Visitor {
@@ -199,8 +230,8 @@ namespace das {
         // function address
         virtual void preVisit(ExprAddr * addr) override {
             Visitor::preVisit(addr);
-            if (builtInDependencies || (addr->func && !addr->func->builtIn)) {
-                DAS_ASSERT(addr->func);
+            if ( !addr->func ) return;
+            if (builtInDependencies || !addr->func->builtIn) {
                 if (func) {
                     func->useFunctions.insert(addr->func);
                 } else if (gVar) {
@@ -226,9 +257,8 @@ namespace das {
         // new
         virtual void preVisit(ExprNew * call) override {
             Visitor::preVisit(call);
-            if ( call->initializer ) {
+            if ( call->func && call->initializer ) {
                 if (builtInDependencies || !call->func->builtIn) {
-                    DAS_ASSERT(call->func);
                     if (func) {
                         func->useFunctions.insert(call->func);
                     } else if (gVar) {
@@ -250,8 +280,8 @@ namespace das {
         // Op1
         virtual void preVisit(ExprOp1 * expr) override {
             Visitor::preVisit(expr);
+            if ( !expr->func ) return;
             if (builtInDependencies || !expr->func->builtIn) {
-                DAS_ASSERT(expr->func);
                 if (func) {
                     func->useFunctions.insert(expr->func);
                 } else if (gVar) {
@@ -262,8 +292,8 @@ namespace das {
         // Op2
         virtual void preVisit(ExprOp2 * expr) override {
             Visitor::preVisit(expr);
+            if ( !expr->func ) return;
             if (builtInDependencies || !expr->func->builtIn) {
-                DAS_ASSERT(expr->func);
                 if (func) {
                     func->useFunctions.insert(expr->func);
                 } else if (gVar) {
@@ -274,8 +304,8 @@ namespace das {
         // Op3
         virtual void preVisit(ExprOp3 * expr) override {
             Visitor::preVisit(expr);
-            if ( expr->func && (builtInDependencies || !expr->func->builtIn) ) {
-                DAS_ASSERT(expr->func);
+            if ( !expr->func ) return;
+            if (builtInDependencies || !expr->func->builtIn) {
                 if (func) {
                     func->useFunctions.insert(expr->func);
                 } else if (gVar) {
@@ -346,7 +376,7 @@ namespace das {
 
     void Program::removeUnusedSymbols() {
         if ( options.getBoolOption("remove_unused_symbols",true) ) {
-            ClearUnusedSymbols cvis;
+            ClearUnusedSymbols cvis(thisModule.get());
             visit(cvis);
             MarkSymbolUse vis(false);
             vis.RemoveUnusedSymbols(*thisModule);

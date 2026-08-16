@@ -9,19 +9,19 @@
 
 namespace rendinst
 {
-class ClientRiexPool
+class ClientRiexPoolId
 {
-  int id_ = -1;
-  explicit ClientRiexPool(int id) : id_(id) {}
+  int idx = -1;
+  explicit ClientRiexPoolId(int id) : idx(id) {}
 
 public:
-  ClientRiexPool() = default;
+  ClientRiexPoolId() = default;
 
-  int id() const { return id_; }
-  bool valid() const { return id_ >= 0; }
-  bool operator==(const ClientRiexPool &rhs) const { return id_ == rhs.id_; }
+  int id() const { return idx; }
+  bool valid() const { return idx >= 0; }
+  bool operator==(const ClientRiexPoolId &rhs) const { return idx == rhs.idx; }
 
-  static ClientRiexPool get(const char *ri_res_name);
-  static ClientRiexPool add(const char *ri_res_name, AddRIFlags ri_flags);
+  static ClientRiexPoolId get(const char *ri_res_name);
+  static ClientRiexPoolId add(const char *ri_res_name, AddRIFlags ri_flags);
 };
 } // namespace rendinst

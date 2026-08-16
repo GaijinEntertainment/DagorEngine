@@ -1,6 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "structuresCommon.h"
+#include <runtime/runtime.h>
+#include <math/dag_frustum.h>
+
 
 namespace dafg::visualization
 {
@@ -842,5 +845,318 @@ static ResNameId requestedFocusResource = ResNameId::Invalid;
 void request_user_resource_focus(const ResNameId id) { requestedFocusResource = id; }
 bool check_user_resource_focus_request() { return requestedFocusResource != ResNameId::Invalid; }
 ResNameId get_user_resource_focus_request() { return eastl::exchange(requestedFocusResource, ResNameId::Invalid); }
+
+
+static void print_type_data(const ResourceSubtypeTag tag, void *data)
+{
+  if (!data)
+  {
+    ImGui::TextUnformatted("No data provided for showing!");
+    return;
+  }
+
+
+  if (tag == dafg::tag_for<bool>())
+  {
+    ImGui::Text("%s", *reinterpret_cast<bool *>(data) ? "true" : "false");
+    return;
+  }
+  if (tag == dafg::tag_for<float>())
+  {
+    ImGui::Text("%.6f", *reinterpret_cast<float *>(data));
+    return;
+  }
+  if (tag == dafg::tag_for<double>())
+  {
+    ImGui::Text("%.12f", *reinterpret_cast<double *>(data));
+    return;
+  }
+
+  if (tag == dafg::tag_for<char>())
+  {
+    ImGui::Text("%i", *reinterpret_cast<char *>(data));
+    return;
+  }
+  if (tag == dafg::tag_for<signed char>())
+  {
+    ImGui::Text("%i", *reinterpret_cast<signed char *>(data));
+    return;
+  }
+  if (tag == dafg::tag_for<unsigned char>())
+  {
+    ImGui::Text("%i", *reinterpret_cast<unsigned char *>(data));
+    return;
+  }
+
+  if (tag == dafg::tag_for<short>())
+  {
+    ImGui::Text("%i", *reinterpret_cast<short *>(data));
+    return;
+  }
+  if (tag == dafg::tag_for<unsigned short>())
+  {
+    ImGui::Text("%i", *reinterpret_cast<unsigned short *>(data));
+    return;
+  }
+
+  if (tag == dafg::tag_for<int>())
+  {
+    ImGui::Text("%i", *reinterpret_cast<int *>(data));
+    return;
+  }
+  if (tag == dafg::tag_for<unsigned int>())
+  {
+    ImGui::Text("%u", *reinterpret_cast<unsigned int *>(data));
+    return;
+  }
+
+  if (tag == dafg::tag_for<long>())
+  {
+    ImGui::Text("%li", *reinterpret_cast<long *>(data));
+    return;
+  }
+  if (tag == dafg::tag_for<unsigned long>())
+  {
+    ImGui::Text("%lu", *reinterpret_cast<unsigned long *>(data));
+    return;
+  }
+
+  if (tag == dafg::tag_for<long long>())
+  {
+    ImGui::Text("%lli", *reinterpret_cast<long long *>(data));
+    return;
+  }
+  if (tag == dafg::tag_for<unsigned long long>())
+  {
+    ImGui::Text("%llu", *reinterpret_cast<unsigned long long *>(data));
+    return;
+  }
+
+
+  if (tag == dafg::tag_for<Point2>())
+  {
+    auto point = reinterpret_cast<Point2 *>(data);
+    ImGui::Text("%.6f; %.6f", point->x, point->y);
+    return;
+  }
+  if (tag == dafg::tag_for<Point3>())
+  {
+    auto point = reinterpret_cast<Point3 *>(data);
+    ImGui::Text("%.6f; %.6f; %.6f", point->x, point->y, point->z);
+    return;
+  }
+  if (tag == dafg::tag_for<Point4>())
+  {
+    auto point = reinterpret_cast<Point4 *>(data);
+    ImGui::Text("%.6f; %.6f; %.6f; %.6f", point->x, point->y, point->z, point->w);
+    return;
+  }
+
+  if (tag == dafg::tag_for<DPoint2>())
+  {
+    auto point = reinterpret_cast<DPoint2 *>(data);
+    ImGui::Text("%.12f; %.12f", point->x, point->y);
+    return;
+  }
+  if (tag == dafg::tag_for<DPoint3>())
+  {
+    auto point = reinterpret_cast<DPoint3 *>(data);
+    ImGui::Text("%.12f; %.12f; %.12f", point->x, point->y, point->z);
+    return;
+  }
+
+  if (tag == dafg::tag_for<IPoint2>())
+  {
+    auto point = reinterpret_cast<IPoint2 *>(data);
+    ImGui::Text("%d; %d", point->x, point->y);
+    return;
+  }
+  if (tag == dafg::tag_for<IPoint3>())
+  {
+    auto point = reinterpret_cast<IPoint3 *>(data);
+    ImGui::Text("%d; %d; %d", point->x, point->y, point->z);
+    return;
+  }
+  if (tag == dafg::tag_for<IPoint4>())
+  {
+    auto point = reinterpret_cast<IPoint4 *>(data);
+    ImGui::Text("%d; %d; %d; %d", point->x, point->y, point->z, point->w);
+    return;
+  }
+
+  if (tag == dafg::tag_for<vec4f>())
+  {
+    const float *vec = reinterpret_cast<float *>(data);
+    ImGui::Text("%.6f; %.6f; %.6f; %.6f", vec[0], vec[1], vec[2], vec[3]);
+    return;
+  }
+
+
+  if (tag == dafg::tag_for<TMatrix>())
+  {
+    auto matrix = reinterpret_cast<TMatrix *>(data);
+
+    ImGui::BeginGroup();
+    {
+      ImGui::TextUnformatted(" \\ ");
+      for (uint8_t j = 0; j < 3; ++j)
+        ImGui::Text("%i", j);
+    }
+    ImGui::EndGroup();
+    ImGui::SameLine();
+
+    for (uint8_t i = 0; i < 4; ++i)
+    {
+      ImGui::BeginGroup();
+      {
+        ImGui::Text("%i", i);
+        for (uint8_t j = 0; j < 3; ++j)
+          ImGui::Text("%.6f", matrix->m[i][j]);
+      }
+      ImGui::EndGroup();
+      ImGui::SameLine();
+    }
+    ImGui::NewLine();
+
+    return;
+  }
+
+  if (tag == dafg::tag_for<TMatrix4>() || tag == dafg::tag_for<TMatrix4_vec4>())
+  {
+    auto matrix = reinterpret_cast<TMatrix4 *>(data);
+
+    ImGui::BeginGroup();
+    {
+      ImGui::TextUnformatted(" \\ ");
+      for (uint8_t j = 0; j < 4; ++j)
+        ImGui::Text("%i", j);
+    }
+    ImGui::EndGroup();
+    ImGui::SameLine();
+
+    for (uint8_t i = 0; i < 4; ++i)
+    {
+      ImGui::BeginGroup();
+      {
+        ImGui::Text("%i", i);
+        for (uint8_t j = 0; j < 4; ++j)
+          ImGui::Text("%.6f", matrix->m[i][j]);
+      }
+      ImGui::EndGroup();
+      ImGui::SameLine();
+    }
+    ImGui::NewLine();
+
+    return;
+  }
+
+
+  if (tag == dafg::tag_for<Frustum>())
+  {
+    auto frustum = reinterpret_cast<Frustum *>(data);
+
+    ImGui::TextUnformatted("camPlanes:");
+    for (uint8_t i = 0; i < 6; ++i)
+    {
+      const float *planeVec = reinterpret_cast<float *>(&frustum->camPlanes[i]);
+      ImGui::Text("[%i] : N={%.6f; %.6f; %.6f}, D=%.6f", i, planeVec[0], planeVec[1], planeVec[2], planeVec[3]);
+    }
+
+    return;
+  }
+
+  if (tag == dafg::tag_for<Driver3dPerspective>())
+  {
+    auto drvPersp = reinterpret_cast<Driver3dPerspective *>(data);
+    ImGui::Text("wk, hk = %.6f; %.6f", drvPersp->wk, drvPersp->hk);
+    ImGui::Text("zn, zf = %.6f; %.6f", drvPersp->zn, drvPersp->zf);
+    ImGui::Text("ox, oy = %.6f; %.6f", drvPersp->ox, drvPersp->oy);
+
+    return;
+  }
+
+
+  switch (tag)
+  {
+    case ResourceSubtypeTag::Unknown: ImGui::TextUnformatted("Unknown ResourceSubtypeTag!"); break;
+    case ResourceSubtypeTag::Invalid: ImGui::TextUnformatted("Invalid ResourceSubtypeTag!"); break;
+    default: ImGui::TextUnformatted("Type is not supported yet!");
+  }
+}
+
+static void print_blob_structured_impl(const ResourceSubtypeTag tag, void *data, const size_t offset, const TypeDb &rtti_db)
+{
+  constexpr ImU32 GREY_TEXT_COLOR = IM_COL32(64, 64, 64, 255); // rgb(64, 64, 64)
+
+  if (const auto rtti = rtti_db.getRTTI(tag))
+  {
+    ImGui::BeginGroup();
+
+    String label;
+    if (!rtti->name.empty())
+    {
+      if (!rtti->dasName.empty())
+        label.printf(0, "%s (das: %s)", String(rtti->name.data(), rtti->name.size()).c_str(), rtti->dasName.c_str());
+      else
+        label.printf(0, "%s", String(rtti->name.data(), rtti->name.size()).c_str());
+    }
+    else
+    {
+      if (!rtti->dasName.empty())
+        label.printf(0, "das: %s", rtti->dasName.c_str());
+      else
+        label.printf(0, "No type name!");
+    }
+    label.aprintf(0, "##%zu", offset);
+
+    if (ImGui::TreeNode(label.c_str()))
+    {
+      ImGui::SameLine();
+      ImGui::TextUnformatted("{");
+
+      if (!rtti->fields.empty())
+        for (const auto [subOffset, subTag] : rtti->fields)
+        {
+          ImGui::PushStyleColor(ImGuiCol_Text, GREY_TEXT_COLOR);
+          ImGui::Text("%3zu:", subOffset);
+          ImGui::PopStyleColor();
+          ImGui::SameLine();
+          print_blob_structured_impl(subTag, data, offset + subOffset, rtti_db);
+        }
+      else
+      {
+        ImGui::PushStyleColor(ImGuiCol_Text, GREY_TEXT_COLOR);
+        ImGui::TextUnformatted("data:");
+        ImGui::PopStyleColor();
+        ImGui::SameLine();
+
+        ImGui::BeginGroup();
+        print_type_data(tag, data ? (uint8_t *)data + offset : nullptr);
+        ImGui::EndGroup();
+      }
+
+      ImGui::TextUnformatted("}");
+      ImGui::TreePop();
+    }
+
+    ImGui::SameLine();
+    ImGui::TextUnformatted(";");
+    ImGui::SameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, GREY_TEXT_COLOR);
+    ImGui::Text("(size:%zu align:%zu)", rtti->size, rtti->align);
+    ImGui::PopStyleColor();
+
+    ImGui::EndGroup();
+  }
+  else
+  {
+    ImGui::TextUnformatted("Type is not in RTTI::TypeDb!");
+  }
+}
+
+void print_blob_structured(const ResourceSubtypeTag tag, void *data)
+{
+  print_blob_structured_impl(tag, data, 0, dafg::Runtime::get().getTypeDb());
+}
 
 } // namespace dafg::visualization

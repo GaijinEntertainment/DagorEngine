@@ -483,7 +483,7 @@ TEMPLATE_PHYS_ACTOR
   if (out_in_motion)
     *out_in_motion = inMotion;
 
-  return true;
+  return isOk;
 }
 
 TEMPLATE_PHYS_ACTOR

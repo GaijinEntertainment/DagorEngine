@@ -248,7 +248,7 @@ class PrintVisitor : AstVisitor {
     }
     def override visitExprBlockExpression(blk : ExprBlock?; expr : ExpressionPtr) {
         //! Prints a newline after a block sub-expression.
-        self->newLine();
+        self.newLine();
         return expr;
     }
     def override preVisitExprBlockFinal(blk : ExprBlock?) {
@@ -265,7 +265,7 @@ class PrintVisitor : AstVisitor {
     }
     def override visitExprBlockFinalExpression(blk : ExprBlock?; expr : ExpressionPtr) {
         //! Prints a newline after a finally-block expression.
-        self->newLine();
+        self.newLine();
         return expr;
     }
 // let
@@ -511,6 +511,9 @@ class PrintVisitor : AstVisitor {
     def override preVisitExprWith(expr : ExprWith?) {
         //! Prints the 'with' keyword of a with-expression.
         write(*writer, "with ");
+        if (!empty(expr.moduleName)) {
+            write(*writer, "(module {expr.moduleName})");
+        }
     }
     def override preVisitExprWithBody(expr : ExprWith?; right : ExpressionPtr) {
         //! Prints the separator before the with-expression body.
@@ -915,6 +918,11 @@ class PrintVisitor : AstVisitor {
         //! Prints an int16 constant value.
         write(*writer, "{expr.value}");
     }
+// const float 16
+    def override preVisitExprConstFloat16(expr : ExprConstFloat16?) : void {
+        //! Prints a float16 constant value with its literal suffix.
+        write(*writer, "{expr.value}h");
+    }
 // const int 64
     def override preVisitExprConstInt64(expr : ExprConstInt64?) : void {
         //! Prints an int64 constant value.
@@ -1230,7 +1238,7 @@ def allExpr(arg : int) {
     print("{easc}");
     // ExprCast
     unsafe {
-        let aaf = reinterpret<float> aa;
+        let aaf = reinterpret<float>(aa);
         print("{aaf}");
     }
     // ExprDelete

@@ -3,6 +3,7 @@ from "dagor.workcycle" import setTimeout, clearTimer
 from "%sqstd/functools.nut" import kwarg
 from "dagor.time" import get_time_msec
 from "%sqstd/frp.nut" import Watched
+from "types" import Integer
 
 //when event have parameter ttl it will be automatically removed on time finish
 //isEventsEqual = @(event1, event2) bool - used only to remove events not only by uid.
@@ -18,7 +19,7 @@ function mkEventLogState(persistId, maxActiveEvents = 10, defTtl = 0, isEventsEq
     : curEvents.get().findindex(@(e) isEventsEqual(event, e))
 
   function removeEvent(uidOrEvent) {
-    let idx = type(uidOrEvent) == "integer" ? curEvents.get().findindex(@(e) e.uid == uidOrEvent)
+    let idx = uidOrEvent instanceof Integer ? curEvents.get().findindex(@(e) e.uid == uidOrEvent)
       : getEqualIndex(uidOrEvent)
     if (idx != null)
       curEvents.mutate(@(list) list.remove(idx))

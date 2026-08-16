@@ -27,13 +27,36 @@
 #pragma GCC diagnostic ignored "-Wsizeof-pointer-memaccess"
 #endif
 
+// options fast_math: per-function fast-math region emitted by the AOT compiler
+// (daslib/aot_cpp.das) around every function of a fast_math program. float_control
+// guards mirror aot_builtin_math.h: clang only outside arm64/e2k/Nintendo, and not
+// on the versions where float_control is broken (<12, 17-18.1). Where no relaxed
+// mode is known-safe the macros are empty and the function stays precise.
+#if defined(__GNUC__) && !defined(__clang__)
+#define DAS_FAST_MATH_PUSH \
+    _Pragma("GCC push_options") \
+    _Pragma("GCC optimize (\"fast-math\")")
+#define DAS_FAST_MATH_POP \
+    _Pragma("GCC pop_options")
+#elif defined(_MSC_VER) && !defined(__clang__)
+#define DAS_FAST_MATH_PUSH __pragma(float_control(precise, off, push))
+#define DAS_FAST_MATH_POP  __pragma(float_control(pop))
+#elif defined(__clang__) && !defined(__arm64__) && !defined(__e2k__) && !defined(_TARGET_C3) \
+    && !(__clang_major__ < 12 || (__clang_major__ >= 17 && __clang_major__ <= 18))
+#define DAS_FAST_MATH_PUSH \
+    _Pragma("float_control(precise, off, push)")
+#define DAS_FAST_MATH_POP \
+    _Pragma("float_control(pop)")
+#else
+#define DAS_FAST_MATH_PUSH
+#define DAS_FAST_MATH_POP
+#endif
+
 namespace das {
 
     #define DAS_SETBOOLOR(a,b)  (([&]()->bool{ bool & A=((a)); A=A||((b)); return A; })())
     #define DAS_SETBOOLAND(a,b) (([&]()->bool{ bool & A=((a)); A=A&&((b)); return A; })())
     #define DAS_SETBOOLXOR(a,b) (([&]()->bool{ bool & A=((a)); A=A^((b)); return A; })())
-
-    #define DAS_MAKE_ANNOTATION(name)   ((TypeAnnotation*)(intptr_t(name)|1))
 
     DAS_API void das_debug ( Context * context, TypeInfo * typeInfo, const char * FILE, int LINE, vec4f res, const char * message = nullptr );
 
@@ -68,6 +91,14 @@ namespace das {
 
     __forceinline void __bit_set ( Bitfield & value, Bitfield mask, bool on ) {
         value.value = on ? (value.value | mask.value) : (value.value & ~mask.value);
+    }
+
+    // AOT emits a raw uint32 mask when assigning a field on a standalone das
+    // bitfield. Keep this exact overload alongside the handle-bound uint32_t&
+    // form below so Bitfield's conversion operators do not make the call
+    // ambiguous.
+    __forceinline void __bit_set ( Bitfield & value, uint32_t mask, bool on ) {
+        value.value = on ? (value.value | mask) : (value.value & ~mask);
     }
 
     __forceinline void __bit_set8 ( Bitfield8 & value, Bitfield8 mask, bool on ) {
@@ -250,6 +281,48 @@ namespace das {
     __forceinline void das_memcpy ( void * left, void * right, int size ) {
         memcpy(left, right, size);
     }
+
+    // const-source overloads: das accepts a const pointer for a void? extern argument, and the
+    // emitted call then casts through das_cast<void const *> — these bind it without touching
+    // the das-side signatures (the non-const originals stay the bound externs, so no AOT-hash
+    // churn). memcpy keeps a strictly-writable destination.
+    DAS_SUPPRESS_UB
+    __forceinline int das_memcmp ( const void * left, const void * right, int size ) {
+        return memcmp(left, right, size);
+    }
+    DAS_SUPPRESS_UB
+    __forceinline void das_memcpy ( void * left, const void * right, int size ) {
+        memcpy(left, right, size);
+    }
+
+    // unsigned and 64-bit size spellings. das has no implicit promotion, so a size
+    // that is already uint/int64/uint64 could otherwise only reach memcpy through an
+    // int(...) narrowing cast at the call site -- which truncates above 2GB. Each
+    // spelling gets its own overload, plus the same const-source twin as above.
+    DAS_SUPPRESS_UB
+    __forceinline int das_memcmp ( void * left, void * right, uint32_t size ) { return memcmp(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline int das_memcmp ( void * left, void * right, int64_t size ) { return memcmp(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline int das_memcmp ( void * left, void * right, uint64_t size ) { return memcmp(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline int das_memcmp ( const void * left, const void * right, uint32_t size ) { return memcmp(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline int das_memcmp ( const void * left, const void * right, int64_t size ) { return memcmp(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline int das_memcmp ( const void * left, const void * right, uint64_t size ) { return memcmp(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline void das_memcpy ( void * left, void * right, uint32_t size ) { memcpy(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline void das_memcpy ( void * left, void * right, int64_t size ) { memcpy(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline void das_memcpy ( void * left, void * right, uint64_t size ) { memcpy(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline void das_memcpy ( void * left, const void * right, uint32_t size ) { memcpy(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline void das_memcpy ( void * left, const void * right, int64_t size ) { memcpy(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline void das_memcpy ( void * left, const void * right, uint64_t size ) { memcpy(left, right, size_t(size)); }
 
     // Suppress null argument with size = 0
     DAS_SUPPRESS_UB
@@ -810,9 +883,89 @@ namespace das {
         }
     };
 
+    // 16/8-bit lattice: svec8/svec16 carry lanes in s[] (no .x member), so their index
+    // goes through an element-pointer variant; svec2/3/4 have x/y/z/w and use the generic
+    template <typename TT, typename VecT, uint32_t size>
+    struct das_vec_index_small {
+        static __forceinline TT & at ( VecT & value, int32_t index, Context * __context__ ) {
+            if ( index<0 || uint32_t(index)>=size ) __context__->throw_error_ex("vector index out of range, %d of %u", index, size);
+            return ((TT *)&value)[index];
+        }
+        static __forceinline const TT & at ( const VecT & value, int32_t index, Context * __context__ ) {
+            if ( index<0 || uint32_t(index)>=size ) __context__->throw_error_ex("vector index out of range, %d of %u", index, size);
+            return ((const TT *)&value)[index];
+        }
+        static __forceinline TT & at ( VecT & value, uint32_t idx, Context * __context__ ) {
+            if ( idx>=size ) __context__->throw_error_ex("vector index out of range, %u of %u", idx, size);
+            return ((TT *)&value)[idx];
+        }
+        static __forceinline const TT & at ( const VecT & value, uint32_t idx, Context * __context__ ) {
+            if ( idx>=size ) __context__->throw_error_ex("vector index out of range, %u of %u", idx, size);
+            return ((const TT *)&value)[idx];
+        }
+        static __forceinline TT * safe_at ( VecT * value, int32_t index, Context * ) {
+            if (!value) return nullptr;
+            if ( index<0 || uint32_t(index)>=size ) return nullptr;
+            return ((TT *)value) + index;
+        }
+        static __forceinline const TT * safe_at ( const VecT * value, int32_t index, Context * ) {
+            if (!value) return nullptr;
+            if ( index<0 || uint32_t(index)>=size ) return nullptr;
+            return ((const TT *)value) + index;
+        }
+        static __forceinline TT * safe_at ( VecT * value, uint32_t idx, Context * ) {
+            if (!value) return nullptr;
+            if ( idx>=size ) return nullptr;
+            return ((TT *)value) + idx;
+        }
+        static __forceinline const TT * safe_at ( const VecT * value, uint32_t idx, Context * ) {
+            if (!value) return nullptr;
+            if ( idx>=size ) return nullptr;
+            return ((const TT *)value) + idx;
+        }
+    };
+
+    // lattice swizzles — element-typed, up to 16 lanes; a scalar ResT lands in the low bytes.
+    // ResT/ET arrive const-qualified when the source vector handle is const (das const flows
+    // onto the swizzle result) — strip for the local accumulator
+    template <typename ResT, typename ET, int... f>
+    struct das_swizzle_small {
+        template <typename VT>
+        static __forceinline ResT swizzle ( const VT & val ) {
+            using ETNC = typename remove_const<ET>::type;
+            typename remove_const<ResT>::type res;
+            memset(&res, 0, sizeof(res));
+            const ETNC * s = (const ETNC *) &val;
+            ETNC * d = (ETNC *) &res;
+            constexpr int idx[] = { f... };
+            static_assert(sizeof(ResT) >= sizeof...(f)*sizeof(ETNC), "swizzle writes more elements than the result holds");
+            for ( size_t i = 0; i != sizeof...(f); ++i ) d[i] = s[idx[i]];
+            return res;
+        }
+    };
+    template <typename ResT, typename ET, int index>
+    struct das_swizzle_ref_small {
+        template <typename VT>
+        static __forceinline ResT & swizzle ( VT & val ) {
+            return *(ResT *)((ET *)&val + index);
+        }
+    };
+
     template <typename TT> struct das_index<vec2<TT>> : das_vec_index<TT, vec2<TT>, 2> {};
     template <typename TT> struct das_index<vec3<TT>> : das_vec_index<TT, vec3<TT>, 3> {};
     template <typename TT> struct das_index<vec4<TT>> : das_vec_index<TT, vec4<TT>, 4> {};
+
+    template <typename TT> struct das_index<svec2<TT>> : das_vec_index<TT, svec2<TT>, 2> {};
+    template <typename TT> struct das_index<svec3<TT>> : das_vec_index<TT, svec3<TT>, 3> {};
+    template <typename TT> struct das_index<svec4<TT>> : das_vec_index<TT, svec4<TT>, 4> {};
+    template <typename TT> struct das_index<svec8<TT>> : das_vec_index_small<TT, svec8<TT>, 8> {};
+    template <typename TT> struct das_index<svec16<TT>> : das_vec_index_small<TT, svec16<TT>, 16> {};
+
+    template <typename TT> struct das_index<const svec2<TT>> : das_vec_index<TT, svec2<TT>, 2> {};
+    template <typename TT> struct das_index<const svec3<TT>> : das_vec_index<TT, svec3<TT>, 3> {};
+    template <typename TT> struct das_index<const svec4<TT>> : das_vec_index<TT, svec4<TT>, 4> {};
+    template <typename TT> struct das_index<const svec8<TT>> : das_vec_index_small<TT, svec8<TT>, 8> {};
+    template <typename TT> struct das_index<const svec16<TT>> : das_vec_index_small<TT, svec16<TT>, 16> {};
 
     template <typename TT> struct das_index<const vec2<TT>> : das_vec_index<TT, vec2<TT>, 2> {};
     template <typename TT> struct das_index<const vec3<TT>> : das_vec_index<TT, vec3<TT>, 3> {};
@@ -862,10 +1015,22 @@ namespace das {
         static __forceinline TT & at ( TT * value, uint32_t index, Context * ) {
             return value[index];
         }
+        static __forceinline TT & at ( TT * value, int64_t index, Context * ) {
+            return value[index];
+        }
+        static __forceinline TT & at ( TT * value, uint64_t index, Context * ) {
+            return value[index];
+        }
         static __forceinline TT * safe_at ( TT * value, int32_t index, Context * ) {
             return value ? value + index : nullptr;
         }
         static __forceinline TT * safe_at ( TT * value, uint32_t index, Context * ) {
+            return value ? value + index : nullptr;
+        }
+        static __forceinline TT * safe_at ( TT * value, int64_t index, Context * ) {
+            return value ? value + index : nullptr;
+        }
+        static __forceinline TT * safe_at ( TT * value, uint64_t index, Context * ) {
             return value ? value + index : nullptr;
         }
     };
@@ -878,10 +1043,22 @@ namespace das {
         static __forceinline const TT & at ( const TT * value, uint32_t index, Context * ) {
             return value[index];
         }
+        static __forceinline const TT & at ( const TT * value, int64_t index, Context * ) {
+            return value[index];
+        }
+        static __forceinline const TT & at ( const TT * value, uint64_t index, Context * ) {
+            return value[index];
+        }
         static __forceinline const TT * safe_at ( const TT * value, int32_t index, Context * ) {
             return value ? value + index : nullptr;
         }
         static __forceinline const TT * safe_at ( const TT * value, uint32_t index, Context * ) {
+            return value ? value + index : nullptr;
+        }
+        static __forceinline const TT * safe_at ( const TT * value, int64_t index, Context * ) {
+            return value ? value + index : nullptr;
+        }
+        static __forceinline const TT * safe_at ( const TT * value, uint64_t index, Context * ) {
             return value ? value + index : nullptr;
         }
     };
@@ -953,6 +1130,22 @@ namespace das {
             if ( idx>=uint32_t(size) ) __context__->throw_error_ex("index out of range, %u of %d", idx, size);
             return data[idx];
         }
+        __forceinline TT & operator () ( int64_t index, Context * __context__ ) {
+            if ( index<0 || uint64_t(index)>=uint64_t(size) ) __context__->throw_error_ex("index out of range, %lld of %d", (long long)index, size);
+            return data[index];
+        }
+        __forceinline const TT & operator () ( int64_t index, Context * __context__ ) const {
+            if ( index<0 || uint64_t(index)>=uint64_t(size) ) __context__->throw_error_ex("index out of range, %lld of %d", (long long)index, size);
+            return data[index];
+        }
+        __forceinline TT & operator () ( uint64_t idx, Context * __context__ ) {
+            if ( idx>=uint64_t(size) ) __context__->throw_error_ex("index out of range, %llu of %d", (unsigned long long)idx, size);
+            return data[idx];
+        }
+        __forceinline const TT & operator () ( uint64_t idx, Context * __context__ ) const {
+            if ( idx>=uint64_t(size) ) __context__->throw_error_ex("index out of range, %llu of %d", (unsigned long long)idx, size);
+            return data[idx];
+        }
     // safe index
         static __forceinline TT * safe_index ( THIS_TYPE * that, int32_t index, Context * ) {
             if (!that) return nullptr;
@@ -972,6 +1165,26 @@ namespace das {
         static __forceinline const TT * safe_index ( const THIS_TYPE * that, uint32_t idx, Context * ) {
             if (!that) return nullptr;
             if ( idx>=uint32_t(size) ) return nullptr;
+            return that->data + idx;
+        }
+        static __forceinline TT * safe_index ( THIS_TYPE * that, int64_t index, Context * ) {
+            if (!that) return nullptr;
+            if ( index<0 || uint64_t(index)>=uint64_t(size) ) return nullptr;
+            return that->data + index;
+        }
+        static __forceinline const TT * safe_index ( const THIS_TYPE * that, int64_t index, Context * ) {
+            if (!that) return nullptr;
+            if ( index<0 || uint64_t(index)>=uint64_t(size) ) return nullptr;
+            return that->data + index;
+        }
+        static __forceinline TT * safe_index ( THIS_TYPE * that, uint64_t idx, Context * ) {
+            if (!that) return nullptr;
+            if ( idx>=uint64_t(size) ) return nullptr;
+            return that->data + idx;
+        }
+        static __forceinline const TT * safe_index ( const THIS_TYPE * that, uint64_t idx, Context * ) {
+            if (!that) return nullptr;
+            if ( idx>=uint64_t(size) ) return nullptr;
             return that->data + idx;
         }
     };
@@ -1228,24 +1441,32 @@ namespace das {
 
     template <typename... TA>
     constexpr int tuple_size() {
+        int sizes[] = { TypeSize<TA>::size..., 0 };
+        int aligns[] = { TypeAlign<TA>::align..., 0 };
         int ma = 0;
-        (..., (ma = round_up(ma, TypeAlign<TA>::align) + TypeSize<TA>::size));
+        for (size_t i = 0; i != sizeof...(TA); ++i)
+            ma = round_up(ma, aligns[i]) + sizes[i];
         return round_up(ma, tuple_align<TA...>());
     }
 
     template <typename... TA>
     constexpr int variant_sizeof() {
         constexpr auto align = variant_align<TA...>();
-        int ma = 0;
-        ((ma = std::max(round_up(TypeSize<int>::size, align) + round_up(TypeSize<TA>::size, align), ma)), ...);
+        constexpr auto ihdr = round_up(TypeSize<int>::size, align);
+        int sizes[] = { TypeSize<TA>::size..., 0 };
+        int ma = ihdr;  // a variant always carries its index tag, even with no alternatives
+        for (size_t i = 0; i != sizeof...(TA); ++i)
+            ma = std::max(ihdr + round_up(sizes[i], align), ma);
         return ma;
     }
 
     template <int id, typename... TA>
     constexpr int tuple_offset() {
-        int cur_id = 0;
+        int sizes[] = { TypeSize<TA>::size..., 0 };
+        int aligns[] = { TypeAlign<TA>::align..., 0 };
         int offset = 0;
-        (..., ((cur_id++) < id ? offset = round_up(offset, TypeAlign<TA>::align) + TypeSize<TA>::size : 0));
+        for (int cur_id = 0; cur_id < id; ++cur_id)
+            offset = round_up(offset, aligns[cur_id]) + sizes[cur_id];
         using OurT = std::tuple_element_t<id, std::tuple<TA...>>;
         return round_up(offset, TypeAlign<OurT>::align);
     }
@@ -1347,6 +1568,23 @@ namespace das {
             memcpy ( (char *)this, &arr, variantSize );
         }
         TData data;
+    };
+
+    // empty variant: no alternatives, just the inherited 4-byte index tag (no payload).
+    // a dedicated specialization avoids the generic template's `char data[variantSize-4]`,
+    // which would be a zero-length array (non-standard) when variantSize == sizeof(int32_t).
+    template <int variantSize, int variantAlign>
+    struct alignas(variantAlign) TVariant<variantSize, variantAlign> : Variant {
+        static_assert(variantSize == variant_sizeof<>());
+        static_assert(variantAlign == variant_align<>());
+        TVariant() {}
+        TVariant(const TVariant & arr) { moveT(arr); }
+        TVariant(TVariant && arr) { moveT(arr); }
+        TVariant & operator = ( const TVariant & arr ) { moveT(arr); return *this; }
+        TVariant & operator = ( TVariant && arr ) { moveT(arr); return *this; }
+        __forceinline void moveT ( const TVariant & arr ) {
+            memcpy ( (char *)this, &arr, variantSize );
+        }
     };
 
     template <typename ...TA>
@@ -2123,6 +2361,7 @@ namespace das {
     DAS_API char * das_lexical_cast_int_u32 ( uint32_t x, bool hex, Context * __context__, LineInfoArg * at );
     DAS_API char * das_lexical_cast_int_i64 ( int64_t x, bool hex, Context * __context__, LineInfoArg * at );
     DAS_API char * das_lexical_cast_int_u64 ( uint64_t x, bool hex, Context * __context__, LineInfoArg * at );
+    DAS_API char * das_temp_string_result ( char * str, Context * __context__, LineInfoArg * at );
 
     __forceinline char * das_string_builder ( Context * __context__, const SimNode_AotInteropBase & node ) {
         StringBuilderWriter writer;
@@ -2165,7 +2404,9 @@ namespace das {
             Prologue * pp = (Prologue *)context->stack.sp();
             pp->info = nullptr;
             pp->fileName = fn;
+            pp->functionLine = nullptr;
             pp->stackSize = stackSize;
+            pp->flags = 0;      // stack memory is not zeroed; a stale is_jit sends the walker down the JIT path
 #endif
         }
         __forceinline ~das_stack_prologue () {
@@ -2531,12 +2772,12 @@ namespace das {
         static __forceinline ResType invoke_cmres ( Context * __context__, LineInfo * __lineinfo__, const FirstArgType & blk, ArgType ...arg ) {
             char * classPtr = (char *)&blk;
             SimFunction* simFunc = ((Func *)(classPtr + methodOffset))->PTR;
+            if (!simFunc) __context__->throw_error_at(__lineinfo__, "invoke null function");
             if ( simFunc->aotFunction ) {
                 using fnPtrType = ResType (*) ( Context *, const FirstArgType & blk, ArgType... );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
                 return (*fnPtr) ( __context__, blk, das::forward<ArgType>(arg)... );
             } else {
-                if (!simFunc) __context__->throw_error_at(__lineinfo__, "invoke null function");
                 typename remove_const<ResType>::type result;
                 vec4f arguments [] = { cast<FirstArgType>::from(blk), cast<ArgType>::from(arg)... };
                 __context__->callWithCopyOnReturn(simFunc, arguments, &result, __lineinfo__);
@@ -2577,6 +2818,10 @@ namespace das {
                 using fnPtrType = ResType (*) ( Context * );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
                 return (*fnPtr) ( __context__ );
+            } else if ( simFunc->jitFunction ) {
+                vec4f result = ((JitFunction) simFunc->jitFunction) ( __context__, nullptr, nullptr );
+                __context__->stopFlags = 0;
+                return cast<ResType>::to(result);
             } else {
                 vec4f result = __context__->callOrFastcall(simFunc, nullptr, __lineinfo__);
                 return cast<ResType>::to(result);
@@ -2591,6 +2836,11 @@ namespace das {
                 using fnPtrType = ResType (*) ( Context *, ArgType... );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
                 return (*fnPtr) ( __context__, das::forward<ArgType>(arg)... );
+            } else if ( simFunc->jitFunction ) {
+                vec4f arguments [] = { cast<ArgType>::from(arg)... };
+                vec4f result = ((JitFunction) simFunc->jitFunction) ( __context__, arguments, nullptr );
+                __context__->stopFlags = 0;
+                return cast<ResType>::to(result);
             } else {
                 vec4f arguments [] = { cast<ArgType>::from(arg)... };
                 vec4f result = __context__->callOrFastcall(simFunc, arguments, __lineinfo__);
@@ -2605,6 +2855,11 @@ namespace das {
                 using fnPtrType = ResType (*) ( Context * );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
                 return (*fnPtr) ( __context__ );
+            } else if ( simFunc->jitFunction ) {
+                typename remove_const<ResType>::type result;
+                ((JitFunction) simFunc->jitFunction) ( __context__, nullptr, &result );
+                __context__->stopFlags = 0;
+                return result;
             } else {
                 typename remove_const<ResType>::type result;
                 __context__->callWithCopyOnReturn(simFunc, nullptr, &result, __lineinfo__);
@@ -2616,12 +2871,17 @@ namespace das {
         static __forceinline ResType invoke_cmres ( Context * __context__, LineInfo * __lineinfo__, const Func & blk, ArgType ...arg ) {
             vec4f arguments [] = { cast<ArgType>::from(arg)... };
             SimFunction * simFunc = blk.PTR;
+            if (!simFunc) __context__->throw_error_at(__lineinfo__, "invoke null function");
             if ( simFunc->aotFunction ) {
                 using fnPtrType = ResType (*) ( Context *, ArgType... );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
                 return (*fnPtr) ( __context__, das::forward<ArgType>(arg)... );
+            } else if ( simFunc->jitFunction ) {
+                typename remove_const<ResType>::type result;
+                ((JitFunction) simFunc->jitFunction) ( __context__, arguments, &result );
+                __context__->stopFlags = 0;
+                return result;
             } else {
-                if (!simFunc) __context__->throw_error_at(__lineinfo__, "invoke null function");
                 typename remove_const<ResType>::type result;
                 __context__->callWithCopyOnReturn(simFunc, arguments, &result, __lineinfo__);
                 return result;
@@ -2639,6 +2899,9 @@ namespace das {
                 using fnPtrType = void (*) ( Context * );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
                 (*fnPtr) ( __context__ );
+            } else if ( simFunc->jitFunction ) {
+                ((JitFunction) simFunc->jitFunction) ( __context__, nullptr, nullptr );
+                __context__->stopFlags = 0;
             } else {
                 __context__->callOrFastcall(simFunc, nullptr, __lineinfo__);
             }
@@ -2652,6 +2915,10 @@ namespace das {
                 using fnPtrType = void (*) ( Context *, ArgType... );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
                 (*fnPtr) ( __context__, das::forward<ArgType>(arg)... );
+            } else if ( simFunc->jitFunction ) {
+                vec4f arguments [] = { cast<ArgType>::from(arg)... };
+                ((JitFunction) simFunc->jitFunction) ( __context__, arguments, nullptr );
+                __context__->stopFlags = 0;
             } else {
                 vec4f arguments [] = { cast<ArgType>::from(arg)... };
                 __context__->callOrFastcall(simFunc, arguments, __lineinfo__);
@@ -2754,6 +3021,12 @@ namespace das {
                 using fnPtrType = ResType (*) ( Context *, void * );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
                 return (*fnPtr) ( __context__, blk.capture );
+            } else if ( simFunc->jitFunction ) {
+                vec4f arguments[1];
+                arguments[0] = cast<Lambda>::from(blk);
+                vec4f result = ((JitFunction) simFunc->jitFunction) ( __context__, arguments, nullptr );
+                __context__->stopFlags = 0;
+                return cast<ResType>::to(result);
             } else {
                 vec4f arguments[1];
                 arguments[0] = cast<Lambda>::from(blk);
@@ -2772,6 +3045,11 @@ namespace das {
                 using fnPtrType = ResType (*) ( Context *, void *, ArgType... );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
                 return (*fnPtr) ( __context__, blk.capture, das::forward<ArgType>(arg)... );
+            } else if ( simFunc->jitFunction ) {
+                vec4f arguments [] = { cast<void *>::from(blk.capture), (cast<ArgType>::from(arg))... };
+                vec4f result = ((JitFunction) simFunc->jitFunction) ( __context__, arguments, nullptr );
+                __context__->stopFlags = 0;
+                return cast<ResType>::to(result);
             } else {
                 vec4f arguments [] = { cast<void *>::from(blk.capture), (cast<ArgType>::from(arg))... };
                 vec4f result = __context__->callOrFastcall(simFunc, arguments, __lineinfo__);
@@ -2788,6 +3066,13 @@ namespace das {
                 using fnPtrType = ResType (*) ( Context *, void * );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
                 return (*fnPtr) ( __context__, blk.capture );
+            } else if ( simFunc->jitFunction ) {
+                typename remove_const<ResType>::type result;
+                vec4f arguments[1];
+                arguments[0] = cast<Lambda>::from(blk);
+                ((JitFunction) simFunc->jitFunction) ( __context__, arguments, &result );
+                __context__->stopFlags = 0;
+                return result;
             } else {
                 typename remove_const<ResType>::type result;
                 vec4f arguments[1];
@@ -2807,6 +3092,12 @@ namespace das {
                 using fnPtrType = ResType (*) ( Context *, void *, ArgType... );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
                 return (*fnPtr) ( __context__, blk.capture, das::forward<ArgType>(arg)... );
+            } else if ( simFunc->jitFunction ) {
+                vec4f arguments [] = { cast<void *>::from(blk.capture), (cast<ArgType>::from(arg))... };
+                typename remove_const<ResType>::type result;
+                ((JitFunction) simFunc->jitFunction) ( __context__, arguments, &result );
+                __context__->stopFlags = 0;
+                return result;
             } else {
                 vec4f arguments [] = { cast<void *>::from(blk.capture), (cast<ArgType>::from(arg))... };
                 typename remove_const<ResType>::type result;
@@ -2828,6 +3119,11 @@ namespace das {
                 using fnPtrType = void (*) ( Context *, void * );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
                 (*fnPtr) ( __context__, blk.capture );
+            } else if ( simFunc->jitFunction ) {
+                vec4f arguments[1];
+                arguments[0] = cast<Lambda>::from(blk);
+                ((JitFunction) simFunc->jitFunction) ( __context__, arguments, nullptr );
+                __context__->stopFlags = 0;
             } else {
                 vec4f arguments[1];
                 arguments[0] = cast<Lambda>::from(blk);
@@ -2845,6 +3141,10 @@ namespace das {
                 using fnPtrType = void (*) ( Context *, void *, ArgType... );
                 auto fnPtr = (fnPtrType) simFunc->aotFunction;
                 (*fnPtr) ( __context__, blk.capture, das::forward<ArgType>(arg)... );
+            } else if ( simFunc->jitFunction ) {
+                vec4f arguments [] = { cast<void *>::from(blk.capture), (cast<ArgType>::from(arg))... };
+                ((JitFunction) simFunc->jitFunction) ( __context__, arguments, nullptr );
+                __context__->stopFlags = 0;
             } else {
                 vec4f arguments [] = { cast<void *>::from(blk.capture), (cast<ArgType>::from(arg))... };
                 __context__->callOrFastcall(simFunc, arguments, __lineinfo__);
@@ -2999,7 +3299,7 @@ namespace das {
 
     template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_push ( TT & vec, const QQ & value, int32_t at, Context * context ) {
-        if ( uint32_t(at)>vec.size() ) {
+        if ( uint32_t(at)>uint32_t(vec.size()) ) {   // both sides cast: ImVector::size() is int, std::vector's is size_t
             context->throw_error_ex("insert index out of range, %i of %u", at, uint32_t(vec.size()));
         }
         (void)value;
@@ -3009,7 +3309,7 @@ namespace das {
 
     template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_push_value ( TT & vec, QQ value, int32_t at, Context * context ) {
-        if ( uint32_t(at)>vec.size() ) {
+        if ( uint32_t(at)>uint32_t(vec.size()) ) {   // both sides cast: ImVector::size() is int, std::vector's is size_t
             context->throw_error_ex("insert index out of range, %i of %u", at, uint32_t(vec.size()));
         }
         (void)value;
@@ -3019,7 +3319,7 @@ namespace das {
 
     template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_push_empty ( TT & vec, int32_t at, Context * context ) {
-        if ( uint32_t(at)>vec.size() ) {
+        if ( uint32_t(at)>uint32_t(vec.size()) ) {   // both sides cast: ImVector::size() is int, std::vector's is size_t
             context->throw_error_ex("insert index out of range, %i of %u", at, uint32_t(vec.size()));
         }
         if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }
@@ -3079,7 +3379,7 @@ namespace das {
 
     template <typename TT, typename QQ = typename TT::value_type>
     __forceinline void das_vector_erase ( TT & vec, int32_t index, Context * context ) {
-        if ( uint32_t(index)>vec.size() ) {
+        if ( uint32_t(index)>uint32_t(vec.size()) ) {   // both sides cast: ImVector::size() is int, std::vector's is size_t
             context->throw_error_ex("erasing vector index out of range %i of %i", index, int32_t(vec.size()));
         }
         if constexpr (das::is_stub_type<QQ>::value) { DAS_ASSERTF(false, "STUB!"); }

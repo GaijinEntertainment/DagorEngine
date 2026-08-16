@@ -47,10 +47,17 @@ VkAllocationCallbacks *getAllocationCallbacksPtr(AllocationType type);
 #define VKALLOC(type) getAllocationCallbacksPtr(AllocationType::type)
 void printAllocationCallbacksStatistics();
 
+// Validates every live guarded host allocation (magic, front guard, back redzone).
+// No-op unless guardVulkanAllocations is on AND the registry build is enabled
+// (VK_GUARDED_ALLOC_REGISTRY). `when` labels the call site in the fatal report.
+// Use to bracket a suspect operation so corruption is caught inside its window.
+void checkVulkanAllocationGuards(const char *when);
+
 #else
 
 #define VKALLOC(type) nullptr
 inline void printAllocationCallbacksStatistics() {}
+inline void checkVulkanAllocationGuards(const char *) {}
 
 #endif
 

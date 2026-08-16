@@ -1,4 +1,4 @@
-include_optional "project_adaptation_inc.dshl"
+include "adaptation_piecewise_tc_inc.dshl"
 
 
 float adaptation_cw_samples_count;
@@ -30,5 +30,13 @@ macro ADAPTATION_CENTER_WEIGHTED_TC_FUNCTION(code)
     {
       return getCenterWeightedTc(sample_index, adaptation_cw_samples_count, adaptation_center_weighted_param);
     }
+  }
+endmacro
+
+macro ADAPTATION_SAMPLE_TC_FUNCTION(code)
+  if (adaptation_function_type == center_weighted) {
+    ADAPTATION_CENTER_WEIGHTED_TC_FUNCTION(code)
+  } else {
+    ADAPTATION_PIECEWISE_TC_FUNCTION(code)
   }
 endmacro

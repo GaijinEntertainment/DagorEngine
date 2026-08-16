@@ -315,10 +315,7 @@ class QsortMacro : AstCallMacro {
     }
 }
 
-// Internal helper: build an ``opName(value [, n], block)`` call from the
-// macro's call expression, wrapping ``value`` in temp_array for handled vectors.
-// ``macroName`` is the user-facing macro identifier (e.g. ``qpartial_sort``);
-// it appears in diagnostics so the message points at the call the user wrote.
+// Internal helper: build an ``opName(value [, n], block)`` call from the macro's call expression, wrapping ``value`` in temp_array for handled vectors.
 def private build_dispatch_call(prog : ProgramPtr; var expr : ExprCallMacro?; macroName, opName : string; takesN : bool) : ExpressionPtr {
     let expectedArgs = takesN ? 3 : 2
     let argShape = takesN ? "(value, n, block)" : "(value, block)"

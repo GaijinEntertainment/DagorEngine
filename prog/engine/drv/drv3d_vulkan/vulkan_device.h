@@ -181,14 +181,6 @@ VULKAN_DECLARE_EXTENSION(DescriptorIndexingEXT, EXT_DESCRIPTOR_INDEXING);
 
 #endif // VK_EXT_descriptor_indexing
 
-#if VK_EXT_swapchain_colorspace
-
-VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
-VULKAN_END_EXTENSION_FUCTION_PACK(SwapchainColorSpaceExt);
-
-VULKAN_DECLARE_EXTENSION(SwapchainColorSpaceExt, EXT_SWAPCHAIN_COLOR_SPACE);
-#endif
-
 #if VK_KHR_maintenance3 // required by VK_EXT_descriptor_indexing
 
 VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
@@ -379,6 +371,16 @@ VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkQueuePresentKHR)
 VULKAN_END_EXTENSION_FUCTION_PACK(SwapchainKHR);
 
 VULKAN_DECLARE_EXTENSION(SwapchainKHR, KHR_SWAPCHAIN);
+
+#if VK_EXT_hdr_metadata
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkSetHdrMetadataEXT)
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkSetHdrMetadataEXT)
+VULKAN_END_EXTENSION_FUCTION_PACK(HdrMetadataEXT);
+
+VULKAN_DECLARE_EXTENSION(HdrMetadataEXT, EXT_HDR_METADATA);
+#endif
 
 VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkCmdPipelineBarrier2KHR)
 
@@ -1187,10 +1189,6 @@ class VulkanDevice : public VulkanDeviceCore<SwapchainKHR
                        ,
                        FormatFeatureFlags2KHR
 #endif
-#if VK_EXT_swapchain_colorspace
-                       ,
-                       SwapchainColorSpaceExt
-#endif
 #if VK_AMD_anti_lag
                        ,
                        AntiLagAMD
@@ -1246,6 +1244,10 @@ class VulkanDevice : public VulkanDeviceCore<SwapchainKHR
 #if VK_EXT_extended_dynamic_state3
                        ,
                        ExtendedDynamicState3EXT
+#endif
+#if VK_EXT_hdr_metadata
+                       ,
+                       HdrMetadataEXT
 #endif
                        >
 {

@@ -1260,15 +1260,19 @@ namespace IMGUIZMO_NAMESPACE
       ComputeColors(colors, type, ROTATE);
 
       vec_t viewDirNormalized;
+      matrix_t viewInverse;
+      viewInverse.Inverse(*(matrix_t*)&gContext.mViewMat);
       if (gContext.mIsOrthographic)
       {
-         matrix_t viewInverse;
-         viewInverse.Inverse(*(matrix_t*)&gContext.mViewMat);
          viewDirNormalized = -viewInverse.v.dir;
       }
       else
       {
-         viewDirNormalized = Normalized(gContext.mCameraDir);
+         // In left-handed view matrices, mCameraDir points toward the scene instead of
+         // toward the camera; negate it so we always get the "toward camera" direction,
+         // which selects the correct front-facing half of each rotation ring.
+         const float handSign = (Dot(Cross(viewInverse.v.right, viewInverse.v.up), viewInverse.v.dir) >= 0.f) ? 1.f : -1.f;
+         viewDirNormalized = Normalized(gContext.mCameraDir) * handSign;
       }
 
       viewDirNormalized.TransformVector(gContext.mModelInverse);
@@ -1287,7 +1291,8 @@ namespace IMGUIZMO_NAMESPACE
 
          ImVec2* circlePos = (ImVec2*)alloca(sizeof(ImVec2) * (circleMul * halfCircleSegmentCount + 1));
 
-         float angleStart = atan2f(viewDirNormalized[(4 - axis) % 3], viewDirNormalized[(3 - axis) % 3]) + (gContext.mIsOrthographic ? ZPI : -ZPI) * 0.5f;
+         const bool rightHanded = gContext.mProjectionMat.m[2][3] < 0.f;
+         float angleStart = atan2f(viewDirNormalized[(4 - axis) % 3], viewDirNormalized[(3 - axis) % 3]) + (gContext.mIsOrthographic ? ZPI : -ZPI) * 0.5f + (rightHanded ? 0.f : ZPI);
 
          for (int i = 0; i < circleMul * halfCircleSegmentCount + 1; i++)
          {

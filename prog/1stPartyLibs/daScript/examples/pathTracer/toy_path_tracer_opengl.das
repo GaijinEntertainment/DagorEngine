@@ -1,17 +1,33 @@
 options gen2
+options persistent_heap
+options gc
 require glfw/glfw_boost
 require opengl/opengl_boost
 require glsl/glsl_opengl
-require daslib/defer
 require math
 
 require daslib/safe_addr
 require daslib/random
 
 require path_tracer
+require daslib/clargs
+require live/live_gc
 
 let TRACE_WIDTH = 1024
 let TRACE_HEIGHT = 1024
+
+[CommandLineArgs]
+struct PathTracerArgs {
+    @clarg_short = "f"
+    @clarg_name = "max-frames"
+    @clarg_doc = "Render this many frames, then exit 0 (0 = run until the window closes). Lets the demo double as a headless smoke test."
+    frames : int
+
+    @clarg_short = "?"
+    @clarg_name = "show-help"
+    @clarg_doc = "Show this help and exit"
+    help : bool
+}
 
 var @in @location v_position : float2
 var @in @location v_texcoord : float2
@@ -47,17 +63,13 @@ def compute_effect {
     random_seed2D(RAND_SEED, storePos, c_frame)
     random_float4(RAND_SEED)
     let rgb = draw_ray(storePos.x, TRACE_HEIGHT - storePos.y, TRACE_WIDTH, TRACE_HEIGHT)
-    if (true) {
-        var nrgb = rgb.zyxx
-        if (c_frame != 0) {
-            let orgb = imageLoad(c_destTex, storePos)
-            let wf = float(c_frame)
-            nrgb = (orgb * wf + nrgb) / (wf + 1.)
-        }
-        imageStore(c_destTex, storePos, nrgb)
-    } else {
-        imageStore(c_destTex, storePos, srgb)
+    var nrgb = rgb.zyxx
+    if (c_frame != 0) {
+        let orgb = imageLoad(c_destTex, storePos)
+        let wf = float(c_frame)
+        nrgb = (orgb * wf + nrgb) / (wf + 1.)
     }
+    imageStore(c_destTex, storePos, nrgb)
 }
 
 var compute_program, display_program : uint
@@ -65,6 +77,7 @@ var vao : uint
 var vbo : uint
 var ebo : uint
 var texture : uint
+var window : GLFWwindow?
 
 [vertex_buffer]
 struct EffectVertex {
@@ -102,46 +115,77 @@ def create_gl_objects {
 }
 
 [export]
-def main {
+def init {
     if (glfwInit() == 0) {
         panic("can't init glfw")
     }
-    defer() {
-        glfwTerminate()
-    }
     glfwInitOpenGL(4, 3)
-    var window = glfwCreateWindow(TRACE_WIDTH, TRACE_HEIGHT, "OpenGL Path tracer", null, null)
+    window = glfwCreateWindow(TRACE_WIDTH, TRACE_HEIGHT, "OpenGL Path tracer", null, null)
     if (window == null) {
         panic("can't create window")
-    }
-    defer() {
-        glfwDestroyWindow(window)
     }
     glfwSetWindowSize(window, TRACE_WIDTH, TRACE_HEIGHT)
     glfwMakeContextCurrent(window)
     create_gl_objects()
-    while (glfwWindowShouldClose(window) == 0) {
-        glfwPollEvents()
-        var display_w, display_h : int
-        glfwGetFramebufferSize(window, display_w, display_h)
-        // copmute next iteration of tracing
-        glUseProgram(compute_program)
-        c_destTex := texture
-        compute_effect_bind_uniform(compute_program)
-        glDispatchCompute(uint(TRACE_WIDTH / 16), uint(TRACE_HEIGHT / 16), 1u)
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT)
-        c_frame++
-        // display it
-        glViewport(0, 0, display_w, display_h)
-        glUseProgram(display_program)
-        f_tex := texture
-        vs_effect_bind_uniform(display_program)
-        fs_effect_bind_uniform(display_program)
-        glBindVertexArray(vao)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null)
-        // swap buffers
-        glfwMakeContextCurrent(window)
-        glfwSwapBuffers(window)
+}
+
+[export]
+def update {
+    glfwPollEvents()
+    var display_w, display_h : int
+    glfwGetFramebufferSize(window, display_w, display_h)
+    // compute next iteration of tracing
+    glUseProgram(compute_program)
+    c_destTex := texture
+    compute_effect_bind_uniform(compute_program)
+    glDispatchCompute(uint(TRACE_WIDTH / 16), uint(TRACE_HEIGHT / 16), 1u)
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT)
+    c_frame++
+    // display it
+    glViewport(0, 0, display_w, display_h)
+    glUseProgram(display_program)
+    f_tex := texture
+    vs_effect_bind_uniform(display_program)
+    fs_effect_bind_uniform(display_program)
+    glBindVertexArray(vao)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null)
+    // swap buffers
+    glfwMakeContextCurrent(window)
+    glfwSwapBuffers(window)
+}
+
+[export]
+def shutdown {
+    if (window != null) {
+        glfwDestroyWindow(window)
+        window = null
     }
+    glfwTerminate()
+}
+
+[export]
+def main {
+    var r <- parse_args(type<PathTracerArgs>)
+    if (r |> is_err) {
+        print("error: {r |> unwrap_err}\n\n")
+        print_help(get_command_info(type<PathTracerArgs>), "toy_path_tracer_opengl")
+        return
+    }
+    let cfg <- r |> move_unwrap
+    if (cfg.help) {
+        print_help(get_command_info(type<PathTracerArgs>), "toy_path_tracer_opengl")
+        return
+    }
+    init()
+    var frame_count = 0
+    while (glfwWindowShouldClose(window) == 0) {
+        update()
+        maybe_collect_gc()
+        frame_count++
+        if (cfg.frames > 0 && frame_count >= cfg.frames) {
+            break   // headless smoke / test mode: stop after the requested frame count
+        }
+    }
+    shutdown()
 }

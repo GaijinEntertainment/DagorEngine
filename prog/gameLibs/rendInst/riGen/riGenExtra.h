@@ -62,7 +62,7 @@ struct RiExtraPoolsVec : private dag::Vector<RiExtraPool>
   bool isValid(int id) const { return unsigned(id) < size(); }
 
   // custom atomic insert() in order to avoid to read partially constructed pool data
-  void interlocked_insert(int id);
+  void interlocked_insert(int id) DAG_TS_REQUIRES(rendinst::ccExtra);
 
   eastl::bitvector<> poolWasNotSavedToElems;
 };

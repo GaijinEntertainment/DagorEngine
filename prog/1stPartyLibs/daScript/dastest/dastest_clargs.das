@@ -15,11 +15,14 @@ struct DastestArgs {
     @clarg_doc = "Compile test files without executing them"
     compile_only : bool
 
-    @clarg_doc = "If tests run longer than this duration in seconds, panic. If 0, the timeout is disabled. The default is 10 minutes"
-    timeout : float = 600.0
+    @clarg_doc = "If tests run longer than this duration in seconds, panic. If 0, the timeout is disabled. The default is 20 minutes"
+    timeout : float = 1200.0
 
     @clarg_doc = "Print the top N slowest test files and highlight statistical timing outliers (above mean + 2x stddev)"
     timing_outliers : int = 0
+
+    @clarg_doc = "Fail the suite when any completed test file takes longer than this many seconds. If 0, the limit is disabled"
+    max_file_time : float = 0.0
 
     @clarg_doc = "Path to write the JSON test results report to"
     json_file : string
@@ -33,7 +36,7 @@ struct DastestArgs {
     @clarg_doc = "Project file. Will be used to compile given tests"
     test_project : string
 
-    @clarg_doc = "Number of threads to use in isolated mode; defaults to 2x the number of hardware threads when 0"
+    @clarg_doc = "Number of threads to use in isolated mode; 0 uses a conservative hardware rule for JIT and 2x hardware threads otherwise"
     isolated_mode_threads : int
 
     @clarg_doc = "Files per worker subprocess in isolated mode (semi-isolated sharding). 1 (default) = one process per test (full isolation). >1 amortizes process/compile cold-start across a batch; a crash in a batch is auto-recovered by re-running the remainder one-per-process"
@@ -77,6 +80,9 @@ struct DastestArgs {
     @clarg_doc = "Compile and run tests using AOT (ahead-of-time) compilation, failing if AOT is unavailable"
     use_aot : bool
 
+    @clarg_doc = "Force quote()/qmacro lowering (daslib/quote QuotePass) when compiling test files"
+    aot_macros : bool
+
     @clarg_doc = "Enable benchmark execution (all of them)"
     bench : bool
 
@@ -85,6 +91,21 @@ struct DastestArgs {
 
     @clarg_doc = "Set cop.keep_alive so _KeepAlive SimNode variants get dispatched"
     keep_alive : bool = false
+
+    @clarg_doc = "Compile every test with the CSE (common-subexpression-elimination) pass disabled (cop.disable_cse)"
+    disable_cse : bool = false
+
+    @clarg_doc = "Compile every test with the DSE (dead-store-elimination) pass disabled (cop.disable_dse)"
+    disable_dse : bool = false
+
+    @clarg_doc = "Compile every test with the temp-string reclaim pass disabled (cop.disable_temp_string_reclaim)"
+    disable_temp_string_reclaim : bool = false
+
+    @clarg_doc = "Compile every test with the [inline] function inliner disabled (cop.disable_inline)"
+    disable_inline : bool = false
+
+    @clarg_doc = "Compile every test with automatic block-inlining + invoke-of-literal devirt disabled (cop.disable_auto_inline)"
+    disable_auto_inline : bool = false
 
     @clarg_doc = "On a test panic, walk the call stack at throw time (real frames + line info, args via context settings) instead of the post-unwind walk that reports sp=0 with no frames. Sets the test context's alwaysStackWalkOnException. Off by default: a test that swallows a panic via try/recover would also emit a walk — enable for debugging a failing/crashing test"
     stack_on_exception : bool = false

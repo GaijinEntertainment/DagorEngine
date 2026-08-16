@@ -103,6 +103,7 @@ MAKE_EXTERNAL_TYPE_FACTORY(ExprConstEnumeration,das::ExprConstEnumeration);
 MAKE_EXTERNAL_TYPE_FACTORY(ExprConstBitfield,das::ExprConstBitfield);
 MAKE_EXTERNAL_TYPE_FACTORY(ExprConstInt8,das::ExprConstInt8);
 MAKE_EXTERNAL_TYPE_FACTORY(ExprConstInt16,das::ExprConstInt16);
+MAKE_EXTERNAL_TYPE_FACTORY(ExprConstFloat16,das::ExprConstFloat16);
 MAKE_EXTERNAL_TYPE_FACTORY(ExprConstInt64,das::ExprConstInt64);
 MAKE_EXTERNAL_TYPE_FACTORY(ExprConstInt,das::ExprConstInt);
 MAKE_EXTERNAL_TYPE_FACTORY(ExprConstInt2,das::ExprConstInt2);
@@ -182,9 +183,11 @@ namespace das {
     TypeDeclPtr makeStructureFlags();
     TypeDeclPtr makeFunctionFlags();
     TypeDeclPtr makeMoreFunctionFlags();
+    TypeDeclPtr makeMoreFunctionFlags2();
     TypeDeclPtr makeFunctionSideEffectFlags();
     TypeDeclPtr makeVariableFlags();
     TypeDeclPtr makeVariableAccessFlags();
+    TypeDeclPtr makeVariableAccessInfoFlags();
     TypeDeclPtr makeExprCopyFlags();
     TypeDeclPtr makeExprMoveFlags();
     TypeDeclPtr makeExprIfFlags();
@@ -298,6 +301,7 @@ namespace das {
             this->template addField<DAS_BIND_MANAGED_FIELD(recordType)>("recordType");
             this->template addField<DAS_BIND_MANAGED_FIELD(values)>("values");
             this->template addField<DAS_BIND_MANAGED_FIELD(gen2)>("gen2");
+            this->template addField<DAS_BIND_MANAGED_FIELD(makeArrayOnHeap)>("makeArrayOnHeap");
         }
     };
 

@@ -7,7 +7,7 @@
 namespace dafx
 {
 bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &desc, const eastl::string &name, int depth,
-  SystemId sys_id)
+  SystemId sys_id, SimulationDevice sim_device)
 {
   DBG_OPT("register_subsystem, name:%s ", name);
   G_ASSERT_RETURN(sys.name.empty(), false);
@@ -104,6 +104,9 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
   sys.renderTags = 0;
   G_ASSERT(sys.renderShaders.empty());
 
+  G_ASSERTF(desc.statGroup < Config::max_stat_groups, "dafx: sys: %s, stat group %d is out of range", name.c_str(), desc.statGroup);
+  sys.statGroup = desc.statGroup;
+
   sys.gameResId = desc.gameResId;
   sys.resources[STAGE_CS] = desc.texturesCs;
   sys.resources[STAGE_VS] = desc.texturesVs;
@@ -119,18 +122,20 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
 
   if (desc.emissionData.type == EmissionType::SHADER)
   {
-    sys.cpuEmissionShaderId = register_cpu_compute_shader_opt(ctx.shaders, desc.emissionData.shader);
+    sys.cpuEmissionShaderId = sim_device != SimulationDevice::GPU
+                                ? register_cpu_compute_shader_opt(ctx.shaders, desc.emissionData.shader)
+                                : CpuComputeShaderId();
     if (sys.cpuEmissionShaderId)
     {
       sys.refFlags |= SYS_CPU_EMISSION_REQ;
     }
-    else
+    else if (sim_device != SimulationDevice::CPU)
     {
       sys.refFlags |= SYS_GPU_EMISSION_REQ;
       sys.gpuEmissionShaderId = register_gpu_compute_shader(ctx.shaders, desc.emissionData.shader, name);
-      if (!sys.gpuEmissionShaderId)
-        return false;
     }
+    if (!sys.cpuEmissionShaderId && !sys.gpuEmissionShaderId)
+      return false;
   }
   else if (desc.emissionData.type == EmissionType::REF_DATA)
   {
@@ -166,27 +171,29 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
 
   if (desc.simulationData.type == SimulationType::SHADER)
   {
-    sys.cpuSimulationShaderId = register_cpu_compute_shader_opt(ctx.shaders, desc.simulationData.shader);
+    sys.cpuSimulationShaderId = sim_device != SimulationDevice::GPU
+                                  ? register_cpu_compute_shader_opt(ctx.shaders, desc.simulationData.shader)
+                                  : CpuComputeShaderId();
     if (sys.cpuSimulationShaderId)
     {
       sys.refFlags |= SYS_CPU_SIMULATION_REQ;
     }
-    else
+    else if (sim_device != SimulationDevice::CPU)
     {
       sys.refFlags |= SYS_GPU_SIMULATION_REQ;
       sys.gpuSimulationShaderId = register_gpu_compute_shader(ctx.shaders, desc.simulationData.shader, name);
-      if (!sys.gpuSimulationShaderId)
-        return false;
     }
+    if (!sys.cpuSimulationShaderId && !sys.gpuSimulationShaderId)
+      return false;
   }
   else if (desc.simulationData.type != SimulationType::NONE)
   {
     G_ASSERT_RETURN(false, false);
   }
 
-  if (sys.cpuSimulationShaderId && sys.gpuEmissionShaderId)
+  if (bool(sys.cpuSimulationShaderId) != bool(sys.cpuEmissionShaderId))
   {
-    logerr("dafx: sys: %s, cpu sim with gpu emission is not supported", name.c_str());
+    logerr("dafx: sys: %s, emission and simulation must be both on cpu or both on gpu", name.c_str());
     return false;
   }
 
@@ -269,7 +276,7 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
   for (const SystemDesc &subDesc : desc.subsystems)
   {
     SystemTemplate &subSys = sys.subsystems.push_back();
-    if (!register_subsystem(ctx, subSys, subDesc, name, sys.depth + 1, sys_id))
+    if (!register_subsystem(ctx, subSys, subDesc, name, sys.depth + 1, sys_id, sim_device))
       return false;
 
     if (subSys.localGpuDataSize > 0)
@@ -366,7 +373,7 @@ SystemId get_dummy_system_id(ContextId cid)
   return ctx.systems.dummySystemId;
 }
 
-SystemId register_system(ContextId cid, const SystemDesc &desc, const eastl::string &name)
+SystemId register_system(ContextId cid, const SystemDesc &desc, const eastl::string &name, SimulationDevice sim_device)
 {
   GET_CTX_RET(SystemId());
   SYS_LOCK_GUARD;
@@ -388,7 +395,7 @@ SystemId register_system(ContextId cid, const SystemDesc &desc, const eastl::str
   SystemTemplate *sys = ctx.systems.list.get(rid);
   G_ASSERT_RETURN(sys, SystemId());
 
-  if (!register_subsystem(ctx, *sys, desc, name, 0, rid))
+  if (!register_subsystem(ctx, *sys, desc, name, 0, rid, sim_device))
   {
     ctx.systems.list.destroyReference(rid);
     return SystemId();
@@ -414,6 +421,9 @@ void release_subsystem(Context &ctx, SystemTemplate &sys)
 
   if (sys.simulationRefDataId)
     ctx.refDatas.destroyReference(sys.simulationRefDataId);
+
+  if (sys.serviceRefDataId)
+    ctx.refDatas.destroyReference(sys.serviceRefDataId);
 
   sys.refFlags = 0;
   sys.name.clear();

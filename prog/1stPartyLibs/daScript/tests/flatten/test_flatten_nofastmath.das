@@ -91,6 +91,35 @@ def nf_preshader(x : float) : float {
     return x * u + u
 }
 
+// ----- bool-inversion gate -----
+
+// `break if (s > 0.9)` → `m = m && !(s > 0.9)`. The ordered FLOAT flip is NaN-unsafe, so under
+// no-fast-math it is SKIPPED — the `!comparison` survives.
+[flatten]
+def nf_ordered_inv(s : float) : float {
+    var acc = 0.0
+    for (_i in range(3)) {
+        acc += s
+        if (s > 0.9) {
+            break
+        }
+    }
+    return acc
+}
+
+// Equality is NaN-exact (`!(a == b) ≡ a != b`), so the flip still fires under no-fast-math.
+[flatten]
+def nf_eq_inv(s : float) : float {
+    var acc = 0.0
+    for (_i in range(3)) {
+        acc += s
+        if (s == 0.9) {
+            break
+        }
+    }
+    return acc
+}
+
 // ----- differential driver -----
 
 var GRID : array<float>
@@ -131,6 +160,12 @@ def test_flatten_nofastmath(t : T?) {
     t |> run("lerp const-selector skipped — bit-exact") @(t : T?) {
         for (a in GRID) {
             t |> equal(nf_lerp0_flat(a, 7.5), nf_lerp0(a, 7.5))
+        }
+    }
+    t |> run("bool-inversion gate (ordered skipped, equality folds) — bit-exact") @(t : T?) {
+        for (v in GRID) {
+            t |> equal(nf_ordered_inv_flat(v), nf_ordered_inv(v))
+            t |> equal(nf_eq_inv_flat(v), nf_eq_inv(v))
         }
     }
     t |> run("x / C NOT rewritten to *(1/C) — bit-exact") @(t : T?) {

@@ -62,7 +62,7 @@ void init_wayland()
 {
 #if USE_WAYLAND
   const char *xdg_session_type = getenv("XDG_SESSION_TYPE");
-  if (strstr(xdg_session_type, "wayland"))
+  if (xdg_session_type && strstr(xdg_session_type, "wayland"))
   {
     debug("wayland: present because XDG_SESSION_TYPE value = %s", xdg_session_type);
     bool useWayland = false;
@@ -113,6 +113,15 @@ void shutdown()
 bool change_gamma(float value) { ROUTE(changeGamma(value)); }
 void get_display_size(int &width, int &height, bool for_primary_output) { ROUTE(getDisplaySize(width, height, for_primary_output)); }
 void get_video_mode_list(Tab<String> &list) { ROUTE(getVideoModeList(list)); }
+void get_monitors(Tab<String> &monitorNames) { ROUTE(getMonitors(monitorNames)); }
+bool get_monitor_info(const char *monitorName, String *friendlyName, int *monitorIndex)
+{
+  ROUTE(getMonitorInfo(monitorName, friendlyName, monitorIndex));
+}
+void get_resolutions_from_monitor(const char *monitorName, Tab<String> &resolutions)
+{
+  ROUTE(getResolutionsFromMonitor(monitorName, resolutions));
+}
 void *get_main_window_ptr_handle() { ROUTE(getMainWindowPtrHandle()); }
 bool is_main_window(void *wnd) { ROUTE(isMainWindow(wnd)); }
 void destroy_main_window() { ROUTE(destroyMainWindow()); }
@@ -140,6 +149,8 @@ void unclip_cursor() { ROUTE(unclipCursor()); }
 void hide_cursor(bool hide) { ROUTE(hideCursor(hide)); }
 void *get_native_display() { ROUTE(getNativeDisplay()); }
 void *get_native_window(void *w) { ROUTE(getNativeWindow(w)); };
+void lock_window(void *w) { ROUTE(lockWindow(w)); }
+void unlock_window(void *w) { ROUTE(unlockWindow(w)); }
 bool get_clipboard_utf8_text(char *dest, int buf_size) { ROUTE(getClipboardUTF8Text(dest, buf_size)); }
 bool set_clipboard_utf8_text(const char *text) { ROUTE(setClipboardUTF8Text(text)); }
 

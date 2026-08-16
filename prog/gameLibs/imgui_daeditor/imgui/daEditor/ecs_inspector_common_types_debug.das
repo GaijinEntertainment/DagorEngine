@@ -611,7 +611,17 @@ def draw_any_list(eid : array<EntityId> implicit; flags : uint; name : string; r
     if imgui::Button("Clear##{name}")
       *val |> clear()
 
-  if !default_menu(eid, name, "{typeinfo typename(type<ContType>)}", $() => to_string(*val), $(str) { logerr("List to string not implemented! str={str}"); }, $() => to_string_via_blk(name, eid[0]), changed, sub_menu)
+  let menuRes = default_menu(eid, name, "{typeinfo typename(type<ContType>)}", $() => to_string(*val), $(str) { logerr("List to string not implemented! str={str}"); }, $() => to_string_via_blk(name, eid[0]), changed) <| $(var sub_changed : bool?)
+    static_if (typeinfo typename(type<SubType>) == "ecs::EntityId" || typeinfo typename(type<SubType>) == "EntityId")
+      if imgui::Button("Copy templates")
+        imgui::CloseCurrentPopup()
+        var text = ""
+        for e in *val
+          text += "<{e}> {getEntityTemplateName(e)}\n"
+        imgui::SetClipboardText(text)
+    return sub_menu |> invoke(sub_changed)
+
+  if !menuRes
     if open && !isEmpty
       imgui::TreePop()
     return

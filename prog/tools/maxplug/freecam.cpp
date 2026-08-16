@@ -386,13 +386,12 @@ ActionTable *GetActions()
 class DagFreeCamUtil : public UtilityObj
 {
 public:
-  TCHAR clsname[MAX_CLSNAME];
-  IUtil *iu;
-  Interface *ip;
-  HWND hFreeCamPanel;
-  ICustEdit *cammovespeedid, *camrotspeedid, *turboid;
+  TCHAR clsname[MAX_CLSNAME] = {};
+  IUtil *iu = NULL;
+  Interface *ip = NULL;
+  HWND hFreeCamPanel = NULL;
+  ICustEdit *cammovespeedid = NULL, *camrotspeedid = NULL, *turboid = NULL;
 
-  DagFreeCamUtil();
   void BeginEditParams(Interface *ip, IUtil *iu) override;
   void EndEditParams(Interface *ip, IUtil *iu) override;
   void DeleteThis() override {}
@@ -598,14 +597,4 @@ void DagFreeCamUtil::Destroy(HWND hw)
   reled(turboid);
 #undef reled
   freecam.destroy(hw, ip);
-}
-
-
-DagFreeCamUtil::DagFreeCamUtil()
-{
-  _tcscpy(clsname, _T(""));
-  iu = NULL;
-  ip = NULL;
-  hFreeCamPanel = NULL;
-  turboid = cammovespeedid = camrotspeedid = NULL;
 }

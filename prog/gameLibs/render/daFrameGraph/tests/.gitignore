@@ -1,1 +1,1 @@
-bin
+#bin do not add bin here! if tests aritfacts are ignored - they are not cleared on buildnodes and spoil artifactory cache!

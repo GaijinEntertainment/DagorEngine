@@ -1599,7 +1599,8 @@ def LLVMDisposeDIBuilder(Builder : LLVMOpaqueDIBuilder? implicit) : void {}
 def LLVMDIBuilderFinalize(Builder : LLVMOpaqueDIBuilder? implicit) : void {}
 [extern(cdecl, name="LLVMDIBuilderFinalizeSubprogram", library="LLVM.dll")]
 def LLVMDIBuilderFinalizeSubprogram(Builder : LLVMOpaqueDIBuilder? implicit; Subprogram : LLVMOpaqueMetadata? implicit) : void {}
-// Function `LLVMDIBuilderCreateCompileUnit` has too many arguments. Ignore.
+[extern(cdecl, name="LLVMDIBuilderCreateCompileUnit", library="LLVM.dll")]
+def LLVMDIBuilderCreateCompileUnit(Builder : LLVMOpaqueDIBuilder? implicit; Lang : LLVMDWARFSourceLanguage; FileRef : LLVMOpaqueMetadata? implicit; Producer : string implicit; ProducerLen : uint64; isOptimized : int; Flags : string implicit; FlagsLen : uint64; RuntimeVer : uint; SplitName : string implicit; SplitNameLen : uint64; Kind : LLVMDWARFEmissionKind; DWOId : uint; SplitDebugInlining : int; DebugInfoForProfiling : int; SysRoot : string implicit; SysRootLen : uint64; SDK : string implicit; SDKLen : uint64) : LLVMOpaqueMetadata? {}
 
 [extern(cdecl, name="LLVMDIBuilderCreateFile", library="LLVM.dll")]
 def LLVMDIBuilderCreateFile(Builder : LLVMOpaqueDIBuilder? implicit; Filename : string implicit; FilenameLen : uint64; Directory : string implicit; DirectoryLen : uint64) : LLVMOpaqueMetadata? {}

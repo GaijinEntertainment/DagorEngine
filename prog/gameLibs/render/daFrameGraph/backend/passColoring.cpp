@@ -5,6 +5,7 @@
 
 #include "generic/dag_reverseView.h"
 #include <EASTL/queue.h>
+#include <perfMon/dag_statDrv.h>
 #include <memory/dag_framemem.h>
 #include <util/dag_stlqsort.h>
 #include <dag/dag_vectorSet.h>
@@ -312,6 +313,23 @@ PassColoring PassColorer::performColoring(const intermediate::Graph &graph, cons
   }
 
   return result;
+}
+
+GracePoints compute_grace_points(const intermediate::Graph &graph, const PassColoring &pass_coloring)
+{
+  TIME_PROFILE(computeGracePoints);
+
+  GracePoints gracePoints;
+  gracePoints.insert(0);
+  auto prevColor = MINUS_ONE_SENTINEL_FOR<PassColor>;
+  for (auto key : graph.nodes.keys())
+  {
+    if (pass_coloring[key] != prevColor)
+      gracePoints.insert(eastl::to_underlying(key));
+    prevColor = pass_coloring[key];
+  }
+  gracePoints.insert(graph.nodes.totalKeys());
+  return gracePoints;
 }
 
 } // namespace dafg

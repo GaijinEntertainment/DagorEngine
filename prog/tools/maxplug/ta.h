@@ -10,8 +10,8 @@ class BitmapIO_TA : public BitmapIO
 public:
   //-- Constructors/Destructors
 
-  BitmapIO_TA();
-  ~BitmapIO_TA() override;
+  BitmapIO_TA() = default;
+  ~BitmapIO_TA() override = default;
 
   //-- Number of extemsions supported
 

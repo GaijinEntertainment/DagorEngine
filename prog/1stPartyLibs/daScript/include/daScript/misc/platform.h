@@ -3,7 +3,7 @@
 #ifndef DAS_VERSION
 #define DAS_VERSION_MAJOR 0
 #define DAS_VERSION_MINOR 6
-#define DAS_VERSION_PATCH 3
+#define DAS_VERSION_PATCH 4
 #define DAS_VERSION (DAS_VERSION_MAJOR*10000 + DAS_VERSION_MINOR*100 + DAS_VERSION_PATCH)
 #endif
 
@@ -443,21 +443,46 @@ namespace das {
 #endif
 }
 
+#if defined(__linux__)
+#include <sys/mman.h>       // madvise/MADV_HUGEPAGE for the >=2MB hugepage tier below
+#endif
+
 #ifndef DAS_ALIGNED_ALLOC
 #define DAS_ALIGNED_ALLOC 1
+// Size-tiered alignment: blocks ≥2KB get cache-line (64B) alignment — SIMD/AMX tile
+// kernels (tileloadd row loads, 512-bit vector loads) pay a line-split on every access
+// to a 16-but-not-64-aligned panel (measured ~260M split-loads/s on SPR AMX GEMM; Intel
+// SDM ch.20 mandates 64B for tile data). Blocks ≥2MB get 2MB alignment + MADV_HUGEPAGE
+// on Linux: the hugepage hint only collapses 2M-aligned VA subranges, so without the
+// alignment the hint misses the panel head. Windows stays uniform 64B — _aligned_msize
+// must be called with the exact alignment passed at alloc time, so it cannot be
+// size-tiered there. The name keeps its historical "16" (the minimum caller contract).
+#define DAS_ALLOC_ALIGNMENT_WIN 64
+inline size_t das_alloc_alignment(size_t size) {
+    if (size >= 2*1024*1024) return 2*1024*1024;
+    if (size >= 2048) return 64;
+    return 16;
+}
 inline void *das_aligned_alloc16(size_t size) {
     DAS_ASSERTF(size != 0, "das_aligned_alloc16 called with size 0");
     void *p;
 #if defined(_WIN32)
     // All Windows toolchains (MSVC / clang-cl / clang-mingw64 / gcc-mingw64) use
     // the MS C runtime aligned-allocator family declared in <malloc.h>.
-    p = _aligned_malloc(size, 16);
+    p = _aligned_malloc(size, DAS_ALLOC_ALIGNMENT_WIN);
 #else
     p = nullptr;
-    if (posix_memalign(&p, 16, size)) {
+    if (posix_memalign(&p, das_alloc_alignment(size), size)) {
         DAS_ASSERTF(0, "posix_memalign returned nullptr");
         return nullptr;
     }
+#if defined(__linux__)
+    if (size >= 2*1024*1024) {
+        // interior only (size rounded DOWN to 2MB): hinting the partial tail page would back
+        // it with a full 2MB of RSS (a 2.05MB block ballooning to 4MB); the tail stays 4K
+        madvise(p, size & ~size_t(2*1024*1024 - 1), MADV_HUGEPAGE);
+    }
+#endif
 #endif
     das::track_alloc_hook(p, size);
     return p;
@@ -478,7 +503,7 @@ inline void das_aligned_free16(void *ptr) {
 #endif
 inline size_t das_aligned_memsize(void * ptr){
 #if defined(_WIN32)
-    return _aligned_msize(ptr, 16, 0);
+    return _aligned_msize(ptr, DAS_ALLOC_ALIGNMENT_WIN, 0);
 #elif defined(__APPLE__)
     return malloc_size(ptr);
 #else
@@ -575,6 +600,18 @@ private:
 #endif
 #ifndef WIN_EH_NO_ASAN
 #define WIN_EH_NO_ASAN
+#endif
+
+// Upper bound on JobQue worker threads, and therefore on get_total_hw_threads / get_total_hw_jobs.
+// On wasm the persistent job pool spawns one Web Worker per thread (navigator.hardwareConcurrency
+// of them without a cap), so keep 4 there; everywhere else the cores-1 rule in job_que.cpp governs
+// and the cap is effectively off. Override in CMake (-DDAS_MAX_HW_JOBS=N) either way.
+#ifndef DAS_MAX_HW_JOBS
+#if defined(__EMSCRIPTEN__)
+#define DAS_MAX_HW_JOBS 4
+#else
+#define DAS_MAX_HW_JOBS 1024
+#endif
 #endif
 
 #include "daScript/misc/smart_ptr.h"

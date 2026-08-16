@@ -1,6 +1,7 @@
 import "daEditorEmbedded" as daEditor
 from "%darg/ui_imports.nut" import *
 from "%darg/laconic.nut" import *
+from "types" import Table
 
 let { DE4_MODE_CREATE_ENTITY = null, get_instance = @() null } = require_optional("entity_editor")
 let { LogsWindowId, EntitySelectWndId, SceneOutlinerWndId, propPanelVisible, propPanelClosed,
@@ -35,7 +36,7 @@ function toolbarButton(image, action, tooltip_text, checked=null, styles = {}) {
     onHover
     styles
   }
-  let params = (type(image)=="table") ? defParams.__merge(image) : defParams.__merge({image})
+  let params = (image instanceof Table) ? defParams.__merge(image) : defParams.__merge({image})
   if (checked instanceof Watched) {
     return @(){ children = pictureButton(params.__update({checked=checked.get()})), watch = checked}
   }
@@ -43,7 +44,7 @@ function toolbarButton(image, action, tooltip_text, checked=null, styles = {}) {
 }
 
 function modeButton(image, mode, tooltip_text, next_mode=null, next_action=null) {
-  local params = (type(image)=="table") ? image : {image}
+  local params = (image instanceof Table) ? image : {image}
   params = params.__merge({
     checked = mode == getEditMode()
     imageMargin = fsh(0.5)
@@ -121,7 +122,7 @@ function showMessageboxSaveScenes(modifiedSceneIds) {
     return watchElemState(function (_sf) {
       return {
         rendObj = ROBJ_SOLID
-        size = [flex(), SIZE_TO_CONTENT]
+        size = const [flex(), SIZE_TO_CONTENT]
         color = colors.GridBg[index % colors.GridBg.len()]
         children = {
           flow = FLOW_HORIZONTAL
@@ -173,7 +174,7 @@ function showMessageboxSaveScenes(modifiedSceneIds) {
         }
         {
           flow = FLOW_HORIZONTAL
-          size = [flex(), SIZE_TO_CONTENT]
+          size = const [flex(), SIZE_TO_CONTENT]
           children = [
             hflow(
               Size(SIZE_TO_CONTENT, SIZE_TO_CONTENT)
@@ -271,7 +272,7 @@ function mainToolbar() {
     children = [
       {
         cursor = cursors.normal
-        size = [sw(100), SIZE_TO_CONTENT]
+        size = const [sw(100), SIZE_TO_CONTENT]
         flow = FLOW_HORIZONTAL
         rendObj = ROBJ_WORLD_BLUR
         fillColor = Color(20, 20, 20, 155)
@@ -315,19 +316,19 @@ function mainToolbar() {
 
           de4workModes.get().len() <= 1 ? null : separator
           de4workModes.get().len() <= 1 ? null : {
-            size = [hdpx(100),fontH(100)]
+            size = const [hdpx(100),fontH(100)]
             children = combobox(de4workMode, de4workModes)
           }
 
           separator
           @() {
             watch = gizmoBasisTypeEditingDisabled
-            size = [hdpx(150), fontH(100)]
+            size = const [hdpx(150), fontH(100)]
             children = combobox({value = gizmoBasisType, disable = gizmoBasisTypeEditingDisabled}, gizmoBasisTypeNames, gizmoBasisTypeEditingDisabled.get() ? "Set gizmo basis mode (X)\n\nEnabled when the move/rotate/scale/surf over ground edit mode is active." : "Set gizmo basis mode (X)")
           }
           @() {
             watch = gizmoBasisTypeEditingDisabled
-            size = [hdpx(150), fontH(100)]
+            size = const [hdpx(150), fontH(100)]
             children = combobox({value = gizmoCenterType, disable = gizmoBasisTypeEditingDisabled}, gizmoCenterTypeNames, gizmoBasisTypeEditingDisabled.get() ? "Set gizmo transformation center mode (C)\n\nEnabled when the move/rotate/scale/surf over ground edit mode is active." : "Set gizmo transformation center mode (C)")
           }
         ]

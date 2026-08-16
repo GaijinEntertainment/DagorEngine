@@ -1,4 +1,4 @@
-// Squirrel module under test: utf8 (registered by bindSqrat.cpp register_utf8)
+// Quirrel module under test: utf8 (registered by bindSqrat.cpp register_utf8)
 
 import "utf8" as utf8
 

@@ -19,6 +19,7 @@ class PrimitiveTypes {
     private ctx : LLVMContextRef
     t_float : LLVMOpaqueType?
     t_double : LLVMOpaqueType?
+    t_half : LLVMOpaqueType?
     t_int1 : LLVMOpaqueType?
     t_int8 : LLVMOpaqueType?
     t_int16 : LLVMOpaqueType?
@@ -31,6 +32,7 @@ class PrimitiveTypes {
         ctx = ctx_
         t_float = LLVMFloatTypeInContext(ctx)
         t_double = LLVMDoubleTypeInContext(ctx)
+        t_half = LLVMHalfTypeInContext(ctx)
         t_int1 = LLVMInt1TypeInContext(ctx)
         t_int8 = LLVMInt8TypeInContext(ctx)
         t_int16 = LLVMInt16TypeInContext(ctx)
@@ -76,6 +78,19 @@ class PrimitiveTypes {
         return LLVMVectorType(t_int64, 2u)
     }
 
+    // 16/8-bit lattice — byte-packed lane vectors match the das value layout exactly
+    def const LLVMHalfVecType(lanes : uint) {
+        return LLVMVectorType(t_half, lanes)
+    }
+
+    def const LLVMShortVecType(lanes : uint) {
+        return LLVMVectorType(t_int16, lanes)
+    }
+
+    def const LLVMByteVecType(lanes : uint) {
+        return LLVMVectorType(t_int8, lanes)
+    }
+
     def const get_type_string : LLVMOpaqueType ? {
         return LLVMPointerType(t_int8, 0u)
     }
@@ -118,6 +133,10 @@ class PrimitiveTypes {
 
     def const ConstReal(value : double) {
         return LLVMConstReal(t_float, value)
+    }
+
+    def const ConstHalf(value : double) {
+        return LLVMConstReal(t_half, value)
     }
 
     def const ConstDouble(value : double) {
@@ -189,6 +208,7 @@ def LLVMIsVector3(typ : LLVMOpaqueType?) : bool {
     return (LLVMGetTypeKind(typ) == LLVMTypeKind.LLVMVectorTypeKind) && (LLVMGetVectorSize(typ) == 3u)
 }
 
+[unused_argument(name)]
 def LLVMBuildLoadVector3(builder : LLVMOpaqueBuilder?; var types : PrimitiveTypes?; var typ : LLVMOpaqueType?; ptr : LLVMOpaqueValue?; name : string) {
     verify(LLVMGetVectorSize(typ) == 3u)
     let elemT = LLVMGetElementType(typ)
@@ -203,13 +223,13 @@ def LLVMBuildLoadVector3(builder : LLVMOpaqueBuilder?; var types : PrimitiveType
 }
 
 def LLVMBuildLoad2Aligned(builder : LLVMOpaqueBuilder?; typ : LLVMOpaqueType?; ptr : LLVMOpaqueValue?; alignment : uint; name : string) {
-    let ld = LLVMBuildLoad2(builder, typ, ptr, name)
+    var ld = LLVMBuildLoad2(builder, typ, ptr, name)   // var: return a non-const handle (let would constify every caller's value chain)
     LLVMSetAlignment(ld, alignment)
     return ld
 }
 
 def LLVMBuildStoreAligned(builder : LLVMOpaqueBuilder?; val, ptr : LLVMOpaqueValue?; alignment : uint) {
-    let st = LLVMBuildStore(builder, val, ptr)
+    var st = LLVMBuildStore(builder, val, ptr)
     LLVMSetAlignment(st, alignment)
     return st
 }
@@ -221,13 +241,13 @@ def LLVMBuildStore2(builder : LLVMOpaqueBuilder?; var types : PrimitiveTypes?; t
 
 def LLVMBuildStore2Aligned(builder : LLVMOpaqueBuilder?; var types : PrimitiveTypes?; typ : LLVMOpaqueType?; val : LLVMOpaqueValue?; ptr : LLVMOpaqueValue?; alignment : uint) {
     let tptr = LLVMBuildPointerCast(builder, ptr, types.PointerType(typ), "")
-    let st = LLVMBuildStore(builder, val, tptr)
+    var st = LLVMBuildStore(builder, val, tptr)
     LLVMSetAlignment(st, alignment)
     return st
 }
 
 def LLVMGetEnumAttributeKindForName(attr_name : string) {
-    return LLVMGetEnumAttributeKindForName(attr_name, uint64(length(attr_name)))
+    return LLVMGetEnumAttributeKindForName(attr_name, uint64(long_length(attr_name)))
 }
 
 def LLVMGetEnumAttribute(ctx : LLVMContextRef; attr_name : string) : LLVMOpaqueAttributeRef? {
@@ -423,11 +443,11 @@ def LLVMBuildCall2(builder : LLVMOpaqueBuilder?; typ : LLVMOpaqueType?; func : L
 }
 
 def LLVMLookupIntrinsicID(name : string) {
-    return LLVMLookupIntrinsicID(name, uint64(length(name)))
+    return LLVMLookupIntrinsicID(name, uint64(long_length(name)))
 }
 
 def LLVMGetIntrinsicDeclaration(mod : LLVMOpaqueModule?; id : uint; var argTypes : array<LLVMOpaqueType?>) {
-    return LLVMGetIntrinsicDeclaration(mod, id, array_data_ptr(argTypes), uint64(length(argTypes)))
+    return LLVMGetIntrinsicDeclaration(mod, id, array_data_ptr(argTypes), uint64(long_length(argTypes)))
 }
 
 def describe(typ : LLVMOpaqueType?) {
@@ -448,17 +468,76 @@ def describe(typ : LLVMOpaqueValue?) {
 
 def describe(blk : LLVMOpaqueBasicBlock?) {
     return "null" if (blk == null)
-    let st := LLVMGetBasicBlockName(blk)
+    let st = clone_string(LLVMGetBasicBlockName(blk))
     return st
 }
 
+// 16/8-bit lattice types (contiguous appended block in the Type enum)
+def public is_lattice_small_type(t : Type) {
+    return int(t) >= int(Type.tFloat16) && int(t) <= int(Type.tUByte16)
+}
+
+// the fp16 sub-family (scalar float16 + half2/3/4/8) — fpext/fptrunc through half needs
+// hardware convert support (any aarch64, or x86-64 with F16C); the int lattice does not
+def public is_f16_small_type(t : Type) {
+    return int(t) >= int(Type.tFloat16) && int(t) <= int(Type.tHalf8)
+}
+
+// set by init_jit_target_flags (llvm_jit_common): true when the target lowers half
+// converts in hardware (aarch64 || x64-F16C), so fp16 operators may emit
+// promote-compute-narrow IR in visitExprOp2/Op1_NonMonade instead of falling back
+var public g_lattice_fp16_ops_native = false
+
+// Lattice op routing: ops NonMonade lowers natively return true here; everything else
+// lattice-typed routes to the function path, where the DisableJitVisitor builtin-address
+// gates cleanly drop the enclosing function to the interpreter.
+def is_lattice_op2_native(expr : ExprOp2?) {
+    assume lbt = expr.left._type.baseType
+    if (expr.op == "==" || expr.op == "!=") {
+        // int-lattice equality is icmp+reduce (unconditional); fp16 compares promote
+        // through float, so they ride the hardware-convert gate
+        return is_f16_small_type(lbt) ? g_lattice_fp16_ops_native : true
+    }
+    if (expr.op == ">>" || expr.op == "<<" || expr.op == ">>=" || expr.op == "<<=" ||
+            expr.op == "&" || expr.op == "|" || expr.op == "^" ||
+            expr.op == "&=" || expr.op == "|=" || expr.op == "^=") {
+        // the int-lattice bit surface — native vector shl/ashr/lshr/and/or/xor on every ISA
+        // (fp16 has no bit ops)
+        return !is_f16_small_type(lbt)
+    }
+    if (is_f16_small_type(lbt) || is_f16_small_type(expr.right._type.baseType)) {
+        // the closed fp16 arithmetic + scalar ordered compares
+        if (expr.op == "+" || expr.op == "-" || expr.op == "*" || expr.op == "/" ||
+                expr.op == "+=" || expr.op == "-=" || expr.op == "*=" || expr.op == "/=" ||
+                expr.op == "<" || expr.op == "<=" || expr.op == ">" || expr.op == ">=") {
+            return g_lattice_fp16_ops_native
+        }
+    }
+    return false
+}
+
 def isExprOp2_Func(expr : ExprOp2?) {
-    if (!expr.func.flags.builtIn) return true
+    if (!expr.func.flags.builtIn) {
+        return true     // user-defined operator (incl. on lattice types) — always the function path
+    }
+    if (is_lattice_small_type(expr.left._type.baseType)
+            || is_lattice_small_type(expr.right._type.baseType)) {
+        return !is_lattice_op2_native(expr)
+    }
     return expr.left._type.isHandle || expr.right._type.isHandle
 }
 
 def isExprOp1_Func(expr : ExprOp1?) {
-    if (!expr.func.flags.builtIn) return true
+    if (!expr.func.flags.builtIn) {
+        return true     // user-defined operator (incl. on lattice types) — always the function path
+    }
+    assume sbt = expr.subexpr._type.baseType
+    if (is_lattice_small_type(sbt)) {
+        if (is_f16_small_type(sbt) && (expr.op == "+" || expr.op == "-")) {
+            return !g_lattice_fp16_ops_native
+        }
+        return true
+    }
     return expr.subexpr._type.isHandle
 }
 

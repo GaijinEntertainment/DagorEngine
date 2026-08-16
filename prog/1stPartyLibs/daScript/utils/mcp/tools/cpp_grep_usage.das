@@ -1,5 +1,7 @@
 options gen2
 
+module cpp_grep_usage
+
 require cpp_common public
 require daslib/strings_boost public
 require strings public
@@ -34,6 +36,7 @@ def do_cpp_grep_usage(symbol, directory, context_lines_str, glob_filter : string
     args |> push_from(search_dirs)
     var raw_json : string
     let rc = run_and_capture(args, raw_json, 60.0)
+    raw_json = strip_ast_grep_banner(raw_json)
     if (rc != 0 && empty(raw_json)) return make_tool_result("ast-grep failed (exit {rc})", true)
     if (empty(raw_json) || raw_json == "[]") return make_tool_result("No matches found for '{symbol}'")
     // Parse-first: on Windows, sg sometimes exits non-zero while still emitting

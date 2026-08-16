@@ -23,6 +23,7 @@
 #include <sqmodules/sqmodules.h>
 #include <debug/dag_debug.h>
 #include <mutex>
+#include <atomic>
 #include <osApiWrappers/dag_atomic.h>
 #include <perfMon/dag_cpuFreq.h>
 #if _TARGET_C2
@@ -51,6 +52,14 @@ ECS_REGISTER_EVENT(EventHostedInternalServerToStop);
 
 static void(__cdecl *invoke_try_start_relay_and_subscribe)(void(__cdecl *)(bool)) = nullptr;
 static const char *(__cdecl *get_local_server_connection_url)(eastl::string &) = nullptr;
+
+static std::atomic<HostedServerLogSink> hosted_server_log_sink{nullptr};
+void set_hosted_internal_server_log_sink(HostedServerLogSink sink) { hosted_server_log_sink.store(sink, std::memory_order_release); }
+static void __cdecl forward_hosted_server_log(int level, const char *message, const char *filename, int code_line)
+{
+  if (HostedServerLogSink sink = hosted_server_log_sink.load(std::memory_order_acquire))
+    sink(level, message, filename, code_line);
+}
 
 
 static bool internal_server_did_start = false;
@@ -300,6 +309,8 @@ public:
       get_local_server_connection_url =
         (const char *(__cdecl *)(eastl::string &))os_dll_get_symbol(dllHandle, "local_server_connection_url");
     }
+    if (auto set_log_forwarder = (void(__cdecl *)(HostedServerLogSink))os_dll_get_symbol(dllHandle, "hosted_server_set_log_forwarder"))
+      set_log_forwarder(&forward_hosted_server_log);
     debug_flush(false);
     if (start_internal_server)
     {
@@ -347,6 +358,9 @@ public:
     }
 
     debug("%s: unload dll=%p {%s}", func_label, dllHandle, dllPath);
+    // Clear DLL atomic before unmap so a late host call cannot read freed pages.
+    if (auto set_log_forwarder = (void(__cdecl *)(HostedServerLogSink))os_dll_get_symbol(dllHandle, "hosted_server_set_log_forwarder"))
+      set_log_forwarder(nullptr);
     bool result = os_dll_close(dllHandle);
     debug("%s: unload dll result=%s", func_label, result ? "SUCCESS" : "FAIL");
 #if DAGOR_DBGLEVEL <= 0 // skip unloading symbols in non-release build to report memory leaks properly

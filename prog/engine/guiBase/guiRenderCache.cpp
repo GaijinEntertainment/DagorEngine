@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "guiRenderCache.h"
+#include <3d/dag_preRotation.h>
+#include <util/dag_finally.h>
 #include <shaders/dag_dynShaderBuf.h>
 #include <3d/dag_ringDynBuf.h>
 #include <math/integer/dag_IBBox2.h>
@@ -458,7 +460,7 @@ void BufferedRenderer::endChunk(const TargetParams &target_params)
 #endif
 }
 
-void BufferedRenderer::renderChunk(int chunk_id, int targetW, int targetH)
+void BufferedRenderer::renderChunk(int chunk_id, int targetW, int targetH, int pre_rotation)
 {
   G_ASSERT(!isInChunk);
 
@@ -476,6 +478,10 @@ void BufferedRenderer::renderChunk(int chunk_id, int targetW, int targetH)
   debug("BR:renderChunk");
 #endif
 
+  const int prevPreRotation = prerotation::get_current_angle();
+  prerotation::set_shader_var(pre_rotation);
+  FINALLY([&prevPreRotation] { prerotation::set_shader_var(prevPreRotation); });
+
   const GuiViewportRect *oldvp = nullptr;
   int oldShaderId = -1;
   int oldViewport = -1;
@@ -489,8 +495,17 @@ void BufferedRenderer::renderChunk(int chunk_id, int targetW, int targetH)
     {
       const GuiViewportRect &vp = viewports[de.view];
       oldvp = &vp;
-      d3d::setview(int((tp.screenOrig.x + vp.l * tp.screenScale.x) / screenPixelAR), int(tp.screenOrig.y + vp.t * tp.screenScale.y),
-        int(vp.w * tp.screenScale.x / screenPixelAR), int(vp.h * tp.screenScale.y), 0, 1);
+      float l = (tp.screenOrig.x + vp.l * tp.screenScale.x) / screenPixelAR;
+      float t = tp.screenOrig.y + vp.t * tp.screenScale.y;
+      float w = vp.w * tp.screenScale.x / screenPixelAR;
+      float h = vp.h * tp.screenScale.y;
+      switch (pre_rotation)
+      {
+        case 90: d3d::setview(int(targetW - t - h), int(l), int(h), int(w), 0, 1); break;
+        case 180: d3d::setview(int(targetW - l - w), int(targetH - t - h), int(w), int(h), 0, 1); break;
+        case 270: d3d::setview(int(t), int(targetH - l - w), int(h), int(w), 0, 1); break;
+        default: d3d::setview(int(l), int(t), int(w), int(h), 0, 1); break;
+      }
     }
 
     DrawElem::Command command = de.command;

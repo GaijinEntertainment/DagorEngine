@@ -171,11 +171,6 @@ extern bool get_lowpower_mode();
   return self;
 }
 
-- (void)releaseTextures
-{
-  SRGBTex   = nil;
-}
-
 #if _TARGET_PC_MACOSX
 - (void)setFrameSize:(NSSize)newSize
 {

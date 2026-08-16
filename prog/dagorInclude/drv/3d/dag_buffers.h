@@ -120,7 +120,7 @@ public:
    * @param dest The destination buffer.
    * @param dst_ofs_bytes The offset in bytes from the beginning of the destination buffer.
    * @param src_ofs_bytes The offset in bytes from the beginning of the source buffer.
-   * @param size_bytes The size in bytes of the portion to copy.
+   * @param size_bytes The size in bytes of the portion to copy. If 0, nothing is copied.
    * @return true if the buffer was successfully copied, false otherwise.
    */
   virtual bool copyTo(Sbuffer *dest, uint32_t dst_ofs_bytes, uint32_t src_ofs_bytes, uint32_t size_bytes)

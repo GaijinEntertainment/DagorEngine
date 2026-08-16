@@ -20,7 +20,6 @@
 
 #if defined(_MSC_VER) && !defined(__clang__)
     #if !defined(_DEBUG)
-        #pragma optimize( "", off )
         #pragma optimize( "s", on )
     #endif
 #endif
@@ -257,6 +256,29 @@
 %token  DAS_TUINT8          "uint8"
 %token  DAS_TINT16          "int16"
 %token  DAS_TUINT16         "uint16"
+%token  DAS_TFLOAT16        "float16"
+%token  DAS_THALF2          "half2"
+%token  DAS_THALF3          "half3"
+%token  DAS_THALF4          "half4"
+%token  DAS_THALF8          "half8"
+%token  DAS_TSHORT2         "short2"
+%token  DAS_TSHORT3         "short3"
+%token  DAS_TSHORT4         "short4"
+%token  DAS_TSHORT8         "short8"
+%token  DAS_TUSHORT2        "ushort2"
+%token  DAS_TUSHORT3        "ushort3"
+%token  DAS_TUSHORT4        "ushort4"
+%token  DAS_TUSHORT8        "ushort8"
+%token  DAS_TBYTE2          "byte2"
+%token  DAS_TBYTE3          "byte3"
+%token  DAS_TBYTE4          "byte4"
+%token  DAS_TBYTE8          "byte8"
+%token  DAS_TBYTE16         "byte16"
+%token  DAS_TUBYTE2         "ubyte2"
+%token  DAS_TUBYTE3         "ubyte3"
+%token  DAS_TUBYTE4         "ubyte4"
+%token  DAS_TUBYTE8         "ubyte8"
+%token  DAS_TUBYTE16        "ubyte16"
 %token  DAS_TTUPLE          "tuple"
 %token  DAS_TVARIANT        "variant"
 %token  DAS_GENERATOR       "generator"
@@ -331,6 +353,7 @@
 %token<ui64>    UNSIGNED_LONG_INTEGER   "unsigned long integer constant"
 %token<ui>      UNSIGNED_INT8           "unsigned int8 constant"
 %token<fd>      DAS_FLOAT               "floating point constant"
+%token<fd>      DAS_FLOAT16_CONST       "float16 constant"
 %token<d>       DOUBLE                  "double constant"
 %token<s>       NAME                    "name"
 %token<s>       KEYWORD                 "keyword"
@@ -1291,6 +1314,29 @@ function_name
     |   DAS_TUINT8   { $$ = new string("uint8"); }
     |   DAS_TINT16   { $$ = new string("int16"); }
     |   DAS_TUINT16  { $$ = new string("uint16"); }
+    |   DAS_TFLOAT16 { $$ = new string("float16"); }
+    |   DAS_THALF2   { $$ = new string("half2"); }
+    |   DAS_THALF3   { $$ = new string("half3"); }
+    |   DAS_THALF4   { $$ = new string("half4"); }
+    |   DAS_THALF8   { $$ = new string("half8"); }
+    |   DAS_TSHORT2  { $$ = new string("short2"); }
+    |   DAS_TSHORT3  { $$ = new string("short3"); }
+    |   DAS_TSHORT4  { $$ = new string("short4"); }
+    |   DAS_TSHORT8  { $$ = new string("short8"); }
+    |   DAS_TUSHORT2 { $$ = new string("ushort2"); }
+    |   DAS_TUSHORT3 { $$ = new string("ushort3"); }
+    |   DAS_TUSHORT4 { $$ = new string("ushort4"); }
+    |   DAS_TUSHORT8 { $$ = new string("ushort8"); }
+    |   DAS_TBYTE2   { $$ = new string("byte2"); }
+    |   DAS_TBYTE3   { $$ = new string("byte3"); }
+    |   DAS_TBYTE4   { $$ = new string("byte4"); }
+    |   DAS_TBYTE8   { $$ = new string("byte8"); }
+    |   DAS_TBYTE16  { $$ = new string("byte16"); }
+    |   DAS_TUBYTE2  { $$ = new string("ubyte2"); }
+    |   DAS_TUBYTE3  { $$ = new string("ubyte3"); }
+    |   DAS_TUBYTE4  { $$ = new string("ubyte4"); }
+    |   DAS_TUBYTE8  { $$ = new string("ubyte8"); }
+    |   DAS_TUBYTE16 { $$ = new string("ubyte16"); }
     ;
 
 optional_template
@@ -1959,6 +2005,7 @@ expr_numeric_const
     |   UNSIGNED_LONG_INTEGER[const]          { $$ = new ExprConstUInt64(tokAt(scanner,@const),(uint64_t)$const); }
     |   UNSIGNED_INT8[const]                  { $$ = new ExprConstUInt8(tokAt(scanner,@const),(uint8_t)$const); }
     |   DAS_FLOAT[const]                      { $$ = new ExprConstFloat(tokAt(scanner,@const),(float)$const); }
+    |   DAS_FLOAT16_CONST[const]              { $$ = new ExprConstFloat16(tokAt(scanner,@const),(float)$const); }
     |   DOUBLE[const]                         { $$ = new ExprConstDouble(tokAt(scanner,@const),(double)$const); }
     ;
 
@@ -2670,6 +2717,10 @@ let_variable_name_with_pos_list
         $$ = $list;
         delete $name;
     }
+    |   let_variable_name_with_pos_list[list] ',' MTAG_I '(' expr[subexpr] ')' {
+        $list->push_back(VariableNameAndPosition("``MACRO``TAG``","",tokAt(scanner,@subexpr),$subexpr));
+        $$ = $list;
+    }
     |   let_variable_name_with_pos_list[list] ',' NAME[name] DAS_AKA NAME[akaname] {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         das_checkName(scanner,*$akaname,tokAt(scanner,@akaname));
@@ -2683,16 +2734,19 @@ let_variable_name_with_pos_list
 let_variable_declaration    /* let x; is prohibited. this one can't have uninitialized variable which has no type */
     :   let_variable_name_with_pos_list[list] ':' type_declaration_no_options[typeDecl] semicolon {
         $$ = new VariableDeclaration($list,$typeDecl,nullptr);
+        $$->atEnd = tokAt(scanner,@typeDecl);
     }
     |   let_variable_name_with_pos_list[list] ':' type_declaration_no_options[typeDecl] copy_or_move_or_clone[com] expr[init] semicolon {
         $$ = new VariableDeclaration($list,$typeDecl,$init);
         $$->init_via_move  = ($com & CorM_MOVE) !=0;
         $$->init_via_clone = ($com & CorM_CLONE) !=0;
+        $$->atEnd = tokAt(scanner,@init);
     }
     |   let_variable_name_with_pos_list[list] ':' type_declaration_no_options[typeDecl] copy_or_move_or_clone[com] expr_pipe[init] {
         $$ = new VariableDeclaration($list,$typeDecl,$init);
         $$->init_via_move  = ($com & CorM_MOVE) !=0;
         $$->init_via_clone = ($com & CorM_CLONE) !=0;
+        $$->atEnd = tokAt(scanner,@init);
     }
     |   let_variable_name_with_pos_list[list] optional_ref[ref] copy_or_move_or_clone[com] expr[init] semicolon {
         auto typeDecl = new TypeDecl(Type::autoinfer);
@@ -2701,6 +2755,7 @@ let_variable_declaration    /* let x; is prohibited. this one can't have uniniti
         $$ = new VariableDeclaration($list,typeDecl,$init);
         $$->init_via_move  = ($com & CorM_MOVE) !=0;
         $$->init_via_clone = ($com & CorM_CLONE) !=0;
+        $$->atEnd = tokAt(scanner,@init);
     }
     |   let_variable_name_with_pos_list[list] optional_ref[ref] copy_or_move_or_clone[com] expr_pipe[init] {
         auto typeDecl = new TypeDecl(Type::autoinfer);
@@ -2709,6 +2764,7 @@ let_variable_declaration    /* let x; is prohibited. this one can't have uniniti
         $$ = new VariableDeclaration($list,typeDecl,$init);
         $$->init_via_move  = ($com & CorM_MOVE) !=0;
         $$->init_via_clone = ($com & CorM_CLONE) !=0;
+        $$->atEnd = tokAt(scanner,@init);
     }
     ;
 
@@ -2998,6 +3054,10 @@ variable_name_with_pos_list
         $$ = $list;
         delete $name;
     }
+    |   variable_name_with_pos_list[list] ',' MTAG_I '(' expr[subexpr] ')' {
+        $list->push_back(VariableNameAndPosition("``MACRO``TAG``","",tokAt(scanner,@subexpr),$subexpr));
+        $$ = $list;
+    }
     |   variable_name_with_pos_list[list] ',' NAME[name] DAS_AKA NAME[akaname] {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         das_checkName(scanner,*$akaname,tokAt(scanner,@akaname));
@@ -3029,6 +3089,29 @@ basic_type_declaration
     |   DAS_TFLOAT2     { $$ = Type::tFloat2; }
     |   DAS_TFLOAT3     { $$ = Type::tFloat3; }
     |   DAS_TFLOAT4     { $$ = Type::tFloat4; }
+    |   DAS_TFLOAT16    { $$ = Type::tFloat16; }
+    |   DAS_THALF2      { $$ = Type::tHalf2; }
+    |   DAS_THALF3      { $$ = Type::tHalf3; }
+    |   DAS_THALF4      { $$ = Type::tHalf4; }
+    |   DAS_THALF8      { $$ = Type::tHalf8; }
+    |   DAS_TSHORT2     { $$ = Type::tShort2; }
+    |   DAS_TSHORT3     { $$ = Type::tShort3; }
+    |   DAS_TSHORT4     { $$ = Type::tShort4; }
+    |   DAS_TSHORT8     { $$ = Type::tShort8; }
+    |   DAS_TUSHORT2    { $$ = Type::tUShort2; }
+    |   DAS_TUSHORT3    { $$ = Type::tUShort3; }
+    |   DAS_TUSHORT4    { $$ = Type::tUShort4; }
+    |   DAS_TUSHORT8    { $$ = Type::tUShort8; }
+    |   DAS_TBYTE2      { $$ = Type::tByte2; }
+    |   DAS_TBYTE3      { $$ = Type::tByte3; }
+    |   DAS_TBYTE4      { $$ = Type::tByte4; }
+    |   DAS_TBYTE8      { $$ = Type::tByte8; }
+    |   DAS_TBYTE16     { $$ = Type::tByte16; }
+    |   DAS_TUBYTE2     { $$ = Type::tUByte2; }
+    |   DAS_TUBYTE3     { $$ = Type::tUByte3; }
+    |   DAS_TUBYTE4     { $$ = Type::tUByte4; }
+    |   DAS_TUBYTE8     { $$ = Type::tUByte8; }
+    |   DAS_TUBYTE16    { $$ = Type::tUByte16; }
     |   DAS_TVOID       { $$ = Type::tVoid; }
     |   DAS_TRANGE      { $$ = Type::tRange; }
     |   DAS_TURANGE     { $$ = Type::tURange; }

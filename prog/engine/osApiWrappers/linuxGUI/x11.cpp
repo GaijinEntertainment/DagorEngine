@@ -210,40 +210,49 @@ void X11::getDisplaySize(int &width, int &height, bool for_primary_output)
     }
   }
 
-  if (for_primary_output && multipleOutputs && (primaryOutput != None))
+  if (for_primary_output && randr.XRRGetScreenResources)
   {
-    // multiple outputs can be true only when XRRGetScreenResources available
     XRRScreenResources *screen = randr.XRRGetScreenResources(rootDisplay, rootWindow);
-    XRROutputInfo *outputInfo = randr.XRRGetOutputInfo(rootDisplay, screen, primaryOutput);
-
-    if (!outputInfo)
+    if (screen)
     {
-      randr.XRRFreeScreenResources(screen);
-      logerr("x11: can't read primary output info");
-      return;
-    }
+      bool forced = false;
+      const RROutput targetOutput = resolveTargetOutput(screen, &forced);
 
-    if (outputInfo->crtc && outputInfo->connection != RR_Disconnected)
-    {
-      XRRCrtcInfo *crtcInfo = randr.XRRGetCrtcInfo(rootDisplay, screen, outputInfo->crtc);
-
-      if (crtcInfo)
+      // only reposition/resize onto a specific output when there are multiple outputs, or when an output was
+      // explicitly force-selected via "video/monitor" (then honor it regardless of the multi-output check)
+      if (targetOutput != None && (multipleOutputs || forced))
       {
-        width = crtcInfo->width;
-        height = crtcInfo->height;
-        primaryOutputX = crtcInfo->x;
-        primaryOutputY = crtcInfo->y;
-        debug("x11: screen size from primary output %dx%d (pos [%d,%d])", width, height, crtcInfo->x, crtcInfo->y);
-        randr.XRRFreeCrtcInfo(crtcInfo);
-      }
-      else
-        logerr("x11: primary output crtc info is not available");
-    }
-    else
-      logerr("x11: primary output is not available");
+        XRROutputInfo *outputInfo = randr.XRRGetOutputInfo(rootDisplay, screen, targetOutput);
+        if (!outputInfo)
+          logerr("x11: can't read target output info");
+        else
+        {
+          if (outputInfo->crtc && outputInfo->connection != RR_Disconnected)
+          {
+            XRRCrtcInfo *crtcInfo = randr.XRRGetCrtcInfo(rootDisplay, screen, outputInfo->crtc);
 
-    randr.XRRFreeOutputInfo(outputInfo);
-    randr.XRRFreeScreenResources(screen);
+            if (crtcInfo)
+            {
+              width = crtcInfo->width;
+              height = crtcInfo->height;
+              primaryOutputX = crtcInfo->x;
+              primaryOutputY = crtcInfo->y;
+              debug("x11: screen size from %s output %dx%d (pos [%d,%d])", forced ? "selected" : "primary", width, height, crtcInfo->x,
+                crtcInfo->y);
+              randr.XRRFreeCrtcInfo(crtcInfo);
+            }
+            else
+              logerr("x11: target output crtc info is not available");
+          }
+          else
+            logerr("x11: target output is not available");
+
+          randr.XRRFreeOutputInfo(outputInfo);
+        }
+      }
+
+      randr.XRRFreeScreenResources(screen);
+    }
   }
 }
 
@@ -301,6 +310,237 @@ void X11::getVideoModeList(Tab<String> &list)
   }
 }
 
+static inline bool x11_output_name_matches(XRROutputInfo *outputInfo, const char *monitorName)
+{
+  return (int)strlen(monitorName) == outputInfo->nameLen && strncmp(monitorName, outputInfo->name, outputInfo->nameLen) == 0;
+}
+
+int X11::findConnectedOutput(XRRScreenResources *screen, const char *monitorName, int *outEnumIndex)
+{
+  const bool useDefault = !monitorName || !*monitorName;
+  const RROutput primaryOut = (useDefault && randr.XRRGetOutputPrimary) ? randr.XRRGetOutputPrimary(rootDisplay, rootWindow) : None;
+
+  int firstConnected = -1;
+  int firstConnectedEnum = -1;
+  int enumIndex = 0;
+  for (int i = 0; i < screen->noutput; ++i)
+  {
+    XRROutputInfo *outputInfo = randr.XRRGetOutputInfo(rootDisplay, screen, screen->outputs[i]);
+    if (!outputInfo)
+      continue;
+
+    if (outputInfo->crtc && outputInfo->connection != RR_Disconnected)
+    {
+      const bool match =
+        useDefault ? (primaryOut != None && screen->outputs[i] == primaryOut) : x11_output_name_matches(outputInfo, monitorName);
+      if (firstConnected < 0)
+      {
+        firstConnected = i;
+        firstConnectedEnum = enumIndex;
+      }
+      if (match)
+      {
+        randr.XRRFreeOutputInfo(outputInfo);
+        if (outEnumIndex)
+          *outEnumIndex = enumIndex;
+        return i;
+      }
+      ++enumIndex;
+    }
+
+    randr.XRRFreeOutputInfo(outputInfo);
+  }
+
+  // no explicit match: fall back to the first connected output when the caller asked for the default monitor
+  if (useDefault && firstConnected >= 0)
+  {
+    if (outEnumIndex)
+      *outEnumIndex = firstConnectedEnum;
+    return firstConnected;
+  }
+  return -1;
+}
+
+RROutput X11::resolveTargetOutput(XRRScreenResources *screen, bool *out_is_forced)
+{
+  const char *monitorName = ::dgs_get_settings()->getBlockByNameEx("video")->getStr("monitor", nullptr);
+  bool forced = false;
+  RROutput target = primaryOutput;
+  if (screen && monitorName && *monitorName && strcmp(monitorName, "auto") != 0)
+  {
+    const int idx = findConnectedOutput(screen, monitorName, nullptr);
+    if (idx >= 0)
+    {
+      target = screen->outputs[idx];
+      forced = true;
+    }
+  }
+  if (out_is_forced)
+    *out_is_forced = forced;
+  return target;
+}
+
+void X11::snapWindowPositionToOutput(int &x, int &y, int width, int height, bool maximized)
+{
+  if (!randr.XRRGetScreenResources || !randr.XRRGetOutputInfo || !randr.XRRGetCrtcInfo)
+    return;
+
+  XRRScreenResources *screen = randr.XRRGetScreenResources(rootDisplay, rootWindow);
+  if (!screen)
+    return;
+
+  int outX = 0, outY = 0, outWidth = 0, outHeight = 0;
+  int64_t bestOverlap = 0;
+  for (int i = 0; i < screen->noutput; ++i)
+  {
+    XRROutputInfo *outputInfo = randr.XRRGetOutputInfo(rootDisplay, screen, screen->outputs[i]);
+    if (!outputInfo)
+      continue;
+
+    if (outputInfo->crtc && outputInfo->connection != RR_Disconnected)
+      if (XRRCrtcInfo *crtcInfo = randr.XRRGetCrtcInfo(rootDisplay, screen, outputInfo->crtc))
+      {
+        const int overlapX = max(x, crtcInfo->x);
+        const int overlapY = max(y, crtcInfo->y);
+        const int overlapWidth = min(x + width, crtcInfo->x + (int)crtcInfo->width) - overlapX;
+        const int overlapHeight = min(y + height, crtcInfo->y + (int)crtcInfo->height) - overlapY;
+        const int64_t overlap = overlapWidth > 0 && overlapHeight > 0 ? ((int64_t)overlapWidth) * ((int64_t)overlapHeight) : 0;
+        if (overlap > bestOverlap)
+        {
+          bestOverlap = overlap;
+          outX = crtcInfo->x;
+          outY = crtcInfo->y;
+          outWidth = crtcInfo->width;
+          outHeight = crtcInfo->height;
+        }
+
+        randr.XRRFreeCrtcInfo(crtcInfo);
+      }
+
+    randr.XRRFreeOutputInfo(outputInfo);
+  }
+
+  randr.XRRFreeScreenResources(screen);
+
+  if (bestOverlap == 0)
+  {
+    debug("x11: window position (%d, %d) %dx%d is not on any monitors, using primary monitor's coordinates (%d, %d)", x, y, width,
+      height, primaryOutputX, primaryOutputY);
+
+    x = primaryOutputX;
+    y = primaryOutputY;
+    return;
+  }
+
+  const int snappedX = maximized ? outX : clamp(x, outX, outX + max(outWidth - width, 0));
+  const int snappedY = maximized ? outY : clamp(y, outY, outY + max(outHeight - height, 0));
+  if (snappedX != x || snappedY != y)
+  {
+    debug("x11: window position (%d, %d) (maximized: %d) has been snapped to (%d, %d) on monitor (%d, %d) %dx%d", x, y, (int)maximized,
+      snappedX, snappedY, outX, outY, outWidth, outHeight);
+
+    x = snappedX;
+    y = snappedY;
+  }
+}
+
+void X11::getMonitors(Tab<String> &monitorNames)
+{
+  clear_and_shrink(monitorNames);
+  if (!randr.XRRGetScreenResources)
+    return;
+
+  XRRScreenResources *screen = randr.XRRGetScreenResources(rootDisplay, rootWindow);
+  if (!screen)
+    return;
+
+  for (int i = 0; i < screen->noutput; ++i)
+  {
+    XRROutputInfo *outputInfo = randr.XRRGetOutputInfo(rootDisplay, screen, screen->outputs[i]);
+    if (!outputInfo)
+      continue;
+
+    if (outputInfo->crtc && outputInfo->connection != RR_Disconnected)
+      monitorNames.push_back(String(64, "%.*s", outputInfo->nameLen, outputInfo->name));
+
+    randr.XRRFreeOutputInfo(outputInfo);
+  }
+
+  randr.XRRFreeScreenResources(screen);
+}
+
+bool X11::getMonitorInfo(const char *monitorName, String *friendlyName, int *monitorIndex)
+{
+  if (!randr.XRRGetScreenResources)
+    return false;
+
+  XRRScreenResources *screen = randr.XRRGetScreenResources(rootDisplay, rootWindow);
+  if (!screen)
+    return false;
+
+  int enumIndex = 0;
+  const int outputIdx = findConnectedOutput(screen, monitorName, &enumIndex);
+  bool found = false;
+  if (outputIdx >= 0)
+  {
+    if (XRROutputInfo *outputInfo = randr.XRRGetOutputInfo(rootDisplay, screen, screen->outputs[outputIdx]))
+    {
+      // XRandR has no user-facing display name, so the connector name (e.g. "HDMI-0") is the friendliest we have
+      if (friendlyName)
+        *friendlyName = String(64, "%.*s", outputInfo->nameLen, outputInfo->name);
+      if (monitorIndex)
+        *monitorIndex = enumIndex;
+      found = true;
+      randr.XRRFreeOutputInfo(outputInfo);
+    }
+  }
+
+  randr.XRRFreeScreenResources(screen);
+  return found;
+}
+
+void X11::getResolutionsFromMonitor(const char *monitorName, Tab<String> &list)
+{
+  clear_and_shrink(list);
+  if (!randr.XRRGetScreenResources)
+    return;
+
+  XRRScreenResources *screen = randr.XRRGetScreenResources(rootDisplay, rootWindow);
+  if (!screen)
+    return;
+
+  const int outputIdx = findConnectedOutput(screen, monitorName, nullptr);
+  if (outputIdx >= 0)
+  {
+    if (XRROutputInfo *outputInfo = randr.XRRGetOutputInfo(rootDisplay, screen, screen->outputs[outputIdx]))
+    {
+      Tab<IPoint2> modesList(framemem_ptr());
+      for (int nm = 0; nm != outputInfo->nmode; ++nm)
+      {
+        XRRModeInfo *modeInfo = NULL;
+        for (int nm2 = 0; nm2 != screen->nmode; ++nm2)
+        {
+          if (screen->modes[nm2].id == outputInfo->modes[nm])
+          {
+            modeInfo = &screen->modes[nm2];
+            break;
+          }
+        }
+
+        if (modeInfo && tabutils::getIndex(modesList, IPoint2(modeInfo->width, modeInfo->height)) == -1)
+        {
+          modesList.push_back(IPoint2(modeInfo->width, modeInfo->height));
+          list.push_back(String(64, "%d x %d", modeInfo->width, modeInfo->height));
+        }
+      }
+
+      randr.XRRFreeOutputInfo(outputInfo);
+    }
+  }
+
+  randr.XRRFreeScreenResources(screen);
+}
+
 static_assert(sizeof(void *) >= sizeof(Window), "x11 window type should fit into pointer type!");
 void *X11::getMainWindowPtrHandle() const { return (void *)mainWindow; }
 bool X11::isMainWindow(void *wnd) const { return wnd == getMainWindowPtrHandle(); }
@@ -344,10 +584,16 @@ bool X11::initWindow(const char *title, int winWidth, int winHeight, const linux
                    ButtonMotionMask | KeymapStateMask | LeaveWindowMask | FocusChangeMask | PropertyChangeMask;
   unsigned long valuemask = CWBorderPixel | CWColormap | CWEventMask | CWOverrideRedirect;
   // place window on primary output monitor
-  int x = options.position.has_value() ? options.position->x : primaryOutputX;
-  int y = options.position.has_value() ? options.position->y : primaryOutputY;
+  int x = primaryOutputX;
+  int y = primaryOutputY;
+  if (options.position.has_value())
+  {
+    x = options.position->x;
+    y = options.position->y;
+    snapWindowPositionToOutput(x, y, winWidth, winHeight, options.maximized);
+  }
 
-  debug("x11: win size %dx%d", winWidth, winHeight);
+  debug("x11: win size %dx%d, position %d, %d", winWidth, winHeight, x, y);
 
   mainWindow =
     XCreateWindow(rootDisplay, rootWindow, x, y, winWidth, winHeight, 0, vi->depth, InputOutput, vi->visual, valuemask, &swa);
@@ -490,14 +736,17 @@ int X11::getScreenRefreshRate()
 {
   if (randr.XRRGetOutputPrimary && randr.XRRGetScreenResources && randr.XRRGetOutputInfo && randr.XRRGetCrtcInfo)
   {
-    if (primaryOutput == None)
-      return 0;
-
     int ret = 0;
     XRRScreenResources *screen = randr.XRRGetScreenResources(rootDisplay, rootWindow);
     if (screen)
     {
-      XRROutputInfo *output = randr.XRRGetOutputInfo(rootDisplay, screen, primaryOutput);
+      const RROutput targetOutput = resolveTargetOutput(screen, nullptr);
+      if (targetOutput == None)
+      {
+        randr.XRRFreeScreenResources(screen);
+        return 0;
+      }
+      XRROutputInfo *output = randr.XRRGetOutputInfo(rootDisplay, screen, targetOutput);
       if (output)
       {
         XRRCrtcInfo *crtc = randr.XRRGetCrtcInfo(rootDisplay, screen, output->crtc);
@@ -753,7 +1002,7 @@ void X11::processMessages()
         break;
       case ButtonPress:
         if (wheelDelta != 0)
-          workcycle_internal::main_window_proc(&mainWindow, GPCM_MouseWheel, wheelDelta * 100, 0);
+          workcycle_internal::main_window_proc(&mainWindow, GPCM_MouseWheel, wheelDelta * MOUSE_WHEEL_SCALE_TO_DAGOR, 0);
         else
           workcycle_internal::main_window_proc(&mainWindow, GPCM_MouseBtnPress, button, 0);
         break;
@@ -1034,6 +1283,9 @@ void X11::hideCursor(bool hide)
 
 void *X11::getNativeDisplay() { return (void *)rootDisplay; }
 void *X11::getNativeWindow(void *w) { return w; }
+
+void X11::lockWindow(void *) {}
+void X11::unlockWindow(void *) {}
 
 bool X11::getClipboardUTF8Text(char *dest, int buf_size)
 {

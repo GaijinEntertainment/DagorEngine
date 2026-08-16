@@ -431,7 +431,7 @@ shader beam_tracers_head
   (ps) {
     screen_pos_to_texcoord@f2 = screen_pos_to_texcoord;
     cockpit_radius@f1 = (beam_tracer_cockpit_radius);
-    beam_tracer_tex@smp2d = beam_tracer_tex;
+    beam_tracer_tex@tex2d = beam_tracer_tex;
     beam_trace_current_time@f1 = (beam_trace_current_time);
     beam_fade_eye_dist@f1 = (beam_fade_eye_dist);
     beam_min_intensity_cos@f1 = beam_min_intensity_cos;
@@ -441,6 +441,10 @@ shader beam_tracers_head
     beam_fog_intensity_mul@f1 = beam_fog_intensity_mul;
     beam_sparse_fog_multiplier@f1 = beam_sparse_fog_multiplier;
     beam_sparse_fog_threshold@f1 = beam_sparse_fog_threshold;
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+  hlsl(ps) {
+    #define beam_tracer_tex_samplerstate global_linear_wrap_sampler
   }
   (ps) {
     downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;

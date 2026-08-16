@@ -16,9 +16,9 @@ let logList = Watched([])
 let selectedLogIndex = Watched(-1)
 let logCount = Computed(@() logList.get().len())
 
-let logTableColColor = Color(15,15,15,255)
-let logTableBgColor = Color(15,15,15,140)
-let logExpandedColor = Color(15,15,15,200)
+const logTableColColor = Color(15,15,15,255)
+const logTableBgColor = Color(15,15,15,140)
+const logExpandedColor = Color(15,15,15,200)
 
 let excludeLogByText = [
   "sync creation of entity"
@@ -72,7 +72,7 @@ function listRow(msg, idx) {
 
     return {
       rendObj = ROBJ_SOLID
-      margin = [0, 0, hdpx(5)]
+      margin = const [0, 0, hdpx(5)]
       size = FLEX_H
       idx
       color
@@ -100,7 +100,7 @@ function listRowMoreLeft(num) {
       children = {
         rendObj = ROBJ_TEXT
         text = $"{num} more ..."
-        margin = [fsh(0.7), fsh(0.1), fsh(0.7), fsh(0.5)]
+        margin = const [fsh(0.7), fsh(0.1), fsh(0.7), fsh(0.5)]
         color = Color(160,160,160,160)
       }
     }
@@ -169,7 +169,7 @@ function logsRoot() {
         size = FLEX_H
         flow = FLOW_HORIZONTAL
         children = const [
-          { size = [sw(0.2), SIZE_TO_CONTENT] }
+          { size = const [sw(0.2), SIZE_TO_CONTENT] }
           {
             rendObj = ROBJ_TEXT
             size = FLEX_H

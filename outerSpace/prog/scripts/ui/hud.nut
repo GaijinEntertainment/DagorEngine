@@ -15,9 +15,9 @@ let { showGameMenu, gameMenu } = require("%scripts/ui/game_menu.nut")
 
 let spaceShipControls = getControlsByGroupTag("Spaceship")
 
-let FONT_SZ_MAIN = hdpx(20)
-let FONT_SZ_BIG = hdpx(40)
-let FONT_SZ_GIANT= hdpx(120)
+const FONT_SZ_MAIN = hdpx(20)
+const FONT_SZ_BIG = hdpx(40)
+const FONT_SZ_GIANT= hdpx(120)
 
 let spaceCraftControls = @() {
   flow = FLOW_VERTICAL
@@ -173,7 +173,7 @@ function mkAnimatedCT(i) {
     rendObj = ROBJ_TEXT text
     fontSize = FONT_SZ_GIANT
     color = Color(205,205,205,180)
-    pos = [0, sh(20)]
+    pos = const [0, sh(20)]
     transform = {}
     key = text
     animations = countDownAnims
@@ -359,7 +359,7 @@ function markerDist(eid) {
     }
     transform = {}
     key = {}
-    pos = [0, sh(2.5)]
+    pos = const [0, sh(2.5)]
     targetEid = eid
     rendObj = ROBJ_TEXT
     text = "100"

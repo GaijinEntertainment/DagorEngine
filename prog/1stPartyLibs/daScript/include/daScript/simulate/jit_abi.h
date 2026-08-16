@@ -85,7 +85,8 @@ struct ImplWrapCall<true,wrap,RetT(*)(Args...),fn> {                        // w
             "JitConstRefByValue can be implemented only for const T&!");
     static void static_call (remove_cv_t<RetT> * result, JitSideT_t<Args>... args ) {
         typedef RetT (* FuncType)(typename WrapArgType<Args>::type...);
-        auto fnPtr = reinterpret_cast<FuncType>(fn);
+        // deliberate fn-pointer type-erasure: round-trip through a generic fn pointer
+        auto fnPtr = reinterpret_cast<FuncType>(reinterpret_cast<void(*)()>(fn));
         new (result) RetT (fnPtr(args...));
     };
     static void * get_builtin_address() { return (void *) &static_call; }
@@ -96,7 +97,8 @@ struct ImplWrapCall<false,true,RetT(*)(Args...),fn> {   // no cmres, wrap
     DAS_SUPPRESS_UB
     static typename ResolvedWrapType<RetT>::rettype static_call (JitSideT_t<Args>... args ) {
         typedef typename WrapRetType<RetT>::type (* FuncType)(typename WrapArgType<Args>::type...);
-        auto fnPtr = reinterpret_cast<FuncType>(fn);
+        // deliberate fn-pointer type-erasure: round-trip through a generic fn pointer
+        auto fnPtr = reinterpret_cast<FuncType>(reinterpret_cast<void(*)()>(fn));
         return static_cast<typename ResolvedWrapType<RetT>::rettype>(fnPtr(args...));   // note explicit cast
     };
     static void * get_builtin_address() { return (void *) &static_call; }

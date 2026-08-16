@@ -91,8 +91,13 @@ VkAccelerationStructureGeometryKHR RaytraceGeometryDescriptionToVkAccelerationSt
     auto ibuf = (GenericBufferInterface *)info.indexBuffer;
     const BufferRef &devIbuf = ibuf->getBufferRef();
     result.geometry.triangles.indexData.deviceAddress = devIbuf.devOffset(0);
-    result.geometry.triangles.indexType = ibuf->getIndexType();
+    result.geometry.triangles.indexType =
+      raytrace_tris_index32(info.indexFormat, ibuf->getFlags()) ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16;
   }
+  else
+    // zero-init reads as VK_INDEX_TYPE_UINT16, non-indexed geometry must say so explicitly
+    // (VUID-vkCmdBuildAccelerationStructuresKHR-pInfos-03806)
+    result.geometry.triangles.indexType = VK_INDEX_TYPE_NONE_KHR;
   if (info.transformBuffer)
   {
     auto tbuf = (GenericBufferInterface *)info.transformBuffer;

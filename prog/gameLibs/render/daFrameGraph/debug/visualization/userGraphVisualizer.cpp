@@ -1069,6 +1069,12 @@ void Visualizer::processPopup()
 #define SUBBLOCK_SCOPED auto sbh = SubBlockHandler(subBlockStart);
 
 
+    if (popupDeps.empty())
+      return;
+
+    if (!registryDependencies.isMapped(popupDeps.front()))
+      return;
+
     const auto &frontDep = registryDependencies[popupDeps.front()];
 
     const auto resNameId = nameIdByResId(frontDep.resource);
@@ -1153,7 +1159,8 @@ void Visualizer::processPopup()
         }
         else if (auto blobDescr = eastl::get_if<BlobDescription>(&createdData.creationInfo))
         {
-          ImGui::TextUnformatted("Not implemented yet");
+          auto blobData = inspectedBlob.set(popupDeps.front(), blobDescr->typeTag);
+          print_blob_structured(blobDescr->typeTag, blobData);
         }
         else if (auto extResDescr = eastl::get_if<ExternalResourceProvider>(&createdData.creationInfo))
         {
@@ -1292,6 +1299,44 @@ void Visualizer::processTextureDebug()
   }
 }
 
+void Visualizer::receiveBlobData(NodeNameId node_id, ResNameId res_id, const BlobView &blob_view)
+{
+  const auto &typeDb = dafg::Runtime::get().getTypeDb();
+
+  if (inspectedBlob.inst != inspectedBlob.storedInst)
+  {
+    if (const auto storedRtti = typeDb.getRTTI(inspectedBlob.storedInst.tag))
+      if (inspectedBlob.dataStored)
+        storedRtti->dtor(inspectedBlob.buffer.data());
+
+    inspectedBlob.storedInst = inspectedBlob.inst;
+    inspectedBlob.dataStored = false;
+  }
+
+  if (registryDependencies.isMapped(inspectedBlob.storedInst.depId))
+  {
+    const auto &dep = registryDependencies[inspectedBlob.storedInst.depId];
+    if (
+      nameIdByNodeId(dep.to) == node_id && nameIdByResId(dep.resource) == res_id && inspectedBlob.storedInst.tag == blob_view.typeTag)
+      if (const auto rtti = typeDb.getRTTI(inspectedBlob.storedInst.tag))
+      {
+        if (inspectedBlob.dataStored)
+          rtti->dtor(inspectedBlob.buffer.data());
+
+        inspectedBlob.buffer.resize(rtti->size);
+        rtti->copy(inspectedBlob.buffer.data(), blob_view.data);
+        inspectedBlob.dataStored = true;
+      }
+  }
+}
+
+Visualizer::InspectedBlob::~InspectedBlob()
+{
+  if (dataStored)
+    if (const auto storedRtti = dafg::Runtime::get().getTypeDb().getRTTI(storedInst.tag))
+      storedRtti->dtor(buffer.data());
+}
+
 void Visualizer::hideResourcesInSubTree(NameSpaceNameId name_space_id)
 {
   nameSpaces[name_space_id].visibleResourcesInSubtree = 0;
@@ -1409,6 +1454,9 @@ void Visualizer::updateVisualization(const IdIndexedFlags<NodeNameId, framemem_a
   if (!imgui_window_is_visible(nullptr, IMGUI_USG_WIN_NAME) || imgui_window_is_collapsed(nullptr, IMGUI_USG_WIN_NAME))
     return;
 
+  popupDeps.clear();
+  inspectedDependency.reset();
+  inspectedBlob.reset();
 
   updateNodesRess();
   updateIRInfo();

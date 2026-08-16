@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE020: from_JV(v, type<T>, defV) on a scalar — use 'v ?? defV'
 //
 // Problem:

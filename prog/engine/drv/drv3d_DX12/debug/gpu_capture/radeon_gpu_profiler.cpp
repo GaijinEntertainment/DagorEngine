@@ -56,14 +56,7 @@ bool RadeonGPUProfiler::try_connect_interface()
 {
 #if _TARGET_64BIT
   logdbg("DX12: Looking for amd_ags_x64.dll...");
-  if (GetModuleHandleW(L"amd_ags_x64.dll"))
-  {
-    logdbg("DX12: ...found...");
-    return true;
-  }
-#else
-  logdbg("DX12: Looking for amd_ags_x86.dll...");
-  if (GetModuleHandleW(L"amd_ags_x86.dll"))
+  if (LoadLibraryW(L"amd_ags_x64.dll"))
   {
     logdbg("DX12: ...found...");
     return true;

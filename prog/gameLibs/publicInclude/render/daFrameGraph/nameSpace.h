@@ -87,6 +87,7 @@ public:
         using ExecCb = eastl::invoke_result_t<F, Registry>;
         if constexpr (eastl::is_invocable_v<ExecCb, multiplexing::Index>)
         {
+          detail::mark_custom_execution(nodeId, r);
           return declCb({nodeId, r});
         }
         else if constexpr (eastl::is_void_v<ExecCb>)
@@ -97,6 +98,7 @@ public:
         }
         else
         {
+          detail::mark_custom_execution(nodeId, r);
           return [execCb = declCb({nodeId, r})](multiplexing::Index) { execCb(); };
         }
       });

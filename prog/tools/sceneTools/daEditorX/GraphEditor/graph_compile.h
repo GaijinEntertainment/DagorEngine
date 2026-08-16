@@ -7,9 +7,12 @@ class DataBlock;
 
 // Compiles a GraphData (nodes + edges + propertyValues + descriptor data from
 // base_nodes.blk) into the two DataBlocks the texgen pipeline consumes. Both
-// outputs are cleared then populated. Returns false on internal failure (e.g.
-// the 400-iteration topo-sort guard fires); malformed input yields a partial
-// graph with return value true.
+// outputs are cleared then populated. Returns false only when the topo-sort pass
+// left nodes unemitted after its 400-pass guard fired; malformed input, including a
+// dependency loop, yields a partial graph with return value true.
+//
+// `out_message` reports the outcome in the user's terms, empty when there is nothing
+// to say. Severity follows the return value, so a message with true is a warning.
 //
 // `shader_includes_dir` is the directory containing `_<descName>.blk` shader
 // files; included via BLK's text `include` directive when parsing the shader
@@ -30,4 +33,4 @@ class DataBlock;
 // names to `GraphData::Pin::customTextureName` on the main thread.
 bool compile_graph_to_blks(const GraphData &data, const DataBlock &base_nodes_blk, const char *shader_includes_dir,
   DataBlock &out_main_graph_blk, DataBlock &out_shader_list_blk,
-  eastl::vector<eastl::vector<eastl::string>> &out_pin_custom_texture_names);
+  eastl::vector<eastl::vector<eastl::string>> &out_pin_custom_texture_names, eastl::string *out_message = nullptr);

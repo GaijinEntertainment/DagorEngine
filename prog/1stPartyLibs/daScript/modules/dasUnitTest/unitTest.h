@@ -168,6 +168,11 @@ typedef das::vector<TestObjectFoo> FooArray;
 
 DAS_MOD_API void testFooArray(const das::TBlock<void, FooArray> & blk, das::Context * context, das::LineInfoArg * lineinfo);
 
+// testFoo is defined inline here (the makeDummy pattern) so AOT-emitted callers that include this
+// header see it and addExtern still gets a constant &testFoo. It used to live only in test_handles.cpp,
+// so AOT callers hit `use of undeclared identifier 'testFoo'` (#3065 fuzzer).
+DAS_MOD_API __forceinline void testFoo ( TestObjectFoo & foo ) { foo.fooData = 1234; }
+
 DAS_MOD_API __forceinline void set_foo_data (TestObjectFoo * obj, int32_t data ) { obj->fooData = data; }
 
 struct DAS_MOD_API TestObjectSmart : public das::ptr_ref_count {
@@ -198,6 +203,9 @@ struct TestObjectNotLocal {
     int fooData;
 };
 
+// hands a TestObjectNotLocal to a block: das has no other way to obtain a value of a non-local type
+DAS_MOD_API void testNotLocalObject(const das::TBlock<void, TestObjectNotLocal> & blk, das::Context * context, das::LineInfoArg * lineinfo);
+
 struct TestObjectNotNullPtr {
     int fooData;
 };
@@ -207,6 +215,8 @@ DAS_MOD_API int *getPtr();
 
 DAS_MOD_API void testFields ( das::Context * ctx );
 DAS_MOD_API void test_das_string(const das::Block & block, das::Context * context, das::LineInfoArg * lineinfo);
+DAS_MOD_API uint64_t testBlockAnnotationData(const das::Block & blk, das::Context * context, das::LineInfoArg * at);
+DAS_MOD_API uint64_t testBlockAnnotationDataPayload();
 DAS_MOD_API void testPipedDefaults(int32_t a, float b, const das::TBlock<void, int32_t, float> & blk, das::Context * context, das::LineInfoArg * at);
 DAS_MOD_API vec4f new_and_init ( das::Context & context, das::SimNode_CallBase * call, vec4f * );
 
@@ -365,6 +375,42 @@ __forceinline EntityId intToEid(int value) {
 
 __forceinline int32_t eidToInt(EntityId id) {
     return id.value;
+}
+
+__forceinline bool eidNot(EntityId id) {
+    return id.value == -1;
+}
+
+// C++-registered distinct type (`distinct NativeId = int` declared from C++ via
+// DistinctTypeAnnotation) - ABI-identical to int32_t, nominal on the das side
+struct NativeId {
+    int32_t value = 0;
+    NativeId() : value(0) {}
+    NativeId( const NativeId & t ) : value(t.value) {}
+    NativeId & operator = ( const NativeId & t ) { value = t.value; return * this; }
+    operator int32_t () const { return value; }
+};
+
+struct NativeId_WrapArg : NativeId {
+    NativeId_WrapArg ( int32_t t ) { value = t; }
+};
+
+__forceinline NativeId make_NativeId(int32_t value) {
+    NativeId t; t.value = value; return t;
+}
+
+namespace das {
+    template <>
+    struct cast<NativeId> {
+        static __forceinline NativeId to ( vec4f x )            { return make_NativeId(v_extract_xi(v_cast_vec4i(x))); }
+        static __forceinline vec4f from ( NativeId x )          { return v_cast_vec4f(v_seti_x(x.value)); }
+    };
+    template <> struct WrapType<NativeId> { enum { value = true }; typedef int32_t type; typedef int32_t rettype; };
+    template <> struct WrapArgType<NativeId> { typedef NativeId_WrapArg type; };
+}
+
+__forceinline NativeId nativeIdNext(NativeId id) {
+    return make_NativeId(id.value + 1);
 }
 
 struct SceneNodeId

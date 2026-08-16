@@ -28,7 +28,7 @@ Compile
     //base mobile assumes
     include common_assumes.blk
     include common_compatibility_assumes.blk
-    supports_sh_6_1:i = 0
+    supports_barycentrics:i = 0
     "@override:bloom_tex":i=0
     "@override:volumetric_light_assumed_off":i=1
     "@override:use_postfx":i=0

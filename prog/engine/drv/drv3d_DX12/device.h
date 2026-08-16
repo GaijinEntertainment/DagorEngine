@@ -81,9 +81,9 @@ enum class BufferViewType
   UAV
 };
 
-enum class BufferViewFormating
+enum class BufferViewFormatting
 {
-  FORMATED,
+  FORMATTED,
   STRUCTURED,
   RAW
 };
@@ -689,7 +689,7 @@ public:
     D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name);
   BufferState createDedicatedBuffer(uint32_t size, uint32_t structure_size, uint32_t discard_count, DeviceMemoryClass memory_class,
     D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name);
-  void addBufferView(BufferState &buffer, BufferViewType view_type, BufferViewFormating formating, FormatStore format,
+  void addBufferView(BufferState &buffer, BufferViewType view_type, BufferViewFormatting formatting, FormatStore format,
     uint32_t struct_size);
   d3d::SamplerHandle createSampler(SamplerState state) { return resources.createSampler(device.get(), state); }
   D3D12_CPU_DESCRIPTOR_HANDLE getSampler(d3d::SamplerHandle handle) { return resources.getSampler(handle); }
@@ -1211,17 +1211,6 @@ public:
     {
       return;
     }
-#if USE_DLSS_WITHOUT_STREAMLINE
-    auto dlssMemoryUsage = context.dlssInterface.getMemoryUsage();
-    if (dlssMemoryUsage > 0)
-    {
-      visitor({
-        .type = TaggedResourceType::UnspecifiedMemory,
-        .tag = "DLSS",
-        .sizeInBytes = static_cast<uint32_t>(dlssMemoryUsage),
-      });
-    }
-#endif
     auto xessMemoryUsage = context.xessWrapper.getMemoryUsage();
     if (xessMemoryUsage > 0)
     {
@@ -1839,27 +1828,27 @@ inline void BufferInterfaceConfigCommon::deleteBuffer(BufferReferenceType buffer
 
 inline void BufferInterfaceConfigCommon::addRawResourceView(BufferReferenceType buffer)
 {
-  get_device().addBufferView(buffer, BufferViewType::SRV, BufferViewFormating::RAW, FormatStore{}, 4);
+  get_device().addBufferView(buffer, BufferViewType::SRV, BufferViewFormatting::RAW, FormatStore{}, 4);
 }
 inline void BufferInterfaceConfigCommon::addStructuredResourceView(BufferReferenceType buffer, uint32_t struct_size)
 {
-  get_device().addBufferView(buffer, BufferViewType::SRV, BufferViewFormating::STRUCTURED, FormatStore{}, struct_size);
+  get_device().addBufferView(buffer, BufferViewType::SRV, BufferViewFormatting::STRUCTURED, FormatStore{}, struct_size);
 }
 inline void BufferInterfaceConfigCommon::addShaderResourceView(BufferReferenceType buffer, FormatStore format)
 {
-  get_device().addBufferView(buffer, BufferViewType::SRV, BufferViewFormating::FORMATED, format, 1);
+  get_device().addBufferView(buffer, BufferViewType::SRV, BufferViewFormatting::FORMATTED, format, 1);
 }
 inline void BufferInterfaceConfigCommon::addRawUnorderedView(BufferReferenceType buffer)
 {
-  get_device().addBufferView(buffer, BufferViewType::UAV, BufferViewFormating::RAW, FormatStore{}, 4);
+  get_device().addBufferView(buffer, BufferViewType::UAV, BufferViewFormatting::RAW, FormatStore{}, 4);
 }
 inline void BufferInterfaceConfigCommon::addStructuredUnorderedView(BufferReferenceType buffer, uint32_t struct_size)
 {
-  get_device().addBufferView(buffer, BufferViewType::UAV, BufferViewFormating::STRUCTURED, FormatStore{}, struct_size);
+  get_device().addBufferView(buffer, BufferViewType::UAV, BufferViewFormatting::STRUCTURED, FormatStore{}, struct_size);
 }
 inline void BufferInterfaceConfigCommon::addUnorderedAccessView(BufferReferenceType buffer, FormatStore format)
 {
-  get_device().addBufferView(buffer, BufferViewType::UAV, BufferViewFormating::FORMATED, format, 1);
+  get_device().addBufferView(buffer, BufferViewType::UAV, BufferViewFormatting::FORMATTED, format, 1);
 }
 
 inline void BufferInterfaceConfigCommon::onDestroyRequest(GenericBufferInterface *self)

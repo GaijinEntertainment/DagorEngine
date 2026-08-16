@@ -518,6 +518,15 @@ bool rendinst::isNodeAlive(riex_handle_t id, vec4f &bsphere, float &pool_rad)
   return true;
 }
 
+bool rendinst::isNodeAllocated(riex_handle_t id)
+{
+  uint32_t res_idx = handle_to_ri_type(id);
+  uint32_t idx = handle_to_ri_inst(id);
+  return riExtra[res_idx].getNodeIdx(idx).nodeIdx != scene::INVALID_NODE;
+}
+
+bool rendinst::isRIGenExtraPlacedInTiledScenes(int res_idx) { return riExtra.isValid(res_idx) && riExtra[res_idx].tsIndex >= 0; }
+
 float rendinst::getCullDistSqMul() { return riExtraCullDistSqMul; }
 
 namespace rendinst

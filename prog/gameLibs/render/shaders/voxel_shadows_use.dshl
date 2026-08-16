@@ -10,7 +10,11 @@ macro VOXEL_SHADOWS_USE_ENABLED(code)
 
   (code)
   {
-    voxel_shadows_tex@smp3d = voxel_shadows_tex;
+    voxel_shadows_tex@tex3d = voxel_shadows_tex;
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
+  hlsl(code) {
+    #define voxel_shadows_tex_samplerstate global_linear_wrap_sampler
   }
 
   VOXEL_SHADOWS_STCODE_INIT(code)

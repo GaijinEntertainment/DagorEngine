@@ -88,7 +88,7 @@ shader world_sdf_update_cs
       //float4 ltVoxel = world_sdf_lt[world_sdf_update_mip];
       //int3 base_lt_world_coord = ltVoxel.xzy/ltVoxel.w;//fixme:it is constant available as constant
       //float voxelSize = ltVoxel.w;
-      int4 coordVoxel = sample_world_sdf_coord_lt(world_sdf_update_mip);
+      int4 coordVoxel = world_sdf_update_mip_coord_lt;
       int3 base_lt_world_coord = coordVoxel.xyz;
       float voxelSize = asfloat(coordVoxel.w);
       int3 update_lt_world_coord = world_sdf_update_lt_coord;

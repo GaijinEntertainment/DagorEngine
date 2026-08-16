@@ -507,6 +507,11 @@ void BaseTex::initialImageFill(const ImageCreateInfo &ici, BaseTex::ImageMem *in
 
   if (flg & TEXCF_RTARGET)
   {
+    if (flg & TEXCF_NO_STATE_TRACKING)
+    {
+      G_ASSERTF((flg & TEXCF_CLEAR_ON_CREATE) == 0, "vulkan: can't track requested internal clear work");
+      return;
+    }
     // init render target to a known state
     VkImageSubresourceRange area;
     area.aspectMask = ici.format.getAspektFlags();
@@ -528,6 +533,7 @@ void BaseTex::initialImageFill(const ImageCreateInfo &ici, BaseTex::ImageMem *in
   }
   else
   {
+    G_ASSERTF((flg & TEXCF_NO_STATE_TRACKING) == 0, "vulkan: can't track requested internal clear/initial fill work");
     const bool tempStage = stagingBuffer == nullptr;
     carray<VkBufferImageCopy, MAX_MIPMAPS> copies;
 
@@ -601,6 +607,8 @@ bool BaseTex::allocateImageInternal(BaseTex::ImageMem *initial_data)
 
   if (image)
   {
+    if (pars.flg & TEXCF_NO_STATE_TRACKING)
+      image->disableSyncTracking();
     if (pars.isStagingPermanent())
       useStagingForWholeTexture();
   }
@@ -869,6 +877,13 @@ int BaseTex::lock(void **p, int &row_stride, int *slice_stride, int mip, int sli
   return 1;
 }
 
+void BaseTex::useExternalResource(Image *resource)
+{
+  image = resource;
+  if (pars.flg & TEXCF_NO_STATE_TRACKING)
+    image->disableSyncTracking();
+}
+
 Texture *BaseTex::wrapVKImage(VkImage tex_res, ResourceBarrier current_state, int width, int height, int layers, int mips,
   const char *name, int flg)
 {
@@ -909,6 +924,8 @@ Texture *BaseTex::wrapVKImage(VkImage tex_res, ResourceBarrier current_state, in
 
   WinAutoLock lk(Globals::Mem::mutex);
   tex->image = Globals::Mem::res.alloc<Image>({ici, Image::MEM_NOT_EVICTABLE, dagorFormat, currentVkLayout}, false);
+  if (flg & TEXCF_NO_STATE_TRACKING)
+    tex->image->disableSyncTracking();
   tex->image->setDerivedHandle(VulkanHandle(tex_res));
 
   return tex;

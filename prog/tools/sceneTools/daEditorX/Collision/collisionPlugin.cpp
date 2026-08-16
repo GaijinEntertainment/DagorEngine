@@ -201,7 +201,7 @@ void CollisionPlugin::registerMenuAccelerators()
   wndManager.addViewportAccelerator(CM_IMPORT, EditorCommandIds::IMPORT);
   wndManager.addViewportAccelerator(CM_VIEW_DAG_LIST, EditorCommandIds::VIEW_DAG_LIST);
   wndManager.addViewportAccelerator(CM_CLEAR_DAG_LIST, EditorCommandIds::CLEAR_DAG_LIST);
-  wndManager.addViewportAccelerator(CM_COLLISION_SHOW_PROPS, EditorCommandIds::COLLISION_SHOW_PROPS);
+  wndManager.addAccelerator(CM_COLLISION_SHOW_PROPS, EditorCommandIds::COLLISION_SHOW_PROPS);
   wndManager.addViewportAccelerator(CM_COMPILE_COLLISION, EditorCommandIds::COMPILE_COLLISION);
   wndManager.addViewportAccelerator(CM_COMPILE_GAME_COLLISION, EditorCommandIds::COMPILE_GAME_COLLISION);
 }

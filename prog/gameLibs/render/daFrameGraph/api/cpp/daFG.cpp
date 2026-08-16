@@ -29,6 +29,11 @@ detail::NodeUid detail::register_node(NameSpaceNameId nsId, const char *name, co
   return {nodeId, nodeData.generation, 1};
 }
 
+void detail::mark_custom_execution(NodeNameId node_id, InternalRegistry *registry)
+{
+  registry->nodes[node_id].hasCustomExecution = true;
+}
+
 void detail::unregister_node(detail::NodeUid uid)
 {
   if (!Runtime::isInitialized())

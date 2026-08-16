@@ -2,7 +2,7 @@
 
 #include "compositeEditorViewport.h"
 #include "../av_appwnd.h"
-#include "../av_cm.h"
+#include "entity_cm.h"
 #include <assets/asset.h>
 #include <de3_baseInterfaces.h>
 #include <de3_composit.h>
@@ -12,10 +12,16 @@
 #include <debug/dag_debug3d.h>
 #include <EditorCore/ec_cm.h>
 #include <EditorCore/ec_interface.h>
+#include <EditorCore/ec_editorCommandSystem.h>
+#include <EditorCore/ec_menu.h>
 #include <math/dag_rayIntersectBox.h>
-#include <math/dag_TMatrix.h>
 #include <rendInst/rendInstExtra.h>
 #include <winGuiWrapper/wgw_input.h>
+
+// #define DEBUG_VIEWPORT_DATABLOCK_IDS
+
+
+CompositeEditorViewport::CompositeEditorViewport() { invalidateCache(); }
 
 IObjEntity *CompositeEditorViewport::getHitSubEntity(IGenViewportWnd *wnd, int x, int y, IObjEntity &entity)
 {
@@ -36,6 +42,13 @@ IObjEntity *CompositeEditorViewport::getHitSubEntity(IGenViewportWnd *wnd, int x
   return pixelPerfectSelectionHitsCache.empty() ? nullptr : static_cast<IObjEntity *>(pixelPerfectSelectionHitsCache[0].userData);
 }
 
+static void getRendInstQuantizedTm(IObjEntity &entity, TMatrix &tm)
+{
+  const IRendInstEntity *rendInstEntity = entity.queryInterface<IRendInstEntity>();
+  if (!rendInstEntity || !rendInstEntity->getRendInstQuantizedTm(tm))
+    entity.getTm(tm);
+}
+
 bool CompositeEditorViewport::getSelectionBox(IObjEntity *entity, BBox3 &box) const
 {
   IObjEntity *selectedSubEntity = getSelectedSubEntity(entity);
@@ -54,13 +67,22 @@ void CompositeEditorViewport::registerEditorCommands(IEditorCommandSystem &comma
   command_system.addCommand(EditorCommandIds::VIEW_GRID_ANGLE_SNAP, ImGuiKey_A);
   command_system.addCommand(EditorCommandIds::VIEW_GRID_SCALE_SNAP, ImGuiMod_Shift | ImGuiKey_5);
   command_system.addCommand(EditorCommandIds::VIEW_GRID_SETTINGS);
+
+  command_system.addCommand(EditorCommandIds::ENTITY_CREATE_NODE, ImGuiMod_Ctrl | ImGuiKey_N);
+
+  command_system.addCommand(EditorCommandIds::ENTITY_COPY_ASSET, ImGuiMod_Ctrl | ImGuiKey_C);
+  command_system.addCommand(EditorCommandIds::ENTITY_PASTE_ASSET, ImGuiMod_Ctrl | ImGuiKey_V);
+  command_system.addCommand(EditorCommandIds::ENTITY_DUPLICATE_ASSET, ImGuiMod_Ctrl | ImGuiKey_D);
+
+  command_system.addCommand(EditorCommandIds::ENTITY_MAKE_PARENT, ImGuiMod_Ctrl | ImGuiKey_P);
+  command_system.addCommand(EditorCommandIds::ENTITY_CLEAR_PARENT, ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_P);
 }
 
 void CompositeEditorViewport::registerMenuAccelerators()
 {
   IWndManager &wndManager = *EDITORCORE->getWndManager();
 
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_DELETE_SELECTED_NODE, EditorCommandIds::OBJED_DELETE);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_DELETE_SELECTED_NODES, EditorCommandIds::OBJED_DELETE);
   wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_NONE, EditorCommandIds::OBJED_MODE_SELECT);
   wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_MOVE, EditorCommandIds::OBJED_MODE_MOVE);
   wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_ROTATE, EditorCommandIds::OBJED_MODE_ROTATE);
@@ -74,12 +96,16 @@ void CompositeEditorViewport::registerMenuAccelerators()
 
 void CompositeEditorViewport::handleViewportAcceleratorCommand(unsigned id, IGenViewportWnd &wnd, IObjEntity *entity)
 {
-  if (id == CM_COMPOSITE_EDITOR_DELETE_SELECTED_NODE)
+  if (id == CM_COMPOSITE_EDITOR_CREATE_NODE)
+  {
+    get_app().getCompositeEditor().createNode();
+  }
+  else if (id == CM_COMPOSITE_EDITOR_DELETE_SELECTED_NODES)
   {
     BBox3 bbox;
     if (getSelectionBox(entity, bbox)) // Delete rendered nodes only.
     {
-      get_app().getCompositeEditor().deleteSelectedNode();
+      get_app().getCompositeEditor().deleteSelectedNodes();
       wnd.activate();
     }
   }
@@ -117,65 +143,446 @@ void CompositeEditorViewport::handleViewportAcceleratorCommand(unsigned id, IGen
   }
   else if (id == CM_COMPOSITE_EDITOR_CANCEL_GIZMO_TRANSFORM)
   {
-    EDITORCORE->endGizmo(/*apply = */ false);
+    if (EDITORCORE->isGizmoOperationStarted())
+      EDITORCORE->endGizmo(/*apply = */ false);
+    else if (get_app().getCompositeEditor().isEditingSubComposite())
+      get_app().getCompositeEditor().exitSubCompositeEditing();
+  }
+  else if (id == CM_COMPOSITE_EDITOR_COPY_ASSET)
+  {
+    get_app().getCompositeEditor().copySelectedNodeParams();
+  }
+  else if (id == CM_COMPOSITE_EDITOR_PASTE_ASSET)
+  {
+    get_app().getCompositeEditor().pasteParamsToSelectedNode();
+  }
+  else if (id == CM_COMPOSITE_EDITOR_DUPLICATE_ASSET)
+  {
+    get_app().getCompositeEditor().duplicateSelectedNode();
+  }
+  else if (id == CM_COMPOSITE_EDITOR_MAKE_PARENT)
+  {
+    get_app().getCompositeEditor().makeSelectedParentRelation();
+  }
+  else if (id == CM_COMPOSITE_EDITOR_CLEAR_PARENT)
+  {
+    get_app().getCompositeEditor().clearSelectedParentRelation();
   }
 }
 
-void CompositeEditorViewport::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, IObjEntity *entity)
+int CompositeEditorViewport::onMenuItemClick(unsigned id)
+{
+  if (id == CM_COMPOSITE_EDITOR_COPY_ASSET)
+  {
+    get_app().getCompositeEditor().copySelectedNodeParams();
+  }
+  else if (id == CM_COMPOSITE_EDITOR_PASTE_ASSET)
+  {
+    get_app().getCompositeEditor().pasteParamsToSelectedNode();
+  }
+  else if (id == CM_COMPOSITE_EDITOR_DUPLICATE_ASSET)
+  {
+    get_app().getCompositeEditor().duplicateSelectedNode();
+  }
+  else if (id == CM_COMPOSITE_EDITOR_EDIT_SUB_COMPOSITE)
+  {
+    get_app().getCompositeEditor().enterSubCompositeEditing();
+  }
+  else if (id == CM_COMPOSITE_EDITOR_SUB_COMPOSITE_SAVE)
+  {
+    get_app().getCompositeEditor().saveSubCompositeEditing();
+  }
+  else if (id == CM_COMPOSITE_EDITOR_SUB_COMPOSITE_SAVE_UNIQUE)
+  {
+    get_app().getCompositeEditor().saveSubCompositeAsUnique();
+  }
+  else if (id == CM_COMPOSITE_EDITOR_SUB_COMPOSITE_REVERT)
+  {
+    get_app().getCompositeEditor().revertSubCompositeEditing();
+  }
+  else if (id == CM_COMPOSITE_EDITOR_EXIT_SUB_COMPOSITE)
+  {
+    get_app().getCompositeEditor().exitSubCompositeEditing();
+  }
+  else if (id == CM_COMPOSITE_EDITOR_MAKE_PARENT)
+  {
+    get_app().getCompositeEditor().makeSelectedParentRelation();
+
+    return 1;
+  }
+  else if (id == CM_COMPOSITE_EDITOR_CLEAR_PARENT)
+  {
+    get_app().getCompositeEditor().clearSelectedParentRelation();
+
+    return 1;
+  }
+  return 0;
+}
+
+void CompositeEditorViewport::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, IObjEntity *entity, int key_modif)
 {
   if (!get_app().isCompositeEditorShown() || !entity)
     return;
 
+  const bool multiSelect = (key_modif == wingw::M_CTRL);
+  const bool selectAsParent = (key_modif == wingw::M_SHIFT);
   IObjEntity *hitEntity = getHitSubEntity(wnd, x, y, *entity);
   unsigned dataBlockId = hitEntity ? getEntityDataBlockId(*hitEntity) : IDataBlockIdHolder::invalid_id;
-  get_app().getCompositeEditor().selectTreeNodeByDataBlockId(dataBlockId);
+  get_app().getCompositeEditor().selectTreeNodeByDataBlockId(dataBlockId, multiSelect || selectAsParent, selectAsParent);
+}
+
+bool CompositeEditorViewport::handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, IObjEntity *entity, int key_modif)
+{
+  if (!get_app().isCompositeEditorShown() || !entity)
+    return false;
+
+  CompositeEditor &compositeEditor = get_app().getCompositeEditor();
+
+  IObjEntity *hitEntity = getHitSubEntity(wnd, x, y, *entity);
+  if (!hitEntity)
+    return false;
+
+  unsigned dataBlockId = getEntityDataBlockId(*hitEntity);
+  compositeEditor.selectTreeNodeByDataBlockId(dataBlockId, false, false);
+
+  const CompositeEditorTreeDataNode *selNode = compositeEditor.getSelectedTreeDataNode();
+  if (!selNode || !selNode->isCompositeAsset())
+    return false;
+
+  compositeEditor.enterSubCompositeEditing();
+  return true;
+}
+
+bool CompositeEditorViewport::handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, IObjEntity *entity, int key_modif)
+{
+  if (!get_app().isCompositeEditorShown() || !entity)
+    return false;
+
+  CompositeEditor &compositeEditor = get_app().getCompositeEditor();
+  const bool isEditingSubComposite = compositeEditor.isEditingSubComposite();
+
+  dag::Vector<IObjEntity *> selectedSubEntities;
+  int parentIdx;
+  getSelectedSubEntities(entity, selectedSubEntities, parentIdx);
+  if (parentIdx < 0 && !isEditingSubComposite)
+    return false;
+
+  if (!popupMenu)
+  {
+    IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
+    G_ASSERT(commandSystem);
+
+    popupMenu.reset(ec_create_context_menu());
+    popupMenu->setEventHandler(this);
+
+    if (parentIdx >= 0)
+    {
+      if (selectedSubEntities.size() < 2)
+      {
+        commandSystem->addMenuItem(*popupMenu, PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_COPY_ASSET,
+          EditorCommandIds::ENTITY_COPY_ASSET, "Copy asset");
+        commandSystem->addMenuItem(*popupMenu, PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_PASTE_ASSET,
+          EditorCommandIds::ENTITY_PASTE_ASSET, "Paste asset");
+        commandSystem->addMenuItem(*popupMenu, PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_DUPLICATE_ASSET,
+          EditorCommandIds::ENTITY_DUPLICATE_ASSET, "Duplicate asset");
+
+        popupMenu->addSeparator(PropPanel::ROOT_MENU_ITEM);
+        popupMenu->addItem(PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_EDIT_SUB_COMPOSITE, "Edit sub-composite in place");
+        const CompositeEditorTreeDataNode *selNode = compositeEditor.getSelectedTreeDataNode();
+        popupMenu->setEnabledById(CM_COMPOSITE_EDITOR_EDIT_SUB_COMPOSITE, selNode && selNode->isCompositeAsset());
+      }
+      else
+      {
+        commandSystem->addMenuItem(*popupMenu, PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_MAKE_PARENT,
+          EditorCommandIds::ENTITY_MAKE_PARENT, "Make parent");
+        popupMenu->setEnabledById(CM_COMPOSITE_EDITOR_MAKE_PARENT, compositeEditor.canParentSelectedTreeDataNodes());
+
+        commandSystem->addMenuItem(*popupMenu, PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_CLEAR_PARENT,
+          EditorCommandIds::ENTITY_CLEAR_PARENT, "Clear parent");
+        popupMenu->setEnabledById(CM_COMPOSITE_EDITOR_CLEAR_PARENT, compositeEditor.hasSelectedParentRelation());
+      }
+    }
+
+    if (isEditingSubComposite)
+    {
+      if (parentIdx >= 0)
+        popupMenu->addSeparator(PropPanel::ROOT_MENU_ITEM);
+      popupMenu->addItem(PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_SUB_COMPOSITE_SAVE, "Save");
+      popupMenu->addItem(PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_SUB_COMPOSITE_SAVE_UNIQUE, "Save as a unique");
+      popupMenu->addItem(PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_SUB_COMPOSITE_REVERT, "Revert changes");
+      popupMenu->setEnabledById(CM_COMPOSITE_EDITOR_SUB_COMPOSITE_REVERT, compositeEditor.isModified());
+      popupMenu->addSeparator(PropPanel::ROOT_MENU_ITEM);
+      popupMenu->addItem(PropPanel::ROOT_MENU_ITEM, CM_COMPOSITE_EDITOR_EXIT_SUB_COMPOSITE, "Exit sub-composite editing");
+    }
+    return true;
+  }
+  return false;
 }
 
 void CompositeEditorViewport::renderObjects(IGenViewportWnd &wnd, IObjEntity *entity)
 {
-  IObjEntity *selectedSubEntity = getSelectedSubEntity(entity);
-  if (!selectedSubEntity)
+  if (!get_app().isCompositeEditorShown())
     return;
 
-  if (selectedSubEntity != cachedSelectedSubEntity)
+  const bool isSubCompositeEditing = get_app().getCompositeEditor().isEditingSubComposite();
+
+  int parentIdx;
+  subEntitySelectionLookup.clear();
+  getSelectedSubEntities(entity, subEntitySelectionLookup, parentIdx);
+  if (subEntitySelectionLookup.empty() && !isSubCompositeEditing)
+    return;
+
+  if (subEntitySelectionLookup != cachedSelectedSubEntities || cachedParentIdx != parentIdx ||
+      (isSubCompositeEditing && outlineElementsCache.empty()))
   {
-    cachedSelectedSubEntity = selectedSubEntity;
-    riElementsCache.clear();
-    dynmodelElementsCache.clear();
-    fillRenderElements(*selectedSubEntity, riElementsCache, dynmodelElementsCache);
+    cachedSelectedSubEntities.clear();
+    cachedSelectedSubEntities.insert(cachedSelectedSubEntities.end(), subEntitySelectionLookup.begin(),
+      subEntitySelectionLookup.end());
+    cachedParentIdx = parentIdx;
+    outlineElementsCache.clear();
+    for (int i = 0; i < subEntitySelectionLookup.size(); ++i)
+    {
+      OutlineElementsCache &cache = outlineElementsCache.push_back();
+      fillRenderElements(*subEntitySelectionLookup[i], cache.riElements, cache.dynmodelElements);
+      cache.color = (parentIdx == i) ? OutlineRenderer::default_outline_color : E3DCOLOR(255, 128, 0);
+    }
   }
-  if (!riElementsCache.empty() || !dynmodelElementsCache.empty())
-    outlineRenderer.render(wnd, riElementsCache, dynmodelElementsCache);
+  if (!outlineElementsCache.empty())
+  {
+    for (int i = 0; i < outlineElementsCache.size(); ++i)
+    {
+      OutlineElementsCache &cache = outlineElementsCache[i];
+      if (!cache.riElements.empty() || !cache.dynmodelElements.empty())
+        outlineRenderer.render(wnd, cache.riElements, cache.dynmodelElements, cache.color);
+    }
+  }
+  if (isSubCompositeEditing)
+  {
+    dag::ConstSpan<CompositeEditorSubContext> stack = get_app().getCompositeEditor().getSubCompositeStack();
+    bool cacheValid = (cachedTintGhostEntities.size() == stack.size());
+    for (int i = 0; cacheValid && i < (int)stack.size(); ++i)
+      cacheValid = (stack[i].parentGhostEntity == cachedTintGhostEntities[i]);
+    if (!cacheValid)
+    {
+      cachedTintGhostEntities.clear();
+      tintCache.riElements.clear();
+      tintCache.dynmodelElements.clear();
+      tintCache.occluderRiElements.clear();
+      tintCache.occluderDynmodelElements.clear();
+      for (const CompositeEditorSubContext &ctx : stack)
+      {
+        cachedTintGhostEntities.push_back(ctx.parentGhostEntity);
+        if (!ctx.parentGhostEntity)
+          continue;
+        fillRenderElements(*ctx.parentGhostEntity, tintCache.riElements, tintCache.dynmodelElements, ctx.subCompositeDataBlockId);
+        if (IObjEntity *slotEntity = getSubEntityByDataBlockId(*ctx.parentGhostEntity, ctx.subCompositeDataBlockId))
+          fillRenderElements(*slotEntity, tintCache.occluderRiElements, tintCache.occluderDynmodelElements, 0);
+      }
+    }
+    if (!tintCache.riElements.empty() || !tintCache.dynmodelElements.empty())
+      editModeRenderer.render(wnd, tintCache.riElements, tintCache.dynmodelElements, tintCache.occluderRiElements,
+        tintCache.occluderDynmodelElements, EditModeRenderer::default_tint_color);
+  }
 }
 
-void CompositeEditorViewport::renderTransObjects(IObjEntity *entity)
+/*static*/
+void CompositeEditorViewport::cacheSubEntitySpatials(SubEntityNode &s)
 {
-  IObjEntity *selectedSubEntity = getSelectedSubEntity(entity);
-  if (!selectedSubEntity)
+  if (!s.spatialsCached)
+  {
+    s.bbox = s.entity->getBbox();
+    getRendInstQuantizedTm(*s.entity, s.tm);
+    s.spatialsCached = true;
+  }
+}
+
+/*static*/
+void CompositeEditorViewport::cacheSubEntityScreenPos(SubEntityNode &s, IGenViewportWnd &wnd)
+{
+  cacheSubEntitySpatials(s);
+  if (!s.screenPosCached)
+  {
+    Point3 center = s.bbox.center();
+    Point2 screenPos;
+    real z;
+    if (wnd.worldToClient(s.tm * center, screenPos, &z) || z > 0.0f)
+      s.sPos = screenPos;
+    s.screenPosCached = true;
+  }
+}
+
+void CompositeEditorViewport::renderTransObjects(IGenViewportWnd &wnd, IObjEntity *entity)
+{
+  if (!get_app().isCompositeEditorShown())
     return;
 
-  BBox3 bbox = selectedSubEntity->getBbox();
-  TMatrix tm;
-  getRendInstQuantizedTm(*selectedSubEntity, tm);
+  CompositeEditor &compositeEditor = get_app().getCompositeEditor();
+  if (compositeEditor.isEditingSubComposite())
+  {
+    int viewportWidth, viewportHeight;
+    wnd.getViewportSize(viewportWidth, viewportHeight);
+    // When active, the yellow border (3px) covers the outer edge, so inset to stay visible.
+    const int inset = wnd.isActive() ? 3 : 0;
+    StdGuiRender::start_render();
+    StdGuiRender::set_color(E3DCOLOR(255, 128, 0));
+    StdGuiRender::render_frame(inset, inset, viewportWidth - inset, viewportHeight - inset, 3);
+    StdGuiRender::end_render();
+  }
 
+  unsigned int parentDataBlockId;
+  dag::Vector<unsigned int> selectedDataBlockIds;
+  compositeEditor.getSelectedTreeNodeDataBlockIds(selectedDataBlockIds, parentDataBlockId);
+  if (selectedDataBlockIds.empty() && parentDataBlockId == IDataBlockIdHolder::invalid_id)
+    return;
+
+  if (!entity)
+    return;
+
+  // collect relevant sub-entity data
+  subEntityNodeLookup.clear();
+  ICompositObj *compositObj = entity->queryInterface<ICompositObj>();
+  if (compositObj)
+  {
+    const int subEntityCount = compositObj->getCompositSubEntityCount();
+    for (int subEntityIndex = 0; subEntityIndex < subEntityCount; ++subEntityIndex)
+    {
+      IObjEntity *subEntity = compositObj->getCompositSubEntity(subEntityIndex);
+      if (!subEntity)
+        continue;
+
+      IDataBlockIdHolder *dbih = subEntity->queryInterface<IDataBlockIdHolder>();
+      if (dbih && dbih->getDataBlockId() != IDataBlockIdHolder::invalid_id)
+      {
+        SubEntityNode n;
+        n.entity = subEntity;
+        unsigned int dataBlockId = dbih->getDataBlockId();
+        n.isSelected =
+          eastl::find(selectedDataBlockIds.begin(), selectedDataBlockIds.end(), dataBlockId) != selectedDataBlockIds.end();
+        n.isSelectedParent = (dataBlockId == parentDataBlockId);
+        n.sPos = eastl::optional<Point2>();
+
+        subEntityNodeLookup[dataBlockId] = n;
+      }
+    }
+  }
+
+  // draw selection bboxes
   begin_draw_cached_debug_lines();
-  set_cached_debug_lines_wtm(tm);
-  draw_cached_debug_box(bbox, E3DCOLOR(255, 0, 0));
+  for (auto subEntityNode : subEntityNodeLookup)
+  {
+    SubEntityNode &entityNode = subEntityNode.second;
+    if (entityNode.isSelected)
+    {
+      cacheSubEntitySpatials(entityNode);
+      set_cached_debug_lines_wtm(entityNode.tm);
+      draw_cached_debug_box(entityNode.bbox, E3DCOLOR(255, 0, 0));
+    }
+  }
   end_draw_cached_debug_lines();
+
+  StdGuiRender::start_render();
+  dag::Vector<const CompositeEditorTreeDataNode *> nodes;
+  nodes.push_back(compositeEditor.getRootTreeDataNode());
+  G_ASSERT(compositeEditor.getRootTreeDataNode() != nullptr);
+  for (int i = 0; i < nodes.size(); ++i)
+  {
+    const CompositeEditorTreeDataNode *parent = nodes[i];
+    auto it = subEntityNodeLookup.find(parent->dataBlockId);
+    if (it == subEntityNodeLookup.end())
+    {
+      // just look through child sub-tree(s)
+      for (int j = 0; j < parent->nodeCount(); ++j)
+      {
+        if (parent->nodes[j].get() != nullptr)
+          nodes.push_back(parent->nodes[j].get());
+      }
+      continue;
+    }
+
+    SubEntityNode *p = &it->second;
+    int selectedChildNodes = 0;
+    for (int j = 0; j < parent->nodeCount(); ++j)
+    {
+      const CompositeEditorTreeDataNode *child = parent->nodes[j].get();
+      if (!child)
+        continue;
+
+      nodes.push_back(child); // may have child sub-tree(s)!
+
+      auto it = subEntityNodeLookup.find(child->dataBlockId);
+      if (it == subEntityNodeLookup.end())
+        continue;
+
+      SubEntityNode *c = &it->second;
+      if (c->isSelected)
+        selectedChildNodes++;
+
+      // render parent-child relation lines
+      c->isAncestorSelectedParent = p->isSelectedParent || p->isAncestorSelectedParent;
+      cacheSubEntityScreenPos(*c, wnd);
+      cacheSubEntityScreenPos(*p, wnd);
+      if (c->sPos.has_value() && p->sPos.has_value())
+      {
+        if (c->isAncestorSelectedParent)
+          StdGuiRender::get_stdgui_context()->render_dashed_line(c->sPos.value(), p->sPos.value(), 8, 16, 2, COLOR_BLACK);
+        else if (c->isSelected)
+          StdGuiRender::get_stdgui_context()->render_dashed_line(c->sPos.value(), p->sPos.value(), 4, 24, 2, E3DCOLOR(64, 64, 64));
+      }
+    }
+
+    // render active selections of the parent-child relation
+    if (p->isSelected && ((p->isSelectedParent && selectedChildNodes > 0) || p->isAncestorSelectedParent))
+    {
+      cacheSubEntityScreenPos(*p, wnd);
+      if (p->sPos.has_value())
+      {
+        E3DCOLOR fill_color = p->isSelectedParent ? OutlineRenderer::default_outline_color : E3DCOLOR(255, 128, 0);
+        StdGuiRender::get_stdgui_context()->render_ellipse_aa(p->sPos.value(), Point2(5, 5), 2.0f, COLOR_BLACK, COLOR_BLACK,
+          fill_color);
+      }
+    }
+  }
+  StdGuiRender::end_render();
+
+#ifdef DEBUG_VIEWPORT_DATABLOCK_IDS
+  StdGuiRender::start_render();
+  for (auto subEntityNode : subEntities)
+  {
+    SubEntityNode &entityNode = subEntityNode.second;
+    if (!entityNode.isSelected)
+      continue;
+
+    unsigned int dataBlockId = subEntityNode.first;
+    if (dataBlockId == IDataBlockIdHolder::invalid_id)
+      continue;
+
+    if (entityNode.sPos.has_value())
+    {
+      Point2 sPos = entityNode.sPos.value();
+      auto font = StdGuiRender::get_stdgui_context()->curRenderFont;
+      String id(0, "%d", dataBlockId);
+      StdGuiRender::draw_strf_to(sPos.x - font.monoW, sPos.y - (font.fontHt * 3), id);
+    }
+  }
+  StdGuiRender::end_render();
+#endif
+}
+
+void CompositeEditorViewport::updateImgui()
+{
+  if (popupMenu)
+  {
+    const bool open = PropPanel::render_context_menu(*popupMenu);
+    if (!open)
+      popupMenu.reset();
+  }
 }
 
 void CompositeEditorViewport::invalidateCache()
 {
-  cachedSelectedSubEntity = nullptr;
-  riElementsCache.clear();
-  dynmodelElementsCache.clear();
-}
-
-void CompositeEditorViewport::getRendInstQuantizedTm(IObjEntity &entity, TMatrix &tm)
-{
-  const IRendInstEntity *rendInstEntity = entity.queryInterface<IRendInstEntity>();
-  if (!rendInstEntity || !rendInstEntity->getRendInstQuantizedTm(tm))
-    entity.getTm(tm);
+  cachedSelectedSubEntities.clear();
+  outlineElementsCache.clear();
+  cachedTintGhostEntities.clear();
 }
 
 void CompositeEditorViewport::getAllHits(IObjEntity &entity, const Point3 &from, const Point3 &dir,
@@ -262,6 +669,33 @@ IObjEntity *CompositeEditorViewport::getSelectedSubEntity(IObjEntity *entity)
   return getSubEntityByDataBlockId(*entity, dataBlockId);
 }
 
+/*static*/
+void CompositeEditorViewport::getSelectedSubEntities(IObjEntity *entity, dag::Vector<IObjEntity *> &entities, int &parent_idx)
+{
+  if (!entity)
+    return;
+
+  dag::Vector<unsigned> dataBlockIds;
+  unsigned parentDataBlockId;
+  get_app().getCompositeEditor().getSelectedTreeNodeDataBlockIds(dataBlockIds, parentDataBlockId);
+
+  parent_idx = -1;
+  for (int i = 0; i < dataBlockIds.size(); ++i)
+  {
+    unsigned dataBlockId = dataBlockIds[i];
+    if (dataBlockId != IDataBlockIdHolder::invalid_id)
+    {
+      IObjEntity *subEntity = getSubEntityByDataBlockId(*entity, dataBlockId);
+      if (subEntity != nullptr)
+      {
+        entities.push_back(subEntity);
+        if (parentDataBlockId == dataBlockId)
+          parent_idx = entities.size() - 1;
+      }
+    }
+  }
+}
+
 int CompositeEditorViewport::getEntityRendInstExtraResourceIndex(IObjEntity &entity)
 {
   IRendInstEntity *rendInstEntity = entity.queryInterface<IRendInstEntity>();
@@ -276,7 +710,7 @@ int CompositeEditorViewport::getEntityRendInstExtraResourceIndex(IObjEntity &ent
 }
 
 void CompositeEditorViewport::fillRenderElements(IObjEntity &entity, OutlineRenderer::RIElementsCache &renderElements,
-  dag::Vector<DynamicRenderableSceneInstance *> &dynmodelElements)
+  dag::Vector<DynamicRenderableSceneInstance *> &dynmodelElements, unsigned excludeDataBlockId)
 {
   ICompositObj *compositObj = entity.queryInterface<ICompositObj>();
   if (compositObj)
@@ -288,7 +722,13 @@ void CompositeEditorViewport::fillRenderElements(IObjEntity &entity, OutlineRend
       if (!subEntity)
         continue;
 
-      fillRenderElements(*subEntity, renderElements, dynmodelElements);
+      if (excludeDataBlockId != 0 && getEntityDataBlockId(*subEntity) == excludeDataBlockId)
+        continue;
+
+      // Do not propagate excludeDataBlockId into nested composites: each composite asset has
+      // its own ID counter starting at 1, so the parent-level exclude ID would wrongly match
+      // children of sibling composites.
+      fillRenderElements(*subEntity, renderElements, dynmodelElements, 0);
     }
   }
 

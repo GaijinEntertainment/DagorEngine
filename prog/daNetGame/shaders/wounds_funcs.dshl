@@ -1,37 +1,48 @@
 macro USE_ANIMATED_HOLE_RADIUS(code)
 hlsl(code) {
   #include "woundsConst.hlsli"
+  #include "woundsAnim.hlsli"
 
-  // returns the threshold in the peak-extent ellipsoid's normalized space (1 == peak radius)
-  float animated_hole_radius(float spawnTime, float holdDuration,
-    float closeDuration, float openDuration, float pulseAmp, float curTime)
+  struct WoundHole
   {
-    float t = curTime - spawnTime;
-    float openS = openDuration > 0 ? smoothstep(0, max(openDuration, 1e-6), t) : 1;
-    // clamp: producers do not validate pulseAmp, > 1 must not flip the threshold negative
-    float pulse = max(0, 1 + pulseAmp * sin(6.2831853 * t));
-    float closeT = closeDuration > 0 ? saturate((t - openDuration - holdDuration) / max(closeDuration, 1e-6)) : 0;
-    float closeS = 1 - closeT * closeT * (3 - 2 * closeT);
-    return openS * pulse * closeS;
-  }
+    float3x3 worldToUnitSphere; // rows r0,r1,r2; e = mul(worldToUnitSphere, pos - center); r2 = shot dir / axes.z
+    float3 center;
+    float4 timeParams; // spawnTime, holdDuration, closeDuration, rimWidth
+    float4 easeParams; // openDuration, pulseAmp, nodeIndex, inflateRatio
+  };
 
-  // distance to hole center in the peak-extent ellipsoid's normalized space (<1 == inside at peak)
-  float wound_hole_peak_dist(uint2 offset_count, int j, float3 pos)
+  WoundHole load_wound_hole(uint2 offset_count, int j)
   {
     float4 r2c = get_additional_data(offset_count, j + WOUND_REV(HOLE_WOUND_SIZE, WOUND_HOLE_ROW2));
     float4 r1c = get_additional_data(offset_count, j + WOUND_REV(HOLE_WOUND_SIZE, WOUND_HOLE_ROW1));
     float4 r0c = get_additional_data(offset_count, j + WOUND_REV(HOLE_WOUND_SIZE, WOUND_HOLE_ROW0));
-    float3 lp = pos - float3(r0c.w, r1c.w, r2c.w);
-    float3 e = float3(dot(r0c.xyz, lp), dot(r1c.xyz, lp), dot(r2c.xyz, lp));
-    return length(e);
+    WoundHole w;
+    w.worldToUnitSphere = float3x3(r0c.xyz, r1c.xyz, r2c.xyz);
+    w.center = float3(r0c.w, r1c.w, r2c.w);
+    w.timeParams = get_additional_data(offset_count, j + WOUND_REV(HOLE_WOUND_SIZE, WOUND_HOLE_TIME));
+    w.easeParams = get_additional_data(offset_count, j + WOUND_REV(HOLE_WOUND_SIZE, WOUND_HOLE_EASE));
+    return w;
+  }
+
+  float wound_hole_peak_dist(WoundHole w, float3 pos)
+  {
+    return length(mul(w.worldToUnitSphere, pos - w.center));
+  }
+
+  float animated_wound_hole_radius(WoundHole w, float cur_time)
+  {
+    return animated_hole_radius(w.timeParams.x, w.timeParams.y, w.timeParams.z, w.easeParams.x, w.easeParams.y, cur_time);
+  }
+
+  float wound_hole_close_ease(WoundHole w, float cur_time)
+  {
+    return hole_close_ease(w.timeParams.x, w.timeParams.y, w.timeParams.z, w.easeParams.x, cur_time);
   }
 
   bool is_inside_wound_hole(uint2 offset_count, int j, float3 pos, float cur_time)
   {
-    float4 holeEase = get_additional_data(offset_count, j + WOUND_REV(HOLE_WOUND_SIZE, WOUND_HOLE_EASE));
-    float4 holeTime = get_additional_data(offset_count, j + WOUND_REV(HOLE_WOUND_SIZE, WOUND_HOLE_TIME));
-    float s = animated_hole_radius(holeTime.x, holeTime.y, holeTime.z, holeEase.x, holeEase.y, cur_time);
-    return wound_hole_peak_dist(offset_count, j, pos) < s;
+    WoundHole w = load_wound_hole(offset_count, j);
+    return wound_hole_peak_dist(w, pos) < animated_wound_hole_radius(w, cur_time);
   }
 }
 endmacro
@@ -43,6 +54,7 @@ hlsl(code) {
   struct TornWound
   {
     float4 params;              // x start fade, y trim vertices to, z discard pixel to, w tex uv scale
+    float2 rim;                 // x band width as a fraction of the ellipsoid, y rise as a fraction of the band
     float3x3 worldToUnitSphere; // rows r0,r1,r2; e = mul(worldToUnitSphere, pos - center)
     float3 center;
   };
@@ -54,9 +66,78 @@ hlsl(code) {
     float4 r0c = get_additional_data(offset_count, j + WOUND_REV(TORN_WOUND_SIZE, WOUND_CUT_ROW0));
     TornWound w;
     w.params = get_additional_data(offset_count, j + WOUND_REV(TORN_WOUND_SIZE, WOUND_CUT_PARAMS));
+    w.rim = get_additional_data(offset_count, j + WOUND_REV(TORN_WOUND_SIZE, WOUND_CUT_RIM)).xy;
     w.worldToUnitSphere = float3x3(r0c.xyz, r1c.xyz, r2c.xyz);
     w.center = float3(r0c.w, r1c.w, r2c.w);
     return w;
+  }
+}
+endmacro
+
+macro USE_WOUND_VERTEX_DEFORM(code)
+hlsl(code) {
+  #include "woundsConst.hlsli"
+  float rim_inflate_dist(float3x3 world_to_unit_sphere, float3 rim_n, float rise)
+  {
+    return rise / max(length(mul(world_to_unit_sphere, rim_n)), 1e-6);
+  }
+
+  bool apply_wound_vertex_deform(float cur_time, float3 local_normal, inout float3 pos, inout float4 bone_weights)
+  {
+    uint2 dataOffsetCount = get_offset_count_additional_data(AAD_HUMAN_COMBINED_PARAMS);
+    if (dataOffsetCount.y == 0)
+      return false;
+    float4 count = get_additional_data(dataOffsetCount, 0);
+    uint cuts_count = (uint)count.x;
+    uint project_wounds_count = (uint)count.y;
+    uint holes_count = (uint)count.z;
+    uint offset = 1 + project_wounds_count * DECAL_WOUND_SIZE;
+
+    bool inside = false;
+    bool carve = false;
+    float3 basePos = pos;
+    float bulge = 0;
+    float3 rimN = local_normal * rsqrt(max(dot(local_normal, local_normal), 1e-12));
+    for (uint h = 0; h < holes_count; h++)
+    {
+      WoundHole w = load_wound_hole(dataOffsetCount, offset + h * HOLE_WOUND_SIZE);
+      float en = wound_hole_peak_dist(w, basePos);
+      float s = animated_wound_hole_radius(w, cur_time);
+      inside = inside || en < max(wound_hole_close_ease(w, cur_time), s);
+      carve = carve || en < s;
+      float inflateRatio = w.easeParams.w;
+      BRANCH
+      if (inflateRatio > 0)
+      {
+        float rim = w.timeParams.w;
+        float edgeN = en - s;
+        if (edgeN >= 0 && edgeN < rim)
+          bulge = max(bulge, rim_inflate_dist(w.worldToUnitSphere, rimN, rim * inflateRatio * (1 - edgeN / rim) * s));
+      }
+    }
+    offset += holes_count * HOLE_WOUND_SIZE;
+    for (uint i = 0; i < cuts_count; i++)
+    {
+      TornWound w = load_torn_wound(dataOffsetCount, offset + i * TORN_WOUND_SIZE);
+      float3 toPos = basePos - w.center;
+      float en = length(mul(w.worldToUnitSphere, toPos));
+      inside = inside || en < 1;
+      carve = carve || en < w.params.y;
+      BRANCH
+      if (w.rim.y > 0)
+      {
+        float edgeN = en - w.params.y;
+        if (edgeN >= 0 && edgeN < w.rim.x)
+          bulge = max(bulge, rim_inflate_dist(w.worldToUnitSphere, rimN, w.rim.x * w.rim.y * (1 - edgeN / w.rim.x)));
+      }
+    }
+    pos += rimN * bulge;
+    if (inside)
+    {
+      bone_weights = max4(bone_weights.x, bone_weights.y, bone_weights.z, bone_weights.w) == bone_weights;
+      bone_weights /= dot(bone_weights, 1);
+    }
+    return carve;
   }
 }
 endmacro

@@ -2,13 +2,19 @@
 
 #include "compositeEditorToolbar.h"
 #include "../av_cm.h"
+#include "entity_cm.h"
 #include <EditorCore/ec_cm.h>
 #include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_gridobject.h>
 #include <EditorCore/ec_interface.h>
 #include <propPanel/control/container.h>
 
-void CompositeEditorToolbar::initUi(PropPanel::ControlEventHandler &event_handler, int toolbar_id)
+static constexpr int DEF_MOVE = int(IEditorCoreEngine::BASIS_World) | int(IEditorCoreEngine::CENTER_Pivot);
+static constexpr int DEF_MOVE_SURF = int(IEditorCoreEngine::BASIS_World) | int(IEditorCoreEngine::CENTER_Pivot);
+static constexpr int DEF_SCALE = int(IEditorCoreEngine::BASIS_Local) | int(IEditorCoreEngine::CENTER_Pivot);
+static constexpr int DEF_ROTATE = int(IEditorCoreEngine::BASIS_World) | int(IEditorCoreEngine::CENTER_Pivot);
+
+void CompositeEditorToolbar::initUi(PropPanel::ControlEventHandler &event_handler, IGizmoClient *gc, int toolbar_id)
 {
   if (isInited())
     return;
@@ -34,6 +40,79 @@ void CompositeEditorToolbar::initUi(PropPanel::ControlEventHandler &event_handle
   addCheckButton(*tb, CM_VIEW_GRID_SCALE_SNAP, EditorCommandIds::VIEW_GRID_SCALE_SNAP, "snap_scale", "Scale snap");
   addButton(*tb, CM_OPTIONS_GRID, EditorCommandIds::VIEW_GRID_SETTINGS, "snap_settings", "Grid settings");
   updateSnapToolbarButtons();
+
+  client = gc;
+  if (client)
+    availableTypes = client->getAvailableTypes();
+  else
+    availableTypes = 0;
+
+  moveGizmo = DEF_MOVE;
+  moveSurfGizmo = DEF_MOVE_SURF;
+  scaleGizmo = DEF_SCALE;
+  rotateGizmo = DEF_ROTATE;
+
+  tb->createSeparator();
+
+  addButton(*tb, CM_COMPOSITE_EDITOR_CREATE_NODE, EditorCommandIds::ENTITY_CREATE_NODE, "create_cmp_node", "Create node");
+
+  Tab<String> temp(tmpmem);
+  tb->createCombo(CM_GIZMO_BASIS, "", temp, 0);
+  tb->createCombo(CM_GIZMO_CENTER, "", temp, 0);
+}
+
+void CompositeEditorToolbar::setGizmoClientType(IEditorCoreEngine::ModeType tp)
+{
+  // Save the current basis/center back to the per-mode variable before switching.
+  // Only save if a value has actually been set (gizmoBasisType != -1); otherwise the
+  // per-mode defaults set in initUi() are still correct and must not be overwritten.
+  if (gizmoBasisType != -1)
+  {
+    switch (type)
+    {
+      case IEditorCoreEngine::MODE_Move: moveGizmo = int(getBasisType()) | int(getCenterType()); break;
+
+      case IEditorCoreEngine::MODE_MoveSurface: moveSurfGizmo = int(getBasisType()) | int(getCenterType()); break;
+
+      case IEditorCoreEngine::MODE_Scale: scaleGizmo = int(getBasisType()) | int(getCenterType()); break;
+
+      case IEditorCoreEngine::MODE_Rotate: rotateGizmo = int(getBasisType()) | int(getCenterType()); break;
+
+      case IEditorCoreEngine::MODE_None: break;
+    }
+  }
+
+  type = tp;
+
+  refillTypes(type != IEditorCoreEngine::MODE_None);
+
+  if (availableTypes)
+  {
+    gizmoBasisType = -1;
+    gizmoCenterType = -1;
+  }
+
+  switch (type)
+  {
+    case IEditorCoreEngine::MODE_Move:
+      setGizmoBasisAndCenter(moveGizmo & IEditorCoreEngine::GIZMO_MASK_Basis, moveGizmo & IEditorCoreEngine::GIZMO_MASK_CENTER);
+      break;
+
+    case IEditorCoreEngine::MODE_MoveSurface:
+      setGizmoBasisAndCenter(moveSurfGizmo & IEditorCoreEngine::GIZMO_MASK_Basis,
+        moveSurfGizmo & IEditorCoreEngine::GIZMO_MASK_CENTER);
+      break;
+
+    case IEditorCoreEngine::MODE_Scale:
+      setGizmoBasisAndCenter(scaleGizmo & IEditorCoreEngine::GIZMO_MASK_Basis, scaleGizmo & IEditorCoreEngine::GIZMO_MASK_CENTER);
+      break;
+
+    case IEditorCoreEngine::MODE_Rotate:
+      setGizmoBasisAndCenter(rotateGizmo & IEditorCoreEngine::GIZMO_MASK_Basis, rotateGizmo & IEditorCoreEngine::GIZMO_MASK_CENTER);
+      break;
+
+    case IEditorCoreEngine::MODE_None: break; // to prevent the unhandled switch case error
+  }
 }
 
 void CompositeEditorToolbar::closeUi()
@@ -53,6 +132,30 @@ void CompositeEditorToolbar::closeUi()
 
 bool CompositeEditorToolbar::isInited() const { return toolBarId >= 0; }
 
+bool CompositeEditorToolbar::onChange(int pcb_id)
+{
+  PropPanel::ContainerPropertyControl *panel = EDITORCORE->getCustomPanel(toolBarId);
+  if (!panel)
+    return false;
+
+  switch (pcb_id)
+  {
+    case CM_GIZMO_BASIS:
+    {
+      gizmoBasisType = getBasisTypeByName(panel->getText(CM_GIZMO_BASIS).str());
+    }
+      return true;
+    case CM_GIZMO_CENTER:
+    {
+      // This toolbar has no CM_ROTATE_CENTER_AND_OBJ checkbox, so always use CENTER_Selection.
+      gizmoCenterType = getCenterTypeByName(panel->getText(CM_GIZMO_CENTER).str(), true);
+    }
+      return true;
+  }
+
+  return false;
+}
+
 void CompositeEditorToolbar::updateGizmoToolbarButtons(bool canTransform)
 {
   const IEditorCoreEngine::ModeType mode = IEditorCoreEngine::get()->getGizmoModeType();
@@ -61,6 +164,64 @@ void CompositeEditorToolbar::updateGizmoToolbarButtons(bool canTransform)
   setButtonState(CM_OBJED_MODE_MOVE, mode == IEditorCoreEngine::ModeType::MODE_Move, canTransform);
   setButtonState(CM_OBJED_MODE_ROTATE, mode == IEditorCoreEngine::ModeType::MODE_Rotate, canTransform);
   setButtonState(CM_OBJED_MODE_SCALE, mode == IEditorCoreEngine::ModeType::MODE_Scale, canTransform);
+
+  // Always rebuild the combo items since available types depend on the selected node
+  // (e.g. BASIS_Parent only appears when the node has a parent).
+  const bool showCombos = canTransform && mode != IEditorCoreEngine::ModeType::MODE_None;
+  refillTypes(showCombos);
+  if (showCombos)
+  {
+    // Restore the active selection after refillTypes reset the combo display.
+    // Fall back to the per-mode default if no selection has been made yet.
+    const int savedBasis = gizmoBasisType;
+    const int savedCenter = gizmoCenterType;
+    gizmoBasisType = -1;
+    gizmoCenterType = -1;
+    setGizmoBasisAndCenter(savedBasis != -1 ? savedBasis : int(getGizmoBasisTypeForMode(type)),
+      savedCenter != -1 ? savedCenter : int(getGizmoCenterTypeForMode(type)));
+  }
+}
+
+void CompositeEditorToolbar::refillTypes(bool canTransform)
+{
+  itemsBasis.clear();
+  itemsCenter.clear();
+
+  if (client)
+    availableTypes = client->getAvailableTypes();
+  else
+    availableTypes = 0;
+
+  if (availableTypes)
+  {
+    if (availableTypes & IEditorCoreEngine::BASIS_World)
+      itemsBasis.push_back() = getBasisWorldCaption();
+
+    if (availableTypes & IEditorCoreEngine::BASIS_Local)
+      itemsBasis.push_back() = getBasisLocalCaption();
+
+    if (availableTypes & IEditorCoreEngine::BASIS_Parent)
+      itemsBasis.push_back() = getBasisParentCaption();
+
+    if (availableTypes & IEditorCoreEngine::CENTER_Pivot)
+      itemsCenter.push_back() = getCenterPivotCaption();
+
+    if (availableTypes & IEditorCoreEngine::CENTER_Selection || availableTypes & IEditorCoreEngine::CENTER_SelectionNotRotObj)
+      itemsCenter.push_back() = getCenterSelectionCaption();
+
+    if (availableTypes & IEditorCoreEngine::CENTER_Coordinates)
+      itemsCenter.push_back() = getCenterCoordCaption();
+  }
+
+  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(toolBarId);
+  if (tb)
+  {
+    tb->setStrings(CM_GIZMO_BASIS, itemsBasis);
+    tb->setEnabledById(CM_GIZMO_BASIS, canTransform);
+
+    tb->setStrings(CM_GIZMO_CENTER, itemsCenter);
+    tb->setEnabledById(CM_GIZMO_CENTER, canTransform);
+  }
 }
 
 void CompositeEditorToolbar::updateSnapToolbarButtons()
@@ -102,5 +263,180 @@ void CompositeEditorToolbar::setButtonState(int id, bool checked, bool enabled)
   {
     tb->setBool(id, checked);
     tb->setEnabledById(id, enabled);
+  }
+}
+
+IEditorCoreEngine::CenterType CompositeEditorToolbar::getCenterType() const
+{
+  if (gizmoCenterType != -1)
+    return (IEditorCoreEngine::CenterType)gizmoCenterType;
+
+  return IEditorCoreEngine::CENTER_None;
+}
+
+IEditorCoreEngine::CenterType CompositeEditorToolbar::getGizmoCenterTypeForMode(IEditorCoreEngine::ModeType tp) const
+{
+  if (type == tp)
+  {
+    if (gizmoCenterType != -1)
+      return (IEditorCoreEngine::CenterType)gizmoCenterType;
+  }
+
+  switch (tp)
+  {
+    case IEditorCoreEngine::MODE_Move: return (IEditorCoreEngine::CenterType)(moveGizmo & IEditorCoreEngine::GIZMO_MASK_CENTER);
+
+    case IEditorCoreEngine::MODE_MoveSurface:
+      return (IEditorCoreEngine::CenterType)(moveSurfGizmo & IEditorCoreEngine::GIZMO_MASK_CENTER);
+
+    case IEditorCoreEngine::MODE_Scale: return (IEditorCoreEngine::CenterType)(scaleGizmo & IEditorCoreEngine::GIZMO_MASK_CENTER);
+
+    case IEditorCoreEngine::MODE_Rotate: return (IEditorCoreEngine::CenterType)(rotateGizmo & IEditorCoreEngine::GIZMO_MASK_CENTER);
+
+    case IEditorCoreEngine::MODE_None: break; // to prevent the unhandled switch case error
+  }
+
+  return IEditorCoreEngine::CENTER_None;
+}
+
+IEditorCoreEngine::CenterType CompositeEditorToolbar::getCenterTypeByName(const char *name, bool enableRotObj) const
+{
+  if (!strcmp(name, getCenterPivotCaption()))
+    return IEditorCoreEngine::CENTER_Pivot;
+  else if (!strcmp(name, getCenterSelectionCaption()))
+  {
+    if (!enableRotObj)
+      return IEditorCoreEngine::CENTER_SelectionNotRotObj;
+    else
+      return IEditorCoreEngine::CENTER_Selection;
+  }
+  else if (!strcmp(name, getCenterCoordCaption()))
+    return IEditorCoreEngine::CENTER_Coordinates;
+
+  return IEditorCoreEngine::CENTER_None;
+}
+
+const char *CompositeEditorToolbar::getCenterNameByType(IEditorCoreEngine::CenterType type) const
+{
+  switch (type)
+  {
+    case IEditorCoreEngine::CENTER_Pivot: return getCenterPivotCaption();
+    case IEditorCoreEngine::CENTER_Selection:
+    case IEditorCoreEngine::CENTER_SelectionNotRotObj: return getCenterSelectionCaption();
+    case IEditorCoreEngine::CENTER_Coordinates: return getCenterCoordCaption();
+    case IEditorCoreEngine::CENTER_None: break; // to prevent the unhandled switch case error
+  }
+
+  return NULL;
+}
+
+IEditorCoreEngine::BasisType CompositeEditorToolbar::getBasisType() const
+{
+  if (gizmoBasisType != -1)
+    return (IEditorCoreEngine::BasisType)gizmoBasisType;
+
+  return IEditorCoreEngine::BASIS_None;
+}
+
+IEditorCoreEngine::BasisType CompositeEditorToolbar::getGizmoBasisTypeForMode(IEditorCoreEngine::ModeType tp) const
+{
+  if (type == tp)
+  {
+    if (gizmoBasisType != -1)
+      return (IEditorCoreEngine::BasisType)gizmoBasisType;
+  }
+
+  switch (tp)
+  {
+    case IEditorCoreEngine::MODE_Move: return (IEditorCoreEngine::BasisType)(moveGizmo & IEditorCoreEngine::GIZMO_MASK_Basis);
+
+    case IEditorCoreEngine::MODE_MoveSurface:
+      return (IEditorCoreEngine::BasisType)(moveSurfGizmo & IEditorCoreEngine::GIZMO_MASK_Basis);
+
+    case IEditorCoreEngine::MODE_Scale: return (IEditorCoreEngine::BasisType)(scaleGizmo & IEditorCoreEngine::GIZMO_MASK_Basis);
+
+    case IEditorCoreEngine::MODE_Rotate: return (IEditorCoreEngine::BasisType)(rotateGizmo & IEditorCoreEngine::GIZMO_MASK_Basis);
+
+    case IEditorCoreEngine::MODE_None: break; // to prevent the unhandled switch case error
+  }
+
+  return IEditorCoreEngine::BASIS_None;
+}
+
+IEditorCoreEngine::BasisType CompositeEditorToolbar::getBasisTypeByName(const char *name) const
+{
+  if (!strcmp(name, getBasisWorldCaption()))
+    return IEditorCoreEngine::BASIS_World;
+  else if (!strcmp(name, getBasisLocalCaption()))
+    return IEditorCoreEngine::BASIS_Local;
+  else if (!strcmp(name, getBasisParentCaption()))
+    return IEditorCoreEngine::BASIS_Parent;
+
+  return IEditorCoreEngine::BASIS_None;
+}
+
+const char *CompositeEditorToolbar::getBasisNameByType(IEditorCoreEngine::BasisType type) const
+{
+  switch (type)
+  {
+    case IEditorCoreEngine::BASIS_World: return getBasisWorldCaption();
+    case IEditorCoreEngine::BASIS_Local: return getBasisLocalCaption();
+    case IEditorCoreEngine::BASIS_Parent: return getBasisParentCaption();
+    case IEditorCoreEngine::BASIS_None: break; // to prevent the unhandled switch case error
+  }
+
+  return NULL;
+}
+
+void CompositeEditorToolbar::setGizmoBasisAndCenter(int basis, int center)
+{
+  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(toolBarId);
+  if (!tb)
+    return;
+
+  if (gizmoBasisType != basis)
+  {
+    gizmoBasisType = basis;
+    const char *basisName = getBasisNameByType((IEditorCoreEngine::BasisType)basis);
+    if (!basisName)
+    {
+      tb->setInt(CM_GIZMO_BASIS, -1);
+    }
+    else
+    {
+      int ind = 0;
+      for (int i = 0; i < itemsBasis.size(); ++i)
+        if (itemsBasis[i] == basisName)
+        {
+          ind = i;
+          break;
+        }
+
+      tb->setInt(CM_GIZMO_BASIS, ind);
+      onChange(CM_GIZMO_BASIS);
+    }
+  }
+
+  if (gizmoCenterType != center)
+  {
+    gizmoCenterType = center;
+    const char *centerName = getCenterNameByType((IEditorCoreEngine::CenterType)center);
+    if (!centerName)
+    {
+      tb->setInt(CM_GIZMO_CENTER, -1);
+    }
+    else
+    {
+      int ind = 0;
+      for (int i = 0; i < itemsCenter.size(); ++i)
+        if (itemsCenter[i] == centerName)
+        {
+          ind = i;
+          break;
+        }
+
+      tb->setInt(CM_GIZMO_CENTER, ind);
+      onChange(CM_GIZMO_CENTER);
+    }
   }
 }

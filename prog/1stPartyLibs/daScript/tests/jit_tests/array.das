@@ -2,15 +2,15 @@ options gen2
 require dastest/testing_boost
 
 def makeAll13(var a : array<int>) {
-    for (i in range(length(a))) {
-        a[i] = 13
+    for (v in a) {
+        v = 13
     }
 }
 
 def addAll(var a : array<int>) {
     var c = 0
-    for (i in range(length(a))) {
-        c += a[i]
+    for (v in a) {
+        c += v
     }
     return c
 }
@@ -25,6 +25,10 @@ def resizeLocked(var a : array<int>) {
 
 def outOfRange(var a : array<int>) {
     return a[13]
+}
+
+def resizeUnreserved(var a : array<int>) {
+    a |> resize(17000000)   // 68 MB: past the default 64 MB max_unreserved_size, no reserve
 }
 
 def check_array_float3(t : T?; a : array<float3>) {
@@ -43,7 +47,7 @@ def check_dim_float3(t : T?; a : float3[3]) {
 def test_array(t : T?) {
     t |> run("array float3") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@check_array_float3))
-        var a <- array<float3>(
+        let a <- array<float3>(
             float3(1, 2, 3),
             float3(2, 3, 4),
             float3(3, 4, 5)
@@ -52,7 +56,7 @@ def test_array(t : T?) {
     }
     t |> run("dim float3") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@check_dim_float3))
-        var a <- fixed_array<float3>(
+        let a <- fixed_array<float3>(
             float3(1, 2, 3),
             float3(2, 3, 4),
             float3(3, 4, 5)
@@ -76,7 +80,7 @@ def test_array(t : T?) {
         resize(x, 10)
         var failed = false
         try {
-            var r = outOfRange(x)
+            let r = outOfRange(x)
             t |> success(r == 123456)// code never gets here
         } recover {
             failed = true
@@ -94,5 +98,16 @@ def test_array(t : T?) {
             failed = true
         }
         t |> success(failed, "resize caused panic")
+    }
+    t |> run("unreserved huge resize") @(t : T?) {
+        t |> success(!jit_enabled() || is_jit_function(@@resizeUnreserved))
+        var x : array<int>
+        var failed = false
+        try {
+            resizeUnreserved(x)
+        } recover {
+            failed = true
+        }
+        t |> success(failed, "unreserved resize past max_unreserved_size caused panic")
     }
 }

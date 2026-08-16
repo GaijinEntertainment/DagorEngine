@@ -773,24 +773,14 @@ HostDeviceSharedMemoryRegion BaseTex::allocate_read_write_staging_memory(const I
 
 void BaseTex::notifySamplerChange()
 {
-  for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
-  {
-    if (srvBindingStages[s].any())
-    {
-      dirty_sampler(this, s, srvBindingStages[s]);
-    }
-  }
+  OSSpinlockScopedLock resourceBindingLock{get_resource_binding_guard()};
+  dirtyBoundSamplersNoLock();
 }
 
 void BaseTex::notifySrvChange()
 {
-  for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
-  {
-    if (srvBindingStages[s].any())
-    {
-      dirty_srv(this, s, srvBindingStages[s]);
-    }
-  }
+  OSSpinlockScopedLock resourceBindingLock{get_resource_binding_guard()};
+  dirtyBoundSrvsNoLock();
 }
 
 void BaseTex::dirtyBoundSamplersNoLock()
@@ -1556,7 +1546,8 @@ int BaseTex::generateMips()
 
 bool BaseTex::setReloadCallback(IReloadData *_rld)
 {
-  rld.reset(_rld);
+  if (rld.get() != _rld)
+    rld.reset(_rld);
   return true;
 }
 
@@ -1577,7 +1568,7 @@ void BaseTex::release()
   D3D_CONTRACT_ASSERTF(!isLockedNoCopy(), "DX12: release called on locked texture %p <%s>, lockFlags=%" PRIu32, this, getName(),
     lockFlags);
   STORE_RETURN_ADDRESS();
-  notify_delete(this, srvBindingStages, uavBindingStages, getRtvBinding(), getDsvBinding());
+  notify_delete(this, srvBindingStages, uavBindingStages);
   sampler.ptr = 0;
   if (isStub())
     image = nullptr;

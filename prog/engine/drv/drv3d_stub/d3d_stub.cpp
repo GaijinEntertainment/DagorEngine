@@ -1316,23 +1316,6 @@ bool d3d::set_depth(BaseTexture *tex, int face, DepthAccess access)
   return true;
 }
 
-bool d3d::set_render_target(int ri, Texture *tex, uint8_t level)
-{
-  if (!tex)
-    currentRtState.removeColor(ri);
-  else
-    currentRtState.setColor(ri, tex, level, 0);
-  return true;
-}
-
-bool d3d::set_render_target(int ri, BaseTexture *ctex, int fc, uint8_t level)
-{
-  if (!ctex)
-    currentRtState.removeColor(ri);
-  else
-    currentRtState.setColor(ri, ctex, level, fc);
-  return true;
-}
 
 bool d3d::set_render_target(const Driver3dRenderTarget &rt)
 {

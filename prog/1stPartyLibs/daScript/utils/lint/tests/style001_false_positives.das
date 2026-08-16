@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // STYLE001 false positives — patterns that use <| legitimately
 //
 // These should produce ZERO style warnings.

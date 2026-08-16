@@ -11,6 +11,9 @@
 #include <splshape.h>
 #include <ilayer.h>
 #include <ILayerProperties.h>
+#include <modstack.h>
+#include <iskin.h>
+#include <dummy.h>
 
 #include <vector>
 #include <string>
@@ -63,7 +66,7 @@ public:
 
   Dag2DagnewCB(Interface *iptr, bool on_import) : ip(iptr), time(iptr->GetTime()), onImport(on_import) {}
 
-  ~Dag2DagnewCB() override {}
+  ~Dag2DagnewCB() override = default;
 
   Mtl *conv_mat(Mtl *&m)
   {
@@ -221,21 +224,13 @@ INLINE int real2int(float x)
 }
 
 
-static void spaces_to_underscores(TCHAR *string)
-{
-  for (TCHAR *cur = string; *cur; cur++)
-    if (*cur == ' ')
-      *cur = '_';
-}
-
-
 class TopologyAdapter
 {
 public:
   Mesh *mesh;
 
   TopologyAdapter(Mesh *in_mesh) { mesh = in_mesh; }
-  virtual ~TopologyAdapter() {}
+  virtual ~TopologyAdapter() = default;
   virtual unsigned int getNumVerts() = 0;
   virtual void setNumVerts(unsigned int num_verts) = 0;
   virtual unsigned int getIndex(unsigned int face_no, unsigned int index_no) = 0;
@@ -301,6 +296,7 @@ protected:
   bool editableMeshFound;
   unsigned int degenerateFacesRemovedNum;
   unsigned int isolatedVerticesRemovedNum;
+  ToolTipExtender tooltip;
 
 public:
   DagUtil();
@@ -361,6 +357,10 @@ public:
   // export to json
   void resolveNamesForJson();
   void exportToJson();
+  void resolveHierarchy();
+  void removeSkinModifiers();
+
+  void updateTooltips(HWND hw);
 
 protected:
   void dagor_util_update_ui(HWND hw);
@@ -375,6 +375,7 @@ protected:
 };
 
 static DagUtil util;
+
 // Compute per-vertex normal in 3dsMax way
 void ComputeVertexNormals(Mesh *mesh, Tab<Point3> &vnrm, Tab<FaceNGr> &fngr, Point3 *trvert = NULL);
 
@@ -632,10 +633,7 @@ static void add_dagpath(const fs::path &p, bool first)
 
 void load_dagorpath_cfg()
 {
-  TCHAR fname[MAX_PATH];
-
-  CfgShader::GetCfgFilename(_T("DagorPath.cfg"), fname);
-  fs::path cfg_path(fname);
+  fs::path cfg_path = get_cfg_filename(_T("DagorPath.cfg"));
   std::ifstream is(cfg_path);
   if (is)
   {
@@ -677,9 +675,7 @@ void set_dagor_path(std::wstring_view p)
 
   add_dagpath(dagor_path, true);
 
-  TCHAR fn[MAX_PATH];
-  CfgShader::GetCfgFilename(_T("DagorPath.cfg"), fn);
-  fs::path cfg_path(fn);
+  fs::path cfg_path = get_cfg_filename(_T("DagorPath.cfg"));
   std::ofstream os(cfg_path);
   if (os)
   {
@@ -851,7 +847,7 @@ BOOL DagUtil::dagor_util_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lPara
         case IDC_SET_DAGORPATH:
         {
           TCHAR dir[MAX_PATH];
-          _tcscpy(dir, dagor_path.c_str());
+          _tcsncpy_s(dir, _countof(dir), dagor_path.c_str(), _TRUNCATE);
 
           ip->ChooseDirectory(hw, GetString(IDS_CHOOSE_DAGOR_PATH), dir);
           if (dir[0])
@@ -980,6 +976,7 @@ BOOL DagUtil::export_to_json_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM l
     case WM_INITDIALOG:
       SetWindowText(GetDlgItem(hw, IDC_ASSET_PREFIX), asset_prefix.data());
       CheckDlgButton(hw, IDC_EXPSEL, exp_selected);
+      updateTooltips(hw);
       break;
 
     case WM_COMMAND:
@@ -998,10 +995,16 @@ BOOL DagUtil::export_to_json_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM l
       else if (wParam == MAKEWPARAM(IDC_RESOLVE_NAMES, BN_CLICKED))
         resolveNamesForJson();
 
+      else if (wParam == MAKEWPARAM(IDC_RESOLVE_HIER, BN_CLICKED))
+        resolveHierarchy();
+
       // export
 
       else if (LOWORD(wParam) == IDC_EXPSEL)
+      {
         exp_selected = IsDlgButtonChecked(hw, LOWORD(wParam));
+        updateTooltips(hw);
+      }
 
       else if (wParam == MAKEWPARAM(IDC_EXPORT, BN_CLICKED))
       {
@@ -1011,6 +1014,11 @@ BOOL DagUtil::export_to_json_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM l
         if (get_save_filename(exportToJsonRoll, _T("Export Dagor materials to JSON"), fl, _T("json"), exp_fname))
           exportToJson();
       }
+
+      // modifiers
+
+      else if (wParam == MAKEWPARAM(IDC_REMOVE_SKIN_MOD, BN_CLICKED))
+        removeSkinModifiers();
 
       break;
 
@@ -1925,7 +1933,7 @@ public:
     time = ip->GetTime();
   }
 
-  ~Dag2EnumeratorCB() override {}
+  ~Dag2EnumeratorCB() override = default;
 
   int enumerate(Mtl *&m)
   {
@@ -2005,7 +2013,7 @@ public:
     time = ip->GetTime();
   }
 
-  ~Dag2UniqueCB() override {}
+  ~Dag2UniqueCB() override = default;
 
   Mtl *unique_mat(Mtl *mf)
   {
@@ -2123,9 +2131,7 @@ public:
     ip = iptr;
     time = ip->GetTime();
 
-    TCHAR filename[MAX_PATH];
-    CfgShader::GetCfgFilename(_T("DagorConvert.cfg"), filename);
-    cfg = new CfgShader(filename);
+    cfg = new CfgShader(get_cfg_filename(_T("DagorConvert.cfg")).native());
 
     cfg->GetShaderNames();
 
@@ -2327,14 +2333,41 @@ static std::wstring sanitize_material_name(std::wstring name)
   return name;
 }
 
+static std::wstring make_json_material_name(const std::wstring &raw_name, const std::wstring &raw_prefix)
+{
+  std::wstring name = sanitize_material_name(raw_name);
+  std::wstring prefix = sanitize_material_name(raw_prefix);
+
+  if (prefix.empty() || name.starts_with(prefix))
+    return name;
+
+  if (prefix.back() != L'_')
+    prefix += L'_';
+  return prefix + name;
+}
+
+static std::wstring make_name_suffix(int index) // a, b, ... z, a1, b1, ...
+{
+  std::wstring suffix(1, wchar_t(L'a' + index % 26));
+  if (index >= 26)
+    suffix += std::to_wstring(index / 26);
+  return suffix;
+}
+
 class Dag2EnumMatCB : public ENodeCB
 {
 public:
-  Interface *ip;
-  std::unordered_set<Mtl *> materials;
+  ~Dag2EnumMatCB() override = default;
 
-  Dag2EnumMatCB(Interface *iptr) : ip(iptr) {}
-  ~Dag2EnumMatCB() override {}
+  std::vector<Mtl *> sorted_materials() const
+  {
+    std::vector<Mtl *> res(materials.begin(), materials.end());
+    std::sort(res.begin(), res.end(), [](Mtl *a, Mtl *b) {
+      int cmp = _tcscmp(a->GetName().data(), b->GetName().data());
+      return cmp != 0 ? cmp < 0 : Animatable::GetHandleByAnim(a) < Animatable::GetHandleByAnim(b);
+    });
+    return res;
+  }
 
   int proc(INode *n) override
   {
@@ -2380,6 +2413,25 @@ public:
 
     return ECB_CONT;
   }
+
+private:
+  std::unordered_set<Mtl *> materials;
+};
+
+class MtlNameRestore : public RestoreObj
+{
+public:
+  Mtl *mtl;
+  MSTR undoName, redoName;
+
+  MtlNameRestore(Mtl *m, const MSTR &new_name) : mtl(m), undoName(m->GetName()), redoName(new_name) {}
+  ~MtlNameRestore() override = default;
+
+  void Restore(int) override { mtl->SetName(undoName); }
+  void Redo() override { mtl->SetName(redoName); }
+
+  int Size() override { return sizeof(MtlNameRestore); }
+  MSTR Description() override { return MSTR(L"material name"); }
 };
 
 void DagUtil::resolveNamesForJson()
@@ -2387,41 +2439,243 @@ void DagUtil::resolveNamesForJson()
   if (!ip)
     return;
 
-  Dag2EnumMatCB cb(ip);
+  if (exp_selected)
+    explog(L"only selected objects are processed\r\n");
+
+  Dag2EnumMatCB cb;
   enum_nodes(ip->GetRootNode(), &cb);
 
-  if (cb.materials.empty())
+  std::unordered_set<std::wstring> names;
+  std::vector<std::pair<Mtl *, std::wstring>> to_rename;
+
+  for (Mtl *m : cb.sorted_materials())
+  {
+    std::wstring name = make_json_material_name(m->GetName().data(), asset_prefix);
+    if (name == m->GetName().data() && names.insert(name).second)
+      continue;
+
+    to_rename.emplace_back(m, std::move(name));
+  }
+
+  if (to_rename.empty())
     return;
 
-  std::unordered_set<std::wstring> names;
+  theHold.Begin();
 
-  for (Mtl *m : cb.materials)
+  for (const auto &[m, resolved_name] : to_rename)
   {
-    std::wstring name = m->GetName().data();
-
+    std::wstring name = resolved_name;
+    for (int i = 0; !names.insert(name).second; ++i)
     {
-      std::wstring mangled_name = name;
-      for (int i = 0; names.find(mangled_name) != names.end(); ++i)
+      name = resolved_name;
+      if (!name.empty() && name.back() != L'_')
+        name += L'_';
+      name += make_name_suffix(i);
+    }
+
+    MSTR new_name = name.data();
+    theHold.Put(new MtlNameRestore(m, new_name));
+    m->SetName(new_name);
+  }
+
+  theHold.Accept(L"resolve names");
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+static const wchar_t *ROOT_NODE_NAME = L"root";
+static const Class_ID MAX_DUMMY_CID = Class_ID(DUMMY_CLASS_ID, 0);
+static const float ROOT_NODE_BOX_SIDE = 20.0f;
+
+void DagUtil::resolveHierarchy()
+{
+  if (!ip)
+    return;
+
+  if (exp_selected)
+    explog(L"only selected objects are processed\r\n");
+
+  INode *scene_root = ip->GetRootNode();
+  INode *root = ip->GetINodeByName(ROOT_NODE_NAME);
+
+  if (root)
+  {
+    Object *obj = root->GetObjectRef();
+    if (!obj || obj->FindBaseObject()->ClassID() != MAX_DUMMY_CID)
+    {
+      explog(L"node '%s' is not a dummy, cant use it as a hierarchy root\r\n", ROOT_NODE_NAME);
+      return;
+    }
+
+    INode *parent = root->GetParentNode();
+    if (parent && !parent->IsRootNode())
+    {
+      explog(L"node '%s' is not at the top level, cant use it as a hierarchy root\r\n", ROOT_NODE_NAME);
+      return;
+    }
+  }
+
+  std::vector<INode *> orphans;
+  for (int i = 0, num = scene_root->NumberOfChildren(); i < num; ++i)
+  {
+    INode *n = scene_root->GetChildNode(i);
+    if (!n || n == root)
+      continue;
+
+    if (exp_selected && !n->Selected())
+      continue;
+
+    orphans.push_back(n);
+  }
+
+  if (orphans.empty())
+  {
+    explog(L"no nodes to attach to '%s'\r\n", ROOT_NODE_NAME);
+    return;
+  }
+
+  theHold.Begin();
+
+  if (!root)
+  {
+    DummyObject *obj = (DummyObject *)ip->CreateInstance(HELPER_CLASS_ID, MAX_DUMMY_CID);
+    root = obj ? ip->CreateObjectNode(obj) : nullptr;
+    if (!root)
+    {
+      explog(L"cant create '%s' node\r\n", ROOT_NODE_NAME);
+      if (obj)
+        obj->DeleteMe();
+      theHold.Cancel();
+      return;
+    }
+
+    Box3 box;
+    box.MakeCube(Point3(0, 0, 0), ROOT_NODE_BOX_SIDE);
+    obj->SetBox(box);
+
+    root->SetName(ROOT_NODE_NAME);
+
+    explog(L"'%s' node created\r\n", ROOT_NODE_NAME);
+  }
+
+  for (INode *n : orphans)
+  {
+    explog(L"%s: attached to '%s'\r\n", n->GetName(), ROOT_NODE_NAME);
+    root->AttachChild(n, 1);
+  }
+
+  explog(L"%d nodes attached to '%s'\r\n", (int)orphans.size(), ROOT_NODE_NAME);
+
+  theHold.Accept(L"resolve hierarchy");
+
+  ip->RedrawViews(ip->GetTime());
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+class Dag2RemoveSkinCB : public ENodeCB
+{
+public:
+  int removedNum = 0;
+
+  ~Dag2RemoveSkinCB() override = default;
+
+  int proc(INode *n) override
+  {
+    if (!n)
+      return ECB_CONT;
+
+    if (util.exp_selected && !n->Selected())
+      return ECB_CONT;
+
+    std::vector<Modifier *> skins;
+    for (Object *obj = n->GetObjectRef(); obj && obj->SuperClassID() == GEN_DERIVOB_CLASS_ID;)
+    {
+      IDerivedObject &derived = *(IDerivedObject *)obj;
+
+      for (int i = 0, num = derived.NumModifiers(); i < num; ++i)
       {
-        mangled_name = name;
-        if (name.back() != L'_')
-          mangled_name += L'_';
-        mangled_name += (L'a' + i); // a, b, ...
+        Modifier *mod = derived.GetModifier(i);
+        if (mod && mod->ClassID() == SKIN_CLASSID)
+          skins.push_back(mod);
       }
-      name = mangled_name;
+
+      obj = derived.GetObjRef();
     }
 
-    names.insert(name);
-
-    if (name.substr(0, asset_prefix.size()) != asset_prefix)
+    int num = 0;
+    for (Modifier *mod : skins)
     {
-      std::wstring prefix = asset_prefix;
-      if (asset_prefix.back() != L'_')
-        prefix += L'_';
-      name = prefix + name;
+      if (ip7->DeleteModifier(*n, *mod) == Interface7::kRES_SUCCESS)
+        ++num;
+      else
+        explogWarning(L"%s: cant remove skin modifier\r\n", n->GetName());
     }
 
-    m->SetName(sanitize_material_name(name).data());
+    if (num)
+      explog(L"%s: %d skin modifiers removed\r\n", n->GetName(), num);
+
+    removedNum += num;
+
+    return ECB_CONT;
+  }
+
+private:
+  Interface7 *ip7 = GetCOREInterface7();
+};
+
+void DagUtil::removeSkinModifiers()
+{
+  if (!ip)
+    return;
+
+  if (exp_selected)
+    explog(L"only selected objects are processed\r\n");
+
+  Dag2RemoveSkinCB cb;
+
+  theHold.Begin();
+
+  enum_nodes(ip->GetRootNode(), &cb);
+
+  if (cb.removedNum)
+    theHold.Accept(L"remove skin mod");
+  else
+    theHold.Cancel();
+
+  explog(L"%d skin modifiers removed\r\n", cb.removedNum);
+
+  ip->RedrawViews(ip->GetTime());
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+void DagUtil::updateTooltips(HWND hw)
+{
+  if (exp_selected)
+  {
+    tooltip.SetToolTip(GetDlgItem(hw, IDC_EXPSEL), L"Apply to only selected nodes");
+    tooltip.SetToolTip(GetDlgItem(hw, IDC_ASSET_PREFIX), L"Optional prefix for material names");
+    tooltip.SetToolTip(GetDlgItem(hw, IDC_RESOLVE_NAMES),
+      L"Checks if every material on selected nodes has unique name that starts with prefix and uses only valid characters. Fixes "
+      L"names if some flaws found.");
+    tooltip.SetToolTip(GetDlgItem(hw, IDC_EXPORT), L"Export materials of selected nodes to json file");
+    tooltip.SetToolTip(GetDlgItem(hw, IDC_RESOLVE_HIER),
+      L"For every selected node without a parent sets a helper named 'root' as a parent. Creates 'root' helper if it does not exists");
+    tooltip.SetToolTip(GetDlgItem(hw, IDC_REMOVE_SKIN_MOD),
+      L"For every selected node check if it has 'Skin' modifier. Removes it if found");
+  }
+  else
+  {
+    tooltip.SetToolTip(GetDlgItem(hw, IDC_EXPSEL), L"Apply to every node in scene");
+    tooltip.SetToolTip(GetDlgItem(hw, IDC_ASSET_PREFIX), L"Optional prefix for material names");
+    tooltip.SetToolTip(GetDlgItem(hw, IDC_RESOLVE_NAMES), L"Checks if every material in scene has unique name that starts with prefix "
+                                                          L"and uses only valid characters. Fixes names if some flaws found.");
+    tooltip.SetToolTip(GetDlgItem(hw, IDC_EXPORT), L"Export scene materials to json file");
+    tooltip.SetToolTip(GetDlgItem(hw, IDC_RESOLVE_HIER),
+      L"For every node in scene without a parent sets a helper named 'root' as a parent. Creates 'root' helper if it does not exists");
+    tooltip.SetToolTip(GetDlgItem(hw, IDC_REMOVE_SKIN_MOD),
+      L"For every node in scene check if it has 'Skin' modifier. Removes it if found");
   }
 }
 
@@ -2513,13 +2767,13 @@ void DagUtil::exportToJson()
     return;
   }
 
-  Dag2EnumMatCB cb(ip);
+  Dag2EnumMatCB cb;
   enum_nodes(ip->GetRootNode(), &cb);
 
   os << "{";
 
   int count = 0;
-  for (Mtl *m : cb.materials)
+  for (Mtl *m : cb.sorted_materials())
   {
     IDagorMat2 *d = (IDagorMat2 *)m->GetInterface(I_DAGORMAT2);
     if (!d)
@@ -2528,7 +2782,7 @@ void DagUtil::exportToJson()
     if (count++)
       os << ',';
 
-    os << "\"" << m->GetName() << "\":{";
+    os << "\"" << escape_string(wideToStr(m->GetName().data())) << "\":{";
     os << "\"class\":\"" << wideToStr(d->get_classname()) << "\",";
 
     Color cold = m->GetDiffuse();
@@ -2749,11 +3003,10 @@ void DagUtil::convertSpacesRecursive(INode *node)
 
   if (node != ip->GetRootNode()) // 'Scene Root' shouldn't be exported anyway.
   {
-    static TCHAR newName[10000];
-    _tcscpy(newName, node->GetName());
-    spaces_to_underscores(newName);
-    if (_tcscmp(node->GetName(), newName))
-      node->SetName(newName);
+    std::wstring newName = node->GetName();
+    std::replace(newName.begin(), newName.end(), L' ', L'_');
+    if (newName != node->GetName())
+      node->SetName(newName.c_str());
   }
 
   for (int childNo = 0; childNo < node->NumberOfChildren(); childNo++)

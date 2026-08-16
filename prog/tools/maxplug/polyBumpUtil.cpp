@@ -31,24 +31,23 @@ enum
 class PolyBumpUtil : public UtilityObj
 {
 public:
-  TCHAR clsname[MAX_CLSNAME];
-  TCHAR output_path[256];
-  IUtil *iu;
-  Interface *ip;
-  HWND hPolyPanel;
-  ICustEdit *forwdist_p_eid;
-  ICustEdit *backdist_p_eid;
-  int antialias;
-  int poly_width, poly_height;
-  int highpolyid, lowpolyid;
-  real backdist_p, forwdist_p;
-  real back_weight;
-  bool latest_hit;
-  int expanddist;
-  int space;
-  bool selected_faces;
-  int map_channel;
-  PolyBumpUtil();
+  TCHAR clsname[MAX_CLSNAME] = {};
+  TCHAR output_path[256] = {};
+  IUtil *iu = NULL;
+  Interface *ip = NULL;
+  HWND hPolyPanel = NULL;
+  ICustEdit *forwdist_p_eid = NULL;
+  ICustEdit *backdist_p_eid = NULL;
+  int antialias = 0;
+  int poly_width = 256, poly_height = 256;
+  int highpolyid = 0, lowpolyid = 0;
+  real backdist_p = 3, forwdist_p = 10;
+  real back_weight = 0.3f;
+  bool latest_hit = false;
+  int expanddist = 32;
+  int space = OBJECT_SPACE;
+  bool selected_faces = false;
+  int map_channel = 1;
   void BeginEditParams(Interface *ip, IUtil *iu) override;
   void EndEditParams(Interface *ip, IUtil *iu) override;
   void DeleteThis() override {}
@@ -173,7 +172,7 @@ IOResult PolyBumpUtilDesc::Load(ILoad *io)
         memset(util.output_path, 0, sizeof(util.output_path));
         if (io->ReadCStringChunk(&str) != IO_OK)
           return IO_ERROR;
-        _tcsncpy(util.output_path, str, 255);
+        _tcsncpy_s(util.output_path, _countof(util.output_path), str, _TRUNCATE);
       }
       break;
       case CH_POLYBUMP2:
@@ -232,10 +231,7 @@ BOOL PolyBumpUtil::polybumpdlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
         case IDC_MAPCHANNEL:
           if (HIWORD(wpar) == CBN_SELCHANGE)
           {
-            char buf[256];
-            buf[255] = 0;
-            SendMessage(GetDlgItem(hPolyPanel, IDC_MAPCHANNEL), WM_GETTEXT, 255, (LPARAM)buf);
-            map_channel = atoi(buf);
+            map_channel = _ttoi(get_window_text(GetDlgItem(hPolyPanel, IDC_MAPCHANNEL)).c_str());
           }
           break;
       }
@@ -243,27 +239,6 @@ BOOL PolyBumpUtil::polybumpdlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
     default: return FALSE;
   }
   return TRUE;
-}
-
-PolyBumpUtil::PolyBumpUtil()
-{
-  _tcscpy(clsname, _T(""));
-  iu = NULL;
-  ip = NULL;
-  hPolyPanel = NULL;
-  forwdist_p_eid = backdist_p_eid = NULL;
-  poly_height = poly_width = 256;
-  highpolyid = lowpolyid = 0;
-  expanddist = 32;
-  backdist_p = 3;
-  forwdist_p = 10;
-  back_weight = 0.3f;
-  latest_hit = false;
-  space = OBJECT_SPACE;
-  selected_faces = false;
-  map_channel = 1;
-  antialias = 0;
-  memset(output_path, 0, sizeof(output_path));
 }
 
 void PolyBumpUtil::BeginEditParams(Interface *ip, IUtil *iu)
@@ -287,8 +262,8 @@ void PolyBumpUtil::update_poly_dist_ui()
 {
   if (!hPolyPanel)
     return;
-  char buf[256];
-  SendMessage(GetDlgItem(hPolyPanel, IDC_LOWPOLYNAME), WM_SETTEXT, 0, (LPARAM) "(none)");
+  TCHAR buf[256];
+  SendMessage(GetDlgItem(hPolyPanel, IDC_LOWPOLYNAME), WM_SETTEXT, 0, (LPARAM) _T("(none)"));
   if (lowpolyid)
   {
     INode *node = ip->GetINodeByHandle(lowpolyid);
@@ -305,21 +280,21 @@ void PolyBumpUtil::update_poly_dist_ui()
         real raylg = forwdist_p * lg;
         if (raylg >= 1000)
         {
-          sprintf(buf, "= %.2f m", raylg / 100);
+          _stprintf_s(buf, _countof(buf), _T("= %.2f m"), raylg / 100);
         }
         else
         {
-          sprintf(buf, "= %.2f cm", raylg);
+          _stprintf_s(buf, _countof(buf), _T("= %.2f cm"), raylg);
         }
         SendMessage(GetDlgItem(hPolyPanel, IDC_FDIST_CM), WM_SETTEXT, 0, LPARAM(buf));
         raylg = backdist_p * lg;
         if (raylg >= 1000)
         {
-          sprintf(buf, "= %.2f m", raylg / 100);
+          _stprintf_s(buf, _countof(buf), _T("= %.2f m"), raylg / 100);
         }
         else
         {
-          sprintf(buf, "= %.2f cm", raylg);
+          _stprintf_s(buf, _countof(buf), _T("= %.2f cm"), raylg);
         }
         SendMessage(GetDlgItem(hPolyPanel, IDC_BDIST_CM), WM_SETTEXT, 0, LPARAM(buf));
       }
@@ -331,7 +306,7 @@ void PolyBumpUtil::update_poly_mapchannels()
 {
   if (!hPolyPanel)
     return;
-  char buf[256];
+  TCHAR buf[256];
   if (lowpolyid)
   {
     INode *node = ip->GetINodeByHandle(lowpolyid);
@@ -353,7 +328,7 @@ void PolyBumpUtil::update_poly_mapchannels()
       {
         if (abs(map_channel - i) < abs(map_channel - nearest_supported))
           nearest_supported = i;
-        sprintf(buf, "%d", i);
+        _stprintf_s(buf, _countof(buf), _T("%d"), i);
         SendMessage(GetDlgItem(hPolyPanel, IDC_MAPCHANNEL), CB_ADDSTRING, 0, (LPARAM)buf);
       }
     }
@@ -363,7 +338,7 @@ void PolyBumpUtil::update_poly_mapchannels()
       if (map_channel >= MAX_MESHMAPS)
         map_channel = MAX_MESHMAPS - 1;
     }
-    sprintf(buf, "%d", map_channel);
+    _stprintf_s(buf, _countof(buf), _T("%d"), map_channel);
     SendMessage(GetDlgItem(hPolyPanel, IDC_MAPCHANNEL), WM_SETTEXT, 0, (LPARAM)buf);
 
     if (lowtri != ob)
@@ -375,34 +350,34 @@ void PolyBumpUtil::update_poly_ui()
 {
   if (!hPolyPanel)
     return;
-  char buf[256];
+  TCHAR buf[256];
   if (space == TANGENT_SPACE)
   {
-    SendMessage(GetDlgItem(hPolyPanel, IDC_SPACE), WM_SETTEXT, 0, (LPARAM) "Tangent space");
+    SendMessage(GetDlgItem(hPolyPanel, IDC_SPACE), WM_SETTEXT, 0, (LPARAM) _T("Tangent space"));
   }
   else if (space == OBJECT_SPACE)
   {
     space = OBJECT_SPACE;
-    SendMessage(GetDlgItem(hPolyPanel, IDC_SPACE), WM_SETTEXT, 0, (LPARAM) "Object space");
+    SendMessage(GetDlgItem(hPolyPanel, IDC_SPACE), WM_SETTEXT, 0, (LPARAM) _T("Object space"));
   }
   else
   {
     space = WORLD_SPACE;
-    SendMessage(GetDlgItem(hPolyPanel, IDC_SPACE), WM_SETTEXT, 0, (LPARAM) "World space");
+    SendMessage(GetDlgItem(hPolyPanel, IDC_SPACE), WM_SETTEXT, 0, (LPARAM) _T("World space"));
   }
 
-  sprintf(buf, "%d", poly_width);
+  _stprintf_s(buf, _countof(buf), _T("%d"), poly_width);
   SendMessage(GetDlgItem(hPolyPanel, IDC_WIDTH), WM_SETTEXT, 0, (LPARAM)buf);
-  sprintf(buf, "%d", poly_height);
+  _stprintf_s(buf, _countof(buf), _T("%d"), poly_height);
   SendMessage(GetDlgItem(hPolyPanel, IDC_HEIGHT), WM_SETTEXT, 0, (LPARAM)buf);
 
   if (expanddist)
-    sprintf(buf, "%d", expanddist);
+    _stprintf_s(buf, _countof(buf), _T("%d"), expanddist);
   else
-    sprintf(buf, "None");
+    _stprintf_s(buf, _countof(buf), _T("None"));
 
   SendMessage(GetDlgItem(hPolyPanel, IDC_EXPAND), WM_SETTEXT, 0, (LPARAM)buf);
-  SendMessage(GetDlgItem(hPolyPanel, IDC_HIGHPOLYNAME), WM_SETTEXT, 0, (LPARAM) "(none)");
+  SendMessage(GetDlgItem(hPolyPanel, IDC_HIGHPOLYNAME), WM_SETTEXT, 0, (LPARAM) _T("(none)"));
 
   if (highpolyid)
   {
@@ -433,20 +408,16 @@ void PolyBumpUtil::update_poly_vars()
 {
   if (!hPolyPanel)
     return;
-  char buf[256];
-  buf[255] = 0;
-  SendMessage(GetDlgItem(hPolyPanel, IDC_WIDTH), WM_GETTEXT, 255, (LPARAM)buf);
-  poly_width = atoi(buf);
-  SendMessage(GetDlgItem(hPolyPanel, IDC_HEIGHT), WM_GETTEXT, 255, (LPARAM)buf);
-  poly_height = atoi(buf);
-  SendMessage(GetDlgItem(hPolyPanel, IDC_EXPAND), WM_GETTEXT, 255, (LPARAM)buf);
-  expanddist = atoi(buf);
-  SendMessage(GetDlgItem(hPolyPanel, IDC_SPACE), WM_GETTEXT, 255, (LPARAM)buf);
-  if (strnicmp(buf, "tangent", strlen("tangent")) == 0)
+  poly_width = _ttoi(get_window_text(GetDlgItem(hPolyPanel, IDC_WIDTH)).c_str());
+  poly_height = _ttoi(get_window_text(GetDlgItem(hPolyPanel, IDC_HEIGHT)).c_str());
+  expanddist = _ttoi(get_window_text(GetDlgItem(hPolyPanel, IDC_EXPAND)).c_str());
+
+  const std::wstring space_name = get_window_text(GetDlgItem(hPolyPanel, IDC_SPACE));
+  if (_tcsnicmp(space_name.c_str(), _T("tangent"), _tcslen(_T("tangent"))) == 0)
   {
     space = TANGENT_SPACE;
   }
-  else if (strnicmp(buf, "object", strlen("object")) == 0)
+  else if (_tcsnicmp(space_name.c_str(), _T("object"), _tcslen(_T("object"))) == 0)
   {
     space = OBJECT_SPACE;
   }
@@ -454,8 +425,7 @@ void PolyBumpUtil::update_poly_vars()
   {
     space = WORLD_SPACE;
   }
-  SendMessage(GetDlgItem(hPolyPanel, IDC_MAPCHANNEL), WM_GETTEXT, 255, (LPARAM)buf);
-  map_channel = atoi(buf);
+  map_channel = _ttoi(get_window_text(GetDlgItem(hPolyPanel, IDC_MAPCHANNEL)).c_str());
   get_chkbool(IDC_SELFACES, selected_faces, hPolyPanel);
   get_chkbool(IDC_LATEST, latest_hit, hPolyPanel);
   get_edfloat(forwdist_p_eid, forwdist_p);
@@ -467,29 +437,29 @@ void PolyBumpUtil::InitPoly(HWND hw)
 {
   // Width
   hPolyPanel = hw;
-  char buf[256];
+  TCHAR buf[256];
   int i;
   for (i = 4; i <= 11; ++i)
   {
-    sprintf(buf, "%d", 1 << i);
+    _stprintf_s(buf, _countof(buf), _T("%d"), 1 << i);
     SendMessage(GetDlgItem(hw, IDC_WIDTH), CB_ADDSTRING, 0, (LPARAM)buf);
     SendMessage(GetDlgItem(hw, IDC_HEIGHT), CB_ADDSTRING, 0, (LPARAM)buf);
   }
-  SendMessage(GetDlgItem(hw, IDC_SPACE), CB_ADDSTRING, 0, (LPARAM) "World space");
-  SendMessage(GetDlgItem(hw, IDC_SPACE), CB_ADDSTRING, 0, (LPARAM) "Object space");
-  SendMessage(GetDlgItem(hw, IDC_SPACE), CB_ADDSTRING, 0, (LPARAM) "Tangent space");
+  SendMessage(GetDlgItem(hw, IDC_SPACE), CB_ADDSTRING, 0, (LPARAM) _T("World space"));
+  SendMessage(GetDlgItem(hw, IDC_SPACE), CB_ADDSTRING, 0, (LPARAM) _T("Object space"));
+  SendMessage(GetDlgItem(hw, IDC_SPACE), CB_ADDSTRING, 0, (LPARAM) _T("Tangent space"));
 
   SendMessage(GetDlgItem(hPolyPanel, IDC_WIDTH), CB_SETCURSEL, 4, 0);
   SendMessage(GetDlgItem(hPolyPanel, IDC_HEIGHT), CB_SETCURSEL, 4, 0);
 
-  sprintf(buf, "None");
+  _stprintf_s(buf, _countof(buf), _T("None"));
   SendMessage(GetDlgItem(hw, IDC_EXPAND), CB_ADDSTRING, 0, (LPARAM)buf);
   for (i = 0; i <= 6; ++i)
   {
-    sprintf(buf, "%d", 1 << i);
+    _stprintf_s(buf, _countof(buf), _T("%d"), 1 << i);
     SendMessage(GetDlgItem(hw, IDC_EXPAND), CB_ADDSTRING, 0, (LPARAM)buf);
   }
-  sprintf(buf, "%d", 2048);
+  _stprintf_s(buf, _countof(buf), _T("%d"), 2048);
   SendMessage(GetDlgItem(hw, IDC_EXPAND), CB_ADDSTRING, 0, (LPARAM)buf);
 
   forwdist_p_eid = GetICustEdit(GetDlgItem(hw, IDC_FDIST_PERCENT));
@@ -780,7 +750,7 @@ bool PolyBumpUtil::BrowseOutFile(TSTR &file)
   // get OPENFILENAME items
   HWND hWnd = GetCOREInterface()->GetMAXHWnd();
   TCHAR file_name[260];
-  _tcsncpy(file_name, file, 260);
+  _tcsncpy_s(file_name, _countof(file_name), file, _TRUNCATE);
   TSTR cap_str = GetString(IDS_SELECT_OUTPUT);
 
   fl.Append(GetString(IDS_FILTER_TARGA));
@@ -839,7 +809,7 @@ bool PolyBumpUtil::select_output()
   TSTR file = output_path;
   if (BrowseOutFile(file))
   {
-    _tcsncpy(output_path, file, 255);
+    _tcsncpy_s(output_path, _countof(output_path), file, _TRUNCATE);
     SendMessage(GetDlgItem(hPolyPanel, IDC_OUTPUTPATH), WM_SETTEXT, 0, (LPARAM)output_path);
     return true;
   }

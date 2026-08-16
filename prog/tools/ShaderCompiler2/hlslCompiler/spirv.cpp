@@ -18,8 +18,16 @@ DLL_EXPORT bool compile_compute_shader_spirv(const char *hlsl_text, unsigned len
 
   dag::Vector<String> params;
   spirv::DXCContext *ctx = spirv::setupDXC("", params);
-  CompileResult result = compileShaderSpirV(ctx, hlsl_text, profile, entry, false, false, enableFp16, false, true, 4096,
-    "nodeBasedShader", 0, enableBindless, hlslDebugLevel != DebugLevel::NONE, false, false);
+  CompileResult result = compileShaderSpirV({.dxcCtx = ctx,
+    .source = hlsl_text,
+    .profile = profile,
+    .entry = entry,
+    .shaderName = "nodeBasedShader",
+    .maxConstantsNo = 4096,
+    .enableFp16 = enableFp16,
+    .optimize = true,
+    .enableBindless = enableBindless,
+    .embedDebugData = hlslDebugLevel != DebugLevel::NONE});
   if (!result.errors.empty())
     out_err.aprintf(0, "%s\n", result.errors.c_str());
   if (result.bytecode.empty())
@@ -46,8 +54,16 @@ DLL_EXPORT bool compile_compute_shader_spirv_bindless(const char *hlsl_text, uns
 
   dag::Vector<String> params;
   spirv::DXCContext *ctx = spirv::setupDXC("", params);
-  CompileResult result = compileShaderSpirV(ctx, hlsl_text, profile, entry, false, false, enableFp16, false, true, 4096,
-    "nodeBasedShader", 0, enableBindless, hlslDebugLevel != DebugLevel::NONE, false, false);
+  CompileResult result = compileShaderSpirV({.dxcCtx = ctx,
+    .source = hlsl_text,
+    .profile = profile,
+    .entry = entry,
+    .shaderName = "nodeBasedShader",
+    .maxConstantsNo = 4096,
+    .enableFp16 = enableFp16,
+    .optimize = true,
+    .enableBindless = enableBindless,
+    .embedDebugData = hlslDebugLevel != DebugLevel::NONE});
   if (!result.errors.empty())
     out_err.aprintf(0, "%s\n", result.errors.c_str());
   if (result.bytecode.empty())

@@ -5,6 +5,7 @@
 #include "vulkan_device.h"
 #include "physical_device_set.h"
 #include "vulkan_allocation_callbacks.h"
+#include "os.h"
 
 using namespace drv3d_vulkan;
 
@@ -325,7 +326,11 @@ VkResult DeviceQueue::present(const TrimmedPresentInfo &presentInfo)
     pi.pSwapchains = presentInfo.pSwapchains;
     pi.pImageIndices = presentInfo.pImageIndices;
 
+    // the WSI issues wl_surface.attach/damage/commit inside this call; hold the window lock so it
+    // cannot interleave with application-side wl_surface requests (see os_present_window_lock)
+    os_present_window_lock();
     ret = VULKAN_LOG_CALL_R(Globals::VK::dev.vkQueuePresentKHR(handle, &pi));
+    os_present_window_unlock();
   }
   else
   {
@@ -394,7 +399,7 @@ void DeviceQueue::submit(FrameInfo &gpu_frame, const TrimmedSubmitInfo &trimmed_
 
 void DeviceQueue::waitAcquireSemaphore(VulkanSemaphoreHandle sem, uint32_t img_idx, FrameInfo &gpu_frame)
 {
-  waitExternSemaphore(sem, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+  waitExternSemaphore(sem, Globals::cfg.signalWaitStage);
   if (pendingAcquireSemaphores.size() <= img_idx)
     pendingAcquireSemaphores.resize(img_idx + 1);
   else

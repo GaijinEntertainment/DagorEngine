@@ -192,7 +192,14 @@ shader apply_aurora_borealis
   USE_CUSTOM_FOG_SKY(ps)
 
   (ps) {
-    aurora_borealis_tex@smp2d = aurora_borealis_tex;
+    aurora_borealis_tex@tex2d = aurora_borealis_tex;
+  }
+  if (!maybe(global_frame_has_linear_clamp_sampler))
+  {
+    INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
+  }
+  hlsl(ps) {
+    #define aurora_borealis_tex_samplerstate global_linear_clamp_sampler
   }
 
   hlsl(ps) {

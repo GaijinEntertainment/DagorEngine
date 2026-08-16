@@ -361,7 +361,8 @@ GraphicsPipeline::GraphicsPipeline(VulkanPipelineCacheHandle cache, LayoutType *
   auto &staticState = info.rsBackend.getStatic(info.varDsc.state.renderState.staticIdx);
 
   if (staticState.dualSourceBlendEnabled && (rpColorTargetMask & (rpColorTargetMask - 1)))
-    D3D_CONTRACT_ERROR("Can't use dual source blending with MRT, please set only one render target");
+    D3D_CONTRACT_ERROR("Can't use dual source blending with MRT, please set only one render target. Pipe: %s Caller: %s",
+      csd.getFullDebugName(), Backend::ctx.getCurrentCmdCaller());
 
   InputLayout inputLayout = Globals::shaderProgramDatabase.getInputLayoutFromId(info.varDsc.state.inputLayout);
 

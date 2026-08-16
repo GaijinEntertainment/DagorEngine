@@ -21,3 +21,4 @@ DAS_API das::atomic<uint64_t> das::g_jobque_track_total {0};
 DAS_API das::atomic<uint64_t> das::g_jobque_track_id {0};
 das::JobStatus *    das::JobStatus::sTrackHead = nullptr;
 das::mutex          das::JobStatus::sTrackMutex;
+das::atomic<int32_t> das::JobStatus::sJoinSpin{0};

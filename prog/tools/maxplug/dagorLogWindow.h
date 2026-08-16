@@ -26,6 +26,7 @@ public:
 
 private:
   static void updateLogEditBox();
+  static void appendToLogEditBox(const TCHAR *text);
   static INT_PTR CALLBACK dialogProc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam);
 
   static HWND hwnd;

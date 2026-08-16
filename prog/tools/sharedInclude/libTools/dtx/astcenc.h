@@ -174,7 +174,31 @@ struct ASTCEncoderHelperContext
   static bool runAstcEnc(Tab<const char *> &arguments)
   {
 #if _TARGET_PC_WIN
-    int ret = _spawnv(_P_WAIT, astcencExePath, (char *const *)arguments.data());
+    String winCmdline;
+    for (unsigned i = 0; arguments[i]; i++)
+    {
+      if (i > 0)
+        winCmdline += " ";
+      bool needsQuote = strchr(arguments[i], ' ') != nullptr;
+      if (needsQuote)
+        winCmdline += "\"";
+      winCmdline += arguments[i];
+      if (needsQuote)
+        winCmdline += "\"";
+    }
+    STARTUPINFOA si = {};
+    si.cb = sizeof(si);
+    PROCESS_INFORMATION pi = {};
+    int ret = -1;
+    if (::CreateProcessA(astcencExePath, winCmdline.str(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi))
+    {
+      ::WaitForSingleObject(pi.hProcess, INFINITE);
+      DWORD exitCode = 1;
+      ::GetExitCodeProcess(pi.hProcess, &exitCode);
+      ret = (int)exitCode;
+      ::CloseHandle(pi.hProcess);
+      ::CloseHandle(pi.hThread);
+    }
 #elif _TARGET_PC_LINUX | _TARGET_PC_MACOSX
     pid_t child_pid;
     int ret = posix_spawn(&child_pid, astcencExePath, nullptr, nullptr, (char *const *)arguments.data(), environ), status = 0;

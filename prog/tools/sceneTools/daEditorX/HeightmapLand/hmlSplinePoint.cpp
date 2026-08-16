@@ -131,7 +131,7 @@ void SplinePointObject::renderPoint(DynRenderBuffer &db, const Point4 &p, const 
 
 bool SplinePointObject::isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const
 {
-  if (spline && EditLayerProps::layerProps[spline->getEditLayerIdx()].hide)
+  if (spline && EditLayerProps::layerProps[spline->getEditLayerIdx()].isLayerOrTypeHidden())
     return false;
   if (pt_intersects(props.pt, ptScreenRad, rect, vp))
   {
@@ -156,7 +156,7 @@ bool SplinePointObject::isSelectedByRectangle(IGenViewportWnd *vp, const EcRect 
 }
 bool SplinePointObject::isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const
 {
-  if (spline && EditLayerProps::layerProps[spline->getEditLayerIdx()].hide)
+  if (spline && EditLayerProps::layerProps[spline->getEditLayerIdx()].isLayerOrTypeHidden())
     return false;
   if (pt_intersects(props.pt, ptScreenRad, x, y, vp))
   {

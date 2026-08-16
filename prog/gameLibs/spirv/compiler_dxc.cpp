@@ -577,6 +577,9 @@ CompileToSpirVResult spirv::compileHLSL_DXC(const spirv::DXCContext *dxc_ctx, da
       // as this extensions are not supported by some devices causing pipeline compilation crash!
       L"-fspv-reflect", L"-fspv-extension=SPV_GOOGLE_hlsl_functionality1", L"-fspv-extension=SPV_GOOGLE_user_type",
       L"-fspv-extension=SPV_KHR_shader_draw_parameters",
+      // only emitted when a shader reads per-vertex attributes (GetAttributeAtVertex);
+      // the runtime selects such variants only on devices exposing the extension
+      L"-fspv-extension=SPV_KHR_fragment_shader_barycentric",
       L"-fvk-use-dx-position-w", // ...
       // NOTE: currently needed to avoid stomping on each others toes
       L"-fvk-s-shift", spacingS, L"0", L"-fvk-t-shift", spacingT, L"0", L"-fvk-u-shift", spacingU, L"0",
@@ -590,6 +593,11 @@ CompileToSpirVResult spirv::compileHLSL_DXC(const spirv::DXCContext *dxc_ctx, da
   if (bool(flags & CompileFlags::ENABLE_BINDLESS_SUPPORT))
   {
     argBuf.push_back(L"-fspv-extension=SPV_EXT_descriptor_indexing");
+  }
+  if (bool(flags & CompileFlags::NO_CONVERSION_WARNINGS))
+  {
+    // implicit vector truncation (e.g. float3 tc -> float2) is a warning FXC ignored; don't let it fail SPIR-V.
+    argBuf.push_back(L"-Wno-conversion");
   }
   if (bool(flags & CompileFlags::ENABLE_HLSL21))
   {

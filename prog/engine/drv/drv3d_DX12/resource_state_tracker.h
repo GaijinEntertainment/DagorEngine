@@ -819,7 +819,7 @@ public:
   }
   // Does not retain user bits
   void reset(D3D12_RESOURCE_STATES new_value) { value = new_value; }
-  // Will reset the state value and all masked user bits, all unmasked bits will be keept.
+  // Will reset the state value and all masked user bits, all unmasked bits will be kept.
   void resetMasked(D3D12_RESOURCE_STATES new_value, uint32_t mask) { value = new_value | (value & (AvailableBits & ~mask)); }
   // Will reset the state value, keeps all unmasked user bits and sets the bits of mask if set_bits is set, otherwise those bits will
   // not be set This is the same as a chain of: resetMasked(value, bit_mask); if (set_bits) addBits(bit_mask);
@@ -846,7 +846,7 @@ public:
   void set(D3D12_RESOURCE_STATES new_value) { value = new_value; }
   // Does not retain user bits
   void reset(D3D12_RESOURCE_STATES new_value) { value = new_value; }
-  // Will reset the state value and all masked user bits, all unmasked bits will be keept.
+  // Will reset the state value and all masked user bits, all unmasked bits will be kept.
   void resetMasked(D3D12_RESOURCE_STATES new_value, uint32_t) { value = new_value; }
   // Will reset the state value, keeps all unmasked user bits and sets the bits of mask if set_bits is set, otherwise those bits will
   // not be set This is the same as a chain of: resetMasked(value, bit_mask); if (set_bits) addBits(bit_mask);
@@ -1746,7 +1746,7 @@ public:
   enum class TransitionResult
   {
     // Executed and turned into a resource barrier
-    Transtioned,
+    Transitioned,
     // Executed and handled by auto promote logic of DX12
     AutoPromoted,
     // Executed and merged into existing barrier for this resource
@@ -1814,7 +1814,7 @@ private:
     get_resource_name(resource, resnameBuffer);
     resource_state_mask_as_string(from, fromTransitionMaskText);
     resource_state_mask_as_string(to, toTransitionMaskText);
-    if (TransitionResult::Transtioned == action)
+    if (TransitionResult::Transitioned == action)
     {
       logdbg("DX12: StateTrack: Transitioned %s 0x%p <%s>[%u] %u from <%s> to <%s>", resTypeTable[is_texture], resource, resnameBuffer,
         sub_res_index, global_base + sub_res_index, fromTransitionMaskText, toTransitionMaskText);
@@ -1880,7 +1880,7 @@ public:
   }
 
   // This applies the resource state decay rules. Decays always happen at the end of a command list if the command list
-  // is the last in a batch that is submitted to "ExecuteCommandLists". Decay does not happen in between command lits
+  // is the last in a batch that is submitted to "ExecuteCommandLists". Decay does not happen in between command lists
   // that are part of the same submit to "ExecuteCommandLists"!
   // Rules:
   // Buffers always decay to common state (except for buffers with immutable state from upload or read back heap).
@@ -1988,7 +1988,7 @@ public:
             }
 
             barriers.transition(res, i, currentState, state);
-            reportStateTransition(res, global_base, i, currentState, state, TransitionResult::Transtioned);
+            reportStateTransition(res, global_base, i, currentState, state, TransitionResult::Transitioned);
             currentState.transition(state);
           }
         }
@@ -2012,7 +2012,7 @@ public:
       res_base += plane_width;
       for (; i < e; ++i)
       {
-        TransitionResult transitionType = TransitionResult::Transtioned;
+        TransitionResult transitionType = TransitionResult::Transitioned;
         auto &currentState = textureStates[global_base + i];
         if (!currentState.needsTransition(state))
         {
@@ -2180,7 +2180,7 @@ public:
       state = combine_with_static_states(global_base, state);
     }
 
-    TransitionResult transtionType = TransitionResult::Transtioned;
+    TransitionResult transtionType = TransitionResult::Transitioned;
     if (currentState.canMerge(state))
     {
       // if merge able we want to transition to a state that includes the current state
@@ -2231,7 +2231,7 @@ public:
     }
 
     bb.transition(res, sub_res, currentState, state);
-    reportStateTransition(res, global_base, sub_res, currentState, state, TransitionResult::Transtioned);
+    reportStateTransition(res, global_base, sub_res, currentState, state, TransitionResult::Transitioned);
     initial_state.initialize(global_base + sub_res, 1, state);
     return true;
   }
@@ -2268,7 +2268,7 @@ public:
       // when split barriers are disabled this will return false and we will fall though to a normal transition
       if (stt.beginTransition(global_base + subresource, state))
       {
-        reportStateTransition(texture, global_base, subresource, currentState, state, TransitionResult::Transtioned);
+        reportStateTransition(texture, global_base, subresource, currentState, state, TransitionResult::Transitioned);
         barriers.beginTransition(texture, subresource, currentState, state);
         return;
       }
@@ -2325,7 +2325,7 @@ public:
     }
 #endif
 
-    TransitionResult result = TransitionResult::Transtioned;
+    TransitionResult result = TransitionResult::Transitioned;
     if (endState != state)
     {
       result = TransitionResult::UnderspecifiedEnd;
@@ -2391,19 +2391,19 @@ public:
 
 #if DAGOR_DBGLEVEL > 0
       // On certain cases it is fine to fix up split barriers (SRV use after async read back), but in other
-      // cases its not (UAV use after asnyc read back, as it changes what is read back).
+      // cases its not (UAV use after async read back, as it changes what is read back).
       if ((state != (endState & state)) && (!has_read_state(endState) || !has_read_state(state)))
       {
         char cbuf[MAX_OBJECT_NAME_LENGTH];
         G_ASSERTF(state == (endState & state),
-          "DX12: Split barrier ended early with either previus end state or new end state "
+          "DX12: Split barrier ended early with either previous end state or new end state "
           "not being read states (0x%08X != (0x%08X & 0x%08X)) for %s - %p - %u",
           state, endState, state, get_resource_name(texture, cbuf), texture, subresource);
         image->setReportStateTransitions();
       }
 #endif
 
-      TransitionResult result = TransitionResult::Transtioned;
+      TransitionResult result = TransitionResult::Transitioned;
       if (endState != state)
       {
         result = TransitionResult::UnderspecifiedEnd;
@@ -2803,7 +2803,10 @@ public:
 
   void useTextureAsDSVForClear(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ImageViewState view)
   {
-    useTextureAsDSVForClear(barriers, stt, texture, view.getArrayBase(), view.getMipBase());
+    for (auto a : view.getArrayRange())
+    {
+      useTextureAsDSVForClear(barriers, stt, texture, a, view.getMipBase());
+    }
   }
 
   void useTextureAsRTVForClear(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ArrayLayerIndex array_layer,
@@ -2820,7 +2823,17 @@ public:
 
   void useTextureAsRTVForClear(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ImageViewState view)
   {
-    useTextureAsRTVForClear(barriers, stt, texture, view.getArrayBase(), view.getMipBase());
+    if (D3D12_RESOURCE_DIMENSION_TEXTURE3D == texture->getType())
+    {
+      useTextureAsRTVForClear(barriers, stt, texture, view.getArrayBase(), view.getMipBase());
+    }
+    else
+    {
+      for (auto a : view.getArrayRange())
+      {
+        useTextureAsRTVForClear(barriers, stt, texture, a, view.getMipBase());
+      }
+    }
   }
 
   void useTextureAsCopySourceForWholeCopy(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
@@ -2967,14 +2980,21 @@ public:
     {
       return;
     }
-    auto arrayCount = arrays.size();
     if (D3D12_RESOURCE_DIMENSION_TEXTURE3D == texture->getType())
     {
-      arrayCount = 1;
+      transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(),
+        texture->mipAndLayerResourceIndex(mip_level, ArrayLayerIndex::make(0), FormatPlaneIndex::make(0)), 1,
+        SubresourcePerFormatPlaneCount::make(1), FormatPlaneCount::make(1), D3D12_RESOURCE_STATE_RENDER_TARGET);
     }
-    transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(),
-      texture->mipAndLayerResourceIndex(mip_level, arrays.front(), FormatPlaneIndex::make(0)), arrayCount,
-      SubresourcePerFormatPlaneCount::make(1), FormatPlaneCount::make(1), D3D12_RESOURCE_STATE_RENDER_TARGET);
+    else
+    {
+      for (auto a : arrays)
+      {
+        transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(),
+          texture->mipAndLayerResourceIndex(mip_level, a, FormatPlaneIndex::make(0)), 1, SubresourcePerFormatPlaneCount::make(1),
+          FormatPlaneCount::make(1), D3D12_RESOURCE_STATE_RENDER_TARGET);
+      }
+    }
   }
 
   void useTextureAsRTV(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ImageViewState view)
@@ -2996,7 +3016,10 @@ public:
 
   void useTextureAsDSV(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ImageViewState view)
   {
-    useTextureAsDSV(barriers, stt, texture, view.getArrayBase(), view.getMipBase());
+    for (auto a : view.getArrayRange())
+    {
+      useTextureAsDSV(barriers, stt, texture, a, view.getMipBase());
+    }
   }
 
   void useTextureAsDSVConst(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ImageViewState view)
@@ -3005,9 +3028,12 @@ public:
     {
       return;
     }
-    transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(),
-      texture->mipAndLayerResourceIndex(view.getMipBase(), view.getArrayBase(), FormatPlaneIndex::make(0)), 1,
-      texture->getSubresourcesPerPlane(), texture->getPlaneCount(), D3D12_RESOURCE_STATE_DEPTH_READ);
+    for (auto a : view.getArrayRange())
+    {
+      transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(),
+        texture->mipAndLayerResourceIndex(view.getMipBase(), a, FormatPlaneIndex::make(0)), 1, texture->getSubresourcesPerPlane(),
+        texture->getPlaneCount(), D3D12_RESOURCE_STATE_DEPTH_READ);
+    }
   }
 
   void useTextureAsUAVForClear(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ArrayLayerRange arrays,

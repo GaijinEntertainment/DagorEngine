@@ -545,7 +545,7 @@ bool dacoll::trace_sphere_cast_ex(const Point3 &from, const Point3 &to, float ra
 
   TMatrix transform = TMatrix::IDENT;
   transform.setcol(0, dir);
-  if (fabsf(dir.y) > sqrt(2) * 0.5f) // more than 45 degrees up/down, choose another basis
+  if (fabsf(dir.y) > 0.99f)
     transform.setcol(2, normalize(dir % Point3(1.f, 0.f, 0.f)));
   else
     transform.setcol(2, normalize(dir % Point3(0.f, 1.f, 0.f)));

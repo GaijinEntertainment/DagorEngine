@@ -429,6 +429,12 @@ bool validate_new_edge(const GraphData &gd, int elem_a, int pin_a, int elem_b, i
     return false;
   }
 
+  // Section dividers are not pins (graphEditor.js isValidConnection rejects them the same way).
+  if (pinA.separator || pinB.separator)
+  {
+    return false;
+  }
+
   if (!is_role_pair_compatible(pinA, pinB))
   {
     return false;
@@ -439,23 +445,29 @@ bool validate_new_edge(const GraphData &gd, int elem_a, int pin_a, int elem_b, i
   edgeViews.reserve(gd.edges.size() + 1);
   eastl::vector<uint8_t> excluded;
   excluded.reserve(gd.edges.size() + 1);
+  // Exactly one entry per gd.edges slot, even for edges that take no part in the analysis: the
+  // hide passes below iterate gd.edges and index `excluded` with the same subscript, so dropping
+  // an entry would shift every later index -- masking the wrong edge, and writing past the end
+  // once more than one edge is dropped.
   for (const GraphData::Edge &e : gd.edges)
   {
     auto ai = idToIdx.find(e.elemA);
     auto bi = idToIdx.find(e.elemB);
-    if (ai == idToIdx.end() || bi == idToIdx.end())
-    {
-      // Dangling edge (refers to a missing node); skip from analysis. Should not happen on a
-      // well-formed graph but defending here is cheap.
-      continue;
-    }
+    // Dangling (an endpoint node is gone; should not happen on a well-formed graph, but defending
+    // is cheap) or muted. A mute means the edge carries no data, so it must not narrow a pin's
+    // types or close a cycle either. Excluded entries keep their -1 placeholder indices and are
+    // never dereferenced: detect_cycle and check_type_correct both test the mask first.
+    const bool inert = (ai == idToIdx.end() || bi == idToIdx.end() || e.muted);
     EdgeView v;
-    v.idxA = ai->second;
-    v.pinA = e.pinA;
-    v.idxB = bi->second;
-    v.pinB = e.pinB;
+    if (ai != idToIdx.end() && bi != idToIdx.end())
+    {
+      v.idxA = ai->second;
+      v.pinA = e.pinA;
+      v.idxB = bi->second;
+      v.pinB = e.pinB;
+    }
     edgeViews.push_back(v);
-    excluded.push_back(0);
+    excluded.push_back(inert ? 1 : 0);
   }
   EdgeView candidate;
   candidate.idxA = idxA;

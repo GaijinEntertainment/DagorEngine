@@ -6,7 +6,7 @@
 
 
 const HlslRegAllocator::allocator_scan_routine_t HlslRegAllocator::DEFAULT_SCAN = +[](HlslRegAllocator &alloc, uint32_t count) {
-  if (DAGOR_UNLIKELY(count > alloc.policy.cap))
+  if (DAGOR_UNLIKELY(count > alloc.policy.cap - alloc.policy.base))
     return int32_t{-1};
   for (uint32_t i = alloc.policy.base; i <= alloc.policy.cap - count; ++i)
   {
@@ -28,7 +28,7 @@ const HlslRegAllocator::allocator_scan_routine_t HlslRegAllocator::DEFAULT_SCAN 
 };
 const HlslRegAllocator::allocator_scan_routine_t HlslRegAllocator::BACKWARDS_SCAN = +[](HlslRegAllocator &alloc, uint32_t count) {
   G_ASSERT(alloc.policy.cap < INT16_MAX); // Sanity check to avoid accidentally creating large bw allocators
-  if (DAGOR_UNLIKELY(count > alloc.policy.cap))
+  if (DAGOR_UNLIKELY(count > alloc.policy.cap - alloc.policy.base))
     return int32_t{-1};
   for (uint32_t i = alloc.policy.cap - count; i != alloc.policy.base - 1; --i)
   {

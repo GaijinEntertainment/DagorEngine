@@ -60,7 +60,7 @@ To do this, create an ``assume_vars`` block inside a ``Compile`` block and then 
       assume_vars
       {
         include common_assumes.blk
-        supports_sh_6_1:i = 0
+        supports_barycentrics:i = 0
         static_shadows_custom_fxaa:i=0
         grass_use_quads:i=0
         bloom_tex:i = 1

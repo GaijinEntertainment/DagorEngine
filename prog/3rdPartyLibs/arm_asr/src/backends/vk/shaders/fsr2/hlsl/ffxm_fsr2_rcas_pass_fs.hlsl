@@ -47,7 +47,7 @@ struct VertexOut
 
 struct RCASOutputsFS
 {
-    FfxFloat32x3 fUpscaledColor    : SV_TARGET0;
+    FfxFloat32x4 fUpscaledColor    : SV_TARGET0;
 };
 
 RCASOutputsFS main(float4 SvPosition : SV_POSITION)
@@ -55,6 +55,6 @@ RCASOutputsFS main(float4 SvPosition : SV_POSITION)
     uint2 uPixelCoord = uint2(SvPosition.xy);
     RCASOutputs result = RCAS(uPixelCoord);
     RCASOutputsFS output = (RCASOutputsFS)0;
-    output.fUpscaledColor = result.fUpscaledColor;
+    output.fUpscaledColor = FfxFloat32x4(result.fUpscaledColor, 1.0);
     return output;
 }

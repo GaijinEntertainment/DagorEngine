@@ -32,6 +32,8 @@
 #include "device_context.h"
 #include "timeline_latency.h"
 #include "command.h"
+#include "os.h"
+#include <drv_utils.h>
 #include "global_const_buffer.h"
 #include "backend/cmd/debug.h"
 #include "backend/cmd/misc.h"
@@ -234,10 +236,25 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       qId = 0;
       if (Globals::cfg.has.gpuTimestamps)
       {
-        OSSpinlockScopedLock frontLock(Globals::ctx.getFrontLock());
-        QueryIndex qIdx = Globals::timestamps.allocate();
-        Globals::ctx.dispatchCmdNoLock<CmdInsertTimesampQuery>({});
-        qId = Globals::timestamps.encodeId(qIdx, Frontend::replay->id);
+        size_t replayId;
+        QueryIndex qIdx;
+        if (Frontend::State::pod.reorderTimestamps)
+        {
+          replayId = Frontend::replay->id;
+          qIdx = Globals::timestamps.allocate();
+          G_ASSERTF(Frontend::replay->reorderedTimestampQueriesCount == qIdx,
+            "vulkan: only tight addition of reordered timestamps for now. %u vs %u", Frontend::replay->reorderedTimestampQueriesCount,
+            qIdx);
+          Frontend::replay->reorderedTimestampQueriesCount = qIdx + 1;
+        }
+        else
+        {
+          OSSpinlockScopedLock frontLock(Globals::ctx.getFrontLock());
+          replayId = Frontend::replay->id;
+          qIdx = Globals::timestamps.allocate();
+          Globals::ctx.dispatchCmdNoLock<CmdInsertTimesampQuery>({});
+        }
+        qId = Globals::timestamps.encodeId(qIdx, replayId);
       }
       return 1;
     }
@@ -669,23 +686,53 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       clear_and_shrink(monitorList);
 
 #if VK_KHR_display
-      if (Globals::VK::phy.displays.empty())
-        return 0;
-
-      monitorList.reserve(Globals::VK::phy.displays.size());
-      for (VkDisplayPropertiesKHR &iter : Globals::VK::phy.displays)
+      if (!Globals::VK::phy.displays.empty())
       {
-        monitorList.push_back(
-          String(64, "%s", iter.displayName ? iter.displayName : String(16, "DISPLAY%u", &iter - Globals::VK::phy.displays.begin())));
+        monitorList.reserve(Globals::VK::phy.displays.size());
+        for (VkDisplayPropertiesKHR &iter : Globals::VK::phy.displays)
+        {
+          monitorList.push_back(String(64, "%s",
+            iter.displayName ? iter.displayName : String(16, "DISPLAY%u", &iter - Globals::VK::phy.displays.begin())));
+        }
+        return monitorList.size() > 0;
       }
-      return monitorList.size() > 0;
 #endif
+#if _TARGET_PC_LINUX
+      return drv3d_vulkan::get_monitors_list(monitorList) ? 1 : 0;
+#else
       return 0;
+#endif
+    }
+    case Drv3dCommand::GET_MONITOR_INFO:
+    {
+#if _TARGET_PC_LINUX
+      const char *monitorName = resolve_monitor_name(*reinterpret_cast<const char **>(par1));
+      String *friendlyName = reinterpret_cast<String *>(par2);
+      int *monitorIndex = reinterpret_cast<int *>(par3);
+      return drv3d_vulkan::get_monitor_info(monitorName, friendlyName, monitorIndex) ? 1 : 0;
+#else
+      return 0;
+#endif
+    }
+    case Drv3dCommand::GET_RESOLUTIONS_FROM_MONITOR:
+    {
+#if _TARGET_PC_LINUX
+      const char *monitorName = resolve_monitor_name(*reinterpret_cast<const char **>(par1));
+      Tab<String> &resolutions = *reinterpret_cast<Tab<String> *>(par2);
+      clear_and_shrink(resolutions);
+      return drv3d_vulkan::get_resolutions_from_monitor(monitorName, resolutions) ? 1 : 0;
+#else
+      return 0;
+#endif
     }
     case Drv3dCommand::GET_VSYNC_REFRESH_RATE:
     {
       *(double *)par1 = Globals::window.refreshRate;
       return 1;
+    }
+    case Drv3dCommand::GET_SWAPCHAIN_PRE_ROTATION:
+    {
+      return Frontend::swapchain.getAppPreRotationAngle();
     }
     case Drv3dCommand::DELAY_SYNC:
 #if VULKAN_ENABLE_DEBUG_FLUSHING_SUPPORT

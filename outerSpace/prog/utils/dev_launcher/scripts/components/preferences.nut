@@ -13,17 +13,17 @@ function timeToText(inttime){
   return $"{year}-{month}-{day} {hour}:{parsedtime.min}:{sec}"
 }
 
-let presetListsWidth = sw(17)
+const presetListsWidth = sw(17)
 
 let presetBtn = kwarg(function (sf, children, onClick, tooltip=null, override = null, onDoubleClick = null){
   let group = ElemGroup()
   return {
     clipChildren = true
-    size = [flex(), SIZE_TO_CONTENT]
+    size = const [flex(), SIZE_TO_CONTENT]
     children = {
       children
       flow = FLOW_VERTICAL
-      size = [flex(), SIZE_TO_CONTENT]
+      size = const [flex(), SIZE_TO_CONTENT]
       behavior = Behaviors.Marquee
       group
       scrollOnHover = true
@@ -59,7 +59,7 @@ let Preferences = kwarg(function(
     builtinPresetsGen.modify(@(v) v + 1)
   }
 
-  let lastChangesName = "##last##"
+  const lastChangesName = "##last##"
   let saveSelections = @() preferences.update({[lastChangesName] = {content = selections.map(@(s) s.get()), ctime = time(), atime = time()}})
   let lastSelections = preferences.fileContent.get()?[lastChangesName].content ?? {}
   if (loadLastChanges)
@@ -199,7 +199,7 @@ let Preferences = kwarg(function(
   let mkBuiltinPresetUp = mkMkEditPresetBtn({onClickPreset= builtinPresetUp, fontSize = hdpx(20), text=fa["arrow-up"], size = [hdpx(20), hdpx(15)]})
   let mkBuiltinPresetDwn = mkMkEditPresetBtn({onClickPreset= builtinPresetDwn, fontSize = hdpx(20), text=fa["arrow-down"], size = [hdpx(20), hdpx(15)]})
 
-  let PresetOptionsKey = "PresetOptionsKey"
+  const PresetOptionsKey = "PresetOptionsKey"
   let closePresetWnd = @() removeModalWindow(PresetOptionsKey)
 
   function mkPresetWnd() {
@@ -219,7 +219,7 @@ let Preferences = kwarg(function(
       gap = hdpx(10)
       color = Color(0,0,0,220)
       children = [
-        mkTextInput(name,  {title = "", placeholder = "name of new preset", size = [sh(40), SIZE_TO_CONTENT], onReturn=@() name.get() != "" ? okClick() : closePresetWnd() })
+        mkTextInput(name,  {title = "", placeholder = "name of new preset", size = const [sh(40), SIZE_TO_CONTENT], onReturn=@() name.get() != "" ? okClick() : closePresetWnd() })
         hflow(
           @() { watch = name children = name.get() != "" ? ok : null}
           mkButton({text = "Cancel", onClick = closePresetWnd, hotkeys = [["Esc"]]})
@@ -261,10 +261,10 @@ let Preferences = kwarg(function(
       gap = hdpx(10)
       color = Color(0,0,0,220)
       children = [
-        mkTextInput(name,  {title = "", placeholder = $"name of new preset", size = [sh(40), SIZE_TO_CONTENT]
+        mkTextInput(name,  {title = "", placeholder = $"name of new preset", size = const [sh(40), SIZE_TO_CONTENT]
           onReturn = @() name.get()!="" ? okClick() : closePresetWnd()
         })
-        mkTextInput(description,  {title = "", placeholder = $"description of new preset", size = [sh(40), SIZE_TO_CONTENT]})
+        mkTextInput(description,  {title = "", placeholder = $"description of new preset", size = const [sh(40), SIZE_TO_CONTENT]})
         hflow(
           @() { watch = name children = name.get() != "" ? ok : null}
           mkButton({text = "Cancel", onClick = closePresetWnd, hotkeys = [["Esc"]]})
@@ -281,7 +281,7 @@ let Preferences = kwarg(function(
           size = [sw(30), sh(50)]
           children = builtinPresets.map(@(v) {
             children = vflow(dtext(v.name), textarea(v.description, {fontSize= hdpx(12), color = Color(128,128,128)}))
-            size = [flex(), SIZE_TO_CONTENT]
+            size = const [flex(), SIZE_TO_CONTENT]
             behavior = Behaviors.Button
             onClick = @() name.set(v.name)
           })
@@ -302,7 +302,7 @@ let Preferences = kwarg(function(
       })
       ]
       .extend(builtinPresets.map(@(v, idx, collection){
-          size = [flex(), SIZE_TO_CONTENT]
+          size = const [flex(), SIZE_TO_CONTENT]
           flow = FLOW_HORIZONTAL
           gap = hdpx(2)
           children = [
@@ -330,7 +330,7 @@ let Preferences = kwarg(function(
       )
       .extend(presets.get().map(@(v, idx)
           {
-            size = [flex(), SIZE_TO_CONTENT]
+            size = const [flex(), SIZE_TO_CONTENT]
             flow = FLOW_HORIZONTAL
             gap = hdpx(5)
             children = [
@@ -345,12 +345,12 @@ let Preferences = kwarg(function(
         tooltip = "Ctrl+S"
         override = {hplace = ALIGN_CENTER}
       }))
-    size = [flex(), SIZE_TO_CONTENT]
+    size = const [flex(), SIZE_TO_CONTENT]
     flow = FLOW_VERTICAL
     padding =hdpx(10)
     gap = hdpx(5)
   }
-  let presetsList = makeVertScroll(presetsListContent, {size = [presetListsWidth, flex()]})
+  let presetsList = makeVertScroll(presetsListContent, {size = const [presetListsWidth, flex()]})
   return {loadPreset, savePreset, deletePreset, mkPresetBtn, mkDelPresetBtn, presets, presetsList, closePresetWnd, mkPresetWnd}
 })
 

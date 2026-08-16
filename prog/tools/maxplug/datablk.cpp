@@ -378,7 +378,7 @@ void DataBlockParser::parse(DataBlock &blk, bool isTop)
       getValue(value);
       blk.addParam(name.data(), type, value.data(), curLine, currentFile().c_str());
     }
-    else if (stricmp(name.data(), "include") == 0)
+    else if (_stricmp(name.data(), "include") == 0)
     {
       std::string value;
       getValue(value);
@@ -505,9 +505,9 @@ int DataBlock::addParam(const char *name, ParamType type, const char *value, int
     case ParamType::TYPE_BOOL:
     {
       bool b = false;
-      if (stricmp(value, "yes") == 0 || stricmp(value, "on") == 0 || stricmp(value, "true") == 0 || stricmp(value, "1") == 0)
+      if (_stricmp(value, "yes") == 0 || _stricmp(value, "on") == 0 || _stricmp(value, "true") == 0 || _stricmp(value, "1") == 0)
         b = true;
-      else if (stricmp(value, "no") == 0 || stricmp(value, "off") == 0 || stricmp(value, "false") == 0 || stricmp(value, "0") == 0)
+      else if (_stricmp(value, "no") == 0 || _stricmp(value, "off") == 0 || _stricmp(value, "false") == 0 || _stricmp(value, "0") == 0)
         b = false;
       else
       {
@@ -649,9 +649,7 @@ int DataBlock::addPoint3(const char *name, const Point3 &value)
 }
 
 
-DataBlock::DataBlock(std::shared_ptr<NameMap> nm) : nameMap(nm), nameId(-1) {}
-
-DataBlock::~DataBlock() {}
+DataBlock::DataBlock(std::shared_ptr<NameMap> nm) : nameMap(std::move(nm)), nameId(-1) {}
 
 // reset class (clear all data & names)
 void DataBlock::reset()

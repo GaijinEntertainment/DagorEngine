@@ -31,6 +31,7 @@
 
 #include <common/autoResolutionData.h>
 #include <common/bindingType.h>
+#include <common/untrackedResources.h>
 
 #include <memory/dag_framemem.h>
 #include <id/idIndexedMapping.h>
@@ -259,6 +260,8 @@ struct Resource
   }
   bool isUntrackedBuffer() const
   {
+    if (!untracked_resources_supported())
+      return false;
     if (getResType() != ResourceType::Buffer)
       return false;
     if (isScheduled())
@@ -269,6 +272,8 @@ struct Resource
   }
   bool isUntrackedTexture() const
   {
+    if (!untracked_resources_supported())
+      return false;
     if (getResType() != ResourceType::Texture)
       return false;
     if (isScheduled())

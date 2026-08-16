@@ -521,7 +521,7 @@ void save_dump(IGenSave &cb, const Dump &dump, const ProfilerDescriptions &descr
         DynamicMemGeneralSaveCB &tagStream = newStream(stream);
         tagStream.writeInt(dump.board);
         tagStream.writeInt(gpuThreadIndex);
-        uint32_t firstFrame = 0;
+        uint32_t firstFrame = 0, taggedFrame = ~0u;
 
         for (size_t i = 0, e = gpuRoots.size(); i < e; ++i)
         {
@@ -538,9 +538,20 @@ void save_dump(IGenSave &cb, const Dump &dump, const ProfilerDescriptions &descr
           auto &frame = dump.frames[firstFrame];
           if (frame.gpuStart > data.start && (frame.gpuStart != ~0ULL || i != e - 1))
             continue;
-          tagStream.writeInt64(max(int64_t(0), cpuGpuClock.from2to1(data.start))); // this is to match gpu events
+          // a frame holds several root scopes (draw, present, ...), tag only the first one - these are frame properties
+          if (firstFrame == taggedFrame)
+            continue;
+          taggedFrame = firstFrame;
+          const int64_t rootTime = max(int64_t(0), cpuGpuClock.from2to1(data.start)); // this is to match gpu events
+          tagStream.writeInt64(rootTime);
           write_vlq_uint(tagStream, descriptions.frame());
           tagStream.writeInt(frame.frameNo);
+          if (frame.gpuClockMhz)
+          {
+            tagStream.writeInt64(rootTime);
+            write_vlq_uint(tagStream, descriptions.gpuClock());
+            tagStream.writeInt(frame.gpuClockMhz);
+          }
         }
         tagStream.writeInt64(~0ULL); // end marker
 

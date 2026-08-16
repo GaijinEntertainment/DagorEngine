@@ -2,7 +2,7 @@ options gen2
 options indenting = 4
 options no_aot     // invokes the compiler at runtime (compile_file) — not AOT-linkable
 
-require daslib/rtti
+require daslib/ast
 require strings
 require dastest/testing_boost public
 

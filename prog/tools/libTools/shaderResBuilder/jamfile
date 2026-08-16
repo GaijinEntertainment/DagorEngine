@@ -12,6 +12,7 @@ Sources =
   meshDataSave.cpp
   processMat.cpp
   validateLods.cpp
+  validateUv.cpp
 
   dynSceneResSrc.cpp
   rendInstResSrc.cpp

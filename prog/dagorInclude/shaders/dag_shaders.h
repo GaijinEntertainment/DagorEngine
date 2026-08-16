@@ -222,11 +222,19 @@ void register_job_manager_requiring_shaders_bindump(int job_mgr_id);
  */
 bool load_shaders_bindump_with_fence(const char *src_filename, d3d::shadermodel::Version shader_model_version);
 
-/// @brief Load debug shaderdump (compiled with -debug).
-bool load_shaders_debug_bindump(d3d::shadermodel::Version version);
+/// @brief Takes a reference on the debug shaderdump (compiled with -debug), loading it if this is the
+/// first one. The shader model of the running dump is tried first, then any other supported one.
+/// Only a dev build on PC DX12 has a debug dump to load: anywhere else, and when the dump is missing
+/// or stale, this returns false.
+bool require_debug_shaders();
 
-/// @brief Unload debug shaderdump (compiled with -debug).
-bool unload_shaders_debug_bindump(d3d::shadermodel::Version version);
+/// @brief Releases one reference taken by require_debug_shaders(); the normal shaderdump comes back
+/// with the last one. False when the last reference went but the normal dump could not be restored,
+/// in which case the reference is kept for another try.
+bool release_debug_shaders();
+
+/// @brief Debug shaderdump references still held; 0 means the normal dump is the one in use.
+int debug_shaders_refcount();
 
 /// @brief Enable usage of stateblocks in shaders (default is platform-specific).
 inline void enable_shaders_use_stateblock(bool) {}

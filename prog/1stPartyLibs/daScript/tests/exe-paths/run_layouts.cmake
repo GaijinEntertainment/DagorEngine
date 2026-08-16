@@ -5,6 +5,7 @@
 #   DASLANG       — path to daslang binary
 #   SRC_DAS       — path to uses_sqlite.das (the test program)
 #   SQLITE_MOD    — path to dasModuleSQLITE(.shared_module|*_debug.shared_module)
+#   RUNTIME_DLLS  — list of daslang runtime shared libs the exe import-links
 #   WORKDIR       — temporary working directory (test-specific)
 #
 # The script compiles SRC_DAS to a standalone exe, then drives it through:
@@ -21,7 +22,7 @@
 # bundle" from "ok bundle" requires runtime override machinery that doesn't
 # exist yet. Each run uses a NEUTRAL cwd to isolate from cwd-relative fallbacks.
 
-if(NOT DASLANG OR NOT SRC_DAS OR NOT SQLITE_MOD OR NOT WORKDIR)
+if(NOT DASLANG OR NOT SRC_DAS OR NOT SQLITE_MOD OR NOT RUNTIME_DLLS OR NOT WORKDIR)
     message(FATAL_ERROR "run_layouts.cmake: missing required -D inputs")
 endif()
 if(NOT EXISTS "${DASLANG}")
@@ -53,6 +54,16 @@ if(NOT EXISTS "${EXE}")
     message(FATAL_ERROR "compile produced no output at ${EXE}")
 endif()
 
+# Helper — ship the daslang runtime shared libs next to the exe. The exe
+# import-links libDaScriptDyn_runtime, so every layout must carry it (this is
+# what `daspkg release` does for real bundles — without it the layout only
+# "works" by leaking the DLL from PATH).
+function(ship_runtime DEST)
+    foreach(_rt IN LISTS RUNTIME_DLLS)
+        file(COPY "${_rt}" DESTINATION "${DEST}")
+    endforeach()
+endfunction()
+
 # Helper — run the exe from CWD, capture output, verify "ok\n"
 function(run_layout SCENARIO EXE_PATH CWD)
     message(STATUS "[${SCENARIO}] exe=${EXE_PATH} cwd=${CWD}")
@@ -78,6 +89,7 @@ file(MAKE_DIRECTORY "${NEUTRAL}")
 set(BUNDLE "${WORKDIR}/bundle")
 file(MAKE_DIRECTORY "${BUNDLE}/modules/dasSQLITE")
 file(COPY "${EXE}" DESTINATION "${BUNDLE}")
+ship_runtime("${BUNDLE}")
 file(COPY "${SQLITE_MOD}" DESTINATION "${BUNDLE}/modules/dasSQLITE")
 get_filename_component(_exe_name "${EXE}" NAME)
 run_layout("bundle" "${BUNDLE}/${_exe_name}" "${NEUTRAL}")
@@ -87,12 +99,14 @@ run_layout("bundle" "${BUNDLE}/${_exe_name}" "${NEUTRAL}")
 set(INSTALL "${WORKDIR}/install")
 file(MAKE_DIRECTORY "${INSTALL}/bin" "${INSTALL}/modules/dasSQLITE")
 file(COPY "${EXE}" DESTINATION "${INSTALL}/bin")
+ship_runtime("${INSTALL}/bin")
 file(COPY "${SQLITE_MOD}" DESTINATION "${INSTALL}/modules/dasSQLITE")
 run_layout("sdk_install" "${INSTALL}/bin/${_exe_name}" "${NEUTRAL}")
 
 # Scenario 3 — local dev build sanity: run the exe from its build location.
 # (Compiled exe baked an absolute path to the SOURCE-tree dasSQLITE; that file
 # still exists, so tier-3 fallback wins. Verifies we don't break today.)
+ship_runtime("${WORKDIR}")
 run_layout("local_dev" "${EXE}" "${NEUTRAL}")
 
 message(STATUS "All exe-path layouts resolved successfully.")

@@ -103,7 +103,7 @@ void ImageCreateInfo::setUsageBitsFromCflags(uint32_t cflag)
   }
   usage |= (cflag & TEXCF_UNORDERED) ? VK_IMAGE_USAGE_STORAGE_BIT : 0;
 #if VK_KHR_fragment_shading_rate
-  if (cflag & TEXCF_VARIABLE_RATE)
+  if ((cflag & TEXCF_VARIABLE_RATE) && Globals::VK::phy.hasAttachmentFragmentShadingRate)
     usage |= VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
 #endif
   D3D_CONTRACT_ASSERT(!(isDepth && (cflag & TEXCF_READABLE)));
@@ -608,7 +608,8 @@ VulkanImageViewHandle Image::createNewImageView(ImageViewState state) const
   VkImageUsageFlags maskedUsage = VK_IMAGE_USAGE_SAMPLED_BIT;
   if (state.isUAV)
     maskedUsage = getUsage();
-  else if (state.isRenderTarget)
+  else if (state.isRenderTarget || state.isInputAttachment)
+    // Input-attachment views share the attachment usage; transient DS attachments have no SAMPLED usage.
     maskedUsage = getUsage() & ~VK_IMAGE_USAGE_STORAGE_BIT;
 
   ivuci.usage = maskedUsage;

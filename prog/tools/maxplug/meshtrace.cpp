@@ -1,7 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <algorithm>
+
 #include "math3d.h"
-#include "qsort.h"
 #include "debug.h"
 
 template <class T>
@@ -320,14 +321,13 @@ StaticMeshRTracer::Node *StaticMeshRTracer::build_node(Mesh &m, int *fc, int num
     BNode *n = nomemchk(new BNode);
     n->bsc = c;
     n->bsr2 = r;
-    real dp = c[md] * 3;
     for (i = 0; i < numf; ++i)
     {
       int f = fc[i];
       fgrp2[f] = ((m.verts[m.faces[f].v[0]][md] + m.verts[m.faces[f].v[1]][md] + m.verts[m.faces[f].v[2]][md]));
     }
-    DataSimpleQsort<int, MapSimpleAscentCompare<float>, float> qs;
-    qs.sort(fc, numf, fgrp2.Addr(0));
+    const float *key = fgrp2.Addr(0);
+    std::sort(fc, fc + numf, [key](int a, int b) { return key[a] < key[b]; });
     int df = numf >> 1;
     n->sub0 = build_node(m, fc, df);
     n->sub1 = build_node(m, fc + df, numf - df);

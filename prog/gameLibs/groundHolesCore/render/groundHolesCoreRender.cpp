@@ -21,7 +21,6 @@
 #include <shaders/dag_DynamicShaderHelper.h>
 #include <heightmap/heightmapHandler.h>
 #include <landMesh/lmeshManager.h>
-#include <landMesh/heightmap_holes_zones.hlsli>
 #include <util/dag_convar.h>
 #include <groundHolesCore/helpers.h>
 
@@ -39,7 +38,6 @@ namespace ground_holes
 {
 #define VAR(a, opt) static ShaderVariableInfo a##VarId(#a, opt);
 
-VAR(heightmap_holes_zones_num, true)
 VAR(hmap_holes_scale_step_offset, false)
 VAR(hmap_hole_ofs_size, false)
 VAR(heightmap_holes_tmp_write_offset_size, false)
@@ -223,41 +221,6 @@ void convar_helper(bool &should_render_ground_holes)
   {
     should_render_ground_holes = true;
   }
-}
-
-
-void zones_before_render(UniqueBufWithShaderVar &hmapHolesZonesBuf, bool &should_update_ground_holes_zones, Tab<Point3_vec4> &bboxes)
-{
-  if (!should_update_ground_holes_zones)
-    return;
-  if (!heightmap_holes_zones_numVarId)
-    return;
-  if (!hmapHolesZonesBuf.getBuf())
-    hmapHolesZonesBuf = dag::buffers::create_persistent_cb(
-      dag::buffers::cb_array_reg_count<Point3_vec4>(MAX_HEIGHTMAP_HOLES_ZONES * 2), "heightmap_holes_zones_cb", RESTAG_LAND);
-
-  G_ASSERT(bboxes.size() % 2 == 0);
-  G_ASSERTF_ONCE(bboxes.size() <= MAX_HEIGHTMAP_HOLES_ZONES * 2, "Ground holes zones above limit! Current: %d, Limit: %d",
-    bboxes.size() / 2, MAX_HEIGHTMAP_HOLES_ZONES);
-
-  ShaderGlobal::set_int(heightmap_holes_zones_numVarId, bboxes.size() / 2);
-  if (!bboxes.empty())
-    hmapHolesZonesBuf.getBuf()->updateDataWithLock(0, sizeof(Point3_vec4) * bboxes.size(), bboxes.data(), VBLOCK_DISCARD);
-
-  should_update_ground_holes_zones = false;
-}
-
-void zones_after_device_reset(UniqueBufWithShaderVar &hmapHolesZonesBuf, bool &should_update_ground_holes_zones)
-{
-  should_update_ground_holes_zones = true;
-  ShaderGlobal::set_int(heightmap_holes_zones_numVarId, 0);
-  hmapHolesZonesBuf.close();
-}
-
-void zones_manager_on_disappear(UniqueBufWithShaderVar &hmapHolesZonesBuf)
-{
-  ShaderGlobal::set_int(heightmap_holes_zones_numVarId, 0);
-  hmapHolesZonesBuf.close();
 }
 
 bool get_debug_hide() { return debug_ground_holes_hide; }

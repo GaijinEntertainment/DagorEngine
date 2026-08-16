@@ -6,6 +6,9 @@
 
 #include <EASTL/unique_ptr.h>
 #include <generic/dag_smallTab.h>
+#include <generic/dag_relocatableFixedVector.h>
+#include <util/dag_bitFlagsMask.h>
+#include <memory/dag_framemem.h>
 #include <dag/dag_vector.h>
 #include <math/dag_Point4.h>
 #include <math/integer/dag_IPoint2.h>
@@ -50,6 +53,37 @@ typedef void *id_t;
 static constexpr id_t INVALID_ID = nullptr;
 static constexpr int DESTRUCTABLES_DELETE_MAX_PER_FRAME = 10;
 
+enum class InteractionFlag : uint8_t
+{
+  None = 0,
+  Static = 1 << 0,     // statics, terrain, rendinsts
+  Self = 1 << 1,       // other destructable pieces
+  Character = 1 << 2,  // characters, vehicles, ragdolls
+  Projectile = 1 << 3, // projectile traces & interactions, TODO: split into 2 separate flags
+
+  All = Static | Self | Character | Projectile
+};
+using InteractionFlags = BitFlagsMask<InteractionFlag>;
+BITMASK_DECLARE_FLAGS_OPERATORS(InteractionFlag);
+
+struct PieceRef
+{
+  id_t id = INVALID_ID;
+  int gen = 0;
+  int pieceIdx = -1;
+};
+
+struct TraceHit
+{
+  PieceRef ref;
+  float t = 0.f;
+  Point3 pos = Point3::ZERO;
+  Point3 normal = Point3::ZERO;
+  int physMatId = -1;
+};
+
+using TraceHitList = dag::RelocatableFixedVector<TraceHit, 2, true, framemem_allocator>;
+
 struct DestructableCreationParams
 {
   const DynamicPhysObjectData *physObjData = nullptr;
@@ -59,6 +93,7 @@ struct DestructableCreationParams
   Point3 camPos = Point3(1e6f, 1e6f, 1e6f);
 
   int resIdx = -1;
+  int riPhysMatId = -1;
   uint32_t hashVal = 0;
 
   float timeToLive = -1.0f;
@@ -74,6 +109,12 @@ struct DestructableCreationParams
 };
 } // namespace destructables
 
+template <>
+struct BitFlagsTraits<destructables::InteractionFlag>
+{
+  static constexpr auto allFlags = destructables::InteractionFlag::All;
+};
+
 namespace gamephys
 {
 
@@ -87,6 +128,7 @@ private:
   friend struct gamephys::DestructableObjectAddImpulse;
   float inactiveTimeBeforeSink = 3.f;
   float timeToSinkUnderground = 3.f;
+  float minInteractiveTime = 2.f;
   float scaleDt;
   bool floatEnabled = false;
   float disintegrationTime = 0.0f;
@@ -101,14 +143,17 @@ public:
 
     static constexpr int VISIBLE_FRAMES_THRESHOLD = 10;
     int visibleFrames = VISIBLE_FRAMES_THRESHOLD;
-    bool keepAlive = false;
+    bool isSentinelBody = false;
+    bool isInteractiveDebris = false;
+    destructables::InteractionFlags interactionFlags = destructables::InteractionFlag::Static;
+    float elevationAboveGround = FLT_MAX;
+    float boundingRadSq = 0.f;
 
     float lifeTime = 0.f;
     float inactiveTime = 0.f;
     float outOfViewTime = 0.f;
     float timeToLive = 0.f;
     float timeToFloat = -1.f;
-    float timeToKinematic = 0.f;
 
     gamephys::Loc visualLoc;
     gamephys::Loc prevLoc;
@@ -123,7 +168,8 @@ public:
     void addImpulse(const Point3 &pos, const Point3 &impulseDir, float impulseLen, float speedLimit, float omegaLimit);
     void updateFloatable(float dt, float at_time);
     void update(DestructableObject &parent, float dt, float scaled_dt, bool force_inactive_timer);
-    void makeKinematic();
+    void setInteractionFlags(destructables::InteractionFlags flags);
+    void changeInteractionFlags(destructables::InteractionFlags flags, bool enable);
     void destroy();
   };
   dag::Vector<Piece> pieces;
@@ -142,8 +188,9 @@ public:
 
   destructables::id_t getId() const { return (destructables::id_t)this; }
 
-  void addImpulse(PhysWorld &pw, const Point3 &pos, const Point3 &impulse, float speedLimit = 7.f, float omegaLimit = 5.f);
   void setupInitialPhysState(const TMatrix &query_tm, const BBox3 &query_box, const Point3 &pos, const Point3 &impulse);
+  void applyInitialImpulse(PhysWorld &pw, const TMatrix &query_tm, const BBox3 &query_box, const Point3 &pos, const Point3 &impulse);
+  void addImpulseSimple(PhysWorld &pw, const Point3 &pos, const Point3 &impulse, float speed_limit = 7.f, float omega_limit = 5.f);
 
   bool isFloatEnabled() const { return floatEnabled; }
   void setTimeToFloat(float time);
@@ -175,7 +222,51 @@ struct DestructablesConfig
     Point2 maxRelSize = Point2(0.1f, 0.4f);
   } outOfViewDisappear;
 
+  struct DestructionBurst
+  {
+    // baseline values and scaling
+    float impactSpeed = 13.f;
+    float radialSpeed = 3.5f;
+    float directVelFalloff = 0.7f;
+    float radialVelBaseRadius = 0.5f;
+    float maxDirectVelBias = 2.f;
+    float penetrationBase = 7.5f;
+    float penetrationMax = 12.5f;
+    float tumbleFactor = 1.f;
+
+    // intensity scaling
+    float refImpulse = 2000.f;
+    float impulseIntensityGain = 0.5f;
+    float impulseIntensityExponent = 0.5f;
+    float maxIntensity = 2.f;
+
+    // velocity field sampling
+    float samplingScale = 1.f;
+    int maxSamplesPerAxis = 8;
+    float minSampleSpread = 0.5f;
+    float linVelSampleWeightExp = 2.f;
+
+    // noise & jitter
+    float noiseAmplitude = 2.5f;
+    float noiseScale = 2.f;
+    float noiseLateralFrac = 0.25f;
+    float smallPieceRandomOmega = 6.f;
+    float smallOmegaSizeThreshold = 0.5f;
+
+    // limits
+    float hardMaxSpeed = 40.f;
+    float hardMaxOmega = 10.f;
+    float maxTipSpeed = 8.f;
+  } destructionBurst;
+  bool simpleInitialImpulse = true;
+
+  InteractionFlags enabledInteractionFlags = InteractionFlag::Static | InteractionFlag::Character;
+  float interactiveDebrisMinSize = VERY_BIG_NUMBER;
+  float characterCollisionDist = 0.f;
+  float characterCollisionDistHysteresis = 10.f;
+  float minInteractiveHeight = 0.4f;
   float keepAliveMaxHeightAboveGround = 0.f;
+
   float visualErrorSmoothTime = 3.f;
   float visualErrorAccumulateTime = 1.f;
 
@@ -193,7 +284,7 @@ struct DestructablesConfig
 const DestructablesConfig &get_config();
 DestructablesConfig &get_mutable_config();
 
-void init(const DataBlock *blk, int fgroup = dacoll::EPL_DEBRIS);
+void init(const DataBlock *blk);
 void close();
 
 id_t addDestructable(gamephys::DestructableObject **out_destr, DestructableCreationParams &&params, PhysWorld *phys_world);
@@ -202,7 +293,9 @@ id_t addDestructable(gamephys::DestructableObject **out_destr, DynamicPhysObject
 void clear();
 void removeDestructableById(id_t id);
 
-void update(float dt, const Point3 &view_pos);
+void trace_ray(const Point3 &from, const Point3 &dir, float max_t, TraceHitList &out_hits);
+
+void update(float dt, float cur_time, const Point3 &view_pos);
 void update_floatable(float dt, float cur_time);
 dag::ConstSpan<gamephys::DestructableObject *> getDestructableObjects();
 }; // namespace destructables

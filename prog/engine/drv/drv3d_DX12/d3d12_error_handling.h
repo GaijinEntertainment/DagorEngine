@@ -79,6 +79,7 @@ constexpr const char *dxgi_error_code_to_string(HRESULT ec)
     ENUM_CASE(DXGI_ERROR_MODE_CHANGE_IN_PROGRESS);
     ENUM_CASE(E_INVALIDARG);
     ENUM_CASE(E_OUTOFMEMORY);
+    ENUM_CASE(E_ABORT); // MemoryAllocationError uses it for a refused attempt, see basic_components.h
     ENUM_CASE(E_ACCESSDENIED);
     ENUM_CASE(E_NOINTERFACE);
 #if _TARGET_PC_WIN

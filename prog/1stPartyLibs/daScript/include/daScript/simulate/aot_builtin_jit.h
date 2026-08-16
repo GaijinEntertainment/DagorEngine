@@ -18,6 +18,7 @@ namespace das {
 
     float4 das_invoke_code ( void * pfun, vec4f anything, void * cmres, Context * context );
     bool das_is_jit_function ( const Func func );
+    bool das_has_jit_fastpath ( const Func func );
     bool das_remove_jit ( const Func func );
     bool das_instrument_jit ( void * pfun, const Func func, const LineInfo & info, Context & context );
     void * das_instrument_line_info ( const LineInfo & info, Context * context, LineInfoArg * at );
@@ -35,6 +36,9 @@ namespace das {
     void * das_get_jit_free_persistent ();
     void * das_get_jit_array_lock ();
     void * das_get_jit_array_unlock ();
+    void * das_get_jit_table_lock ();
+    void * das_get_jit_table_unlock ();
+    void * das_get_jit_array_resize ();
     void * das_get_jit_table_at ( int32_t baseType, Context * context, LineInfoArg * at );
     void * das_get_jit_table_erase ( int32_t baseType, Context * context, LineInfoArg * at );
     void * das_get_jit_table_find ( int32_t baseType, Context * context, LineInfoArg * at );
@@ -44,6 +48,7 @@ namespace das {
     void * das_get_jit_prologue ();
     void * das_get_jit_epilogue ();
     void * das_get_jit_make_block ();
+    void * das_get_jit_ad_by_sid ();
     void * das_get_jit_debug ();
     void * das_get_jit_iterator_iterate();
     void * das_get_jit_iterator_delete();

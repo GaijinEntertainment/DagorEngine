@@ -14,7 +14,29 @@
     <NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions);USE_JOLT_PHYSICS;JPH_DISABLE_CUSTOM_ALLOCATOR;JPH_CROSS_PLATFORM_DETERMINISTIC;JPH_ENABLE_ASSERTS;JPH_DEBUG_RENDERER;JPH_USE_SSE4_1;JPH_USE_SSE4_2</NMakePreprocessorDefinitions>
   </PropertyGroup>
   <Import Project="$(MSBuildToolsDir)config.props" />
-  <PropertyGroup />
+  <PropertyGroup>
+    <!-- jamfile puts output into game/$(Platform)-$(PlatformArch), not the legacy per-platform dirs (win64, ps5) -->
+    <JamOutArch Condition="'$(JamPlatformArch)' != ''">$(JamPlatformArch)</JamOutArch>
+    <JamOutArch Condition="'$(JamOutArch)' == '' and '$(JamPlatform)' == 'android'">arm64-v8a</JamOutArch>
+    <JamOutArch Condition="'$(JamOutArch)' == ''">x86_64</JamOutArch>
+    <OutDir>$(GameDir)$(JamPlatform)-$(JamOutArch)\</OutDir>
+    <RelativeExeDir>$(JamPlatform)-$(JamOutArch)\</RelativeExeDir>
+    <!-- retarget what the imports above already derived from the legacy OutDir; at design time that
+         includes the debugger command, so an empty value here means the platform never sets it -->
+    <JamOutput Condition="'$(JamOutput)' != ''">$(OutDir)$([System.IO.Path]::GetFileName('$(JamOutput)'))</JamOutput>
+    <ExeName Condition="'$(ExeName)' != ''">$([System.IO.Path]::GetFileName('$(JamOutput)'))</ExeName>
+    <NMakeOutput Condition="'$(NMakeOutput)' != ''">$(JamOutput)</NMakeOutput>
+    <LocalDebuggerCommand Condition="'$(LocalDebuggerCommand)' != ''">$(JamOutput)</LocalDebuggerCommand>
+    <AdditionalFiles Condition="'$(AdditionalFiles)' != ''">$(JamOutput)</AdditionalFiles>
+    <OriginalAdditionalFiles Condition="'$(OriginalAdditionalFiles)' != ''">$(AdditionalFiles)</OriginalAdditionalFiles>
+    <RemoteDebuggerCommand Condition="'$(RemoteDebuggerCommand)' != '' and '$(RemoteDebuggerCommand)' == '$(OriginalRemoteDebuggerCommand)'">$(RemoteRootDir)$(RelativeExeDir)$(ExeName)</RemoteDebuggerCommand>
+    <OriginalRemoteDebuggerCommand Condition="'$(OriginalRemoteDebuggerCommand)' != ''">$(RemoteDebuggerCommand)</OriginalRemoteDebuggerCommand>
+    <DeploymentDirectory Condition="'$(DeploymentDirectory)' != '' and '$(DeploymentDirectory)' == '$(OriginalDeploymentDirectory)'">$(RemoteRootDir)$(RelativeExeDir)</DeploymentDirectory>
+    <OriginalDeploymentDirectory Condition="'$(OriginalDeploymentDirectory)' != ''">$(DeploymentDirectory)</OriginalDeploymentDirectory>
+    <AdditionalSymbolSearchPaths Condition="'$(DaPlatform)' == 'android'">$(OutDir)</AdditionalSymbolSearchPaths>
+    <LocalGP5File Condition="'$(DaPlatform)' == 'ps5'">$(OutDir)scee\workspace_layout.gp5</LocalGP5File>
+    <GameOSFilePath Condition="'$(DaPlatform)' == 'scarlett'">$(OutDir)gameos.xvd</GameOSFilePath>
+  </PropertyGroup>
   <Import Project="$(MSBuildToolsDir)common.targets" />
   <ItemGroup Label="Wildcard">
     <CppSource Include="**\*.cpp" />

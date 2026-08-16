@@ -56,8 +56,45 @@ struct ExecutionScratch
     uint32_t originalSignalId;
     uint32_t originalWaitId;
     bool fenceWait;
+
+    // prepare a pooled slot for reuse: drop contents but keep the internal arrays' allocated storage
+    void reset(DeviceQueueType q, uint32_t original_id)
+    {
+      cbs.clear();
+      signals.clear();
+      waitSemaphores.clear();
+      waitTimelines.clear();
+      signalsCount = 0;
+      queue = q;
+      originalSignalId = original_id;
+      originalWaitId = original_id;
+      fenceWait = false;
+    }
   };
-  Tab<QueueSubmitItem> submitGraph;
+
+  struct SubmitGraph
+  {
+    Tab<QueueSubmitItem> pool;
+    uint32_t used = 0;
+
+    uint32_t size() const { return used; }
+    bool empty() const { return used == 0; }
+    QueueSubmitItem *data() { return pool.data(); }
+    QueueSubmitItem *begin() { return pool.data(); }
+    QueueSubmitItem *end() { return pool.data() + used; }
+    QueueSubmitItem &operator[](uint32_t i) { return pool[i]; }
+    QueueSubmitItem &back() { return pool[used - 1]; }
+
+    // grab next slot, growing the pool only when the high watermark increases; caller must reset() it
+    QueueSubmitItem &push_back()
+    {
+      if (used == pool.size())
+        pool.push_back();
+      return pool[used++];
+    }
+    void reuse() { used = 0; }
+  };
+  SubmitGraph submitGraph;
 
   struct UserQueueSignal
   {

@@ -359,6 +359,7 @@ struct QuadLeafFields
   bool hasB;             // leaf carries a 2nd quad (sub-tris 2,3); sentinel o1b != o2b
   bool isSingleB;        // quad B 2nd sub-tri degenerate (o3b == o2b)
   bool flipSecondB;      // quad B 2nd sub-tri winding
+  uint32_t user;         // per-leaf user bits, opaque here (0 unless the producer stamped them)
 };
 
 __forceinline QuadLeafFields decodeQuadLeafFields(uint32_t skip, uint32_t w1, uint32_t w2, uint32_t w3)
@@ -377,6 +378,7 @@ __forceinline QuadLeafFields decodeQuadLeafFields(uint32_t skip, uint32_t w1, ui
   f.hasB = (f.o1b != f.o2b);
   f.isSingleB = (f.o3b == f.o2b);
   f.flipSecondB = (w2 & QUAD_FLIPB_FLAG) != 0;
+  f.user = (w3 >> QUAD_LEAF_USER_SHIFT) & QUAD_LEAF_USER_MASK;
   return f;
 }
 

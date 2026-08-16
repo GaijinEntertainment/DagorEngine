@@ -54,6 +54,27 @@
             return 0;
         }
 
+        int GetPhysicalCoreCountInWindows() {
+            DWORD returnLength = 0;
+            vector<unsigned char> buffer;
+            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX info = nullptr;
+            GetLogicalProcessorInformationEx(RelationProcessorCore, NULL, &returnLength);
+            buffer.resize(returnLength);
+            if (GetLogicalProcessorInformationEx(RelationProcessorCore, reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *>(buffer.data()), &returnLength)) {
+                int coreCount = 0;
+                DWORD offset = 0;
+                while (offset < returnLength) {
+                    info = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *>(buffer.data() + offset);
+                    if (info->Relationship == RelationProcessorCore) {
+                        coreCount++;    // one record per physical core, SMT siblings collapsed
+                    }
+                    offset += info->Size;
+                }
+                return coreCount;
+            }
+            return 0;
+        }
+
         bool g_isVHSet = false;
         void ( * g_HwBpHandler ) ( int, void * ) = nullptr;
 
@@ -167,11 +188,18 @@
             return msg;
         }
         string normalizeFileName ( const char * fileName ) {
-            char buffer[MAX_PATH ];
-            auto ret = GetFullPathNameA(fileName,MAX_PATH,buffer,nullptr);
-            if ( !ret ) return "";
-            string result = buffer;
-            // GetFullPathNameA may leave a trailing backslash for directory
+            // das strings are UTF-8; the ANSI variant misreads non-ANSI names, so go wide
+            wchar_t wideName[MAX_PATH];
+            if ( !MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, fileName ? fileName : "", -1, wideName, MAX_PATH) )
+                return "";
+            wchar_t buffer[MAX_PATH];
+            auto ret = GetFullPathNameW(wideName, MAX_PATH, buffer, nullptr);
+            if ( !ret || ret >= MAX_PATH ) return "";
+            char utf8[MAX_PATH * 4];
+            if ( !WideCharToMultiByte(CP_UTF8, 0, buffer, -1, utf8, int(sizeof(utf8)), nullptr, nullptr) )
+                return "";
+            string result = utf8;
+            // GetFullPathNameW may leave a trailing backslash for directory
             // paths (e.g. "./" -> "D:\foo\"). Trim it for consistency.
             if ( result.size()>3 && (result.back()=='\\' || result.back()=='/') )
                 result.pop_back();

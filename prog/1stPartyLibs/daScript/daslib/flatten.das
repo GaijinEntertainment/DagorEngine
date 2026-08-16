@@ -21,7 +21,6 @@ require daslib/ast
 require daslib/ast_boost
 require daslib/templates_boost
 require daslib/rtti
-require strings
 require daslib/flatten_opt
 
 // Phase token carried as the "phase" argument of the [flatten] annotation on
@@ -52,6 +51,7 @@ let private STD_WHITELIST : table<string> <- {
     "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "sincos",
     "radians", "degrees",   // lowered to `x * K` by flatten_opt (no opcode needed)
     "dot", "cross", "length", "normalize", "distance", "reflect", "refract",
+    "hmin", "hmax", "hadd",   // horizontal reduces emitted by pack_map_reduce (flatten_opt_pack)
     "lerp", "mix", "step", "smooth_step", "rcp", "mad",
     "float2", "float3", "float4", "int2", "int3", "int4", "uint2", "uint3", "uint4"
 }
@@ -141,17 +141,6 @@ def private contains(a : array<string>; s : string) : bool {
         if (x == s) return true
     }
     return false
-}
-
-// Strip a monomorphized generic's mangling to the bare function name: an OR-type
-// instance is named `<scope>`<name>`<hash>` (backtick = char 96). Used so the
-// caller-supplied whitelist can match by simple name regardless of instantiation.
-def private simple_name(fullname : string) : string {
-    let t1 = find(fullname, 96, 0)
-    if (t1 < 0) return fullname
-    let t2 = find(fullname, 96, t1 + 1)
-    let endp = t2 < 0 ? length(fullname) : t2
-    return slice(fullname, t1 + 1, endp)
 }
 
 def private p_and(a, b : ExpressionPtr) : ExpressionPtr {
@@ -263,7 +252,7 @@ def private inline_call(var ctx : FlatCtx?; call : ExprCall?; structPred : Expre
 // Lift every user call out of a value expression into inline frames, in eval order,
 // returning the call-free rewrite. Plain recursion, NOT a visitor — inlining recurses back
 // through the pipeline, and nested make_visitor traversals corrupt the visitor machinery.
-def private lift_expr(var ctx : FlatCtx?; e : ExpressionPtr; structPred : ExpressionPtr; var out : array<ExpressionPtr>) : ExpressionPtr {
+def private lift_expr(var ctx : FlatCtx?; e : ExpressionPtr; structPred : ExpressionPtr; var out : array<ExpressionPtr>) : ExpressionPtr {   // nolint:STYLE037,STYLE038 - exact-type `is` ladder, one arm per expression kind
     if (e == null) return null
     if (e is ExprCall) {
         let c = e as ExprCall
@@ -364,6 +353,14 @@ def private lift_expr(var ctx : FlatCtx?; e : ExpressionPtr; structPred : Expres
         }
         return n
     }
+    if (e is ExprMakeArray) {
+        var n = clone_expression(e)
+        var o = n as ExprMakeArray
+        for (vi in range(length(o.values))) {
+            o.values[vi] = lift_expr(ctx, o.values[vi], structPred, out)
+        }
+        return n
+    }
     // Typer-inserted ref/value/ptr conversion wrappers — recurse through to the buried call.
     if (e is ExprRef2Value) {
         var n = clone_expression(e)
@@ -404,20 +401,20 @@ def private lower_branch(var ctx : FlatCtx?; br : ExpressionPtr; structPred : Ex
 def private lower_loop_exit(var ctx : FlatCtx?; structPred : ExpressionPtr; var out : array<ExpressionPtr>; isBreak : bool) {
     if (empty(ctx.loopMasks)) {
         ctx.ok = false
-        ctx.err = "flatten: internal error — {isBreak ? "break" : "continue"} outside a flattened loop"
+        ctx.err = "flatten: internal error - {isBreak ? "break" : "continue"} outside a flattened loop"
         return
     }
     let lm = ctx.loopMasks[length(ctx.loopMasks) - 1]
     let nm = isBreak ? lm.loopLive : lm.iterLive
     if (nm == "") {
         ctx.ok = false
-        ctx.err = "flatten: internal error — {isBreak ? "break" : "continue"} mask was not allocated"
+        ctx.err = "flatten: internal error - {isBreak ? "break" : "continue"} mask was not allocated"
         return
     }
     emit_narrow(out, nm, live_pred(ctx, structPred, nm))
 }
 
-def private lower_stmt(var ctx : FlatCtx?; stmt : ExpressionPtr; structPred : ExpressionPtr; var out : array<ExpressionPtr>) {
+def private lower_stmt(var ctx : FlatCtx?; stmt : ExpressionPtr; structPred : ExpressionPtr; var out : array<ExpressionPtr>) {   // nolint:STYLE037 - exact-type `is` ladder, one arm per statement kind
     if (stmt is ExprReturn) {
         let r = stmt as ExprReturn
         if (ctx.hasRet && r.subexpr != null) {
@@ -502,7 +499,7 @@ class private LetNameScan : AstVisitor {
     names : array<string>
     def override preVisitExprLet(expr : ExprLet?) : void {
         for (v in expr.variables) {
-            names |> push("{v.name}")   // nolint:PERF006 -- macro-time, count is the (small) local set
+            names |> push("{v.name}")   // nolint:PERF006,LINT019 -- macro-time, count is the (small) local set; PERF006 fires only in downstream compiles
         }
     }
 }
@@ -605,7 +602,7 @@ def private for_source_substs(var ctx : FlatCtx?; src : Expression?; at : LineIn
 // Fixed-count loop unrolling: a `for` over a constant range/array literal clones its body once
 // per iteration (loop var → that iteration's constant), each copy lowered under the SAME
 // predicate; per-copy locals are renamed. break/continue allocate runtime masks. while errors.
-def private lower_for(var ctx : FlatCtx?; efor : ExprFor?; structPred : ExpressionPtr; var out : array<ExpressionPtr>) {
+def private lower_for(var ctx : FlatCtx?; efor : ExprFor?; structPred : ExpressionPtr; var out : array<ExpressionPtr>) {   // nolint:STYLE038 - one linear unroll pass; the phases share the per-source value lists
     let nIter = length(efor.iterators)
     if (nIter == 0 || length(efor.sources) != nIter) {
         ctx.ok = false
@@ -753,6 +750,12 @@ def public flatten_expand_lerp : bool {
 }
 
 [macro_function]
+def public flatten_hadd_pack_pairs : bool {
+    //! True when the COMPILING module sets `options _flatten_hadd_pack_pairs = true` — pack width-2 horizontal sums (`a + b`) into `hadd2` too. The default packs width >=3 only: a width-2 pack is +1 node on a node-graph backend (a `combine2` with no offsetting add saved), but a win in cycles on a SIMD CPU backend. COMPILE-TIME ONLY: patch code reads it once, runtime tools pass their flag.
+    return compiling_program()._options |> find_arg("_flatten_hadd_pack_pairs") ?as tBool ?? false
+}
+
+[macro_function]
 def public flatten_fold(var func : FunctionPtr; no_fast_math : bool = false; expand_lerp : bool = false) : bool {
     //! Post-infer fold pass (delegates to `fold_body`): collapse `const ? a : b`, fold identities,
     //! drop pure self-assigns. Run AFTER re-inference; returns true if anything changed. Compile-time
@@ -785,11 +788,9 @@ def public flatten_pack(var func : FunctionPtr; no_fast_math : bool = false) : b
 }
 
 [macro_function]
-def public flatten_fuse(var func : FunctionPtr; no_fast_math : bool = false) : bool {
-    //! PHASE_FUSED finishing pass (delegates to `fuse_body`): collapse same-vector lane sums into
-    //! `dot(v, mask)`, re-pack ctor lane patterns, `a*b ± c` into mad, and the expanded lerp shape
-    //! back into lerp. Call on the optimized, re-inferred body; repeat until it returns false.
-    return fuse_body(func, no_fast_math)
+def public flatten_fuse(var func : FunctionPtr; no_fast_math : bool = false; hadd_min_width : int = 3) : bool {
+    //! PHASE_FUSED finishing pass (delegates to `fuse_body`): collapse same-vector lane sums into `dot(v, mask)`, independent scalar sums into `hadd` (groups of width [hadd_min_width..4]), re-pack ctor lane patterns, `a*b ± c` into mad, and the expanded lerp shape back into lerp.
+    return fuse_body(func, no_fast_math, hadd_min_width)
 }
 
 def public flatten_opt_residuals(var func : FunctionPtr; no_fast_math : bool = false) : array<string> {
@@ -829,9 +830,9 @@ def private verify_flat(var twin : FunctionPtr) : string {
     }
     var msg = ""
     if (v.sawBranch) {
-        msg = "flatten: internal error — a branch (if/else) survived lowering in '{twin.name}'"
+        msg = "flatten: internal error - a branch (if/else) survived lowering in '{twin.name}'"
     } elif (v.sawCall) {
-        msg = "flatten: internal error — user call '{v.callName}' survived lowering in '{twin.name}'"
+        msg = "flatten: internal error - user call '{v.callName}' survived lowering in '{twin.name}'"
     }
     unsafe {
         delete v
@@ -880,7 +881,7 @@ class private FoldResidualVisitor : AstVisitor {
     }
     def override preVisitExprSwizzle(var expr : ExprSwizzle?) : void {
         if (is_unfolded_swizzle_lanes(expr)) {
-            found |> push("an un-folded swizzle over decomposable lanes ('ctor(…).mask' should re-pack)")
+            found |> push("an un-folded swizzle over decomposable lanes ('ctor(...).mask' should re-pack)")
         }
     }
 }
@@ -936,8 +937,7 @@ class FlattenAnnotation : AstFunctionAnnotation {
     def override patch(var func : FunctionPtr; var group : ModuleGroup;
                        args, progArgs : AnnotationArgumentList; var errors : das_string;
                        var astChanged : bool&) : bool {
-        // Lint runs with const-folding off, so `range(N)` isn't an ExprConstRange yet and the twin
-        // is irrelevant to linting; leave it the inert clone from `apply` (mirrors unroll.das).
+        // Lint runs with const-folding off, so `range(N)` isn't an ExprConstRange yet and the twin is irrelevant to linting; leave it the inert clone from `apply` (mirrors unroll.das).
         if (is_in_lint_check()) return true
         let ph = get_flatten_phase(func)
         if (ph == PHASE_DONE) return true
@@ -947,9 +947,7 @@ class FlattenAnnotation : AstFunctionAnnotation {
             return false
         }
         if (ph != PHASE_LOWERED && ph != PHASE_FOLDED && ph != PHASE_OPTIMIZED && ph != PHASE_FUSED) {
-            // Cycle 1: lower the twin with the std whitelist, then re-infer so
-            // call.func resolves. (Backends call flatten_function directly with
-            // their own primitive set instead of going through this annotation.)
+            // Cycle 1: lower the twin with the std whitelist, then re-infer so call.func resolves. (Backends call flatten_function directly with their own primitive set instead of going through this annotation.)
             var ctx = flatten_function(twin, STD_WHITELIST, get_flatten_max_unroll(func))
             if (!ctx.ok) {
                 errors := ctx.err
@@ -960,18 +958,14 @@ class FlattenAnnotation : AstFunctionAnnotation {
             return true
         }
         if (ph == PHASE_LOWERED || ph == PHASE_FOLDED) {
-            // Cycle 2+: fold the inferred twin (const selects, algebraic identities, pure self-
-            // assigns), re-infer if anything changed. Iterate to a fixpoint — fold and the typer's
-            // re-infer const-fold are mutually-enabling, so one pass isn't enough.
+            // Cycle 2+: fold the inferred twin (const selects, algebraic identities, pure self- assigns), re-infer if anything changed. Iterate to a fixpoint — fold and the typer's re-infer const-fold are mutually-enabling, so one pass isn't enough.
             let folded = flatten_fold(twin, flatten_no_fast_math(), flatten_expand_lerp())
             set_flatten_phase(func, PHASE_FOLDED)
             if (folded) {
                 astChanged = true
                 return true
             }
-            // Fold fixpoint reached → run the optimize pass once on the canonical body: hoist uniform
-            // subtrees to top-of-body `_preshader_` lets, CSE-dedup repeated subtrees. Re-infer to
-            // type the new lets, then fuse next cycle.
+            // Fold fixpoint reached → run the optimize pass once on the canonical body: hoist uniform subtrees to top-of-body `_preshader_` lets, CSE-dedup repeated subtrees. Re-infer to type the new lets, then fuse next cycle.
             set_flatten_phase(func, PHASE_OPTIMIZED)
             if (flatten_optimize(twin, FLATTEN_BARRIERS, flatten_no_fast_math(), flatten_log_cse())) {
                 astChanged = true
@@ -979,11 +973,9 @@ class FlattenAnnotation : AstFunctionAnnotation {
             }
         }
         if (get_flatten_phase(func) == PHASE_OPTIMIZED || get_flatten_phase(func) == PHASE_FUSED) {
-            // Optimize converged → re-pack `a*b ± c` into `mad` and the lerp shape back into
-            // `lerp`, re-inferring to resolve the new calls; iterates (each round strictly
-            // drops a `+`/`-`, so it converges), a clean round falls through to the shape check.
+            // Optimize converged → re-pack `a*b ± c` into `mad` and the lerp shape back into `lerp`, re-inferring to resolve the new calls; iterates (each round strictly drops a `+`/`-`, so it converges), a clean round falls through to the shape check.
             set_flatten_phase(func, PHASE_FUSED)
-            if (flatten_fuse(twin, flatten_no_fast_math())) {
+            if (flatten_fuse(twin, flatten_no_fast_math(), flatten_hadd_pack_pairs() ? 2 : 3)) {
                 astChanged = true
                 return true
             }

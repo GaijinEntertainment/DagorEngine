@@ -9,7 +9,6 @@ module async_boost shared private
 //! Provides ``[async]`` function annotation and ``await`` call macro that
 //! rewrite annotated functions into generator-based coroutines.
 
-require strings
 require daslib/ast_boost
 require daslib/templates_boost
 require daslib/macro_boost
@@ -47,12 +46,7 @@ def public await(var a : iterator<bool>) : bool {
 
 [tag_function_macro(tag="await_coroutine_tag")]
 class AwaitCoroutineMacro : AstFunctionAnnotation {
-    //! This macro converts await(<coroutine>) expression into::
-    //!
-    //!     for t in THAT
-    //!         yield t
-    //!
-    //! The idea is that coroutine or generator can continuously yield from another sub-coroutine or generator.
+    //! This macro converts an ``await(<coroutine>)`` expression into equivalent inline code.
     def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
         let iname = make_unique_private_name("_await_coroutine", call.at)
         var res = qmacro_block() {
@@ -68,9 +62,6 @@ class AwaitCoroutineMacro : AstFunctionAnnotation {
 [function_macro(name="async")]
 class AsyncMacro : AstFunctionAnnotation {
     //! This macro converts function into generator.
-    //! Generator yields bool if its a void function (coroutine), and yields the return type otherwise (async return).
-    //! async function can wait for another async function using await(<async fn call>).
-    //! use 'return false' to immediately return from the generator.
     [unused_argument(group, args)] def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
         if (func.result.baseType == Type.autoinfer) {
             macro_error(compiling_program(), func.at, "async function should have explicit return type")

@@ -54,4 +54,12 @@ struct RandomGrassBvhMapping
   uint padding;
 };
 
+#ifndef __cplusplus
+// A zero BLAS address means this grass LOD is not in the BVH: its OMM still bakes, or the bake failed.
+bool random_grass_bvh_mapping_is_valid(RandomGrassBvhMapping mapping)
+{
+  return (mapping.blas.x | mapping.blas.y) != 0;
+}
+#endif
+
 #endif

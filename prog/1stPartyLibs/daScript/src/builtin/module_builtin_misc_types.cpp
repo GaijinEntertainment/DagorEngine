@@ -225,24 +225,29 @@ namespace das
         addFunctionOrdered<char *>(*this,lib);
         addFunctionConcat<char *>(*this,lib);
         addExtern<DAS_BIND_FUN(das_lexical_cast_int_i8)>(*this, lib, "string",
-            SideEffects::none, "das_lexical_cast_int_i8")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false));
+            SideEffects::none, "das_lexical_cast_int_i8")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false))->setTempStringResult();
         addExtern<DAS_BIND_FUN(das_lexical_cast_int_u8)>(*this, lib, "string",
-            SideEffects::none, "das_lexical_cast_int_u8")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false));
+            SideEffects::none, "das_lexical_cast_int_u8")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false))->setTempStringResult();
         addExtern<DAS_BIND_FUN(das_lexical_cast_int_i16)>(*this, lib, "string",
-            SideEffects::none, "das_lexical_cast_int_i16")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false));
+            SideEffects::none, "das_lexical_cast_int_i16")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false))->setTempStringResult();
         addExtern<DAS_BIND_FUN(das_lexical_cast_int_u16)>(*this, lib, "string",
-            SideEffects::none, "das_lexical_cast_int_u16")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false));
+            SideEffects::none, "das_lexical_cast_int_u16")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false))->setTempStringResult();
         addExtern<DAS_BIND_FUN(das_lexical_cast_int_i32)>(*this, lib, "string",
-            SideEffects::none, "das_lexical_cast_int_i32")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false));
+            SideEffects::none, "das_lexical_cast_int_i32")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false))->setTempStringResult();
         addExtern<DAS_BIND_FUN(das_lexical_cast_int_u32)>(*this, lib, "string",
-            SideEffects::none, "das_lexical_cast_int_u32")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false));
+            SideEffects::none, "das_lexical_cast_int_u32")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false))->setTempStringResult();
         addExtern<DAS_BIND_FUN(das_lexical_cast_int_i64)>(*this, lib, "string",
-            SideEffects::none, "das_lexical_cast_int_i64")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false));
+            SideEffects::none, "das_lexical_cast_int_i64")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false))->setTempStringResult();
         addExtern<DAS_BIND_FUN(das_lexical_cast_int_u64)>(*this, lib, "string",
-            SideEffects::none, "das_lexical_cast_int_u64")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false));
+            SideEffects::none, "das_lexical_cast_int_u64")->args({"value","hex","context","at"})->arg_init(1,new ExprConstBool(false))->setTempStringResult();
         addExtern<DAS_BIND_FUN(das_lexical_cast_fp_f)>(*this, lib, "string", SideEffects::none,
-            "das_lexical_cast_fp_f")->args({"value","context","at"});
+            "das_lexical_cast_fp_f")->args({"value","context","at"})->setTempStringResult();
         addExtern<DAS_BIND_FUN(das_lexical_cast_fp_d)>(*this, lib, "string", SideEffects::none,
-            "das_lexical_cast_fp_d")->args({"value","context","at"});
+            "das_lexical_cast_fp_d")->args({"value","context","at"})->setTempStringResult();
+        // temp-string reclaim wrapper: the compiler inserts this around a [temp_string_result] call
+        // whose result dies in the consuming call. NOT setCaptureString - the queue retention is the
+        // mechanism itself, and captureString here would poison every caller's capture analysis
+        addExtern<DAS_BIND_FUN(das_temp_string_result)>(*this, lib, "_temp_string_result",
+            SideEffects::modifyExternal, "das_temp_string_result")->args({"str","context","at"});
     }
 }

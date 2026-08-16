@@ -75,7 +75,7 @@ template <typename T, size_t N, bool O, typename E, typename A, typename C>
 template <typename InputIterator>
 inline FixedVectorSet<T, N, O, E, A, C>::FixedVectorSet(InputIterator first, InputIterator last)
 {
-  reserve(eastl::distance(last, first));
+  reserve(eastl::distance(first, last));
   // This is equivalent to an insertion sort
   for (; first != last; ++first)
     insert(*first);

@@ -15,13 +15,7 @@ require daslib/ast_boost
 
 [reader_macro(name="stringify")]
 class private LongStringReader : AstReaderMacro {
-    //! This macro implements embedding of the long string into the source code. ::
-    //!
-    //!     var st = %stringify~
-    //!     This is a long string
-    //!     with multiple lines
-    //!     and special charactes like { this } and "that"
-    //!     %%
+    //! This macro embeds a long string into the source code.
     def override accept(prog : ProgramPtr; mod : Module?; var expr : ExprReader?; ch : int; info : LineInfo) : bool {
         //! Accepts characters into the reader sequence until the closing %% delimiter is found.
         if (ch != '\r') {

@@ -51,6 +51,17 @@ shader bvh_debug
     bvh_debug_lod_by_meta@buf = bvh_debug_lod_by_meta hlsl { StructuredBuffer<uint> bvh_debug_lod_by_meta@buf; }
   }
 
+  if (hardware.pc)
+  {
+    (cs)
+    {
+      bvhLruCollision@tlas = bvh_lru_collision;
+      bvhLruCollisionValid@u1 = bvh_lru_collision_valid;
+    }
+    INIT_BVH_LRU_COLLISION_NORMALS(cs)
+    USE_BVH_LRU_COLLISION_NORMALS(cs)
+  }
+
   hlsl (cs) {
     #include <NRD.hlsli>
     #include <render/debug_mesh.hlsli>
@@ -68,6 +79,7 @@ shader bvh_debug
     #define BVH_DEBUG_MODE_INSTANCES 10
     #define BVH_DEBUG_MODE_NAN 11
     #define BVH_DEBUG_MODE_LOD 12
+    #define BVH_DEBUG_MODE_LRU_COLLISION 13
 
     #define RAY_FLAG_FORCE_OMM_2_STATE_MANUAL 1
   }
@@ -106,13 +118,9 @@ shader bvh_debug
       return trace_ray(bvhMain, origin, direction, tmin, tmax, bias, group, hitInfo, extra_flags);
     }
 
-    RT_GROUP_SIZE
-    void main(uint2 thread : SV_DispatchThreadID)
+    float3 bvh_debug_ray_dir(float2 pixel, float2 resolution)
     {
-      float2 resolution;
-      debug_target.GetDimensions(resolution.x, resolution.y);
-
-      float2 rate = ( thread + 0.5 ) / resolution;
+      float2 rate = pixel / resolution;
       float3 topT = lerp(view_vecLT, view_vecRT, rate.x);
       float3 botT = lerp(view_vecLB, view_vecRB, rate.x);
       float3 direction = normalize(lerp(topT, botT, rate.y));
@@ -134,18 +142,55 @@ shader bvh_debug
           direction = float3(0, 1, 0);
         }
       }
+      return direction;
+    }
+
+    RT_GROUP_SIZE
+    void main(uint2 thread : SV_DispatchThreadID)
+    {
+      float2 resolution;
+      debug_target.GetDimensions(resolution.x, resolution.y);
+
+      float3 direction = bvh_debug_ray_dir(thread + 0.5, resolution);
+
+      ##if hardware.pc
+      BRANCH
+      if (bvh_debug_mode == BVH_DEBUG_MODE_LRU_COLLISION)
+      {
+        float3 lruColor = 0;
+        if (bvhLruCollisionValid)
+        {
+          // the pool holds the exact per-triangle normal: fetch it instead of
+          // reconstructing from neighbor rays. Closest hit, not first hit: the
+          // displayed normal must be stable
+          const uint flags = RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
+          RayQuery<flags> query;
+
+          RayDesc ray;
+          ray.Origin    = 0;
+          ray.Direction = direction;
+          ray.TMin      = bvh_debug_min_t;
+          ray.TMax      = 100000;
+
+          query.TraceRayInline(bvhLruCollision, flags, 0xFF, ray);
+          query.Proceed();
+          if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+          {
+            float3 normal = bvh_lru_collision_hit_normal(query.CommittedInstanceID(), query.CommittedPrimitiveIndex(),
+              query.CommittedWorldToObject3x4(), direction);
+            lruColor = normal * 0.5 + 0.5;
+          }
+        }
+        debug_target[thread] = float4(lruColor, 1);
+        return;
+      }
+      ##endif
 
       float3 result = 0;
       bool isHit = false;
 
-      #ifdef HAS_RAYQUERY_FLAG_ALLOW_OPACITY_MICROMAPS
-        uint extraFlags = bvh_disable_ahs_with_omm ? RAY_FLAG_FORCE_OMM_2_STATE : 0;
-      #else
-        uint extraFlags = 0;
-      #endif
-
       HitInfo hitInfo;
-      if (trace_ray_safe(0, direction, bvh_debug_min_t, 100000, 0, bvhGroupRender, hitInfo, extraFlags))
+      if (trace_ray_safe(0, direction, bvh_debug_min_t, 100000, 0, bvhGroupRender, hitInfo, 0))
       {
         isHit = true;
         SurfaceParams hitSurface = calc_surface_params(hitInfo, -direction, 0);
@@ -363,4 +408,294 @@ shader bvh_debug_postfx
   }
 
   compile("cs_6_5", "main");
+}
+
+buffer bvh_probe_instances;
+buffer bvh_probe_sink;
+
+int bvh_probe_ray_count = 256;
+float bvh_probe_tmax = 5;
+
+int bvh_probe_tlas = 0;
+interval bvh_probe_tlas: probe_main < 1, probe_terrain < 2, probe_particles;
+
+shader bvh_tlas_probe
+{
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing || hardware.ps5 || hardware.metal)
+  {
+    dont_render;
+  }
+
+  (cs) { immediate_dword_count = 2; }
+
+  (cs)
+  {
+    probe_ray_count@i1 = bvh_probe_ray_count;
+    probe_tmax@f1 = bvh_probe_tmax;
+    probe_instances@buf = bvh_probe_instances hlsl {
+      #include <RTHWInstance.hlsli>
+      StructuredBuffer<RTHWInstance> probe_instances@buf;
+    };
+    probe_sink@uav = bvh_probe_sink hlsl { RWByteAddressBuffer probe_sink@uav; };
+  }
+
+  INIT_BVH(cs, 0, true)
+
+  hlsl(cs)
+  {
+    // same as USE_MAIN_BVH_RECONSTRUCTION with less included
+    static const uint probeGroupMask = 0xff;
+
+    // add dummy lambda to compile on scarlett
+    struct ProbeAHSLambda AHSLambda
+    {
+      bool InlineAHSImpl(AHSArgs) { return true; }
+      ##if hardware.scarlett
+        void InlineAHS(inout XboxRayQueryProxy query) { query.CommitNonOpaqueTriangleHit(); }
+      ##endif
+    };
+
+    float3 probe_direction(uint index, uint count)
+    {
+      float z = 1.0 - (2.0 * index + 1.0) / count;
+      float r = sqrt(saturate(1.0 - z * z));
+      float phi = index * 2.39996323;
+      return float3(r * cos(phi), z, r * sin(phi));
+    }
+
+    RT_GROUP_SIZE
+    void bvh_tlas_probe_cs(uint2 dtId : SV_DispatchThreadID)
+    {
+      ##if bvh_probe_tlas == probe_main
+        if (!bvhMainValid)
+          return;
+        #define PROBE_TLAS bvhMain
+      ##elif bvh_probe_tlas == probe_terrain
+        if (!bvhTerrainValid)
+          return;
+        #define PROBE_TLAS bvhTerrain
+      ##else
+        if (!bvhParticlesValid)
+          return;
+        #define PROBE_TLAS bvhParticles
+      ##endif
+
+      uint instanceIndex = get_immediate_dword_0();
+      uint rayPitch = get_immediate_dword_1();
+      uint rayIndex = dtId.y * rayPitch + dtId.x;
+      if (rayIndex >= uint(probe_ray_count))
+        return;
+
+      RTHWInstance instance = structuredBufferAt(probe_instances, instanceIndex);
+      float3 origin = float3(instance.transform0.w, instance.transform1.w, instance.transform2.w);
+
+      // No RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, make sure we touch our BLAS
+      const uint flags = RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES | RAY_FLAG_FORCE_OPAQUE;
+      GenericRayQuery(flags, ProbeAHSLambda) query;
+
+      RayDesc ray;
+      ray.Origin = origin;
+      ray.Direction = probe_direction(rayIndex, uint(probe_ray_count));
+      ray.TMin = 0;
+      ray.TMax = probe_tmax;
+
+      query.TraceRayInline(PROBE_TLAS, flags, probeGroupMask, ray);
+      ##if hardware.scarlett
+        ProbeAHSLambda lambda;
+        query.Proceed(lambda);
+      ##else
+        while (query.Proceed())
+          query.CommitNonOpaqueTriangleHit();
+      ##endif
+
+      // Keeps the trace from being dead code eliminated.
+      if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+        storeBuffer(probe_sink, 0, asuint(query.CommittedRayT()) ^ instanceIndex);
+    }
+  }
+
+  compile("cs_6_5", "bvh_tlas_probe_cs");
+}
+
+buffer bvh_validate_instances;
+buffer bvh_validate_live_blas;
+buffer bvh_validate_pooled_blas;
+buffer bvh_validate_report;
+
+buffer bvh_validate_tail_counter;
+
+int bvh_validate_instance_count;
+int bvh_validate_live_blas_count;
+int bvh_validate_pooled_blas_count;
+int bvh_validate_max_reports = 64;
+int bvh_validate_tail_region_index;
+int bvh_validate_tail_region_start;
+int bvh_validate_tail_region_count;
+
+// Checks the instance descriptors the TLAS build is about to consume: every non-null BLAS address
+// must be one of the addresses the context currently owns.
+shader bvh_validate_tlas
+{
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing || hardware.ps5 || hardware.metal)
+  {
+    dont_render;
+  }
+
+  (cs)
+  {
+    validate_instance_count@i1 = bvh_validate_instance_count;
+    validate_live_blas_count@i1 = bvh_validate_live_blas_count;
+    validate_pooled_blas_count@i1 = bvh_validate_pooled_blas_count;
+    validate_max_reports@i1 = bvh_validate_max_reports;
+    validate_instances@buf = bvh_validate_instances hlsl {
+      #include <RTHWInstance.hlsli>
+      StructuredBuffer<RTHWInstance> validate_instances@buf;
+    };
+    validate_live_blas@buf = bvh_validate_live_blas hlsl { StructuredBuffer<uint2> validate_live_blas@buf; };
+    validate_pooled_blas@buf = bvh_validate_pooled_blas hlsl { StructuredBuffer<uint2> validate_pooled_blas@buf; };
+    validate_report@uav = bvh_validate_report hlsl { RWByteAddressBuffer validate_report@uav; };
+  }
+
+  hlsl(cs)
+  {
+    #include "bvh_validate_tlas.hlsli"
+
+    void store_validate_report(RWByteAddressBuffer report, uint report_index, uint slot, uint kind, RTHWInstance instance,
+      uint region_index)
+    {
+      uint at = (BVH_VALIDATE_REPORT_HEADER_DWORDS + report_index * BVH_VALIDATE_REPORT_DWORDS) * 4;
+      storeBuffer(report, at + BVH_VALIDATE_REPORT_INSTANCE * 4, slot);
+      storeBuffer(report, at + BVH_VALIDATE_REPORT_KIND * 4, kind);
+      storeBuffer(report, at + BVH_VALIDATE_REPORT_BLAS_LO * 4, instance.blas.x);
+      storeBuffer(report, at + BVH_VALIDATE_REPORT_BLAS_HI * 4, instance.blas.y);
+      storeBuffer(report, at + BVH_VALIDATE_REPORT_INSTANCE_ID_MASK * 4, instance.instanceId_mask);
+      storeBuffer(report, at + BVH_VALIDATE_REPORT_REGION * 4, region_index);
+      storeBuffer(report, at + BVH_VALIDATE_REPORT_SEQUENCE * 4, report_index + 1);
+    }
+
+    bool find_blas(StructuredBuffer<uint2> addresses, int count, uint2 address)
+    {
+      int lo = 0;
+      int hi = count - 1;
+      while (lo <= hi)
+      {
+        int mid = (lo + hi) / 2;
+        uint2 probe = structuredBufferAt(addresses, mid);
+        if (probe.y == address.y && probe.x == address.x)
+          return true;
+        if (probe.y < address.y || (probe.y == address.y && probe.x < address.x))
+          lo = mid + 1;
+        else
+          hi = mid - 1;
+      }
+      return false;
+    }
+
+    [numthreads(64, 1, 1)]
+    void bvh_validate_tlas_cs(uint dtId : SV_DispatchThreadID)
+    {
+      if (dtId >= uint(validate_instance_count))
+        return;
+
+      RTHWInstance instance = structuredBufferAt(validate_instances, dtId);
+      if (all(instance.blas == 0))
+        return; // a zero AS address is a legal inactive instance
+
+      bool badTransform = any(isnan(instance.transform0)) || any(isnan(instance.transform1)) || any(isnan(instance.transform2)) ||
+                          any(abs(instance.transform0) > 1e9) || any(abs(instance.transform1) > 1e9) ||
+                          any(abs(instance.transform2) > 1e9);
+
+      // Classified here rather than on the CPU: the report is read back a frame or more later, by
+      // which time the pools have handed entries out and taken others back.
+      uint kind = 0;
+      if (!find_blas(validate_live_blas, validate_live_blas_count, instance.blas))
+        kind = find_blas(validate_pooled_blas, validate_pooled_blas_count, instance.blas) ? BVH_VALIDATE_POOLED_BLAS
+                                                                                         : BVH_VALIDATE_DEAD_BLAS;
+      else if (badTransform)
+        kind = BVH_VALIDATE_BAD_TRANSFORM;
+
+      if (kind == 0)
+        return;
+
+      uint reportIndex;
+      validate_report.InterlockedAdd(0, 1, reportIndex);
+      if (reportIndex >= uint(validate_max_reports))
+        return;
+
+      store_validate_report(validate_report, reportIndex, dtId, kind, instance, BVH_VALIDATE_NO_REGION);
+    }
+  }
+
+  compile("target_cs", "bvh_validate_tlas_cs");
+}
+
+// The TLAS build consumes a GPU fed region at full capacity, so everything past the producer's live
+// count must be zeroed. A non-zero BLAS address there is a stale descriptor turned into a live
+// instance.
+shader bvh_validate_tlas_tail
+{
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing || hardware.ps5 || hardware.metal)
+  {
+    dont_render;
+  }
+
+  (cs)
+  {
+    tail_region_index@i1 = bvh_validate_tail_region_index;
+    tail_region_start@i1 = bvh_validate_tail_region_start;
+    tail_region_count@i1 = bvh_validate_tail_region_count;
+    validate_max_reports@i1 = bvh_validate_max_reports;
+    validate_instances@buf = bvh_validate_instances hlsl {
+      #include <RTHWInstance.hlsli>
+      StructuredBuffer<RTHWInstance> validate_instances@buf;
+    };
+    tail_counter@buf = bvh_validate_tail_counter hlsl { ByteAddressBuffer tail_counter@buf; };
+    validate_report@uav = bvh_validate_report hlsl { RWByteAddressBuffer validate_report@uav; };
+  }
+
+  hlsl(cs)
+  {
+    #include "bvh_validate_tlas.hlsli"
+
+    void store_validate_report(RWByteAddressBuffer report, uint report_index, uint slot, uint kind, RTHWInstance instance,
+      uint region_index)
+    {
+      uint at = (BVH_VALIDATE_REPORT_HEADER_DWORDS + report_index * BVH_VALIDATE_REPORT_DWORDS) * 4;
+      storeBuffer(report, at + BVH_VALIDATE_REPORT_INSTANCE * 4, slot);
+      storeBuffer(report, at + BVH_VALIDATE_REPORT_KIND * 4, kind);
+      storeBuffer(report, at + BVH_VALIDATE_REPORT_BLAS_LO * 4, instance.blas.x);
+      storeBuffer(report, at + BVH_VALIDATE_REPORT_BLAS_HI * 4, instance.blas.y);
+      storeBuffer(report, at + BVH_VALIDATE_REPORT_INSTANCE_ID_MASK * 4, instance.instanceId_mask);
+      storeBuffer(report, at + BVH_VALIDATE_REPORT_REGION * 4, region_index);
+      storeBuffer(report, at + BVH_VALIDATE_REPORT_SEQUENCE * 4, report_index + 1);
+    }
+
+    [numthreads(64, 1, 1)]
+    void bvh_validate_tlas_tail_cs(uint dtId : SV_DispatchThreadID)
+    {
+      if (dtId >= uint(tail_region_count) || dtId < loadBuffer(tail_counter, 0))
+        return;
+
+      uint slot = uint(tail_region_start) + dtId;
+      RTHWInstance instance = structuredBufferAt(validate_instances, slot);
+      if (all(instance.blas == 0))
+        return;
+
+      // Only the first stale slot of the region gets a record; the rest just bump its counter, so a
+      // large tail cannot exhaust the record budget.
+      uint stalePrev;
+      validate_report.InterlockedAdd((BVH_VALIDATE_REGION_COUNTERS + uint(tail_region_index)) * 4, 1, stalePrev);
+      if (stalePrev != 0)
+        return;
+
+      uint reportIndex;
+      validate_report.InterlockedAdd(0, 1, reportIndex);
+      if (reportIndex >= uint(validate_max_reports))
+        return;
+
+      store_validate_report(validate_report, reportIndex, slot, BVH_VALIDATE_STALE_TAIL, instance, uint(tail_region_index));
+    }
+  }
+
+  compile("target_cs", "bvh_validate_tlas_tail_cs");
 }

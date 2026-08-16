@@ -520,6 +520,11 @@ namespace das {
     // call
         virtual void preVisit ( ExprCall * expr ) override {
             Visitor::preVisit(expr);
+            if ( !expr->func ) {
+                program->error("call '" + expr->name + "' was not resolved during type inference", "", "",
+                    expr->at, CompilationError::internal_expression);
+                return;
+            }
             if ( expr->func->aliasCMRES ) {
                 expr->cmresAlias = true;
                 goto bailout;

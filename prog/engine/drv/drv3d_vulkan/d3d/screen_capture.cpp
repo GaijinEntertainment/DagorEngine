@@ -26,7 +26,7 @@ void *d3d::fast_capture_screen(int &w, int &h, int &stride_bytes, int &format)
 {
   VERIFY_GLOBAL_LOCK_ACQUIRED();
 
-  VkExtent2D extent = Frontend::swapchain.getMode().extent;
+  VkExtent2D extent = Frontend::swapchain.getMode().backbufferExtent;
   FormatStore fmt = Frontend::swapchain.getMode().format;
   uint32_t bufferSize = fmt.calculateSlicePich(extent.width, extent.height);
 

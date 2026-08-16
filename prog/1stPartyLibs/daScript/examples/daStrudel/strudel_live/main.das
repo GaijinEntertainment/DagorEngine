@@ -1,15 +1,17 @@
 options gen2
 options indenting = 4
 options persistent_heap
+options gc
 
-require strudel/strudel
+require strudel/strudel_mini
 require strudel/strudel_player
-require strudel/strudel_live
+require strudel/strudel_live  // nolint:STYLE030 — load-bearing for strudel player/SF2 state across reloads
 require audio/audio_boost
-require live/audio_live
+require live/audio_live   // nolint:STYLE030 — load-bearing for audio buffer persistence across reloads
 require live/live_commands
 require live/live_api
-require live/live_watch_boost
+require live/live_gc
+require live/live_watch_boost // nolint:STYLE030 — load-bearing for live file-watch side-effects
 require live_host
 require daslib/fio
 require daslib/strings_boost
@@ -101,13 +103,13 @@ def cmd_set_volume(input : JsonValue?) : JsonValue? {
     return JV("volume set to {args.volume} (fade {args.time}s)")
 }
 
-[live_command(description="Pause playback")]
+[live_command(description="Pause playback"), unused_argument(input)]
 def cmd_pause(input : JsonValue?) : JsonValue? {
     strudel_set_pause(true)
     return JV("paused")
 }
 
-[live_command(description="Unpause playback")]
+[live_command(description="Unpause playback"), unused_argument(input)]
 def cmd_unpause(input : JsonValue?) : JsonValue? {
     strudel_set_pause(false)
     return JV("unpaused")
@@ -150,16 +152,15 @@ def shutdown() {
     audio_system_finalize(asch.command, asch.next_sid)
 }
 
-// standalone mode (daslang.exe)
+// standalone mode (daslang.exe): the same exported trio in the canonical loop
 [export]
 def main() {
-    print("daStrudel live (standalone)\n")
-    with_audio_system() {
-        load_samples()
-        strudel_init(@@strudel_main)
-        print("playing... press Ctrl+C to stop\n")
-        while (true) {
-            sleep(100u)
-        }
+    print("daStrudel live (standalone) — press Ctrl+C to stop\n")
+    init()
+    while (!exit_requested()) {
+        update()
+        maybe_collect_gc()
+        sleep(100u)
     }
+    shutdown()
 }

@@ -3,9 +3,7 @@
 #include "bvh_context.h"
 #include "bvh_tools.h"
 #include <3d/dag_lockSbuffer.h>
-#include <image/dag_texPixel.h>
 #include <util/dag_convar.h>
-#include <memory/dag_framemem.h>
 #include <generic/dag_enumerate.h>
 #include <shaders/dag_shaderResUnitedData.h>
 
@@ -120,9 +118,9 @@ void Mesh::teardown(ContextId context_id)
   ppPositionTextureId = BAD_TEXTUREID;
   ppDirectionTextureId = BAD_TEXTUREID;
   clothNoiseCombinedTexTextureId = BAD_TEXTUREID;
-  ppPositionBindless = 0xFFFFFFFFU;
-  ppDirectionBindless = 0xFFFFFFFFU;
-  clothNoiseCombinedTexBindless = 0xFFFFFFFFU;
+  ppPositionBindless = MeshMeta::INVALID_TEXTURE;
+  ppDirectionBindless = MeshMeta::INVALID_TEXTURE;
+  clothNoiseCombinedTexBindless = MeshMeta::INVALID_TEXTURE;
 
   if (geometry)
   {
@@ -135,14 +133,6 @@ void Mesh::teardown(ContextId context_id)
     context_id->releaseBuffer(ahsVertices.get());
     context_id->moveToDeathrow(eastl::move(ahsVertices));
   }
-}
-
-Context::Context()
-{
-  auto white = TexImage32::create(1, 1, framemem_ptr());
-  white->getPixels()->u = 0xFFFFFFFF;
-  stubTexture = d3d::create_tex(white, 1, 1, TEXFMT_A8R8G8B8, 1, "bvh_stub_tex", RESTAG_BVH);
-  memfree(white, framemem_ptr());
 }
 
 void Context::teardown()
@@ -171,9 +161,12 @@ void Context::teardown()
   tlasMain.reset();
   tlasTerrain.reset();
   tlasParticles.reset();
+  tlasLruCollision.reset();
   tlasUploadMain.close();
   tlasUploadTerrain.close();
   tlasUploadParticles.close();
+  tlasUploadLruCollision.close();
+  G_ASSERT(lruCollision == nullptr);
 
   cableVertices.close();
   cableIndices.close();
@@ -217,8 +210,6 @@ void Context::teardown()
   for (auto [ptr, allocatorName] : bindlessBufferAllocatorNames)
     logwarn("[BVH] Context::teardown: buffer %p (%s) was not released", ptr, allocatorName.c_str());
 #endif
-
-  del_d3dres(stubTexture);
 
   for (auto iter = ommTextureWaitRefs.begin(); iter != ommTextureWaitRefs.end(); ++iter)
     release_managed_tex(iter->first);
@@ -349,14 +340,17 @@ TextureHandle Context::holdTexture(TEXTUREID id, uint32_t &texture_bindless_inde
       else
         G_ASSERT(0 && "Unknown res");
 
-      if (forceRefreshSrvsWhenLoaded && !check_managed_texture_loaded(id))
+      if (bindlessTex.resourceType && forceRefreshSrvsWhenLoaded && !check_managed_texture_loaded(id))
         texturesWaitingForLoad.insert(id);
     }
 
-    texture_bindless_index = bindlessTex.rangeBase + bindlessTex.slotIndex;
+    if (bindlessTex.resourceType)
+    {
+      texture_bindless_index = bindlessTex.rangeBase + bindlessTex.slotIndex;
 
-    // Taking an exclusive reference count for the returned texture pointer.
-    handle.texture = acquire_managed_tex(id);
+      // Taking an exclusive reference count for the returned texture pointer.
+      handle.texture = acquire_managed_tex(id);
+    }
   }
 
   return handle;
@@ -371,21 +365,21 @@ bool Context::releaseTextureNoLock(TEXTUREID id)
   G_ASSERT_RETURN(iter != usedTextures.end(), false);
   if (--iter->second.referenceCount == 0)
   {
-    // SBUF is just to make it unknown
-    auto resourceType = iter->second.resourceType.value_or(D3DResourceType::SBUF);
-
-    if (resourceType == D3DResourceType::TEX)
+    if (auto resourceType = iter->second.resourceType)
     {
-      if (iter->second.slotIndex == 0)
-        bindlessTextureAllocator.remove(iter->second.rangeBase);
+      if (*resourceType == D3DResourceType::TEX)
+      {
+        if (iter->second.slotIndex == 0)
+          bindlessTextureAllocator.remove(iter->second.rangeBase);
+      }
+      else if (*resourceType == D3DResourceType::CUBETEX)
+      {
+        if (iter->second.slotIndex == 0)
+          bindlessCubeTextureAllocator.remove(iter->second.rangeBase);
+      }
+      else
+        G_ASSERTF(false, "Unknown texture type");
     }
-    else if (resourceType == D3DResourceType::CUBETEX)
-    {
-      if (iter->second.slotIndex == 0)
-        bindlessCubeTextureAllocator.remove(iter->second.rangeBase);
-    }
-    else
-      G_ASSERTF(false, "Unknown texture type");
 
     usedTextures.erase(iter);
     release_managed_tex(id);
@@ -435,18 +429,36 @@ void Context::markChangedTextures()
       auto texture = acquire_managed_tex(*it);
       G_ASSERT_CONTINUE(texture);
 
-      if (usedTexIt->second.resourceType == D3DResourceType::TEX)
-        bindlessTextureAllocator.update(usedTexIt->second.rangeBase, usedTexIt->second.slotIndex, texture);
-      else if (usedTexIt->second.resourceType == D3DResourceType::CUBETEX)
-        bindlessCubeTextureAllocator.update(usedTexIt->second.rangeBase, usedTexIt->second.slotIndex, texture);
-      else
-        G_ASSERT(0 && "Unknown texture type");
+      if (auto resourceType = usedTexIt->second.resourceType)
+      {
+        if (*resourceType == D3DResourceType::TEX)
+          bindlessTextureAllocator.update(usedTexIt->second.rangeBase, usedTexIt->second.slotIndex, texture);
+        else if (*resourceType == D3DResourceType::CUBETEX)
+          bindlessCubeTextureAllocator.update(usedTexIt->second.rangeBase, usedTexIt->second.slotIndex, texture);
+        else
+          G_ASSERT(0 && "Unknown texture type");
+      }
 
       release_managed_tex(*it);
     }
 
     it = texturesWaitingForLoad.erase(it);
   }
+}
+
+void Context::releaseUnavailableTextures()
+{
+  WinAutoLock lock(bindlessTextureLock);
+
+  for (auto iter = usedTextures.begin(); iter != usedTextures.end();)
+    if (!iter->second.resourceType)
+    {
+      release_managed_tex(iter->first);
+      texturesWaitingForLoad.erase(iter->first);
+      iter = usedTextures.erase(iter);
+    }
+    else
+      ++iter;
 }
 
 void Context::holdBuffer(Sbuffer *buffer, uint32_t &bindless_index)
@@ -549,6 +561,8 @@ void Context::cancelCompaction(uint64_t object_id)
   if (citer != blasCompactionsAccel.end())
   {
     G_ASSERT_RETURN(citer->second->has_value(), );
+    if (citer->second->value().stage == BLASCompaction::Stage::WaitingGPUTime)
+      numCompactionBlasesInFlight--;
     citer->second->reset();
     blasCompactionsAccel.erase(citer);
   }

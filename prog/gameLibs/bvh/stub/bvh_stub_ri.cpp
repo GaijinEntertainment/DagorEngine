@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <bvh/bvh.h>
+#include <dag/dag_vector.h>
 #include <vecmath/dag_vecMath.h>
 
 namespace bvh::ri
@@ -23,6 +24,7 @@ void wait_ri_gen_instances_update(ContextId) {}
 void wait_ri_extra_instances_update(ContextId) {}
 void tidy_up_trees(ContextId) {}
 void wait_tidy_up_trees() {}
+void collect_staged_blas_addresses(ContextId, dag::Vector<uint64_t> &) {}
 
 void set_dist_mul(float) {}
 void override_out_of_camera_ri_dist_mul(float) {}

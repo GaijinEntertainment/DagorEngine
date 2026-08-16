@@ -141,6 +141,7 @@ struct WorkerStats
   int allRenderWorkers = 0;
   int activeInstances = 0;
   int renderInstances = 0;
+  int totalParticles = 0;
   int genVisibilityLod = 0;
 
   // @TODO: are these supposed to be reported as well? Were not in orig code.
@@ -246,6 +247,7 @@ struct Context
   int renderCallsCountVarId = -1;
   int computeDispatchVarId = -1;
   int reducedRenderVarId = -1;
+  int sbufferSupportedVarId = -1;
   bool supportsNoOverwrite = true;
   volatile int maxTextureSlotsAllocated = 0;
 

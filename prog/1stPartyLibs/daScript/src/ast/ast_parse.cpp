@@ -1,12 +1,19 @@
 #include "daScript/misc/platform.h"
 
 #include "daScript/ast/ast.h"
+#include "daScript/ast/ast_infer_type.h"
 #include "daScript/ast/ast_serializer.h"
 #include "daScript/ast/ast_expressions.h"
 #include "daScript/ast/ast_gc_report.h"
+#include "daScript/ast/ast_escape_analysis.h"
+#include "daScript/ast/ast_cfg.h"
+#include "daScript/ast/ast_bound_check_elision.h"
 #include "daScript/misc/das_common.h"
+#include "daScript/simulate/simulate.h"
 #include "daScript/simulate/aot_builtin_string.h"
 #include "daScript/simulate/aot_builtin_uriparser.h"
+#include "daScript/simulate/fs_file_info.h"
+#include "daScript/das_project_specific.h"
 
 #include "../parser/parser_state.h"
 
@@ -25,7 +32,38 @@ int das_yyparse(yyscan_t yyscanner);
 void das2_yybegin(const char * str, uint32_t len, yyscan_t yyscanner);
 int das2_yyparse(yyscan_t yyscanner);
 
+// dagor: get_file_access stays a link-time dependency supplied by the executable (games via
+// dasModules/defaultFileAccess.cpp, tools via dagorAdapter/da.cpp). Defining it here would
+// clash with those strong symbols.
+das::smart_ptr<das::FileAccess> get_file_access( char * pak );
+
 namespace das {
+
+    void applyPostInferMacros ( Program * program ) {
+        program->library.foreach([&](Module * mod) -> bool {
+            for ( const auto & pm : mod->postInferMacros ) {
+                pm->apply(program, program->thisModule.get());
+            }
+            return true;
+        }, "*");
+    }
+
+    // defined in ast_module.cpp (runtime); appends a parsed builtin module's content
+    bool appendBuiltinModuleContent ( Module * target, ProgramPtr program, const string & modName );
+
+    bool compileBuiltinModule ( Module * module, const string & modName, const unsigned char * const str, unsigned int str_len ) {
+        TextWriter issues;
+        auto access = make_smart<FileAccess>();
+        auto fileInfo = make_unique<TextFileInfo>((char *) str, uint32_t(str_len), false);
+        access->setFileInfo(modName, das::move(fileInfo));
+        ModuleGroup dummyLibGroup;
+        auto program = parseDaScript(modName, "", access, issues, dummyLibGroup, true);
+        module->ownFileInfo = access->letGoOfFileInfo(modName);
+        DAS_ASSERTF(module->ownFileInfo,"something went wrong and FileInfo for builtin module can not be obtained");
+        auto result = appendBuiltinModuleContent(module, program, modName);
+        program->thisModule->module_gc_root->gc_dump_to_thread_root();
+        return result;
+    }
 
     bool isUtf8Text ( const char * src, uint32_t length ) {
         if ( length>=3  ) {
@@ -67,6 +105,7 @@ namespace das {
         string incModName;
         const char * src_end = src + length;
         bool wb = true;
+        char lastSig = 0;   // last significant (non-space) character — '(' means a following `module` is `with (module ...)`, not a declaration
         int32_t line = 1;
         while ( src < src_end ) {
             if ( src[0]=='\n' ) {
@@ -164,7 +203,7 @@ namespace das {
                                 while ( src < src_end && (src[0]==' ' || src[0]=='\t') ) {
                                     src ++;
                                 }
-                                while ( src < src_end && (isalnumE(src[0]) || src[0]=='_') ) {
+                                while ( src < src_end && (isalnumE(src[0]) || src[0]=='_' || src[0]=='/' || src[0]=='.' || src[0]=='%') ) {
                                     reqGuard += *src ++;
                                 }
                                 while ( src < src_end && (src[0]==' ' || src[0]=='\t') ) {
@@ -181,8 +220,19 @@ namespace das {
                                     mod += *src ++;
                                 }
                                 if ( isReq ) {
-                                    // guarded optional require whose guard module is absent — skip
-                                    if ( hasReqGuard && Module::requireEx(reqGuard, false)==nullptr ) {
+                                    // guarded optional require. Path guard (contains '/'): proceed only when
+                                    // the guard's OWN file resolves — the rail for pure-das packages (nothing
+                                    // C++ to guard on) and cross-package dependency witnesses. Plain-name
+                                    // guard: STRICT — proceed only when the guard module is registered (a
+                                    // linked C++ module); no target-resolvability fallback (module source
+                                    // dirs exist in every checkout regardless of build config). Otherwise —
+                                    // skip silently. Must match ast_requireModule (parser_impl.cpp).
+                                    if ( hasReqGuard && reqGuard.find('/')!=string::npos ) {
+                                        auto ginfo = access->getModuleInfo(reqGuard, fi->name);
+                                        if ( ginfo.fileName.empty() || !access->getFileInfo(ginfo.fileName) ) {
+                                            continue;
+                                        }
+                                    } else if ( hasReqGuard && Module::requireEx(reqGuard, false)==nullptr ) {
                                         continue;
                                     }
                                     bool isPublic = false;
@@ -213,6 +263,9 @@ namespace das {
                             goto nextChar;
                         }
                     } else if ( isMod ) {
+                        if ( lastSig=='(' ) { // `with (module foo)` resolution scope — not a module declaration
+                            goto nextChar;
+                        }
                         src += 6;
                         if ( isspace(src[0]) ) {
                             while ( src < src_end && isspace(src[0]) ) {
@@ -249,6 +302,7 @@ namespace das {
             }
         nextChar:
             wb = src[0]!='_' && (wb ? !isalnumE(src[0]) : !isalphaE(src[0]));
+            if ( !isspace(static_cast<unsigned char>(src[0])) ) lastSig = src[0];
             src ++;
         }
     }
@@ -293,6 +347,10 @@ namespace das {
 
     string getDasRoot ( void );
 
+    static string get_builtin_path() {
+        return getDasRoot() + "/daslib/builtin.das";
+    }
+
     bool getPrerequisits ( const string & fileName,
                           const FileAccessPtr & access,
                           string &modName,
@@ -330,7 +388,7 @@ namespace das {
                     return false;
                 }
                 auto info = access->getModuleInfo(mod, fileName);
-                auto module = Module::requireEx(mod, allowPromoted, info.fileName);
+                auto module = Module::requireEx(mod, allowPromoted, modRec.name, info.fileName);
                 if ( !module ) {
                     if ( !info.moduleName.empty() ) {
                         mod = info.moduleName;
@@ -338,7 +396,7 @@ namespace das {
                             *log << string(tab,'\t') << " resolved as " << mod << "\n";
                         }
                     }
-                    module = Module::requireEx(mod, allowPromoted, info.fileName); // try native with that name AGAIN (promoted?)
+                    module = Module::requireEx(mod, allowPromoted, modRec.name, info.fileName); // try native with that name AGAIN (promoted?)
                     if ( !module ) {
                         auto it_r = find_if(req.begin(), req.end(), [&] ( const ModuleInfo & reqM ) {
                             return reqM.moduleName == mod;
@@ -400,6 +458,7 @@ namespace das {
                                 *log << string(tab,'\t') << "from " << fileName << " require " << mod
                                     << " - ok, new module " << info.moduleName << " at " << info.fileName << "\n";
                             }
+                            info.requireName = modRec.name;
                             req.push_back(info);
                         } else {
                             if ( !access->isSameFileName(it_r->fileName, info.fileName) ) {
@@ -483,7 +542,7 @@ namespace das {
     static DAS_THREAD_LOCAL(int64_t) totM;
 
     // deserialization may have left the active gc root pointing at (or the old program
-    // owning) a module root that dies with the old program - repoint around the swap so
+    // owning) a module root that dies with the old program — repoint around the swap so
     // fallback parsing doesn't allocate through a stale root
     static void replaceProgramKeepGcRootValid ( ProgramPtr & program ) {
         gc_root::gc_get_active_root() = &gc_root::gc_get_thread_root();
@@ -707,7 +766,7 @@ namespace das {
         Program * prog = nullptr;
         explicit GcCollectOnExit ( gc_guard & s ) : scope(s) {}
         ~GcCollectOnExit() {
-            if ( prog ) {
+            if ( prog && prog->thisModule ) {
                 prog->thisModule->gc_collect(&scope.guard_root);
             }
             clearAllFunctionLookups();
@@ -898,24 +957,81 @@ namespace das {
             restartInfer:
             {
                 auto timeI = ref_time_ticks();
-                program->inferTypes(logs, libGroup);
+                inferTypes(program.get(), logs, libGroup);
                 if ( policies.macro_context_collect ) libGroup.collectMacroContexts();
                 uint64_t inferLegT = get_time_usec(timeI);
                 myInferT += inferLegT;
                 *totInfer += inferLegT;
             }
             if ( !program->failed() ) {
+                // buildAccessFlags is the FIRST pass to read the finished tree, and it
+                // dereferences expr->type unguarded - so the verifier has to precede it
+                applyPostInferMacros(program.get());
                 program->buildAccessFlags(logs);    // this is used by the lint pass
                 if ( program->patchAnnotations() ) {
-                    program->thisModule->functions.foreach([&](auto && fn) {
-                        fn->notInferred();
-                    });
-                    goto restartInfer;
+                    // A patchAnnotations() pass can both mutate the AST (astChanged) AND record a
+                    // deliberate error -- either a patch() returning false or a macro_error() raised
+                    // inside it. Re-inferring would clear program->errors at the top of the next infer
+                    // pass (inferTypes), silently dropping that error and letting a broken program
+                    // compile (this is exactly how a fail-closed shader bind guard once shipped a no-op
+                    // bind). So only restart infer when the patch pass stayed clean; otherwise fall
+                    // through and let the recorded error surface as a compile failure.
+                    if ( !program->failed() ) {
+                        program->thisModule->functions.foreach([&](auto && fn) {
+                            fn->notInferred();
+                        });
+                        goto restartInfer;
+                    }
+                }
+            }
+            // escape analysis after buildAccessFlags so callee sideEffectFlags (rws) are final, but
+            // before lint/foldUnsafe so the re-infer of the inserted scope_free matches the original
+            // (in-infer-loop) ordering and does not re-trip the already-folded unsafe checks.
+            // the inserted scope_free is a generated terminal call creating no new candidate and
+            // changing no rws, so a single dirty re-type is the fixpoint - goto restartInfer would
+            // re-run the whole macro/pod/relocate infer leg for nothing
+            if ( !program->failed() ) {
+                escapeAnalysis(program.get(), logs);
+                // build the CFG once at this stable point and share it: the unsafe-index (bound-check
+                // elision) pass reads it and only sets flags (no AST change), then the flow-sensitive
+                // escape pass reads the same CFG before it inserts scope_free. one build, two consumers.
+                bool needCfg = program->options.getBoolOption("bound_check_elision", false)
+                            || program->options.getBoolOption("force_partial_escape_free", policies.force_partial_escape_free);
+                ProgramCfg pcfg = needCfg ? buildProgramCfg(program.get()) : ProgramCfg();
+                markNoBoundCheck(program.get(), needCfg ? &pcfg : nullptr, logs);
+                if ( scopeFreeOptimization(program.get(), needCfg ? &pcfg : nullptr, logs) ) {
+                    inferTypesDirty(program.get(), logs, true);
+                    if ( program->failed() ) {
+                        program->error("internal compiler error: escape free optimization infer to fail", "", "", LineInfo(), CompilationError::internal_pod_analysis_infer);
+                    }
                 }
             }
             gcStageReportDelta(moduleName.c_str(), fileName.c_str(), "infer", logs);
+            // fixupAnnotations runs HERE — after infer converges (types are final) but BEFORE
+            // lint / foldUnsafe / optimize, so anything a fixup() generates (the shader-blob
+            // captures: dasGlsl / dasSpirv / dasMetal filling their `{name}` globals) flows
+            // through the whole back half of the pipeline like ordinary code. A call-shaped
+            // init (e.g. the array<uint> literal's to_array_move lowering) is uninferred when
+            // fixup sets it — the gated dirty re-infer resolves it, and sitting before
+            // foldUnsafe keeps the re-infer from re-tripping already-folded unsafe (the same
+            // ordering constraint escape-analysis' scope_free insertion documents above).
+            if ( !program->failed() ) {
+                program->fixupAnnotations();
+                if ( !program->failed() ) {
+                    bool hasUninferredInit = false;
+                    program->thisModule->globals.foreach([&](auto & gvar){
+                        if ( gvar->init && !gvar->init->type ) hasUninferredInit = true;
+                    });
+                    if ( hasUninferredInit ) {
+                        inferTypesDirty(program.get(), logs, true);
+                    }
+                }
+            }
             if ( !program->failed() ) {
                 program->normalizeOptionTypes();
+                // lint / folding / codegen are the first consumers of the finished tree, and
+                // they dereference expr->type unguarded - so this is where a verifier can see it
+                applyPostInferMacros(program.get());
                 if (!program->failed())
                     program->lint(logs, libGroup);
                 if ( policies.macro_context_collect ) libGroup.collectMacroContexts();
@@ -925,8 +1041,9 @@ namespace das {
                 if (!program->failed()) {
                     if (program->getOptimize()) {
                         callCompilationCallback(moduleName, fileName, "optimize");
-                        program->optimize(logs,libGroup);
+                        optimizeProgram(program.get(),logs,libGroup);
                     } else {
+                        applyPostInferMacros(program.get());
                         program->buildAccessFlags(logs);
                     }
                 }
@@ -944,8 +1061,6 @@ namespace das {
                         program->removeUnusedSymbols();
                     }
                 }
-                if (!program->failed())
-                    program->fixupAnnotations();
                 if (!program->failed())
                     program->deriveAliases(logs,true,true);
                 if (!program->failed())
@@ -1129,7 +1244,6 @@ namespace das {
         auto & serializer_write = daScriptEnvironment::getBound()->serializer_write;
         for ( auto & parsedModule : serializer_write->parsedModules ) {
             auto & [fileName, fileMtime, program, thisModule] = parsedModule; // parsedModule is tuple<string, int64_t, ProgramPtr, Module *>
-            LOG(LogLevel::debug) << "das: serialize: writeback program '" << fileName << "' epoch " << (unsigned long long)(serializer_write->epoch + 1) << "\n";
             *serializer_write << fileMtime;
             *serializer_write << const_cast<string &>(fileName);
             if ( program->thisModule && program->thisModule->name.empty() )  {
@@ -1169,6 +1283,9 @@ namespace das {
         }
     }
 
+    // from module_builtin_fio.cpp — modules whose .shared_module dlopen failed (Quiet)
+    DAS_API string describe_pending_dynamic_modules();
+
     ProgramPtr reportPrerequisitesErrors (
             string fileName,
             vector<MissingRecord> & missing,
@@ -1189,6 +1306,10 @@ namespace das {
         notAllowed.clear();
         vector<FileInfo *> chain;
         string modName;
+        addExtraDependency("builtin", get_builtin_path(), missing, circular, notAllowed, req, dependencies, namelessReq, namelessMismatches, access, libGroup, policies, &tw);
+        for ( const auto & em : access->getExtraModules() ) {
+            addExtraDependency(em.first, em.second, missing, circular, notAllowed, req, dependencies, namelessReq, namelessMismatches, access, libGroup, policies, &tw);
+        }
         getPrerequisits(fileName, access, modName, req, missing, circular, notAllowed, chain, dependencies, namelessReq, namelessMismatches, libGroup, &tw, 1, false);
         auto program = make_smart<Program>();
         program->policies = policies;
@@ -1196,6 +1317,7 @@ namespace das {
         TextWriter err;
         LineInfo at;
         bool first = true;
+        bool anyNotFound = false;
         for ( auto & mis : missing ) {
             if ( first && !mis.chain.empty() ) {
                 at.fileInfo = mis.chain.back();
@@ -1207,6 +1329,7 @@ namespace das {
             switch ( mis.hintType ) {
                 case MissingHint::FileNotFound: {
                     err << "missing prerequisite '" << mis.name << "'; file not found\n";
+                    anyNotFound = true;
                     break;
                 }
                 case MissingHint::WrongModuleName: {
@@ -1232,6 +1355,14 @@ namespace das {
                 }
             }
             reportChain(err, mis.chain);
+        }
+        // A native module whose .shared_module failed to dlopen reports as "file not found",
+        // which reads as a path typo. Name the load failures so the real cause is visible.
+        if ( anyNotFound ) {
+            auto pendingNote = describe_pending_dynamic_modules();
+            if ( !pendingNote.empty() ) {
+                err << "note: these dynamic modules failed to load - a missing module may live in one of them:\n" << pendingNote;
+            }
         }
         for ( auto & mis : circular ) {
             if ( first && !mis.chain.empty() ) {
@@ -1279,7 +1410,7 @@ namespace das {
         if ( serializer_read == nullptr && serializer_write == nullptr )
             return;
         // the debugger installs into the environment: once daslib/debug is promoted
-        // (first debugger compile), later programs don't list it in req - every compile
+        // (first debugger compile), later programs don't list it in req — every compile
         // in this environment is under the debugger, so keep serialization off
         if ( auto dbg = Module::requireEx("debug", true) ) {
             if ( dbg->fileName.find("daslib/debug.das") != string::npos ) {
@@ -1368,10 +1499,9 @@ namespace das {
         vector<NamelessMismatch> namelessMismatches;
         uint64_t preqT = 0;
         string modName;
-        auto builtinModule = Module::require("$");
+        [[maybe_unused]] auto builtinModule = Module::require("$");
         DAS_ASSERTF(builtinModule, "Somehow `builtin` module is missing.");
-        auto builtin_path = getDasRoot() + "/daslib/builtin.das";
-        bool allGood = addExtraDependency("builtin", builtin_path, missing, circular, notAllowed, req, dependencies, namelessReq, namelessMismatches, access, libGroup, policies, &logs);
+        bool allGood = addExtraDependency("builtin", get_builtin_path(), missing, circular, notAllowed, req, dependencies, namelessReq, namelessMismatches, access, libGroup, policies, &logs);
         if ( !allGood ) {
             auto res = make_smart<Program>();
             res->error("internal error: failed to build builtin.das", logs.str(), "", LineInfo(), CompilationError::internal_module);
@@ -1427,7 +1557,7 @@ namespace das {
                 program->thisModule->fromExtraDependency = mod.extraDepModule;
                 if ( program->promoteToBuiltin ) {
                     if ( canShareModule(program) ) {
-                        program->thisModule->promoteToBuiltin(access);
+                        program->thisModule->promoteToBuiltin(access, mod.requireName);
                     } else {
                         return program;
                     }

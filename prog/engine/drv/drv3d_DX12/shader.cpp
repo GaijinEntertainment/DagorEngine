@@ -164,7 +164,7 @@ StageShaderModule drv3d_dx12::decode_shader_binary(const void *data, uint32_t si
           shaderModuleSize = header.size;
         }
         break;
-      case dxil::ChunkType::DXBC: logwarn("DX12: DXBC shader chunk seen while deconding a shader module"); break;
+      case dxil::ChunkType::DXBC: logwarn("DX12: DXBC shader chunk seen while decoding a shader module"); break;
       case dxil::ChunkType::SHADER_NAME:
         shaderName = reinterpret_cast<const char *>(dataStart + header.offset);
         shaderNameLength = header.size;
@@ -361,7 +361,7 @@ StageShaderModuleInBinaryRef drv3d_dx12::decode_shader_binary_ref(const void *da
           }
         }
         break;
-      case dxil::ChunkType::DXBC: logwarn("DX12: DXBC shader chunk seen while deconding a shader module"); break;
+      case dxil::ChunkType::DXBC: logwarn("DX12: DXBC shader chunk seen while decoding a shader module"); break;
       case dxil::ChunkType::SHADER_NAME:
         shaderName = reinterpret_cast<const char *>(dataStart + header.offset);
         shaderNameLength = header.size;

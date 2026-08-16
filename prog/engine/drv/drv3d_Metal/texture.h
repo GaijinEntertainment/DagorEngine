@@ -25,7 +25,7 @@ struct HazardEncoder
   uint64_t encoder : 16 = 0;
 
   bool operator!=(const HazardEncoder &rhs) const { return encoder != rhs.encoder || submit != rhs.submit; }
-  bool operator==(const HazardEncoder &rhs) const { return encoder == rhs.encoder && submit != rhs.submit; }
+  bool operator==(const HazardEncoder &rhs) const { return encoder == rhs.encoder && submit == rhs.submit; }
 };
 
 struct HazardTracker
@@ -149,7 +149,6 @@ public:
   bool isCubeArray() const override { return type == D3DResourceType::CUBEARRTEX; }
   int getinfo(TextureInfo &ti, int level) const override;
 
-  int calcBaseLevel(int w, int h);
   void setBaseLevel(int base_level);
   void setMinMipLevel(int min_mip_level);
 

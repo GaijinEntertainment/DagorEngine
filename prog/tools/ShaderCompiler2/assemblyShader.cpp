@@ -1627,6 +1627,14 @@ void AssembleShaderEvalCB::end_eval(shader_decl &sh)
     auto const staticPsTexRange = compiledPreshaderRef->namedConstTable.slotTextureSuballocators.psTex.getRange();
     auto const staticVsSamplersRange = compiledPreshaderRef->namedConstTable.slotTextureSuballocators.vsSamplers.getRange();
     auto const staticPsSamplersRange = compiledPreshaderRef->namedConstTable.slotTextureSuballocators.psSamplers.getRange();
+    // SlotTexturesRangeInfo stores base and count as uint8_t each, so cap itself may exceed a byte.
+    auto const fitsInSlotRangeInfo = [](HlslRegRange r) {
+      return r.min >= 0 && r.cap >= r.min && r.min <= UINT8_MAX && r.cap - r.min <= UINT8_MAX;
+    };
+    G_ASSERT(fitsInSlotRangeInfo(staticVsTexRange));
+    G_ASSERT(fitsInSlotRangeInfo(staticPsTexRange));
+    G_ASSERT(fitsInSlotRangeInfo(staticVsSamplersRange));
+    G_ASSERT(fitsInSlotRangeInfo(staticPsSamplersRange));
     curpass->vsTexSmpRange = SlotTexturesRangeInfo{uint8_t(staticVsTexRange.min), uint8_t(staticVsSamplersRange.min),
       uint8_t(staticVsTexRange.cap - staticVsTexRange.min), uint8_t(staticVsSamplersRange.cap - staticVsSamplersRange.min)};
     curpass->psTexSmpRange = SlotTexturesRangeInfo{uint8_t(staticPsTexRange.min), uint8_t(staticPsSamplersRange.min),
@@ -1743,11 +1751,14 @@ void AssembleShaderEvalCB::addBlockType(const char *name, const Terminal *t)
 
   declaredBlockTypes[type] = true;
 
-  // Check for conflicting block types
-  if (declaredBlockTypes[BLOCK_COMPUTE] && hasDeclaredGraphicsBlocks())
-    report_error(parser, t, "It is illegal to declare both (cs) and (ps/vs/hs/ds/gs/ms/as) blocks in one shader");
-  if (declaredBlockTypes[BLOCK_GRAPHICS_VERTEX] && declaredBlockTypes[BLOCK_GRAPHICS_MESH])
-    report_error(parser, t, "It is illegal to declare both (vs/hs/ds/gs) and (ms/as) blocks in one shader");
+  if (ctx.shCtx().blockLevel() != ShaderBlockLevel::GLOBAL_CONST)
+  {
+    // Check for conflicting block types
+    if (declaredBlockTypes[BLOCK_COMPUTE] && hasDeclaredGraphicsBlocks())
+      report_error(parser, t, "It is illegal to declare both (cs) and (ps/vs/hs/ds/gs/ms/as) blocks in one shader");
+    if (declaredBlockTypes[BLOCK_GRAPHICS_VERTEX] && declaredBlockTypes[BLOCK_GRAPHICS_MESH])
+      report_error(parser, t, "It is illegal to declare both (vs/hs/ds/gs) and (ms/as) blocks in one shader");
+  }
 }
 
 bool AssembleShaderEvalCB::hasDeclaredGraphicsBlocks()
@@ -2414,10 +2425,24 @@ void CompileShaderJob::doJobBody()
 #elif _CROSS_TARGET_SPIRV
   if (shc::config().dxcContext)
   {
-    compile_result = compileShaderSpirV(shc::config().dxcContext, source, profile, entry, !shc::config().hlslNoDisassembly,
-      useHlsl2021, enableFp16, shc::config().hlslSkipValidation, localHlslOptimizationLevel ? true : false, max_constants_no,
-      shaderName, shader_variant_hash, shc::config().enableBindless, full_debug || shc::config().hlslDebugLevel != DebugLevel::NONE,
-      shc::config().dumpSpirvOnly, shc::config().sortGlobalConstsByOffset);
+    compile_result = compileShaderSpirV({.dxcCtx = shc::config().dxcContext,
+      .source = source,
+      .profile = profile,
+      .entry = entry,
+      .shaderName = shaderName,
+      .shaderVariantHash = shader_variant_hash,
+      .maxConstantsNo = max_constants_no,
+      .needDisasm = !shc::config().hlslNoDisassembly,
+      .hlsl2021 = useHlsl2021,
+      .enableFp16 = enableFp16,
+      .skipValidation = shc::config().hlslSkipValidation,
+      .optimize = localHlslOptimizationLevel ? true : false,
+      .enableBindless = shc::config().enableBindless,
+      .embedDebugData = full_debug || shc::config().hlslDebugLevel != DebugLevel::NONE,
+      .dumpSpirvOnly = shc::config().dumpSpirvOnly,
+      .validateGlobalConstsOffsetOrder = shc::config().sortGlobalConstsByOffset,
+      .noConversionWarnings = shc::config().noConversionWarnings,
+      .useScalarLayout = shc::config().useScalarLayout});
   }
   else
   {

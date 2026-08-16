@@ -4,6 +4,7 @@
 #include "main/watchdog.h"
 #include "main/level.h"
 #include "main/gameLoad.h"
+#include "main/version.h"
 #include "ui/overlay.h"
 #include "fatal.h"
 
@@ -68,7 +69,7 @@ static void initialize_watchdog(int sleep, int trigger, int callstacks, bool fat
       // skew crash report generating bogus crash server signature
       fatal::force_immediate_dump(/*freeze*/ true);
 
-      statsd::counter("fatal", 1, {{"type", "Hang"}});
+      statsd::counter("fatal", 1, {{"type", "Hang"}, {"version", get_exe_version_str()}});
       net_stop();
       terminate_process(1);
     };

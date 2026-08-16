@@ -28,10 +28,10 @@ let riTags = []
 let riNamesGroups = {}
 
 let riPage = Watched(0)
-let riPageCount = 25
+const riPageCount = 25
 
 let riTagsOffset = Watched(0)
-let riTagsPageCount = 25
+const riTagsPageCount = 25
 
 let riTagsShown = Watched(false)
 let riSelectTag = Watched("")
@@ -887,7 +887,7 @@ function mkTag(opt, i) {
   let onClick = @() riTagApply(tagWord)
   return watchElemState(@(sf) {
     size = FLEX_H
-    padding = [hdpx(3), hdpx(10)]
+    padding = const [hdpx(3), hdpx(10)]
     behavior = [Behaviors.Button, Behaviors.TrackMouse]
     onMouseWheel = mouseWheelCb
     eventPassThrough = false
@@ -911,7 +911,7 @@ let mkSelectLine = kwarg(function(selected, textCtor = null, onSelect=null, onDC
     let grp = ElemGroup()
     return watchElemState(@(sf) {
       size = FLEX_H
-      padding = [hdpx(3), hdpx(10)]
+      padding = const [hdpx(3), hdpx(10)]
       behavior = [Behaviors.Button, Behaviors.TrackMouse, Behaviors.DragAndDrop]
       onMouseWheel = mouseWheelCb
       eventPassThrough = false
@@ -929,7 +929,7 @@ let mkSelectLine = kwarg(function(selected, textCtor = null, onSelect=null, onDC
           text = opTxt
           behavior = Behaviors.Button
           eventPassThrough = false
-          pos = [hdpx(10), 0]
+          pos = const [hdpx(10), 0]
           onClick = @() riOpenEditGroups(opt, group != null)
           onDoubleClick = function() {
             let groupID = riGroupGetID(riGroup.get())
@@ -969,7 +969,7 @@ let buttonStyleOff = {textStyle = {normal = {color = Color(120,120,120,255)}, ho
 function mkEditGroup(group) {
   return {
     children = [
-      { size = [0, sh(0.2)] }
+      { size = const [0, sh(0.2)] }
       textButton(group.name, @() riEditGroupsToggle(group.name), group.now ? buttonStyleOn : buttonStyleOff)
     ]
   }
@@ -996,8 +996,8 @@ function riSelectWindow() {
         behavior = [Behaviors.Button, Behaviors.TrackMouse]
         onMouseWheel = mouseWheelCb
         eventPassThrough = false
-        pos = [0, fsh(1)]
-        size = [sw(29), sh(77)]
+        pos = const [0, fsh(1)]
+        size = const [sw(29), sh(77)]
         hplace = ALIGN_CENTER
         vplace = ALIGN_CENTER
         rendObj = ROBJ_SOLID
@@ -1017,7 +1017,7 @@ function riSelectWindow() {
                 size = [flex(), sh(2.7)]
               }
               {
-                size = [sw(9), sh(2.7)]
+                size = const [sw(9), sh(2.7)]
                 rendObj = ROBJ_SOLID
                 color = Color(30,30,30, 150)
                 children = !riFillPGDone ? txt("Grouping...", {hplace = ALIGN_CENTER, vplace = ALIGN_CENTER}) : (riEditGroupNameMode.get() == 0) ? riGroupCombo : riEditGroupNameElem
@@ -1041,9 +1041,9 @@ function riSelectWindow() {
           !riTagsShown.get() && riDisplayed.get().len() > 0 ? vflow(Size(flex(), flex()), riDisplayed.get().map(mkRI)) : null
           !riTagsShown.get() && riDisplayed.get().len() == 0 ? vflow(
             Size(flex(), flex()),
-            { size = [0, sh(25)] },
+            { size = const [0, sh(25)] },
             riIsEmptyGroup(riGroup.get()) ? txt("No render instances in this group", {hplace = ALIGN_CENTER}) : null,
-            { size = [0, sh(2)] },
+            { size = const [0, sh(2)] },
             riIsEmptyGroup(riGroup.get()) ? txt("Use + and § at right side of selected RI in other groups", {hplace = ALIGN_CENTER}) : null,
           ) : null
           hflow(
@@ -1068,7 +1068,7 @@ function riSelectWindow() {
         children = riEditGroupsData.get().name ? {
           behavior = Behaviors.Button
           eventPassThrough = false
-          pos = [sw(0.4), sh(-5)]
+          pos = const [sw(0.4), sh(-5)]
           size = SIZE_TO_CONTENT
           hplace = ALIGN_CENTER
           vplace = ALIGN_CENTER

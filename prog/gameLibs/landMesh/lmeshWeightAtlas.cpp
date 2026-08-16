@@ -263,8 +263,12 @@ bool LandWeightAtlas::upload()
   // height it allows, so the row length is free to be chosen for packing: the
   // tail of the last row is the only waste, and a row longer than needed only
   // grows it (at 16K wide a tail can strand a whole megabyte). 8192 caps the
-  // search; below it, take the length that packs n pages tightest.
-  const int maxW = clamp(d3d::get_driver_desc().maxtexw, pageW, 8192), maxH = max(d3d::get_driver_desc().maxtexh, pageW);
+  // search; below it, take the length that packs n pages tightest. The same
+  // cap on the height keeps the atlas valid when the desc overstates the
+  // device limit.
+  G_ASSERT_RETURN(pageW <= min(d3d::get_driver_desc().maxtexw, d3d::get_driver_desc().maxtexh), false);
+  const int maxW = clamp(d3d::get_driver_desc().maxtexw, pageW, max(pageW, 8192)),
+            maxH = clamp(d3d::get_driver_desc().maxtexh, pageW, max(pageW, 8192));
   const int maxPpr = clamp(maxW / pageW, 1, n);
   const int minPpr = clamp((n + maxH / pageW - 1) / (maxH / pageW), 1, maxPpr); // rows must fit the height
   pagesPerRow = maxPpr;

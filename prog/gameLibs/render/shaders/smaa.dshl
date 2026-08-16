@@ -132,6 +132,7 @@ shader smaa_edge_detection, smaa_blend_weights, smaa_neighborhood_blending
   }
   else if (shader == smaa_neighborhood_blending)
   {
+    USE_PRE_ROTATION(vs)
     hlsl
     {
       struct VsOutput
@@ -150,6 +151,7 @@ shader smaa_edge_detection, smaa_blend_weights, smaa_neighborhood_blending
         output.pos = float4(inpos, 0, 1);
         output.texcoord = screen_to_texcoords(inpos);
         SMAANeighborhoodBlendingVS(output.texcoord, output.offset);
+        output.pos.xy = apply_pre_rotation(output.pos.xy);
         return output;
       }
     }

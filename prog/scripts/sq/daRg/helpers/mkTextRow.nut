@@ -19,13 +19,14 @@
     result will be text that will be automatically update text with time and username, and time can be disaplayed with clocks widget
 */
 
+from "types" import String, Array
 function mkTextRow(fullText, mkText, replaceTable): array {
   local res = [fullText]
   foreach(key, comp in replaceTable) {
     let curList = res
     res = []
     foreach(text in curList) {
-      if (type(text) != "string") {
+      if (!(text instanceof String)) {
         res.append(text)
         continue
       }
@@ -34,7 +35,7 @@ function mkTextRow(fullText, mkText, replaceTable): array {
       while (idx != null) {
         if (idx > nextIdx)
           res.append(text.slice(nextIdx, idx))
-        if (type(comp) == "array")
+        if (comp instanceof Array)
           res.extend(comp)
         else
           res.append(comp)
@@ -45,7 +46,7 @@ function mkTextRow(fullText, mkText, replaceTable): array {
         res.append(text.slice(nextIdx))
     }
   }
-  return res.map(@(t) type(t) == "string" ? mkText(t) : t)
+  return res.map(@(t) t instanceof String ? mkText(t) : t)
 }
 
 return mkTextRow

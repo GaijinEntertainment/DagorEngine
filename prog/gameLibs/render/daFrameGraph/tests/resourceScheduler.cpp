@@ -78,7 +78,7 @@ static ResourceDescription make_tex_desc(uint32_t cflags)
 struct ResourceSchedulerFixture
 {
   dafg::intermediate::Graph graph;
-  dafg::BarrierScheduler::EventsCollection events;
+  dafg::ResourceLifetimes lifetimes;
   MockPropertyProvider propertyProvider;
   dafg::ResourceScheduler scheduler;
 
@@ -124,63 +124,33 @@ struct ResourceSchedulerFixture
     return idx;
   }
 
-  void ensureEventsSize()
+  void ensureLifetimesSize()
   {
-    const auto nodeCount = graph.nodes.totalKeys();
-    for (auto &frameEvents : events)
-      for (uint32_t i = 0; i < nodeCount; ++i)
-        frameEvents.get(static_cast<dafg::intermediate::NodeIndex>(i));
+    for (auto &frameLifetimes : lifetimes)
+      frameLifetimes.resize(graph.resources.totalKeys());
   }
 
-  // Adds activation+deactivation events for a non-temporal resource across both scheduling frames.
-  // Both frame copies get the same lifetime within their respective frame.
-  void addLifetime(dafg::intermediate::ResourceIndex res, dafg::intermediate::NodeIndex activate_at,
-    dafg::intermediate::NodeIndex deactivate_at)
+  // Gives a non-temporal resource a lifetime in both scheduling frames.
+  // Both frame copies live within their own frame.
+  void addLifetime(dafg::intermediate::ResourceIndex res, dafg::intermediate::NodeIndex first_use_at,
+    dafg::intermediate::NodeIndex release_at)
   {
-    ensureEventsSize();
+    ensureLifetimesSize();
     for (uint32_t frame = 0; frame < dafg::SCHEDULE_FRAME_WINDOW; ++frame)
-    {
-      {
-        dafg::BarrierScheduler::Event ev;
-        ev.resource = res;
-        ev.frameResourceProducedOn = frame;
-        ev.data = dafg::BarrierScheduler::Event::Activation{ResourceActivationAction::DISCARD_AS_RTV_DSV, ResourceClearValue{}};
-        events[frame][activate_at].push_back(eastl::move(ev));
-      }
-      {
-        dafg::BarrierScheduler::Event ev;
-        ev.resource = res;
-        ev.frameResourceProducedOn = frame;
-        ev.data = dafg::BarrierScheduler::Event::Deactivation{};
-        events[frame][deactivate_at].push_back(eastl::move(ev));
-      }
-    }
+      lifetimes[frame][res] = {{frame, eastl::to_underlying(first_use_at)}, {frame, eastl::to_underlying(release_at)}};
   }
 
-  // Adds events for a temporal resource: activated in one frame, deactivated in the next.
-  // This creates wrapping lifetimes, which is what temporal resources have in practice
-  // (produced in one frame, consumed as history in the next).
-  void addTemporalLifetime(dafg::intermediate::ResourceIndex res, dafg::intermediate::NodeIndex activate_at,
-    dafg::intermediate::NodeIndex deactivate_at)
+  // Gives a temporal resource a lifetime that starts in one frame and ends in
+  // the next. This creates wrapping lifetimes, which is what temporal resources
+  // have in practice (produced in one frame, consumed as history in the next).
+  void addTemporalLifetime(dafg::intermediate::ResourceIndex res, dafg::intermediate::NodeIndex first_use_at,
+    dafg::intermediate::NodeIndex release_at)
   {
-    ensureEventsSize();
+    ensureLifetimesSize();
     for (uint32_t frame = 0; frame < dafg::SCHEDULE_FRAME_WINDOW; ++frame)
     {
       const uint32_t otherFrame = (frame + 1) % dafg::SCHEDULE_FRAME_WINDOW;
-      {
-        dafg::BarrierScheduler::Event ev;
-        ev.resource = res;
-        ev.frameResourceProducedOn = frame;
-        ev.data = dafg::BarrierScheduler::Event::Activation{ResourceActivationAction::DISCARD_AS_RTV_DSV, ResourceClearValue{}};
-        events[frame][activate_at].push_back(eastl::move(ev));
-      }
-      {
-        dafg::BarrierScheduler::Event ev;
-        ev.resource = res;
-        ev.frameResourceProducedOn = frame;
-        ev.data = dafg::BarrierScheduler::Event::Deactivation{};
-        events[otherFrame][deactivate_at].push_back(eastl::move(ev));
-      }
+      lifetimes[frame][res] = {{frame, eastl::to_underlying(first_use_at)}, {otherFrame, eastl::to_underlying(release_at)}};
     }
   }
 
@@ -192,11 +162,11 @@ struct ResourceSchedulerFixture
   {
     FRAMEMEM_REGION;
 
-    ensureEventsSize();
+    ensureLifetimesSize();
 
     const auto resCount = graph.resources.totalKeys();
 
-    dafg::BarrierScheduler::ResourceLifetimesChanged lifetimeChanged(resCount, all_lifetimes_changed);
+    dafg::ResourceLifetimeCalculator::LifetimesChanged lifetimeChanged(resCount, all_lifetimes_changed);
     dafg::IrHistoryPairing historyPairing;
     historyPairing.resize(resCount, dafg::intermediate::RESOURCE_NOT_MAPPED);
     for (uint32_t i = 0; i < resCount; ++i)
@@ -210,7 +180,7 @@ struct ResourceSchedulerFixture
     for (auto &c : corrections)
       c.resize(resCount, 0);
 
-    dafg::ResourceScheduler::SchedulingContext ctx{graph, events, lifetimeChanged, historyPairing, corrections, propertyProvider,
+    dafg::ResourceScheduler::SchedulingContext ctx{graph, lifetimes, lifetimeChanged, historyPairing, corrections, propertyProvider,
       allocated_heaps, graph.resources, graph.resourceNames};
 
     return scheduler.computeSchedule(prev_frame, ctx);

@@ -16,6 +16,7 @@
 #include <util/dag_oaHashNameMap.h>
 #include <util/dag_fastStrMap.h>
 #include <util/dag_string.h>
+#include <EASTL/type_traits.h>
 
 // forward declarations for external classes and structures
 class DataBlock;
@@ -796,6 +797,23 @@ void register_blend_node_creator(blend_node_creator_t creator);
 // Returns true if some registered creator handled the block and created a node.
 bool create_blend_node_from_creators(AnimationGraph &graph, const DataBlock &blk);
 
+struct BlendNodeCreatorRegistrator
+{
+  BlendNodeCreatorRegistrator(blend_node_creator_t creator) { register_blend_node_creator(creator); }
+};
+
+// consumers must reference ClassName##_pull (e.g. through gamePulls in jam) for the registration to survive static-lib linking
+#define AUTO_REGISTER_ANIM_BLEND_NODE(ClassName, block_name)                                                     \
+  static bool create_blend_node_##ClassName(AnimV20::AnimationGraph &graph, const DataBlock &blk)                \
+  {                                                                                                              \
+    static_assert(eastl::is_base_of_v<AnimV20::IAnimBlendNode, ClassName>, #ClassName " is not IAnimBlendNode"); \
+    if (dd_stricmp(blk.getBlockName(), block_name) != 0)                                                         \
+      return false;                                                                                              \
+    ClassName::createNode(graph, blk);                                                                           \
+    return true;                                                                                                 \
+  }                                                                                                              \
+  static AnimV20::BlendNodeCreatorRegistrator ClassName##_creator_registrator(&create_blend_node_##ClassName);   \
+  size_t ClassName##_pull = 0
 } // end of namespace AnimV20
 DAG_DECLARE_RELOCATABLE(AnimV20::AnimBlender::ChannelMap);
 

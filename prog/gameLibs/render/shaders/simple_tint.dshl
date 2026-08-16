@@ -1,0 +1,34 @@
+include "shader_global.dshl"
+
+float4 simple_tint_color;
+texture simple_tint_color_rt;
+
+shader simple_tint_final_render
+{
+  z_test = false;
+  z_write = false;
+  supports none;
+  supports global_frame;
+  cull_mode = none;
+  blend_src = sa; blend_dst = isa;
+
+  POSTFX_VS(1)
+
+  (ps) {
+    simple_tint_color@f4 = simple_tint_color;
+    color_rt@tex2d = simple_tint_color_rt;
+  }
+
+  hlsl(ps) {
+    float4 simple_tint_final_render_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float4 pos = GET_SCREEN_POS(input.pos);
+      int2 ipos = int2(pos.xy);
+
+      float4 color = texelFetch(color_rt, ipos, 0);
+      // Opaque shaders may not write alpha, so check any channel.
+      return simple_tint_color * float(any(color));
+    }
+  }
+  compile("target_ps", "simple_tint_final_render_ps");
+}

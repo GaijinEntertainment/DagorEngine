@@ -17,6 +17,8 @@ void ShaderMeshData::optimizeForCache(bool opt_overdraw_too)
 
 void ShaderMeshData::optimizeForCache(RElem &re, bool opt_overdraw_too)
 {
+  G_ASSERT(re.bv == 0); // baseVertex unaware, optimizeForCache before GlobalVertexDataConnector::connectData.
+
   GlobalVertexDataSrc &vd = *re.vertexData;
   Tab<float> unpacked_vert_f3;
 

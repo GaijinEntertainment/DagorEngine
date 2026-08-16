@@ -6,8 +6,10 @@
 
 #include <dag/dag_vector.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/shared_ptr.h>
 #include <EASTL/fixed_function.h>
 #include <EASTL/optional.h>
+#include <EASTL/bitvector.h>
 #include <generic/dag_carray.h>
 #include <rendInst/riexHandle.h>
 #include <3d/dag_resPtr.h>
@@ -25,23 +27,24 @@ class LRURendinstCollision
 public:
   LRURendinstCollision();
   LRURendinstCollision(const LRURendinstCollision &) = delete;
-  ~LRURendinstCollision();
 
   // The compute voxelizer packs a resource's tri count into the low 20 bits of its dispatch word
   // (instance count takes the high 12) and skips anything bigger, so this is the largest face count
   // one voxelizable collision resource may carry. Callers building such geometry must cap to it.
   static constexpr uint32_t MAX_VOXELIZATION_TRIS = (1u << 20) - 1;
 
+  // the voxelization buffers and lru heaps carry fixed managed-resource names,
+  // so two live instances would alias each other's buffers: every user in a
+  // process must share the one instance this returns
+  static eastl::shared_ptr<LRURendinstCollision> acquire();
+
   bool updateLRU(dag::ConstSpan<rendinst::riex_handle_t> ri);
   void reset();
   void clearRiInfo();
-  bool canVoxelize() const { return (voxelizeCollisionElem || voxelize_collision_cs); }
-  void voxelize(dag::ConstSpan<rendinst::riex_handle_t> handles, VolTexture *color, VolTexture *alpha);
   void draw(dag::ConstSpan<rendinst::riex_handle_t> handles, VolTexture *color, VolTexture *alpha, uint32_t inst_mul,
     ShaderElement &elem, bool primitves = false);
   void dispatchInstances(dag::ConstSpan<rendinst::riex_handle_t> handles, VolTexture *color, VolTexture *alpha,
     ComputeShaderElement &cs);
-  ShaderElement *getVoxelizeCollisionElem() { return voxelizeCollisionElem; }
 
 protected:
   void drawInstances(dag::ConstSpan<rendinst::riex_handle_t> handles, VolTexture *color, VolTexture *alpha, uint32_t inst_mul,
@@ -57,6 +60,7 @@ protected:
     bool isEmpty() const { return ibSize == 0; }
   };
   dag::Vector<RiDataInfo> riInfo; // direct mapping.
+  eastl::bitvector<> riInfoSettled;
   RiDataInfo getRiData(uint32_t type);
   struct LRUEntry
   {
@@ -93,9 +97,6 @@ protected:
   bool supportNoOverwrite = false;
   uint32_t lastUpdatedInstance = 0;
   uint32_t lastFrameTmsUsed = 0;
-  eastl::unique_ptr<ComputeShaderElement> voxelize_collision_cs;
-  eastl::unique_ptr<ShaderMaterial> voxelizeCollisionMat;
-  ShaderElement *voxelizeCollisionElem = 0;
   serial_buffer::SerialBufferCounter serialBuf;
 
 public:

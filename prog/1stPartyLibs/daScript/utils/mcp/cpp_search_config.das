@@ -17,6 +17,8 @@
 
 options gen2
 
+module cpp_search_config
+
 // Folders to scan, recursively. `sg scan` walks each tree, so listing
 // `modules` covers all `modules/*/...` subdirectories automatically.
 let CPP_SEARCH_DIRS <- [

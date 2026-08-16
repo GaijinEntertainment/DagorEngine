@@ -143,6 +143,9 @@ public:
   //! LandMesh CachedTexElement support
   virtual bool mapStorageFileExists(const char *fname) const = 0;
   virtual void onLevelBlkLoaded(const DataBlock &blk) = 0;
+  //! Re-apply the land micro details of the last loaded level blk. The service owns them, but the
+  //! shadervars are global, so another renderer loading its own level can drop them.
+  virtual void reloadLandMicroDetails() = 0;
 
   //! detail coloring support
   // obsolete

@@ -38,7 +38,8 @@
   VAR(has_motion_vectors)            \
   VAR(has_checkerboard_depth)        \
   VAR(has_normal)                    \
-  VAR(normal_repacking_needed)
+  VAR(normal_repacking_needed)       \
+  VAR(downsample_far_normals)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
@@ -121,36 +122,48 @@ void init(const char *ps_name, const char *wave_cs_name, const char *cs_name)
 }
 
 void downsample(const ManagedTex &from_depth, int w, int h, const ManagedTex &far_depth, const ManagedTex &close_depth,
-  const ManagedTex &far_normals, const ManagedTex &normal_gbuf, const ManagedTex &motion_vectors, const ManagedTex &checkerboard_depth,
+  const ManagedTex &normals, const ManagedTex &normal_gbuf, const ManagedTex &motion_vectors, const ManagedTex &checkerboard_depth,
   bool external_barriers)
 {
-  downsample(from_depth.getTex2D(), w, h, far_depth.getTex2D(), close_depth.getTex2D(), far_normals.getTex2D(), normal_gbuf.getTex2D(),
+  downsample(from_depth.getTex2D(), w, h, far_depth.getTex2D(), close_depth.getTex2D(), normals.getTex2D(), normal_gbuf.getTex2D(),
     motion_vectors.getTex2D(), checkerboard_depth.getTex2D(), external_barriers);
 }
 
-void downsample(BaseTexture *from_depth, int w, int h, BaseTexture *far_depth, BaseTexture *close_depth, BaseTexture *far_normals,
-  BaseTexture *normal_gbuf, BaseTexture *motion_vectors, BaseTexture *checkerboard_depth, bool external_barriers)
+void downsample(BaseTexture *from_depth, int w, int h, BaseTexture *far_depth, BaseTexture *close_depth, BaseTexture *normals,
+  BaseTexture *normal_gbuf, BaseTexture *motion_vectors, BaseTexture *checkerboard_depth, bool external_barriers,
+  BaseTexture *far_normals)
 {
   if (downsampleDepthWaveCompute && (far_depth->level_count() - 1) <= MAX_CS_SUPPORTED_MIPS &&
       (!close_depth || (close_depth->level_count() - 1) <= MAX_CS_SUPPORTED_MIPS))
   {
-    downsampleWithWaveIntin(from_depth, w, h, far_depth, close_depth, far_normals, normal_gbuf, motion_vectors, checkerboard_depth,
-      external_barriers);
+    downsampleWithWaveIntin(from_depth, w, h, far_depth, close_depth, normals, normal_gbuf, motion_vectors, checkerboard_depth,
+      external_barriers, far_normals);
   }
   else
   {
-    downsamplePS(from_depth, w, h, far_depth, close_depth, far_normals, normal_gbuf, motion_vectors, checkerboard_depth,
-      external_barriers);
+    downsamplePS(from_depth, w, h, far_depth, close_depth, normals, normal_gbuf, motion_vectors, checkerboard_depth, external_barriers,
+      Point4(1, 1, 0, 0), far_normals);
   }
 }
 
-void downsamplePS(BaseTexture *from_depth, int w, int h, BaseTexture *far_depth, BaseTexture *close_depth, BaseTexture *far_normals,
+void downsamplePS(BaseTexture *from_depth, int w, int h, BaseTexture *far_depth, BaseTexture *close_depth, BaseTexture *normals,
   BaseTexture *normal_gbuf, BaseTexture *motion_vectors, BaseTexture *checkerboard_depth, bool external_barriers,
-  const Point4 &source_uv_transform)
+  const Point4 &source_uv_transform, BaseTexture *far_normals)
 {
-  downsamplePS(from_depth, w, h, {&far_depth, far_depth != nullptr}, close_depth, far_normals, normal_gbuf, motion_vectors,
-    checkerboard_depth, external_barriers, source_uv_transform);
+  downsamplePS(from_depth, w, h, {&far_depth, far_depth != nullptr}, close_depth, normals, normal_gbuf, motion_vectors,
+    checkerboard_depth, external_barriers, source_uv_transform, far_normals);
 }
+
+// Must match the shader, which emits the far normals target only when has_normal is set too.
+static bool use_far_normals(BaseTexture *normals, BaseTexture *far_normals)
+{
+  G_ASSERTF(!far_normals || normals, "downsample_depth: `far_normals` requires `normals`.");
+  return far_normals && normals;
+}
+
+// The far normals output takes u5, so the gbuffer repacking UAV moves up. Must match the
+// normal_gbuf_to_merge register choice in downsampleDepth.dshl.
+static int normal_merge_uav_slot(bool use_far_normals) { return use_far_normals ? 6 : 5; }
 
 static bool check_uav(BaseTexture *tex)
 {
@@ -164,8 +177,8 @@ static bool check_uav(BaseTexture *tex)
 }
 
 void downsamplePS(BaseTexture *from_depth, int w, int h, dag::Span<BaseTexture *> far_depth_array, BaseTexture *close_depth,
-  BaseTexture *far_normals, BaseTexture *normal_gbuf, BaseTexture *motion_vectors, BaseTexture *checkerboard_depth,
-  bool external_barriers, const Point4 &source_uv_transform)
+  BaseTexture *normals, BaseTexture *normal_gbuf, BaseTexture *motion_vectors, BaseTexture *checkerboard_depth, bool external_barriers,
+  const Point4 &source_uv_transform, BaseTexture *far_normals)
 {
   BaseTexture *far_depth_mip0 = far_depth_array.size() ? far_depth_array[0] : nullptr;
 
@@ -179,8 +192,10 @@ void downsamplePS(BaseTexture *from_depth, int w, int h, dag::Span<BaseTexture *
     logwarn("DownsamplePS: motion_vectors were provided but ShaderVar has_motion_vectors = 0. motion_vectors will not downsample.");
 #endif
 
-  bool useCompute = downsampleDepthCompute && check_uav(far_depth_mip0) && check_uav(close_depth) && check_uav(far_normals) &&
-                    check_uav(motion_vectors) && check_uav(checkerboard_depth);
+  bool useCompute = downsampleDepthCompute && check_uav(far_depth_mip0) && check_uav(close_depth) && check_uav(normals) &&
+                    check_uav(motion_vectors) && check_uav(checkerboard_depth) && check_uav(far_normals);
+
+  const bool useFarNormals = use_far_normals(normals, far_normals);
 
   G_ASSERT(downsampleDepth.getElem());
   if (!downsampleDepth.getElem())
@@ -228,9 +243,10 @@ void downsamplePS(BaseTexture *from_depth, int w, int h, dag::Span<BaseTexture *
 
   {
     STATE_GUARD(ShaderGlobal::set_int(has_checkerboard_depthVarId, VALUE), checkerboard_depth ? 1 : 0, 0);
-    STATE_GUARD(ShaderGlobal::set_int(has_normalVarId, VALUE), far_normals ? 1 : 0, 0);
+    STATE_GUARD(ShaderGlobal::set_int(has_normalVarId, VALUE), normals ? 1 : 0, 0);
     STATE_GUARD(ShaderGlobal::set_int(has_motion_vectorsVarId, VALUE), savedHasMotionVectors && motion_vectors ? 1 : 0, 0);
     STATE_GUARD(ShaderGlobal::set_int(normal_repacking_neededVarId, VALUE), normal_gbuf ? 1 : 0, 0);
+    STATE_GUARD(ShaderGlobal::set_int(downsample_far_normalsVarId, VALUE), useFarNormals ? 1 : 0, 0);
     STATE_GUARD(ShaderGlobal::set_float4(downsample_uv_transformVarId, VALUE), Point4(source_uv_transform), Point4(1, 1, 0, 0));
     STATE_GUARD(ShaderGlobal::set_int4(downsample_uv_transformiVarId, VALUE),
       IPoint4(source_uv_transform.z * fdi.w, source_uv_transform.w * fdi.h, 0, 0), IPoint4(0, 0, 0, 0));
@@ -243,9 +259,10 @@ void downsamplePS(BaseTexture *from_depth, int w, int h, dag::Span<BaseTexture *
       STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), far_depth_mip0);
       STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 1, VALUE, 0, 0), close_depth);
       STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 2, VALUE, 0, 0), checkerboard_depth);
-      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 3, VALUE, 0, 0), far_normals);
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 3, VALUE, 0, 0), normals);
       STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 4, VALUE, 0, 0), motion_vectors);
-      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 5, VALUE, 0, 0), normal_gbuf);
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 5, VALUE, 0, 0), useFarNormals ? far_normals : nullptr);
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, normal_merge_uav_slot(useFarNormals), VALUE, 0, 0), normal_gbuf);
       for (int smpIx = 0; smpIx < 16; smpIx++)
         d3d::set_tex(STAGE_CS, smpIx, nullptr);
 
@@ -253,7 +270,7 @@ void downsamplePS(BaseTexture *from_depth, int w, int h, dag::Span<BaseTexture *
     }
     else
     {
-      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_PS, 5, VALUE, 0, 0), normal_gbuf);
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_PS, normal_merge_uav_slot(useFarNormals), VALUE, 0, 0), normal_gbuf);
 
       if (depthTex)
         shaders::overrides::set(zFuncAlwaysStateId);
@@ -262,7 +279,8 @@ void downsamplePS(BaseTexture *from_depth, int w, int h, dag::Span<BaseTexture *
         {{far_depth_mip0 && depthFormatTarget != FAR_DEPTH_FORMAT ? far_depth_array[0] : nullptr, 0},
           {close_depth && depthFormatTarget != CLOSE_DEPTH_FORMAT ? close_depth : nullptr, 0},
           {checkerboard_depth && depthFormatTarget != CHECKER_DEPTH_FORMAT ? checkerboard_depth : nullptr, 0},
-          {far_normals ? far_normals : nullptr, 0}, {motion_vectors ? motion_vectors : nullptr, 0}});
+          {normals ? normals : nullptr, 0}, {motion_vectors ? motion_vectors : nullptr, 0},
+          {useFarNormals ? far_normals : nullptr, 0}});
 
       d3d::setview(0, 0, mw, mh, 0, 1);
       d3d::setscissor(0, 0, mw, mh);
@@ -405,7 +423,9 @@ void downsamplePS(BaseTexture *from_depth, int w, int h, dag::Span<BaseTexture *
   if (close_depth && !external_barriers)
     d3d::resource_barrier(
       {close_depth, RB_RO_SRV | srcStage | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, unsigned(close_depth_mip_count - 1), 1});
-  if (far_normals && !external_barriers)
+  if (normals && !external_barriers)
+    d3d::resource_barrier({normals, RB_RO_SRV | srcStage | RB_STAGE_PIXEL, 0, 1});
+  if (useFarNormals && !external_barriers)
     d3d::resource_barrier({far_normals, RB_RO_SRV | srcStage | RB_STAGE_PIXEL, 0, 1});
   if (motion_vectors && !external_barriers)
     d3d::resource_barrier({motion_vectors, RB_RO_SRV | srcStage | RB_STAGE_PIXEL, 0, 1});
@@ -428,6 +448,7 @@ void generate_depth_mips(BaseTexture *tex)
   ShaderGlobal::set_int(downsample_depth_typeVarId, DTYPE_MIP_FAR);
   ShaderGlobal::set_int(depth_format_targetVarId, NO_DEPTH_FORMAT);
   ShaderGlobal::set_int(has_normalVarId, 0);
+  ShaderGlobal::set_int(downsample_far_normalsVarId, 0);
   ShaderGlobal::set_int(has_checkerboard_depthVarId, 0);
   ShaderGlobal::set_int(has_motion_vectorsVarId, 0);
   ShaderGlobal::set_int4(downsample_uv_transformiVarId, IPoint4(0, 0, 0, 0));
@@ -469,8 +490,8 @@ void generate_depth_mips(BaseTexture *tex)
 }
 
 void downsampleWithWaveIntin(BaseTexture *from_depth, int w, int h, BaseTexture *far_depth, BaseTexture *close_depth,
-  BaseTexture *far_normals, BaseTexture *normal_gbuf, BaseTexture *motion_vectors, BaseTexture *checkerboard_depth,
-  bool external_barriers)
+  BaseTexture *normals, BaseTexture *normal_gbuf, BaseTexture *motion_vectors, BaseTexture *checkerboard_depth, bool external_barriers,
+  BaseTexture *far_normals)
 {
   G_ASSERT(downsampleDepthWaveCompute);
 #if DAGOR_DBGLEVEL > 0
@@ -488,24 +509,28 @@ void downsampleWithWaveIntin(BaseTexture *from_depth, int w, int h, BaseTexture 
   SCOPE_RENDER_TARGET;
   int savedHasMotionVectors = ShaderGlobal::get_int(has_motion_vectorsVarId);
   int downsample_type = close_depth ? DTYPE_GBUF_FAR_CLOSE : DTYPE_GBUF_FAR;
+  const bool useFarNormals = use_far_normals(normals, far_normals);
 
 
   { // Write the first downsampled mip level
     ShaderGlobal::set_int(downsample_depth_typeVarId, downsample_type);
     ShaderGlobal::set_int(depth_format_targetVarId, NO_DEPTH_FORMAT);
-    ShaderGlobal::set_int(has_normalVarId, far_normals ? 1 : 0);
+    ShaderGlobal::set_int(has_normalVarId, normals ? 1 : 0);
     ShaderGlobal::set_int(normal_repacking_neededVarId, normal_gbuf ? 1 : 0);
     ShaderGlobal::set_int(has_checkerboard_depthVarId, checkerboard_depth ? 1 : 0);
     ShaderGlobal::set_int(has_motion_vectorsVarId, savedHasMotionVectors && motion_vectors ? 1 : 0);
+    ShaderGlobal::set_int(downsample_far_normalsVarId, useFarNormals ? 1 : 0);
     d3d::set_render_target({}, DepthAccess::RW,
-      {{far_depth, 0, 0}, {close_depth, 0, 0}, {checkerboard_depth, 0, 0}, {far_normals, 0, 0}, {motion_vectors, 0, 0}});
-    d3d::set_rwtex(STAGE_PS, 5, normal_gbuf, 0, 0);
+      {{far_depth, 0, 0}, {close_depth, 0, 0}, {checkerboard_depth, 0, 0}, {normals, 0, 0}, {motion_vectors, 0, 0},
+        {useFarNormals ? far_normals : nullptr, 0, 0}});
+    STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_PS, normal_merge_uav_slot(useFarNormals), VALUE, 0, 0), normal_gbuf);
     ShaderGlobal::set_float4(downsample_fromVarId, w, h, 0, 0);
     ShaderGlobal::set_texture_unsafe(downsample_depth_fromVarId, from_depth);
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
     downsampleDepth.render(); // first pass
   }
   ShaderGlobal::set_int(normal_repacking_neededVarId, 0);
+  ShaderGlobal::set_int(downsample_far_normalsVarId, 0);
 
   w /= 2;
   h /= 2;
@@ -589,7 +614,9 @@ void downsampleWithWaveIntin(BaseTexture *from_depth, int w, int h, BaseTexture 
         {close_depth, RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 1, (unsigned)close_depth->level_count() - 1u});
     }
   }
-  if (far_normals)
+  if (normals)
+    d3d::resource_barrier({normals, RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
+  if (useFarNormals)
     d3d::resource_barrier({far_normals, RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
   if (motion_vectors)
     d3d::resource_barrier({motion_vectors, RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});

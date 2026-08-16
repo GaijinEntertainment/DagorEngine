@@ -1,0 +1,3 @@
+parameter 2 of 'min' has an invalid type 'string' ; expected: 'integer|float'
+parameter 3 of 'min' has an invalid type 'string' ; expected: 'integer|float'
+parameter 4 of 'max' has an invalid type 'string' ; expected: 'integer|float'

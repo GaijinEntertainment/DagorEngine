@@ -112,6 +112,7 @@ void registerNodeDeclaration(dafg::NodeData &node_data, dafg::NameSpaceNameId ns
         return das::das_invoke_lambda<DasExecutionCallback>::invoke<>(context, nullptr, declCb);
       };
       r->nodes[nodeId].nodeSource = context->name;
+      r->nodes[nodeId].hasCustomExecution = true;
       auto executionCallback = callDasFunction(context, invokeDeclCb);
       return [context, execCb = das::GcRootLambda(eastl::move(executionCallback), context)] //
         (dafg::multiplexing::Index) {

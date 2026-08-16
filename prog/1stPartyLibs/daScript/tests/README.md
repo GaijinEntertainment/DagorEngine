@@ -36,7 +36,12 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_lambdas.das | AOT lambda codegen — capture, invoke, nested | |
 | test_strings.das | AOT string operations — interpolation, comparison, builder | |
 | test_structures.das | AOT struct codegen — construction, fields, methods, inheritance | |
+| test_struct_decl_order.das | AOT required-module struct topo-sort (#3212) — by-value field of a later-declared struct | |
+| _aot_so_mod.das | *(helper)* #3212 fixture module — Outer holds Inner by value, declared Outer-first | |
 | t_invoke_void.das | AOT `invoke` dispatch — void-returning function pointer via AOT path | |
+| test_variant_alias_aot.das | AOT variant-alias codegen (#3269) — delete of handled variant alias, builtin push of a variant element | |
+| test_int64_ptr_index.das | AOT raw-pointer indexing by int64/uint64 (#3391) — at/safe_at through non-var (`T * const`), var (`T *`), and const-pointee pointers | |
+| test_range64_ctor_args.das | AOT most-vexing-parse — a for-source of constructor-style casts only (`range64(int64(a), int64(b))`) must emit a variable, not a function declaration | |
 
 ## apply/
 
@@ -102,9 +107,11 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | failed_piped_block_mismatch.das | Piped block signature mismatch after padding | **expect** `30341` |
 | failed_piped_no_block_param.das | No block-like parameter for the piped block to land on | **expect** `30341` |
 | failed_piped_ambiguous.das | Two overloads with equal padding — ambiguous piped call | **expect** `30341` |
-| failed_piped_named_call.das | Named-argument call + piped block is a parse error | **expect** `30347` |
+| piped_named_call.das | Named-argument call + piped block — block pads across defaults to a later block param (free-fn, free-fn-via-dot, generic, and genuine class/struct-method forms, incl. implicit self) | |
+| failed_piped_named_padding.das | Piped block on a named call can't land — a non-default param blocks the pad, or there's no block param at all (free-fn and class-method forms) | **expect** `30341:4` |
 | failed_piped_field.das | Field access + piped block is a parse error | **expect** `30347` |
 | test_bare_block.das | Bare lexical blocks — scoping, nesting, finally, control flow, name reuse | |
+| test_block_in_finally.das | Block locals + finally/defer — invoked from defer/plain finally, declared after defer, early-return path, loop-iterator capture, by-ref mutation visibility (AOT hoisted-block codegen) | |
 | test_nested_data.das | Table `{}` literals as sub-data — structs, arrays, functions, tuples, variants, comprehensions, move semantics | |
 | _test_table_compat.das | Basic table literal compatibility tests | |
 
@@ -225,7 +232,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_54_upsert_single_col.das | `_sql_upsert(row, _.Col, set_dict)` single-column ON CONFLICT key (insert vs merge branch, _excluded reference) | |
 | test_55_upsert_composite.das | `_sql_upsert` multi-column composite conflict keys via tuple `(_.Email, _.Tenant)` | |
 | test_56_upsert_returning.das | `_sql_upsert_returning` UPSERT ... RETURNING (post-merge row on conflict, fresh row on insert) | |
-| test_57_sql_unique.das | `@sql_unique` column annotation (DDL emission, constraint enforcement, distinct values allowed) | |
+| test_57_sql_unique.das | `@sql_unique` portable generated-index emission, named-table rewrite, constraint enforcement, distinct values allowed | |
 | test_58_sql_references.das | `@sql_references` / `@sql_on_delete` foreign-key relationships (DDL REFERENCES clause, CASCADE delete semantics) | |
 | test_59_sql_index.das | `[sql_index]` DDL emission (single-col, composite, unique indexes with auto-naming) | |
 | test_60_defaults_computed.das | Defaults (native field init → DEFAULT, `@sql_default_fn` built-ins) and computed columns (`@sql_computed` VIRTUAL/STORED) | |
@@ -253,18 +260,20 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_91_sql_vacuum_into_macro.das | `_sql_vacuum_into(path)` macro form (vacuum into file path, runtime string path, verification across reopen) | |
 | test_92_order_by_runtime.das | Runtime `_order_by(string)` column-name binding (const string folds to compile-time, runtime path uses sql_quote_id) | |
 | test_93_attach.das | `with_attached(path, alias)` attach secondary database file (query across attached, temp-file cleanup) | |
-| test_94_fts5.das | `[sql_fts5]` full-text search (CREATE VIRTUAL TABLE fts5, `@sql_fts_rank` hidden rank column, INSERT skips rank) | |
+| test_94_fts5.das | `[sql_fts5]` full-text search (`@sql_fts_unindexed` typed metadata, `@sql_fts_rank`, MATCH, INSERT, typed predicate DELETE) | |
 | failed_create_view.das | `_create_view` macro validation failures (column count/type mismatches, non-annotated struct, bound parameters) | **expect** `40104:7` |
 | failed_each_sql_terminals.das | `_each_sql` rejects materializing terminals (`_to_array`, `_first`, `_first_opt`, aggregates) | **expect** `40104:4` |
 | failed_pred_json_path_typo.das | Predicate-side JSON-path validation (typo detection in `_.Field.nested` chains) | **expect** `40104:3, 30503:3` |
 | failed_register_function.das | `register_function` compile-time type validation (struct args, struct returns, pointers, non-function references) | **expect** `40104:5` |
 | failed_sql_column.das | `@sql_column` annotation validation (empty value, embedded quotes/backslashes, cross-field collisions) | **expect** `30111:5` |
-| failed_sql_fts5.das | `[sql_fts5]` field-annotation rejections (`@sql_column` on `@sql_fts_rank`) | **expect** `30111:1` |
+| failed_sql_fts5.das | `[sql_fts5]` field-annotation rejections (`@sql_column` / `@sql_fts_unindexed` on rank) | **expect** `20800:2` |
+| failed_sql_fts5_unindexed_match.das | `_sql` rejects `text_match` on `@sql_fts_unindexed` metadata | **expect** `50503:1` |
+| failed_sql_global_aggregate.das | `_aggregate` rejects unnamed/non-aggregate results and unsupported pre-projection/distinct/grouped/ordered/paged source shapes | **expect** `50503:9` |
 | failed_sql_index.das | `[sql_index]` validation (missing fields, nonexistent columns, ordering with `[sql_table]`) | **expect** `30111:4` |
 | failed_sql_json_blob_kind_collision.das | Payload type kind collision rejection (same type in `@sql_json` vs `@sql_blob`) | **expect** `30111:3` |
 | failed_sql_macro.das | `_sql` / `_sql_text` analyzer failures (22 malformed chains: invalid roots, duplicate modifiers, unsupported expressions) | **expect** `40104:22, 30304:2, 30503:2` |
 | failed_sql_pragma_vacuum.das | `_sql_pragma` / `_sql_vacuum_into` argument-shape validation (wrong types, arg counts) | **expect** `40104:5` |
-| failed_sql_table_schema.das | `[sql_table]` schema-validation failures (computed+PK collision, defaults+initializers, FK actions, reference resolution) | **expect** `30111:12` |
+| failed_sql_table_schema.das | `[sql_table]` schema-validation failures (computed+PK/UNIQUE collisions, defaults+initializers, FK actions, reference resolution) | **expect** `20800:13` |
 | failed_sql_update_delete.das | `_sql_update` / `_sql_delete` analyzer failures (wrong arity, non-type args, typos, duplicate columns) | **expect** `40104:7` |
 | failed_sql_upsert.das | `_sql_upsert` analyzer failures (wrong arity, on_conflict/do_update validation, duplicate columns) | **expect** `40104:10` |
 | failed_sql_view_mutations.das | `_sql_update` / `_sql_delete` / `_sql_upsert` against `[sql_view]` types (read-only rejection) | **expect** `40104:8` |
@@ -437,9 +446,18 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_missing_inherited.das | Completeness check catches missing inherited abstract methods | **expect** `30111` |
 | test_missing_method.das | Completeness check catches missing abstract methods | **expect** `30111` |
 
+## jit/
+
+| File | Description | Expects errors |
+|---|---|---|
+| bitfield64.das | 64-bit bitfield through the JIT — construction, pass/return, uint64 round-trip | |
+| lambda_return.das | Lambda returned from a function under the JIT | |
+| fast_math_specials.das | `options fast_math` stays value-safe for real infs — sigmoid/silu over the exp-overflow range (x64 rcp-NR NaN regression) | |
+
 ## jit_tests/
 
-50 files testing JIT compilation code generation. None have `expect` directives.
+JIT compilation and code-generation tests. None have `expect` directives. The slower
+`llvm_tune` integration suite lives with its owning module under `modules/dasLLVM/tests/`.
 
 | File | Description | Expects errors |
 |---|---|---|
@@ -484,6 +502,8 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | struct.das | Struct operations | |
 | table.das | Table operations | |
 | table_value_key.das | Table value/key access | |
+| trap_block_ann.das | Block with `annotationData` filled by a `[block_macro]` — runs under JIT, and a standalone exe is still emitted (the LLVM backend used to store a trap in the block's global instead) | |
+| _trap_block_ann_helper.das | *(helper)* `[block_macro]` whose `finish()` fills `annotationData`/`annotationDataSid` | |
 | try_recover.das | Try/recover codegen | |
 | tuple.das | Tuple operations | |
 | type_constructors.das | Type constructor codegen | |
@@ -529,6 +549,10 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | _glob.das | *(helper)* Shared module defining `AAA = 10` | |
 | _helper_foo.das | *(helper)* Module providing `TestObjectFoo` struct and `testFoo` function | |
 | _helper_macro_uninferred.das | *(helper)* `[bad_emitter]` structure_macro that adds an un-inferred function during patch | |
+| _fixup_init_macro.das | *(helper)* `[fixup_init_capture]` function_macro whose fixup installs a call-shaped global init (to_array_move) | |
+| test_fixup_global_init.das | Pipeline contract — a call-shaped global init installed by an annotation's fixup() resolves via the post-fixup dirty re-infer and evaluates | |
+| _lambda_vis_inner.das | *(helper)* Non-public leaf module for lambda_in_generic_module_vis — provides `inner_dot` | |
+| _lambda_vis_mid.das | *(helper)* Mid module hosting generics whose outlined lambdas/generators/local fns must resolve `inner_dot` | |
 | _module_a.das | *(helper)* Module for module_vis_fail — globals, types, functions | |
 | _module_b.das | *(helper)* Module for module_vis_fail — requires _module_a | |
 | _operators_derived.das | *(helper)* Derived class BarOp | |
@@ -550,6 +574,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | block.das | Block creation and invocation | |
 | block_invoke.das | Block invocation — twice, nested chaining, value capture, ref passing | |
 | block_access_function_arg.das | Nested block accessing outer lambda variable via helper | |
+| block_annotation_data.das | Block `annotationData` round-trip — `[block_ann_data]` writes it in finalize, `testBlockAnnotationData` reads it back off the runtime block; must agree across interpreter / C++ AOT (`adBySid`) / LLVM JIT (`jit_ad_by_sid`) | |
 | block_args_nested.das | Deeply nested blocks — int, ref, ptr, struct passthrough | |
 | block_variable.das | Local block variables — void/result × no-arg/with-arg × value/cmres | |
 | block_vs_local_block.das | Pipe `<\|` block vs local block variable invoke | |
@@ -598,9 +623,9 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | failed_aka.das | Global aka and typedef aka produce errors | **expect** `20000:1` |
 | failed_aliasing.das | Aliasing errors with `no_aliasing` option | **expect** `40211:23` `40212:3` |
 | failed_block.das | Block variable initialization failures | **expect** `30108` `30113` |
-| failed_call_depth.das | Recursive default argument expansion — max call depth exceeded | **expect** `41000:1` `30301:50` |
 | failed_capture_self.das | Capturing `self` in lambda fails | **expect** `30508` `30124` |
 | failed_constants.das | Out-of-range numeric literal errors | **expect** `10006:12` `10010:4` |
+| failed_recursive_default.das | A struct method whose default argument calls itself — the recursive named call can't resolve and the auto return type can't be inferred through the recursion | **expect** `30161` `30237` `30341` `30344` `30805` |
 | failed_table_lookup_collision.das | Table lookup collision lint — same table indexed twice in one expression | **expect** `40216:7` |
 | finally.das | `finally` blocks — exceptions, loops, nested, return | |
 | for_const_array.das | For-loop over `fixed_array` constant | |
@@ -653,6 +678,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | lambda_basic.das | Lambda capture, invoke, null check, addX returning lambda | |
 | lambda_capture.das | Lambda capturing const values, finalizer behavior | |
 | lambda_capture_modes.das | Lambda capture ref/move/clone modes, capture with delete | |
+| lambda_in_generic_module_vis.das | Functions outlined from generic instances (lambda/generator/local fn/nested) keep the generic's origin module for name resolution | |
 | lambda_to_iter.das | Lambda as iterator via `each(lam)` for int& and struct | |
 | line_info.das | `testCallLine()` line info correctness (6 in script, 0 with AOT) | |
 | failed_local_classes_failed.das | no_local_class_members restriction | **expect** `31300:1` |
@@ -675,6 +701,9 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | move_lambda_local_ref.das | `capture(<- arr)` moving array into lambda | |
 | move_on_return.das | Move with `finally` delete — pipeline array return | |
 | failed_named_call.das | Named arguments — reordering, skipping, defaults, error cases | **expect** `30304:12` `30101:1` `30507:1` |
+| named_call.das | Bracket-less named call args — bare mixed `foo(pos, name=v)`, multi-named, bracketed regression, move `<-` / clone `:=`, overload + generic pick, piped block, free-fn-via-dot and genuine class-method forms (middle positional after self) | |
+| failed_named_call_bare.das | Bad named args — unknown/duplicate/missing/out-of-order name, overlap with a filled slot | **expect** `30341:5` |
+| failed_named_call_order.das | Named argument must be a strict suffix — a positional after a named arg is a syntax error | **expect** `30151` |
 | new_and_init.das | `new_and_init` — allocate and copy struct with `always_export_initializer` | |
 | new_delete.das | `delete` for arrays, tables, structs, handles, strings — heap tracking | |
 | new_with_init.das | `new` with struct constructors — zeroed, defaults, custom, array | |
@@ -743,6 +772,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | typeAlias.das | Type aliases — `Point3Array`, indexing, swizzle, array ops on aliased types | |
 | typefunction.das | `[type_function]` annotation — `type<T>` argument syntax | |
 | typeinfo.das | typeinfo sizeof, has_field, struct_get_annotation_argument | |
+| test_rtti_init_mnh.das | Named-module structure RTTI retains the generated initializer's mangled-name hash | |
 | typeinfo_annotations.das | Struct annotation queries — has_annotation, get_annotation_argument | |
 | typeinfo_traits.das | typeinfo trait queries — is_local, is_ref, is_numeric, etc. | |
 | typename.das | `typeinfo typename` for various types — generics, arrays, tables | |
@@ -833,6 +863,45 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 | math_pack_unpack.das | pack_float_to_byte / unpack_byte_to_float with fuzzing | |
 | math_quaternions.das | Quaternion operations with fuzzing | |
 
+## msl/
+
+> dasMetal's MSL text backend (pure das — runs on every platform).
+
+| File | Description | Expects errors |
+|---|---|---|
+| _msl_common.das | *(helper)* Shared fixtures — the `[metal_kernel]` classes every suite reads + the declared census (gate B contract) | |
+| test_msl_arith.das | Arithmetic/bitwise/shift/comparison/logical/ternary emission per scalar class + vector ops and broadcasts | |
+| test_msl_census.das | Census gate — union of emitted construct kinds across all fixtures == declared set, both directions | |
+| test_msl_control.das | if/elif/else, while, break/continue, compound assign, ++/--, zero-init locals, void return | |
+| test_msl_fail_closed.das | Fail-closed gate — every `_fail_closed/_fc_*.das` fixture must be REJECTED with its specific diagnostic (written/array `@uniform`, value return, user-function call, bound/dynamic `@workgroup`, sgmat misuse, wide-lattice buffers, partial packed stores) | |
+| test_msl_lattice.das | 16/8-bit lattice types in buffers/uniforms/locals — `packed_T3` layout rail, fp16 literals, ctor/cvt/sat call family | |
+| test_msl_loops.das | range/urange for loops — non-const end hoisting, nesting, bounds-guard shape | |
+| test_msl_math.das | Math builtin whitelist (exp/sqrt/rsqrt/sin/cos/tanh/abs/saturate/round, min/max) + i8 converts | |
+| test_msl_mul.das | a*b kernel text assertions — signature shape, buffer attributes, write-set const-ness, builtin param, companion globals, golden snapshot | |
+| test_msl_sgmat.das | simdgroup_matrix surface — tile locals as make_filled fills, load/store lowering (device + threadgroup), mac combos f32/f16/mixed | |
+| test_msl_simd.das | simdgroup intrinsics (`simd_sum`, `simd_shuffle*` families) + subgroup builtin params | |
+| test_msl_threadgroup.das | `@workgroup` members → threadgroup declarations; `barrier()`/`memoryBarrierShared()` strengthening | |
+
+## metal/
+
+> Real-GPU behavioral gate (Apple). Guarded requires — on non-Apple platforms the files compile and run the CPU-reference half only.
+
+| File | Description | Expects errors |
+|---|---|---|
+| _metal_common.das | *(helper)* GPU driver generics (device/pipeline/buffer/dispatch/download helpers instantiated only inside `static_if` Apple branches) | |
+| test_metal_arith.das | Arithmetic kernels on the GPU vs the CPU-reference run of the same method | |
+| test_metal_control.das | Control-flow kernels GPU vs CPU reference | |
+| test_metal_ids.das | Grid/threadgroup/subgroup ID builtins — readback-driven membership oracle (layout-agnostic) | |
+| test_metal_lattice.das | 16/8-bit lattice buffer round-trips; fp16 GPU parity pinned one-op-per-store (MTLMathModeSafe still contracts multi-op chains) | |
+| test_metal_loops.das | Loop kernels on a NON-exact grid with sentinel-filled pads — the bounds-guard proof | |
+| test_metal_math.das | Math builtins vs CPU (fastmath=false fixture — fast trig's absolute envelope swamps the oracle) | |
+| test_metal_mul_ab.das | Emitted a*b MSL executed on the GPU vs the CPU-reference run of the same method (driver loop feeds gl_GlobalInvocationID); leak gate | |
+| test_metal_plumbing.das | Pipeline cache + buffer pool + multi-dispatch encoder (hazard ordering) via the live-object counter | |
+| test_metal_reduce.das | Barrier reductions vs directly-computed per-group sums (sequential replay is meaningless under barriers) | |
+| test_metal_sgmat.das | simdgroup_matrix tile ops GPU vs CPU twins — bit-exact on exact-int values | |
+| test_metal_sgmat_tiled.das | Tiled sgmat GEMM (threadgroup staging + barriers) vs CPU reference | |
+| test_metal_simd.das | simd_sum/shuffle intrinsics under uniform flow — kernel reports width/lane/sgid (M1 width 32) | |
+
 ## option/
 
 | File | Description | Expects errors |
@@ -841,6 +910,18 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 | test_option_non_copyable.das | `Option<array<int>>` — every constructor/combinator/unwrap/operator with a non-copyable payload, plus `move_some` | |
 | test_result.das | `Result<T, E>` — ok/err constructors, map/map_err/and_then/or_else, unwrap family, operators `??`/`==`, to_option/err_to_option bridges, if_ok/if_err, chaining | |
 | test_result_non_copyable.das | `Result<array<int>, string>` — every constructor/combinator/unwrap/operator with a non-copyable T, plus `move_ok` and `move_err` | |
+
+## quote/
+
+> A/B equivalence for the daslib/quote lowering (QuotePass, `aot_macros`): each shape is quoted through the interpreter SimNode path and the lowered reconstruction path, and the describe output must match.
+
+| File | Description | Expects errors |
+|---|---|---|
+| _quote_entities.das | Shared enum/struct in a named module so describes qualify identically on both sides *(helper)* | |
+| _quote_shapes.das | Reference fixture — quote/qmacro shapes through the SimNode path *(helper)* | |
+| _quote_shapes_lowered.das | Lowered twin — identical body + `options aot_macros` *(helper)* | |
+| test_quote_lowering.das | Per-shape describe equality: consts/escapes/non-ASCII, calls, splices, blocks+finally, make-struct, enum/struct/container types, table/tuple literals, capture lambdas, generators, block_to_array | |
+| test_quote_lowered_main.das | Lowered quotes in the anonymous main module — by-name alias fallback for local enum/struct types, splice substitution | |
 
 ## regex/
 
@@ -897,6 +978,25 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 | test_stbtruetype.das | stbtruetype — font loading, glyph metrics, bitmap rendering, SDF | |
 | test_write.das | Image write — PNG, BMP, JPG, TGA output with verification | |
 
+## sql_conformance/
+
+> **Note:** Provider-neutral SQL contract suite (see `tests/sql_conformance/README.md` and `modules/dasSQLITE/PROVIDER_CONTRACT.md`). Every test goes through the `_conformance_provider.das` shim (in-tree: SQLite); an external provider repo copies the directory and swaps only the shim. Requires the dasSQLITE module.
+
+| File | Description | Expects errors |
+|---|---|---|
+| _conformance_provider.das | *(shim)* Provider under test — `with_conf_db` scoped runner + `CONF_HAS_*` capability constants | |
+| test_conf_table_crud.das | `[sql_table]` DDL round-trip, check_schema, column_info, insert single+bulk, update / delete_ / delete_by_id | |
+| test_conf_sql_select.das | `_sql` reads — _where + captured binds, _order_by, take/skip, distinct, _first/_first_opt, _sql_text shape | |
+| test_conf_projection_agg.das | _select forms (column / named-tuple / computed), scalar aggregates, one-scan `_aggregate`, _group_by + _having | |
+| test_conf_joins_subq.das | _join (including exact whole-source projections and `_aggregate`), _left_join (Option right side), _in / _not_in, _any / _none | |
+| test_conf_nullability.das | Option<T> columns — DDL nullability, some/none round-trip, is_some / is_none / unwrap_or | |
+| test_conf_adapters.das | sql_bind / sql_extract rail — custom type, enum, Option-over-custom, @sql_json + path descent | |
+| test_conf_dml_macros.das | _sql_update / _sql_delete / _sql_upsert + returning variants (capability-checked) | |
+| test_conf_streaming_txn.das | _each_sql lifecycle incl. early break; transactions — commit, nesting, try_transaction | |
+| test_conf_views.das | [sql_view] + _create_view — typed reads through a view, captured-local inlining | |
+| test_conf_fts5.das | [sql_fts5] + text_match — file-gated on caps.fts5 | |
+| test_conf_sql_functions.das | [sql_function] UDF visible to `_sql` chains — file-gated on caps.client_udfs | |
+
 ## strings/
 
 | File | Description | Expects errors |
@@ -923,7 +1023,7 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 | temporary_strings.das | temp_string, build_temp_string — no heap allocations | |
 | temporary_strings_failed.das | temp_string rejects variables and function calls | **expect** `40102:3` |
 | test_bug_fixes.das | C++ bug fixes — chop bounds checking, edge cases | |
-| test_cpp_functions.das | C++ string functions — fmt, safe_unescape, to_lower_in_place, character_at | |
+| test_cpp_functions.das | C++ string functions — fmt, safe_unescape, character_at | |
 | test_new_string_functions.das | New string utilities — contains, count_chars, pad_left/right, trim_chars | |
 | test_strings_boost_extra.das | Extra strings_boost — wide, is_character_at, eq, join overloads | |
 | test_strings_convert.das | `daslib/strings_convert` — `try_to_*` returning `Result<T; ConversionError>` | |
@@ -933,6 +1033,43 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 | File | Description | Expects errors |
 |---|---|---|
 | test_template.das | `[template]` annotation — `type<T>` and `decltype` as template arguments | |
+
+## type_lattice/
+
+> GENERATED per-type conformance harness (do not hand-edit) — regen via `daslang utils/dasgen/gen_type_conformance.das`. Each file exercises one basic type through sizeof/alignof, zero-init, `default<>`, ctor+equality, copy, pass/return by value, `v[i]`, swizzles, struct field layout, array element, archive round-trip, print, and (where operators exist) arithmetic. Runs in all CI tiers (interp/jit/AOT) to pin cross-tier parity for the 16/8-bit type-lattice arc.
+
+| File | Description | Expects errors |
+|---|---|---|
+| test_float2.das | float2 conformance (control) | |
+| test_float3.das | float3 conformance (control — odd-size 12B layout) | |
+| test_float4.das | float4 conformance (control) | |
+| test_int2.das | int2 conformance (control) | |
+| test_uint4.das | uint4 conformance (control) | |
+| test_int8.das | int8 scalar conformance (control — storage-only precedent) | |
+| test_uint16.das | uint16 scalar conformance (control — storage-only precedent) | |
+| test_float16.das | float16 scalar conformance (fp16 lattice — closed arithmetic, ordered compares) | |
+| test_half2.das | half2 conformance (fp16 lattice) | |
+| test_half3.das | half3 conformance (fp16 lattice — 6B odd size) | |
+| test_half4.das | half4 conformance (fp16 lattice) | |
+| test_half8.das | half8 conformance (fp16 lattice — full 128-bit slot) | |
+| test_short2.das | short2 conformance (int16 storage family) | |
+| test_short3.das | short3 conformance | |
+| test_short4.das | short4 conformance | |
+| test_short8.das | short8 conformance | |
+| test_ushort2.das | ushort2 conformance (uint16 storage family) | |
+| test_ushort3.das | ushort3 conformance | |
+| test_ushort4.das | ushort4 conformance | |
+| test_ushort8.das | ushort8 conformance | |
+| test_byte2.das | byte2 conformance (int8 storage family) | |
+| test_byte3.das | byte3 conformance (3B odd size) | |
+| test_byte4.das | byte4 conformance | |
+| test_byte8.das | byte8 conformance | |
+| test_byte16.das | byte16 conformance (16-lane) | |
+| test_ubyte2.das | ubyte2 conformance (uint8 storage family) | |
+| test_ubyte3.das | ubyte3 conformance | |
+| test_ubyte4.das | ubyte4 conformance | |
+| test_ubyte8.das | ubyte8 conformance | |
+| test_ubyte16.das | ubyte16 conformance (16-lane) | |
 
 ## type_traits/
 
@@ -948,6 +1085,8 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 | File | Description | Expects errors |
 |---|---|---|
 | test_basic.das | All four grammar forms (`name(args)`, `$name(args)`, `name<types>(args)`, `$name<types>(args)`), const int/bool/string argument extraction, `typedecl(expr)` | |
+| test_template_structure_class.das | `[template_structure]` class specializations, inherited fields, virtual overrides, and distinct generated finalizers for multiple type arguments | |
+| _template_structure_class_mod.das | *(helper)* inherited `class template ProbeScalarCommand<T>` definition | |
 | _typemacro_mod.das | *(helper)* `tm_make` raw AstTypeMacro — resolves `tm_make(type<T>, N, wrap, tag)` to `T[N]` or `T` | |
 
 ## unsafe/

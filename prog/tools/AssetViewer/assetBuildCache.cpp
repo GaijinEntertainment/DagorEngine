@@ -15,13 +15,24 @@
 #include <perfMon/dag_statDrv.h>
 #include <de3_interface.h>
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 #include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_localConv.h>
+#include <libTools/util/strUtil.h>
 #include <osApiWrappers/dag_sharedMem.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <assets/daBuildProgressShm.h>
+#include <libTools/util/progressInd.h>
+#include <propPanel/colors.h>
+#include <propPanel/propPanel.h>
+#include <propPanel/imguiHelper.h>
+#include <EASTL/hash_map.h>
+#include <EASTL/algorithm.h>
+#include <EASTL/string.h>
+#include <dag/dag_vector.h>
 #if _TARGET_PC_WIN
 #include <windows.h>
 #undef ERROR
@@ -34,12 +45,19 @@
 static IDaBuildInterface *dabuild = NULL;
 static DagorAssetMgr *assetMgr = NULL;
 static SimpleString startDir;
+static String buildConfigPath;
 extern bool av_perform_uptodate_check;
 extern bool dabuildWindowVisible;
 extern bool daBuildWindowAutoOpen;
 extern bool daBuildWindowAutoClose;
 static bool patchBuildMode = false;
-static bool wasDabuildRunning = false; // for detecting changes
+static bool wasDabuildRunning = false;
+static ImGuiID savedDockNodeId = 0;
+static ImGuiID savedPrevTabId = 0;
+static bool autoOpenDidAnything = false;
+static bool wasVisibleBeforeBuild = false;
+static bool pendingBringToFront = false;
+static const char daBuildPanelName[] = "daBuild##v2";
 
 struct PendingLogEntry
 {
@@ -50,7 +68,7 @@ struct PendingLogEntry
 static WinCritSec logMutex;
 static Tab<PendingLogEntry> pendingLogs;
 
-// 0 = idle, 1 = running, 2 = done-success, 3 = done-failed
+// 0 = idle, 1 = running, 2 = done-success, 3 = done-failed, 4 = done-cancelled
 static volatile int dabuildStatus = 0;
 
 #if _TARGET_PC_WIN
@@ -65,6 +83,59 @@ static volatile int dabuildReadPipeFd = -1;
 static DaBuildProgressShm *progressShm = nullptr;
 static intptr_t progressShmHandle = 0;
 static String progressShmName;
+
+static volatile bool inprocBuildCancelled = false;
+static volatile bool inprocThreadDone = true;
+
+class ThreadedLogWriter : public ILogWriter
+{
+public:
+  void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum) override
+  {
+    String msg;
+    msg.vprintf(0, fmt, arg, anum);
+    WinAutoLock lock(logMutex);
+    pendingLogs.push_back({type, eastl::move(msg)});
+  }
+  bool hasErrors() const override { return false; }
+  void startLog() override {}
+  void endLog() override {}
+};
+
+class ThreadedProgressIndicator : public IGenericProgressIndicator
+{
+  volatile int packDoneVal = 0;
+  volatile int packTotalVal = 0;
+  volatile int phaseVal = 0; // 1 = tex, 2 = res
+
+public:
+  void setPhase(int p) { interlocked_relaxed_store(phaseVal, p); }
+
+  void setActionDescFmt(const char *, const DagorSafeArg *, int) override {}
+  void setTotal(int total) override
+  {
+    interlocked_relaxed_store(packTotalVal, total);
+    interlocked_relaxed_store(packDoneVal, 0);
+  }
+  void setDone(int done) override { interlocked_relaxed_store(packDoneVal, done); }
+  void incDone(int inc = 1) override { interlocked_add(packDoneVal, inc); }
+  void redrawScreen() override {}
+  void destroy() override {}
+  void startProgress(IProgressCB *) override {}
+  void endProgress() override {}
+
+  DaBuildProgress snap() const
+  {
+    DaBuildProgress p;
+    p.phase = interlocked_relaxed_load(phaseVal);
+    p.packDone = interlocked_relaxed_load(packDoneVal);
+    p.packTotal = interlocked_relaxed_load(packTotalVal);
+    p.assetDone = 0;
+    p.assetTotal = 0;
+    return p;
+  }
+};
+static ThreadedProgressIndicator inprocPbar;
 
 static void close_progress_shm()
 {
@@ -91,7 +162,7 @@ bool get_dabuild_current_build_uses_jobs() { return currentBuildUsesJobs; }
 
 struct DaBuildPostParams
 {
-  Tab<SimpleString> packs;
+  Tab<uint64_t> ids;
   Tab<unsigned> tc;
   bool checkTex = true;
   bool checkRes = true;
@@ -100,6 +171,347 @@ struct DaBuildPostParams
   bool hideConsoleOnSuccess = true;
 };
 static DaBuildPostParams buildPostParams;
+
+static bool launch_build_inproc_async(DaBuildPostParams postParams);
+static bool launch_build_async(DaBuildPostParams postParams);
+static bool launch_build(DaBuildPostParams postParams);
+
+struct QueueEntry
+{
+  Tab<unsigned> tcs;
+};
+
+static constexpr const char *BASE_PKG_NAME = "MAIN";
+static constexpr const char *DABUILD_BASE_PKG_SELECTOR = "*";
+
+struct PkgGroup
+{
+  SimpleString name;
+  Tab<SimpleString> packs; // sorted alphabetically
+};
+
+// knownPkgGroups[0] is always BASE_PKG_NAME (MAIN); remaining are sorted alphabetically
+static Tab<PkgGroup> knownPkgGroups;
+
+static eastl::hash_map<uint64_t, QueueEntry> queueMap;
+static eastl::hash_map<uint64_t, Tab<unsigned>> currentlyBuildingMap;
+static Tab<DaBuildPostParams> pendingBuildQueue;
+
+static String packSearchText;
+static bool packFilterSelected = false;
+static bool packFilterTex = true;
+static bool packFilterRes = true;
+
+static PropPanel::IconId searchIconId = PropPanel::IconId::Invalid;
+static PropPanel::IconId clearIconId = PropPanel::IconId::Invalid;
+static PropPanel::IconId filterDefaultIconId = PropPanel::IconId::Invalid;
+static PropPanel::IconId filterActiveIconId = PropPanel::IconId::Invalid;
+static bool packFilterPopupOpen = false;
+static int packSearchFocusId = 0;
+
+static bool autoJobs = false;
+static bool autoJobsActive = false;
+
+static inline uint32_t pack_id_pkg_idx(uint64_t id) { return (uint32_t)(id >> 32); }
+static inline uint32_t pack_id_pack_idx(uint64_t id) { return (uint32_t)(id & 0xFFFFFFFF); }
+
+static const char *pack_id_pkg_name(uint64_t id)
+{
+  uint32_t pi = pack_id_pkg_idx(id);
+  return pi < (uint32_t)knownPkgGroups.size() ? knownPkgGroups[pi].name.str() : "";
+}
+
+static const char *pack_id_pack_name(uint64_t id)
+{
+  uint32_t pi = pack_id_pkg_idx(id);
+  uint32_t ci = pack_id_pack_idx(id);
+  if (pi >= (uint32_t)knownPkgGroups.size())
+    return "";
+  const PkgGroup &g = knownPkgGroups[pi];
+  return ci < (uint32_t)g.packs.size() ? g.packs[ci].str() : "";
+}
+
+uint64_t make_pack_id(const char *pkg, const char *pack)
+{
+  const char *effectivePkg = (!pkg || !*pkg) ? BASE_PKG_NAME : pkg;
+  for (uint32_t pi = 0; pi < (uint32_t)knownPkgGroups.size(); ++pi)
+  {
+    if (strcmp(knownPkgGroups[pi].name.str(), effectivePkg) != 0)
+      continue;
+    const PkgGroup &g = knownPkgGroups[pi];
+    for (uint32_t ci = 0; ci < (uint32_t)g.packs.size(); ++ci)
+      if (strcmp(g.packs[ci].str(), pack) == 0)
+        return ((uint64_t)pi << 32) | ci;
+    return INVALID_PACK_ID;
+  }
+  return INVALID_PACK_ID;
+}
+
+static int compute_auto_jobs(const DaBuildPostParams &params)
+{
+  bool anyTex = false;
+  int packCount = 0;
+  for (uint64_t id : params.ids)
+  {
+    if (trail_strcmp(pack_id_pack_name(id), ".dxp.bin"))
+      anyTex = true;
+    ++packCount;
+  }
+  if (anyTex)
+    return maxJobs;
+  int count = packCount * (int)params.tc.size();
+  return (count <= 1) ? 0 : min(count, maxJobs);
+}
+
+static void finish_auto_jobs() { autoJobsActive = false; }
+
+void queue_add_pack(uint64_t pack_id, unsigned tc)
+{
+  if (pack_id == INVALID_PACK_ID)
+    return;
+  auto &entry = queueMap[pack_id];
+  if (eastl::find(entry.tcs.begin(), entry.tcs.end(), tc) == entry.tcs.end())
+    entry.tcs.push_back(tc);
+}
+
+void queue_remove_pack(uint64_t pack_id, unsigned tc)
+{
+  if (pack_id == INVALID_PACK_ID)
+    return;
+  auto it = queueMap.find(pack_id);
+  if (it == queueMap.end())
+    return;
+  auto &tcs = it->second.tcs;
+  tcs.erase(eastl::remove(tcs.begin(), tcs.end(), tc), tcs.end());
+}
+
+void queue_toggle_pack(uint64_t pack_id, unsigned tc)
+{
+  if (pack_id == INVALID_PACK_ID)
+    return;
+  auto it = queueMap.find(pack_id);
+  if (it != queueMap.end())
+  {
+    auto &tcs = it->second.tcs;
+    auto pos = eastl::find(tcs.begin(), tcs.end(), tc);
+    if (pos != tcs.end())
+    {
+      tcs.erase(pos);
+      return;
+    }
+  }
+  queue_add_pack(pack_id, tc);
+}
+
+void queue_add_pack_all_platforms(uint64_t pack_id)
+{
+  queue_add_pack(pack_id, _MAKE4C('PC'));
+  for (unsigned tc : ::get_app().getWorkspace().getAdditionalPlatforms())
+    queue_add_pack(pack_id, tc);
+}
+
+void queue_toggle_all_platforms(uint64_t pack_id)
+{
+  if (!queue_get_pack_tcs(pack_id).empty())
+  {
+    auto it = queueMap.find(pack_id);
+    if (it != queueMap.end())
+      it->second.tcs.clear();
+  }
+  else
+    queue_add_pack_all_platforms(pack_id);
+}
+
+void queue_remove_all() { queueMap.clear(); }
+
+void queue_select_all_known_packs()
+{
+  for (uint32_t pi = 0; pi < (uint32_t)knownPkgGroups.size(); ++pi)
+    for (uint32_t ci = 0; ci < (uint32_t)knownPkgGroups[pi].packs.size(); ++ci)
+      queue_add_pack_all_platforms(((uint64_t)pi << 32) | ci);
+}
+
+dag::ConstSpan<unsigned> queue_get_pack_tcs(uint64_t pack_id)
+{
+  auto it = queueMap.find(pack_id);
+  if (it == queueMap.end() || it->second.tcs.empty())
+    return {};
+  return make_span_const(it->second.tcs);
+}
+
+static void queue_save_config()
+{
+  if (buildConfigPath.empty())
+    return;
+
+  DataBlock blk;
+  DataBlock *preset = blk.addNewBlock("export_preset");
+
+  if (dabuildJobs != 0)
+    preset->setInt("jobs", dabuildJobs);
+  if (autoJobs)
+    preset->setBool("autoJobs", true);
+
+  for (auto &kv : queueMap)
+  {
+    if (kv.second.tcs.empty())
+      continue;
+    const char *pkg = pack_id_pkg_name(kv.first);
+    const char *name = pack_id_pack_name(kv.first);
+    if (!name || !*name)
+      continue;
+    DataBlock *entry = preset->addNewBlock("pack");
+    entry->setStr("pkg", pkg);
+    entry->setStr("name", name);
+    for (unsigned tc : kv.second.tcs)
+      entry->addInt("tc", (int)tc);
+  }
+
+  blk.saveToTextFile(buildConfigPath);
+}
+
+static void queue_load_config()
+{
+  if (buildConfigPath.empty())
+    return;
+
+  DataBlock blk;
+  if (!blk.load(buildConfigPath))
+    return;
+
+  const DataBlock *preset = blk.getBlockByName("export_preset");
+  if (!preset)
+    return;
+
+  set_dabuild_jobs(preset->getInt("jobs", dabuildJobs));
+  autoJobs = preset->getBool("autoJobs", false);
+
+  queueMap.clear();
+  int packNid = preset->getNameId("pack");
+  for (int i = 0; i < preset->blockCount(); i++)
+  {
+    const DataBlock *entry = preset->getBlock(i);
+    if (entry->getBlockNameId() != packNid)
+      continue;
+    const char *name = entry->getStr("name", "");
+    if (!*name)
+      continue;
+    const char *pkg = entry->getStr("pkg", nullptr);
+    int tcNid = entry->getNameId("tc");
+    Tab<unsigned> tcs;
+    for (int j = 0; j < entry->paramCount(); j++)
+      if (entry->getParamNameId(j) == tcNid && entry->getParamType(j) == DataBlock::TYPE_INT)
+        tcs.push_back((unsigned)entry->getInt(j));
+    if (pkg)
+    {
+      uint64_t id = make_pack_id(pkg, name);
+      if (id != INVALID_PACK_ID)
+      {
+        QueueEntry &qe = queueMap[id];
+        for (unsigned tc : tcs)
+          if (eastl::find(qe.tcs.begin(), qe.tcs.end(), tc) == qe.tcs.end())
+            qe.tcs.push_back(tc);
+      }
+    }
+    else
+    {
+      // fan-out to all groups that contain a pack with this name
+      bool matched = false;
+      for (uint32_t pi = 0; pi < (uint32_t)knownPkgGroups.size(); ++pi)
+        for (uint32_t ci = 0; ci < (uint32_t)knownPkgGroups[pi].packs.size(); ++ci)
+          if (strcmp(knownPkgGroups[pi].packs[ci].str(), name) == 0)
+          {
+            matched = true;
+            uint64_t id = ((uint64_t)pi << 32) | ci;
+            QueueEntry &qe = queueMap[id];
+            for (unsigned tc : tcs)
+              if (eastl::find(qe.tcs.begin(), qe.tcs.end(), tc) == qe.tcs.end())
+                qe.tcs.push_back(tc);
+          }
+      if (!matched)
+      {
+        uint64_t id = make_pack_id(BASE_PKG_NAME, name);
+        if (id != INVALID_PACK_ID)
+        {
+          QueueEntry &qe = queueMap[id];
+          for (unsigned tc : tcs)
+            if (eastl::find(qe.tcs.begin(), qe.tcs.end(), tc) == qe.tcs.end())
+              qe.tcs.push_back(tc);
+        }
+      }
+    }
+  }
+}
+
+void export_queue()
+{
+  if (is_dabuild_running())
+    return;
+
+  struct Group
+  {
+    Tab<uint64_t> ids;
+    Tab<unsigned> tcs;
+  };
+  dag::Vector<Group> groups;
+
+  for (auto &kv : queueMap)
+  {
+    if (kv.second.tcs.empty())
+      continue;
+    const Tab<unsigned> &tcs = kv.second.tcs;
+
+    G_ASSERT(tcs.size() > 0);
+
+    bool found = false;
+    for (Group &g : groups)
+    {
+      if (g.tcs.size() == tcs.size() && eastl::equal(g.tcs.begin(), g.tcs.end(), tcs.begin()))
+      {
+        g.ids.push_back(kv.first);
+        found = true;
+        break;
+      }
+    }
+    if (!found)
+    {
+      Group g;
+      g.tcs.assign(tcs.begin(), tcs.end());
+      g.ids.push_back(kv.first);
+      groups.push_back(eastl::move(g));
+    }
+  }
+
+  if (groups.empty())
+    return;
+
+  currentlyBuildingMap.clear();
+  for (auto &kv : queueMap)
+    if (!kv.second.tcs.empty())
+      currentlyBuildingMap[kv.first].assign(kv.second.tcs.begin(), kv.second.tcs.end());
+
+  bool consoleWasOpen = ::get_app().getConsole().isVisible();
+  pendingBuildQueue.clear();
+  for (Group &g : groups)
+  {
+    DaBuildPostParams params;
+    params.consoleWasOpen = consoleWasOpen;
+    params.hideConsoleOnSuccess = true;
+    params.checkTex = true;
+    params.checkRes = true;
+    params.emptyPacksForUpToDateCheck = false;
+    params.tc = eastl::move(g.tcs);
+
+    params.ids.assign(g.ids.begin(), g.ids.end());
+
+    pendingBuildQueue.push_back(eastl::move(params));
+  }
+
+  DaBuildPostParams first = eastl::move(pendingBuildQueue.front());
+  pendingBuildQueue.erase(pendingBuildQueue.begin());
+
+  launch_build(eastl::move(first));
+}
 
 
 class DaBuildCacheChecker : public IDagorAssetBaseChangeNotify
@@ -140,6 +552,7 @@ bool init_dabuild_cache(const char *start_dir)
 void term_dabuild_cache()
 {
   stop_dabuild_background();
+  queue_save_config();
   texconvcache::term();
   dabuildcache::term();
   if (assetMgr)
@@ -149,6 +562,8 @@ void term_dabuild_cache()
 
 int bind_dabuild_cache_with_mgr(DagorAssetMgr &mgr, DataBlock &appblk, const char *appdir)
 {
+  TIME_PROFILE(bind_dabuild_cache_with_mgr);
+
   maxJobs = appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getInt("maxJobs", 32);
   int pcount = dabuildcache::bind_with_mgr(mgr, appblk, appdir);
   dabuild = pcount ? dabuildcache::get_dabuild() : NULL;
@@ -164,6 +579,68 @@ int bind_dabuild_cache_with_mgr(DagorAssetMgr &mgr, DataBlock &appblk, const cha
   }
   if (assetMgr)
     assetMgr->subscribeBaseUpdateNotify(&cacheChecker);
+
+  if (dabuild && assetMgr)
+  {
+    eastl::hash_map<eastl::string, FastNameMap> pkgPackMap;
+    for (int i = 0; i < assetMgr->getAssetCount(); i++)
+    {
+      DagorAsset &a = assetMgr->getAsset(i);
+      if (a.getFileNameId() < 0)
+        continue;
+      String pn = dabuild->getPackName(&a);
+      if (pn.empty())
+        continue;
+      String pkg = dabuild->getPkgName(&a);
+      const char *pkgKey = pkg.empty() ? BASE_PKG_NAME : pkg.str();
+      pkgPackMap[eastl::string(pkgKey)].addNameId(pn);
+    }
+
+    knownPkgGroups.clear();
+
+    {
+      PkgGroup g;
+      g.name = BASE_PKG_NAME;
+      auto it = pkgPackMap.find(eastl::string(BASE_PKG_NAME));
+      if (it != pkgPackMap.end())
+      {
+        iterate_names(it->second, [&](int, const char *name) { g.packs.push_back(SimpleString(name)); });
+        eastl::sort(g.packs.begin(), g.packs.end(),
+          [](const SimpleString &a, const SimpleString &b) { return strcmp(a.str(), b.str()) < 0; });
+      }
+      knownPkgGroups.push_back(eastl::move(g));
+    }
+
+    Tab<SimpleString> otherPkgs;
+    for (auto &kv : pkgPackMap)
+      if (strcmp(kv.first.c_str(), BASE_PKG_NAME) != 0)
+        otherPkgs.push_back(SimpleString(kv.first.c_str()));
+    eastl::sort(otherPkgs.begin(), otherPkgs.end(),
+      [](const SimpleString &a, const SimpleString &b) { return strcmp(a.str(), b.str()) < 0; });
+
+    for (const SimpleString &pkgName : otherPkgs)
+    {
+      PkgGroup g;
+      g.name = pkgName;
+      auto it = pkgPackMap.find(eastl::string(pkgName.str()));
+      if (it != pkgPackMap.end())
+      {
+        iterate_names(it->second, [&](int, const char *name) { g.packs.push_back(SimpleString(name)); });
+        eastl::sort(g.packs.begin(), g.packs.end(),
+          [](const SimpleString &a, const SimpleString &b) { return strcmp(a.str(), b.str()) < 0; });
+      }
+      knownPkgGroups.push_back(eastl::move(g));
+    }
+
+    searchIconId = PropPanel::load_icon("search");
+    clearIconId = PropPanel::load_icon("close_editor");
+    filterDefaultIconId = PropPanel::load_icon("filter_default");
+    filterActiveIconId = PropPanel::load_icon("filter_active");
+  }
+
+  buildConfigPath = assetlocalprops::makePath("build_config.local.blk");
+  queue_load_config();
+
   return pcount;
 }
 
@@ -171,6 +648,13 @@ bool is_dabuild_running() { return interlocked_relaxed_load(dabuildStatus) == 1;
 
 void stop_dabuild_background()
 {
+  if (!interlocked_relaxed_load(inprocThreadDone))
+  {
+    interlocked_relaxed_store(inprocBuildCancelled, true);
+    for (int i = 0; i < 600 && !interlocked_relaxed_load(inprocThreadDone); i++)
+      sleep_msec(100);
+  }
+
 #if _TARGET_PC_WIN
   HANDLE proc = (HANDLE)interlocked_exchange_ptr(dabuildProcess, (void *)nullptr);
   if (!proc)
@@ -222,6 +706,67 @@ void stop_dabuild_background()
 #endif
   close_progress_shm();
 }
+static void activate_dabuild_window()
+{
+  ImGuiWindow *win = ImGui::FindWindowByName(daBuildPanelName);
+  if (!win)
+  {
+    pendingBringToFront = true;
+    return;
+  }
+
+  ImGuiDockNode *node = win->DockNode;
+  if (node && node->TabBar)
+    node->TabBar->NextSelectedTabId = win->TabId;
+  ImGui::FocusWindow(win);
+}
+
+static void bring_dabuild_to_front()
+{
+  ImGuiWindow *win = ImGui::FindWindowByName(daBuildPanelName);
+  if (!win)
+  {
+    pendingBringToFront = true;
+    autoOpenDidAnything = true;
+    return;
+  }
+
+  ImGuiDockNode *node = win->DockNode;
+  if (node && node->TabBar && node->TabBar->SelectedTabId != win->TabId)
+  {
+    savedDockNodeId = node->ID;
+    savedPrevTabId = node->TabBar->SelectedTabId;
+    node->TabBar->NextSelectedTabId = win->TabId;
+    ImGui::FocusWindow(win);
+    autoOpenDidAnything = true;
+  }
+  else if (!(node && node->TabBar))
+  {
+    ImGuiContext *ctx = ImGui::GetCurrentContext();
+    if (ctx->NavWindow != win)
+    {
+      ImGui::FocusWindow(win);
+      autoOpenDidAnything = true;
+    }
+  }
+  // else: already active tab
+}
+
+void bring_dabuild_to_front_explicit() { pendingBringToFront = true; }
+
+static void restore_previous_tab()
+{
+  ImGuiContext *ctx = ImGui::GetCurrentContext();
+  ImGuiDockNode *node = ImGui::DockContextFindNodeByID(ctx, savedDockNodeId);
+  if (!node || !node->TabBar)
+    return;
+  ImGuiTabItem *tab = ImGui::TabBarFindTabByID(node->TabBar, savedPrevTabId);
+  if (!tab)
+    return;
+  node->TabBar->NextSelectedTabId = savedPrevTabId;
+  if (tab->Window)
+    ImGui::FocusWindow(tab->Window);
+}
 
 void update_dabuild_background(PropPanel::IMenu *mm)
 {
@@ -230,20 +775,42 @@ void update_dabuild_background(PropPanel::IMenu *mm)
   {
     if (isDabuildRunning)
     {
+      autoOpenDidAnything = false;
+      wasVisibleBeforeBuild = dabuildWindowVisible;
+      savedDockNodeId = 0;
+      savedPrevTabId = 0;
       if (daBuildWindowAutoOpen)
+      {
         dabuildWindowVisible = true;
+        bring_dabuild_to_front();
+      }
     }
-    else
+    else if (pendingBuildQueue.empty())
     {
-      if (daBuildWindowAutoClose)
-        dabuildWindowVisible = false;
+      if (daBuildWindowAutoClose && autoOpenDidAnything)
+      {
+        if (savedPrevTabId)
+        {
+          restore_previous_tab();
+          if (!wasVisibleBeforeBuild)
+            dabuildWindowVisible = false;
+        }
+        else
+        {
+          if (!wasVisibleBeforeBuild)
+            dabuildWindowVisible = false;
+        }
+      }
+      savedDockNodeId = 0;
+      savedPrevTabId = 0;
+      autoOpenDidAnything = false;
     }
 
     wasDabuildRunning = isDabuildRunning;
   }
 
   if (mm)
-    mm->setCheckById(CM_WINDOW_DABUILD, dabuildWindowVisible); // catching both auto open/close and [X] closings
+    mm->setCheckById(CM_WINDOW_DABUILD, dabuildWindowVisible);
 
   {
     WinAutoLock lock(logMutex);
@@ -262,31 +829,55 @@ void update_dabuild_background(PropPanel::IMenu *mm)
     progressShm->readSnap(snap.phase, snap.packDone, snap.packTotal, snap.assetDone, snap.assetTotal);
     dabuildProgress = snap;
   }
+  else if (interlocked_relaxed_load(dabuildStatus) == 1)
+    dabuildProgress = inprocPbar.snap();
 
   int status = interlocked_acquire_load(dabuildStatus);
   if (status < 2) // idle or still running
     return;
 
-  bool ok = (status == 2);
+  bool cancelled = (status == 4);
   interlocked_exchange(dabuildStatus, 0);
   close_progress_shm();
 
   // the batch run may have changed respacks/patch validity on disk regardless of its outcome
   dabuildcache::invalidate_respack_caches();
 
-  bool shouldHideConsole = (ok == buildPostParams.hideConsoleOnSuccess);
-  if (shouldHideConsole && !buildPostParams.consoleWasOpen)
-    ::get_app().getConsole().hideConsole();
+  if (cancelled)
+  {
+    pendingBuildQueue.clear();
+    currentlyBuildingMap.clear();
+    finish_auto_jobs();
+    return;
+  }
 
   if (buildPostParams.emptyPacksForUpToDateCheck)
     check_assets_base_up_to_date({}, buildPostParams.checkTex, buildPostParams.checkRes);
   else
   {
     Tab<const char *> packs;
-    for (const SimpleString &s : buildPostParams.packs)
-      packs.push_back(s.str());
+    for (uint64_t id : buildPostParams.ids)
+      packs.push_back(pack_id_pack_name(id));
     check_assets_base_up_to_date(packs, buildPostParams.checkTex, buildPostParams.checkRes);
   }
+
+  if (!pendingBuildQueue.empty())
+  {
+    DaBuildPostParams next = eastl::move(pendingBuildQueue.front());
+    pendingBuildQueue.erase(pendingBuildQueue.begin());
+    finish_auto_jobs();
+    launch_build(eastl::move(next));
+    wasDabuildRunning = true;
+    return;
+  }
+
+  currentlyBuildingMap.clear();
+  finish_auto_jobs();
+
+  bool ok = (status == 2);
+  bool shouldHideConsole = (ok == buildPostParams.hideConsoleOnSuccess);
+  if (shouldHideConsole && !buildPostParams.consoleWasOpen)
+    ::get_app().getConsole().hideConsole();
 }
 
 static String dabuildCmdLine;
@@ -403,6 +994,86 @@ static void drain_pipe_to_log(ReadFn read_fn)
   }
 }
 
+static bool launch_build(DaBuildPostParams postParams)
+{
+  int effectiveJobs = autoJobs ? compute_auto_jobs(postParams) : dabuildJobs;
+  if (autoJobs)
+    autoJobsActive = true;
+  if (effectiveJobs == 0)
+    return launch_build_inproc_async(eastl::move(postParams));
+  int savedJobs = dabuildJobs;
+  dabuildJobs = effectiveJobs;
+  bool result = launch_build_async(eastl::move(postParams));
+  dabuildJobs = savedJobs;
+  return result;
+}
+
+static bool launch_build_inproc_async(DaBuildPostParams postParams)
+{
+  if (!dabuild || !assetMgr)
+    return false;
+
+  if (interlocked_relaxed_load(dabuildStatus) != 0)
+  {
+    ::get_app().getConsole().addMessage(ILogWriter::WARNING, "daBuild: build already in progress, request ignored");
+    return false;
+  }
+
+  buildPostParams = eastl::move(postParams);
+  {
+    WinAutoLock lock(logMutex);
+    pendingLogs.clear();
+  }
+
+  if (!buildPostParams.consoleWasOpen)
+    ::get_app().getConsole().showConsole();
+
+  ::get_app().getConsole().addMessage(ILogWriter::NOTE, "daBuild: in-process build (0 jobs)");
+
+  dabuildProgress = DaBuildProgress{};
+  currentBuildUsesJobs = false;
+  interlocked_relaxed_store(inprocBuildCancelled, false);
+  interlocked_relaxed_store(inprocThreadDone, false);
+  interlocked_exchange(dabuildStatus, 1);
+
+  execute_in_new_thread(
+    [](auto) {
+      ThreadedLogWriter log;
+      dabuild->setupReports(&log, &inprocPbar);
+
+      bool cancelled = false;
+      bool ok = true;
+      for (uint64_t id : buildPostParams.ids)
+      {
+        if (interlocked_relaxed_load(inprocBuildCancelled))
+        {
+          cancelled = true;
+          break;
+        }
+        uint32_t pkgIdx = pack_id_pkg_idx(id);
+        String selector(0, "\1%s", (pkgIdx == 0) ? DABUILD_BASE_PKG_SELECTOR : pack_id_pkg_name(id));
+        const char *packName = pack_id_pack_name(id);
+        const char *packList[] = {selector.c_str(), packName};
+        if (!dabuild->exportPacks(buildPostParams.tc, make_span_const(packList, 2)))
+          ok = false;
+      }
+
+      if (!cancelled)
+        cancelled = interlocked_relaxed_load(inprocBuildCancelled);
+
+      dabuild->setupReports(nullptr, nullptr);
+      interlocked_relaxed_store(inprocThreadDone, true);
+
+      if (cancelled)
+        interlocked_exchange(dabuildStatus, 4);
+      else
+        interlocked_exchange(dabuildStatus, ok ? 2 : 3);
+    },
+    "daBuildInprocThread");
+
+  return true;
+}
+
 static bool launch_build_async(DaBuildPostParams postParams)
 {
   if (!dabuild || !assetMgr)
@@ -468,10 +1139,21 @@ static bool launch_build_async(DaBuildPostParams postParams)
   }
   dabuildArgv.push_back(SimpleString(::get_app().getWorkspace().getAppBlkPath()));
   dabuildCmdLine.aprintf(0, " \"%s\"", ::get_app().getWorkspace().getAppBlkPath());
-  for (const SimpleString &pack : postParams.packs)
+  FastNameMap pkgSelectors;
+  for (uint64_t id : postParams.ids)
   {
-    dabuildArgv.push_back(SimpleString(pack.str()));
-    dabuildCmdLine.aprintf(0, " \"%s\"", pack.str());
+    uint32_t pkgIdx = pack_id_pkg_idx(id);
+    pkgSelectors.addNameId(String(0, "\1%s", (pkgIdx == 0) ? DABUILD_BASE_PKG_SELECTOR : pack_id_pkg_name(id)).c_str());
+  }
+  iterate_names(pkgSelectors, [](int, const char *sel) {
+    dabuildArgv.push_back(SimpleString(sel));
+    dabuildCmdLine.aprintf(0, " \"%s\"", sel);
+  });
+  for (uint64_t id : postParams.ids)
+  {
+    const char *packName = pack_id_pack_name(id);
+    dabuildArgv.push_back(SimpleString(packName));
+    dabuildCmdLine.aprintf(0, " \"%s\"", packName);
   }
 
   buildPostParams = eastl::move(postParams);
@@ -654,14 +1336,24 @@ void post_base_update_notify_dabuild()
 }
 
 
-static void getPackForFolder(FastNameMap &packs, dag::ConstSpan<int> folders_idx, bool tex, bool res)
+static void add_asset_id(Tab<uint64_t> &ids, DagorAsset &a)
+{
+  String pn = dabuild->getPackName(&a);
+  if (pn.empty())
+    return;
+  String pkg = dabuild->getPkgName(&a);
+  uint64_t id = make_pack_id(pkg.empty() ? BASE_PKG_NAME : pkg.str(), pn);
+  if (id != INVALID_PACK_ID && eastl::find(ids.begin(), ids.end(), id) == ids.end())
+    ids.push_back(id);
+}
+
+static void getPackForFolder(Tab<uint64_t> &ids, dag::ConstSpan<int> folders_idx, bool tex, bool res)
 {
   if (!assetMgr || !dabuild)
     return;
 
   int tex_tid = assetMgr->getTexAssetTypeId();
-  int fldCnt = folders_idx.size();
-  for (int i = 0; i < fldCnt; i++)
+  for (int i = 0; i < (int)folders_idx.size(); i++)
   {
     int start_idx, end_idx;
     assetMgr->getFolderAssetIdxRange(folders_idx[i], start_idx, end_idx);
@@ -674,8 +1366,7 @@ static void getPackForFolder(FastNameMap &packs, dag::ConstSpan<int> folders_idx
         continue;
       if (a.getType() != tex_tid && !res)
         continue;
-      if (String pn = dabuild->getPackName(&a); !pn.empty())
-        packs.addNameId(pn);
+      add_asset_id(ids, a);
     }
   }
 }
@@ -780,19 +1471,16 @@ void rebuild_assets_in_folders(dag::ConstSpan<unsigned> tc, dag::ConstSpan<int> 
   if (!dabuild || !assetMgr)
     return;
 
-  FastNameMap _packs;
-  getPackForFolder(_packs, folders_idx, tex, res);
-
   DaBuildPostParams params;
   params.consoleWasOpen = ::get_app().getConsole().isVisible();
   params.hideConsoleOnSuccess = true;
   params.checkTex = tex;
   params.checkRes = res;
   params.emptyPacksForUpToDateCheck = false;
-  iterate_names(_packs, [&](int, const char *name) { params.packs.push_back(SimpleString(name)); });
+  getPackForFolder(params.ids, folders_idx, tex, res);
   params.tc.assign(tc.begin(), tc.end());
 
-  launch_build_async(eastl::move(params));
+  launch_build(eastl::move(params));
 }
 
 void rebuild_assets_in_root(dag::ConstSpan<unsigned> tc, bool build_tex, bool build_res)
@@ -801,7 +1489,12 @@ void rebuild_assets_in_root(dag::ConstSpan<unsigned> tc, bool build_tex, bool bu
     return;
 
   int tex_tid = assetMgr->getTexAssetTypeId();
-  FastNameMap _packs;
+  DaBuildPostParams params;
+  params.consoleWasOpen = ::get_app().getConsole().isVisible();
+  params.hideConsoleOnSuccess = false;
+  params.checkTex = build_tex;
+  params.checkRes = build_res;
+  params.emptyPacksForUpToDateCheck = true;
   for (int j = 0; j < assetMgr->getAssetCount(); j++)
   {
     DagorAsset &a = assetMgr->getAsset(j);
@@ -811,20 +1504,11 @@ void rebuild_assets_in_root(dag::ConstSpan<unsigned> tc, bool build_tex, bool bu
       continue;
     if (a.getType() != tex_tid && !build_res)
       continue;
-    if (String pn = dabuild->getPackName(&a); !pn.empty())
-      _packs.addNameId(pn);
+    add_asset_id(params.ids, a);
   }
-
-  DaBuildPostParams params;
-  params.consoleWasOpen = ::get_app().getConsole().isVisible();
-  params.hideConsoleOnSuccess = false;
-  params.checkTex = build_tex;
-  params.checkRes = build_res;
-  params.emptyPacksForUpToDateCheck = true;
-  iterate_names(_packs, [&](int, const char *name) { params.packs.push_back(SimpleString(name)); });
   params.tc.assign(tc.begin(), tc.end());
 
-  launch_build_async(eastl::move(params));
+  launch_build(eastl::move(params));
 }
 
 void rebuild_assets_in_root_single(unsigned trg_code, bool build_tex, bool build_res)
@@ -870,11 +1554,17 @@ void build_assets(dag::ConstSpan<unsigned> tc, dag::ConstSpan<DagorAsset *> asse
   params.checkTex = true;
   params.checkRes = true;
   params.emptyPacksForUpToDateCheck = false;
+
+  currentlyBuildingMap.clear();
+
   for (DagorAsset *a : assets)
-    params.packs.push_back(SimpleString(dabuild->getPackName(a)));
+    add_asset_id(params.ids, *a);
   params.tc.assign(tc.begin(), tc.end());
 
-  launch_build_async(eastl::move(params));
+  for (auto &id : params.ids)
+    currentlyBuildingMap[id].assign(tc.begin(), tc.end());
+
+  launch_build(eastl::move(params));
 }
 
 bool is_asset_exportable(DagorAsset *a)
@@ -882,27 +1572,78 @@ bool is_asset_exportable(DagorAsset *a)
   return a && a->getFileNameId() >= 0 && dabuild->isAssetExportable(a) && !::get_asset_pack_name(a).empty();
 }
 
+static dag::ConstSpan<unsigned> get_pack_building_tcs(uint64_t pack_id)
+{
+  auto it = currentlyBuildingMap.find(pack_id);
+  if (it == currentlyBuildingMap.end())
+    return {};
+  return make_span_const(it->second);
+}
+
+static bool is_tc_building(dag::ConstSpan<unsigned> buildingTcs, unsigned tc)
+{
+  for (unsigned b : buildingTcs)
+    if (b == tc)
+      return true;
+  return false;
+}
+
 void render_dabuild_imgui()
 {
-  DAEDITOR3.imguiBegin("daBuild", &dabuildWindowVisible);
+  if (pendingBringToFront)
+  {
+    pendingBringToFront = false;
+    ImGuiWindow *win = ImGui::FindWindowByName(daBuildPanelName);
+    if (win)
+      activate_dabuild_window();
+    else
+      ImGui::SetNextWindowFocus();
+  }
+
+  DAEDITOR3.imguiBegin(daBuildPanelName, &dabuildWindowVisible, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
   {
     bool running = ::is_dabuild_running();
 
     if (::get_dabuild_max_jobs() > 0)
     {
-      int jobs = ::get_dabuild_jobs();
       const float inputWidth = ImGui::CalcTextSize("999").x + ImGui::GetStyle().FramePadding.x * 2.0f + ImGui::GetFrameHeight() * 2.0f;
       ImGui::SetNextItemWidth(inputWidth);
-      if (ImGui::InputInt("Jobs", &jobs, 1, 1))
-        ::set_dabuild_jobs(jobs);
+      if (autoJobs)
+      {
+        ImGui::BeginDisabled();
+        int displayJobs = ::get_dabuild_jobs();
+        ImGui::InputInt("Jobs", &displayJobs, 1, 1);
+        ImGui::EndDisabled();
+      }
+      else
+      {
+        int jobs = ::get_dabuild_jobs();
+        if (ImGui::InputInt("Jobs", &jobs, 1, 1))
+          ::set_dabuild_jobs(jobs);
+      }
+      ImGui::SameLine();
+      if (autoJobsActive)
+        ImGui::BeginDisabled();
+      ImGui::Checkbox("Auto", &autoJobs);
+      ImGui::SetItemTooltip("Auto-optimizing pack exports");
+      if (autoJobsActive)
+        ImGui::EndDisabled();
       ImGui::SameLine();
     }
 
     {
+      const float exportWidth = ImGui::CalcTextSize("Export").x + ImGui::GetStyle().FramePadding.x * 2.0f;
       const float stopWidth = ImGui::CalcTextSize("Stop").x + ImGui::GetStyle().FramePadding.x * 2.0f;
-      ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - stopWidth);
+      ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - stopWidth - exportWidth - 10.f);
+
       if (running)
       {
+        ImGui::BeginDisabled();
+        ImGui::Button("Export");
+        ImGui::EndDisabled();
+
+        ImGui::SameLine(0.0f, 10.0f);
+
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.55f, 0.08f, 0.08f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.75f, 0.15f, 0.15f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.40f, 0.05f, 0.05f, 1.0f));
@@ -913,6 +1654,11 @@ void render_dabuild_imgui()
       }
       else
       {
+        if (ImGui::Button("Export"))
+          export_queue();
+
+        ImGui::SameLine(0.0f, 10.0f);
+
         ImGui::BeginDisabled();
         ImGui::Button("Stop");
         ImGui::EndDisabled();
@@ -944,9 +1690,278 @@ void render_dabuild_imgui()
     if (!running)
       ImGui::EndDisabled();
 
-    ImGui::Checkbox("Auto open on build", &daBuildWindowAutoOpen);
+    ImGui::Checkbox("Bring to front on build", &daBuildWindowAutoOpen);
+    ImGui::SetItemTooltip("Brings the panel to the front when build starts.");
     ImGui::SameLine(0.0f, 10.0f);
-    ImGui::Checkbox("Auto close when finished", &daBuildWindowAutoClose);
+    ImGui::Checkbox("Restore on finish", &daBuildWindowAutoClose);
+    ImGui::SetItemTooltip("Restore the panel's previous state.\nHave no effect if bringing to front is not set.");
+
+    ImGui::Separator();
+
+    {
+      const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
+      const ImVec2 filterButtonSize = PropPanel::ImguiHelper::getImageButtonWithDownArrowSize(fontSizedIconSize);
+      ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x - filterButtonSize.x);
+      PropPanel::ImguiHelper::searchInput(&packSearchFocusId, "##packSearch", "Filter packs", packSearchText, searchIconId,
+        clearIconId);
+      ImGui::SameLine();
+      const bool anyFilterActive = !packFilterTex || !packFilterRes || packFilterSelected;
+      const PropPanel::IconId filterIcon = anyFilterActive ? filterActiveIconId : filterDefaultIconId;
+      if (PropPanel::ImguiHelper::imageButtonWithArrow("packFilter", filterIcon, fontSizedIconSize, packFilterPopupOpen))
+      {
+        ImGui::OpenPopup("##packFilterPopup");
+        packFilterPopupOpen = true;
+      }
+      ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
+      if (ImGui::BeginPopup("##packFilterPopup", ImGuiWindowFlags_NoMove))
+      {
+        ImGui::TextUnformatted("Select filter");
+        PropPanel::ImguiHelper::checkboxWithDragSelection("tex", &packFilterTex);
+        PropPanel::ImguiHelper::checkboxWithDragSelection("res", &packFilterRes);
+        PropPanel::ImguiHelper::checkboxWithDragSelection("selected", &packFilterSelected);
+        ImGui::EndPopup();
+      }
+      else
+        packFilterPopupOpen = false;
+      ImGui::PopStyleColor();
+    }
+
+    if (running)
+      ImGui::BeginDisabled();
+
+    float deselectAllWidth = ImGui::CalcTextSize("Deselect all").x + ImGui::GetStyle().FramePadding.x * 2.0f;
+    float selectAllWidth = ImGui::CalcTextSize("Select all").x + ImGui::GetStyle().FramePadding.x * 2.0f;
+    float rightButtonsWidth = deselectAllWidth + ImGui::GetStyle().ItemSpacing.x + selectAllWidth;
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - rightButtonsWidth);
+
+    if (ImGui::Button("Deselect all"))
+      queue_remove_all();
+    ImGui::SameLine();
+    if (ImGui::Button("Select all"))
+      queue_select_all_known_packs();
+
+    dag::ConstSpan<unsigned> additionalPlatforms = ::get_app().getWorkspace().getAdditionalPlatforms();
+    const bool multiPlatform = !additionalPlatforms.empty();
+
+    static constexpr float LIST_PAD = 2.0f;
+    static constexpr float ITEM_PAD = 4.0f;
+    static constexpr float PKG_PAD = 4.0f;
+
+    Tab<unsigned> displayPlatforms;
+    if (multiPlatform)
+    {
+      displayPlatforms.push_back(_MAKE4C('PC'));
+      for (unsigned ptc : additionalPlatforms)
+        displayPlatforms.push_back(ptc);
+    }
+    const int numPlatSeg = (int)displayPlatforms.size();
+
+    float platformSegW = 0.0f;
+    if (multiPlatform)
+    {
+      for (unsigned ptc : displayPlatforms)
+      {
+        char buf[8];
+        snprintf(buf, sizeof(buf), "[%c%c%c%c]", _DUMP4C(ptc));
+        float w = ImGui::CalcTextSize(buf).x + 2.0f * ITEM_PAD;
+        if (w > platformSegW)
+          platformSegW = w;
+      }
+    }
+
+    const ImVec4 colSelected = PropPanel::getOverriddenColor(PropPanel::ColorOverride::LISTBOX_SELECTION_BACKGROUND);
+    const ImVec4 colHovered = PropPanel::getOverriddenColor(PropPanel::ColorOverride::LISTBOX_HIGHLIGHT_BACKGROUND_HOVERED);
+    const ImVec4 colBuilding = ImVec4(0.85f, 0.55f, 0.10f, 1.0f);
+
+    const float lineH = ImGui::GetFrameHeight();
+
+    String searchLower = packSearchText;
+    dd_strlwr(searchLower);
+
+    auto passesFilter = [&](uint64_t pack_id) -> bool {
+      const char *packName = pack_id_pack_name(pack_id);
+      if (packFilterSelected && queue_get_pack_tcs(pack_id).empty())
+        return false;
+      bool isTex = trail_strcmp(packName, ".dxp.bin");
+      if (isTex && !packFilterTex)
+        return false;
+      if (!isTex && !packFilterRes)
+        return false;
+      if (searchLower.empty())
+        return true;
+      String packLower = String(packName);
+      dd_strlwr(packLower);
+      return strstr(packLower.str(), searchLower.str()) != nullptr;
+    };
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(LIST_PAD, LIST_PAD));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+    bool childOpen = ImGui::BeginChild("##packList", ImVec2(0, 0), ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_None);
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+
+    if (childOpen)
+    {
+      ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+
+      const float availW = ImGui::GetContentRegionAvail().x;
+      const float bodyW = availW - numPlatSeg * platformSegW;
+
+      ImDrawList *dl = ImGui::GetWindowDrawList();
+
+
+      int rowIdx = 0;
+      auto drawPackRow = [&](uint64_t pack_id) {
+        const char *displayName = pack_id_pack_name(pack_id);
+        dag::ConstSpan<unsigned> selectedTcs = queue_get_pack_tcs(pack_id);
+        dag::ConstSpan<unsigned> buildingTcs = get_pack_building_tcs(pack_id);
+        bool isQueued = !selectedTcs.empty();
+        bool anyBuilding = !buildingTcs.empty();
+
+        ImVec2 rowMin = ImGui::GetCursorScreenPos();
+        ImVec2 rowMax = ImVec2(rowMin.x + availW, rowMin.y + lineH);
+
+        int hoveredSeg = -1;
+        if (!running)
+        {
+          float relX = ImGui::GetIO().MousePos.x - rowMin.x;
+          if (ImGui::IsMouseHoveringRect(rowMin, rowMax))
+          {
+            if (!multiPlatform || relX < bodyW)
+              hoveredSeg = 0;
+            else
+            {
+              int ci = (int)((relX - bodyW) / platformSegW);
+              if (ci >= 0 && ci < numPlatSeg)
+                hoveredSeg = ci + 1;
+            }
+          }
+        }
+
+        {
+          float bxEnd = multiPlatform ? rowMin.x + bodyW : rowMax.x;
+          if (anyBuilding)
+            dl->AddRectFilled(rowMin, ImVec2(bxEnd, rowMax.y), ImGui::GetColorU32(colBuilding));
+          else if (isQueued)
+            dl->AddRectFilled(rowMin, ImVec2(bxEnd, rowMax.y), ImGui::GetColorU32(colSelected));
+          if (hoveredSeg == 0)
+            dl->AddRectFilled(rowMin, ImVec2(bxEnd, rowMax.y), ImGui::GetColorU32(colHovered));
+        }
+
+        if (multiPlatform)
+        {
+          for (int ti = 0; ti < numPlatSeg; ++ti)
+          {
+            unsigned ptc = displayPlatforms[ti];
+            bool tcSel = false;
+            for (unsigned s : selectedTcs)
+              if (s == ptc)
+              {
+                tcSel = true;
+                break;
+              }
+
+            float cx = rowMin.x + bodyW + ti * platformSegW;
+            float cxE = cx + platformSegW;
+
+            if (is_tc_building(buildingTcs, ptc))
+              dl->AddRectFilled(ImVec2(cx, rowMin.y), ImVec2(cxE, rowMax.y), ImGui::GetColorU32(colBuilding));
+            else if (tcSel)
+              dl->AddRectFilled(ImVec2(cx, rowMin.y), ImVec2(cxE, rowMax.y), ImGui::GetColorU32(colSelected));
+
+            if (hoveredSeg == ti + 1)
+              dl->AddRectFilled(ImVec2(cx, rowMin.y), ImVec2(cxE, rowMax.y), ImGui::GetColorU32(colHovered));
+          }
+        }
+
+        ImGui::SetCursorScreenPos(rowMin);
+        char btnId[64];
+        snprintf(btnId, sizeof(btnId), "##qrow%d", rowIdx++);
+        bool clicked = false;
+        if (!running)
+          clicked = ImGui::InvisibleButton(btnId, ImVec2(availW, lineH));
+        else
+          ImGui::Dummy(ImVec2(availW, lineH));
+
+        if (clicked)
+        {
+          if (!multiPlatform)
+          {
+            queue_toggle_pack(pack_id, _MAKE4C('PC'));
+          }
+          else if (hoveredSeg >= 1)
+          {
+            queue_toggle_pack(pack_id, displayPlatforms[hoveredSeg - 1]);
+          }
+          else
+          {
+            if (isQueued)
+            {
+              auto it = queueMap.find(pack_id);
+              if (it != queueMap.end())
+                it->second.tcs.clear();
+            }
+            else
+              queue_add_pack_all_platforms(pack_id);
+          }
+        }
+
+        const float textY = rowMin.y + (lineH - ImGui::GetTextLineHeight()) * 0.5f;
+        const ImU32 textCol = ImGui::GetColorU32(ImGuiCol_Text);
+
+        {
+          float clipRight = (multiPlatform ? rowMin.x + bodyW : rowMax.x) - ITEM_PAD;
+          dl->PushClipRect(rowMin, ImVec2(clipRight, rowMax.y), true);
+          dl->AddText(ImVec2(rowMin.x + ITEM_PAD, textY), textCol, displayName);
+          dl->PopClipRect();
+        }
+
+        if (multiPlatform)
+        {
+          for (int ti = 0; ti < numPlatSeg; ++ti)
+          {
+            char chipLabel[8];
+            snprintf(chipLabel, sizeof(chipLabel), "[%c%c%c%c]", _DUMP4C(displayPlatforms[ti]));
+            float cx = rowMin.x + bodyW + ti * platformSegW + ITEM_PAD;
+            dl->AddText(ImVec2(cx, textY), textCol, chipLabel);
+          }
+        }
+      };
+
+      for (uint32_t pi = 0; pi < (uint32_t)knownPkgGroups.size(); ++pi)
+      {
+        const PkgGroup &pkg = knownPkgGroups[pi];
+        int visible = 0;
+        for (uint32_t ci = 0; ci < (uint32_t)pkg.packs.size(); ++ci)
+          if (passesFilter(((uint64_t)pi << 32) | ci))
+            ++visible;
+        if (visible == 0)
+          continue;
+
+        ImGui::Dummy(ImVec2(0, PKG_PAD));
+        ImGui::BeginDisabled();
+        const ImVec2 item_spacing = ImGui::GetStyle().ItemSpacing;
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.f, item_spacing.y));
+
+        ImGui::SeparatorText(pkg.name.str());
+        ImGui::PopStyleVar();
+        ImGui::EndDisabled();
+        ImGui::Dummy(ImVec2(0, PKG_PAD));
+
+        for (uint32_t ci = 0; ci < (uint32_t)pkg.packs.size(); ++ci)
+        {
+          uint64_t pack_id = ((uint64_t)pi << 32) | ci;
+          if (passesFilter(pack_id))
+            drawPackRow(pack_id);
+        }
+      }
+
+      ImGui::PopStyleVar();
+    }
+    ImGui::EndChild();
+
+    if (running)
+      ImGui::EndDisabled();
   }
   DAEDITOR3.imguiEnd();
 

@@ -1,20 +1,103 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <render/lights/lightsPartition.h>
+#include <render/lights/lightsPartition.hlsli>
 #include <render/lights/lightsEncoding.h>
 #include <scene/dag_occlusion.h>
+#include <math/dag_mathBase.h>
 #include <EASTL/type_traits.h>
 #include <generic/dag_align.h>
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_shaderVariableInfo.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_barrier.h>
 #include <3d/dag_resourceTags.h>
 #include "smallLights.h"
+
+#define LIGHTS_PARTITION_GLOBAL_VARS_LIST                 \
+  VAR(partition_lights_frustum_planes)                    \
+  VAR(partition_lights_cutoff_dist_sq)                    \
+  VAR(partition_lights_mark_small_lights_as_far_limit)    \
+  VAR(partition_lights_require_any_mask)                  \
+  VAR(partition_lights_camera_position)                   \
+  VAR(partition_lights_znear_plane)                       \
+  VAR(scene_omni_managed_lights_structured_buf)           \
+  VAR(scene_omni_render_lights_structured_buf)            \
+  VAR(scene_omni_lights_structured_buf_count)             \
+  VAR(visible_clustered_omni_lights_structured_buf)       \
+  VAR(visible_clustered_omni_lights_structured_buf_count) \
+  VAR(visible_far_omni_lights_structured_buf)             \
+  VAR(visible_far_omni_lights_structured_buf_count)       \
+  VAR(scene_spot_managed_lights_structured_buf)           \
+  VAR(scene_spot_render_lights_structured_buf)            \
+  VAR(scene_spot_lights_structured_buf_count)             \
+  VAR(visible_clustered_spot_lights_structured_buf)       \
+  VAR(visible_clustered_spot_lights_structured_buf_count) \
+  VAR(visible_far_spot_lights_structured_buf)             \
+  VAR(visible_far_spot_lights_structured_buf_count)
+
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
+LIGHTS_PARTITION_GLOBAL_VARS_LIST
+#undef VAR
+#undef LIGHTS_PARTITION_GLOBAL_VARS_LIST
+
+template <typename LightsManager>
+static void dispatch_lights_gpu_partition(LightsManager &lights_manager, ComputeShader &cs,
+  const ShaderVariableInfo &scene_managed_buf_var, const ShaderVariableInfo &scene_render_buf_var,
+  const ShaderVariableInfo &scene_count_var, const ShaderVariableInfo &clustered_ids_var,
+  const ShaderVariableInfo &clustered_count_var, const ShaderVariableInfo &far_ids_var, const ShaderVariableInfo &far_count_var,
+  Sbuffer *clustered_ids_buf, Sbuffer *clustered_count_buf, Sbuffer *far_ids_buf, Sbuffer *far_count_buf,
+  typename LightsManager::MaskType require_any_mask, float mark_small_lights_as_far_limit, float cutoff_dist_sq)
+{
+  G_ASSERTF(cs, "dispatch_lights_gpu_partition: compute shader not found");
+
+  Sbuffer *sceneManagedBuf = lights_manager.getSceneManagedLightsBuffer();
+  Sbuffer *sceneRenderBuf = lights_manager.getSceneRenderLightsBuffer();
+  Sbuffer *sceneCountBuf = lights_manager.getSceneManagedLightsCountBuffer();
+
+  G_ASSERTF(sceneManagedBuf, "dispatch_lights_gpu_partition: managed lights buf is null");
+  G_ASSERTF(sceneRenderBuf, "dispatch_lights_gpu_partition: render lights buf is null");
+  G_ASSERTF(sceneCountBuf, "dispatch_lights_gpu_partition:  count buf is null");
+
+  d3d::zero_rwbufi(clustered_count_buf);
+  d3d::zero_rwbufi(far_count_buf);
+  d3d::resource_barrier({clustered_count_buf, RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+  d3d::resource_barrier({far_count_buf, RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+
+  ShaderGlobal::set_float(partition_lights_cutoff_dist_sqVarId, cutoff_dist_sq > 0.f ? cutoff_dist_sq : MAX_REAL);
+  ShaderGlobal::set_float(partition_lights_mark_small_lights_as_far_limitVarId, mark_small_lights_as_far_limit);
+  ShaderGlobal::set_int(partition_lights_require_any_maskVarId, static_cast<int>(require_any_mask));
+
+  scene_managed_buf_var.set_buffer(sceneManagedBuf);
+  scene_render_buf_var.set_buffer(sceneRenderBuf);
+  scene_count_var.set_buffer(sceneCountBuf);
+  clustered_ids_var.set_buffer(clustered_ids_buf);
+  clustered_count_var.set_buffer(clustered_count_buf);
+  far_ids_var.set_buffer(far_ids_buf);
+  far_count_var.set_buffer(far_count_buf);
+
+  cs.dispatchThreads(LightsManager::MAX_LIGHTS, 1, 1);
+
+  scene_managed_buf_var.set_buffer(nullptr);
+  scene_render_buf_var.set_buffer(nullptr);
+  scene_count_var.set_buffer(nullptr);
+  clustered_ids_var.set_buffer(nullptr);
+  clustered_count_var.set_buffer(nullptr);
+  far_ids_var.set_buffer(nullptr);
+  far_count_var.set_buffer(nullptr);
+
+  d3d::resource_barrier({clustered_ids_buf, RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+  d3d::resource_barrier({clustered_count_buf, RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+  d3d::resource_barrier({far_ids_buf, RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+  d3d::resource_barrier({far_count_buf, RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+}
 
 LightsPartition::LightsPartition(OmniLightsManager &omni_lights, SpotLightsManager &spot_lights,
   const LightsResourcesManager *lights_res_mgr) :
   omniLights(&omni_lights), spotLights(&spot_lights), lightsResMgr(lights_res_mgr), lightsSorter(omni_lights, spot_lights)
 {}
 
-void LightsPartition::init()
+void LightsPartition::init(bool use_gpu_partition)
 {
   if (VariableMap::isVariablePresent(VariableMap::getVariableId("spot_lights_flags")))
   {
@@ -39,7 +122,47 @@ void LightsPartition::init()
   visibleFarOmniLightsCB.update(nullptr, 0);
   visibleFarSpotLightsCB.reallocate(0, MAX_VISIBLE_FAR_LIGHTS, lightsResMgr->getResName("far_spot_lights"), true);
   visibleFarSpotLightsCB.update(nullptr, 0);
+
+  useGPUPartition = use_gpu_partition;
+  if (useGPUPartition)
+  {
+    partitionOmniCS = ComputeShader("partition_omni_lights_cs", true);
+    partitionSpotCS = ComputeShader("partition_spot_lights_cs", true);
+
+    if (!partitionSpotCS || !partitionOmniCS)
+    {
+      useGPUPartition = false;
+    }
+  }
+
+  if (useGPUPartition)
+  {
+    frustumPlanesCB = dag::buffers::create_persistent_cb(dag::buffers::cb_array_reg_count<Point4>(6),
+      lightsResMgr->getResName("partition_lights_frustum_planes"));
+
+    visibleClusteredOmniLightsIdsBuffer = dag::buffers::create_ua_structured(sizeof(uint32_t), MAX_SCENE_OMNI_LIGHTS,
+      lightsResMgr->getResName("clustered_omni_lights_ids"), RESTAG_LIGHTS);
+    visibleClusteredOmniLightsCountBuffer =
+      dag::buffers::create_ua_structured(sizeof(uint32_t), 1, lightsResMgr->getResName("clustered_omni_lights_count"), RESTAG_LIGHTS);
+
+    visibleClusteredSpotLightsIdsBuffer = dag::buffers::create_ua_structured(sizeof(uint32_t), MAX_SCENE_SPOT_LIGHTS,
+      lightsResMgr->getResName("clustered_spot_lights_ids"), RESTAG_LIGHTS);
+    visibleClusteredSpotLightsCountBuffer =
+      dag::buffers::create_ua_structured(sizeof(uint32_t), 1, lightsResMgr->getResName("clustered_spot_lights_count"), RESTAG_LIGHTS);
+
+    visibleFarOmniLightsIdsBuffer = dag::buffers::create_ua_structured(sizeof(uint32_t), MAX_SCENE_OMNI_LIGHTS,
+      lightsResMgr->getResName("far_omni_lights_ids"), RESTAG_LIGHTS);
+    visibleFarOmniLightsCountBuffer =
+      dag::buffers::create_ua_structured(sizeof(uint32_t), 1, lightsResMgr->getResName("far_omni_lights_count"), RESTAG_LIGHTS);
+
+    visibleFarSpotLightsIdsBuffer = dag::buffers::create_ua_structured(sizeof(uint32_t), MAX_SCENE_SPOT_LIGHTS,
+      lightsResMgr->getResName("far_spot_lights_ids"), RESTAG_LIGHTS);
+    visibleFarSpotLightsCountBuffer =
+      dag::buffers::create_ua_structured(sizeof(uint32_t), 1, lightsResMgr->getResName("far_spot_lights_count"), RESTAG_LIGHTS);
+  }
 }
+
+bool LightsPartition::isGPU() const { return useGPUPartition; }
 
 template <typename LightsManager>
 void LightsPartition::executeLightsCPUPartition(const LightsManager *lights_manager, const Frustum &frustum,
@@ -96,7 +219,7 @@ void LightsPartition::executeLightsCPUPartition(const LightsManager *lights_mana
     vec3f radScaled = rad;
     if constexpr (eastl::is_same_v<LightsManager, OmniLightsManager>)
     {
-      radScaled = v_mul_x(v_splats(1.1f), rad);
+      radScaled = v_mul_x(v_splats(OMNI_LIGHT_BOUND_SPHERE_RADIUS_SCALE), rad);
     }
 
     vec4f res = v_add_x(v_sub_x(v_dot3_x(lightPosRad, znear_plane), radScaled), v_splat_w(znear_plane));
@@ -114,7 +237,7 @@ void LightsPartition::executeLightsCPUPartition(const LightsManager *lights_mana
     bool camInSphere = v_test_vec_x_lt_0(camInSphereVec);
 #endif
 
-    const bool small = lights_manager->getShadowId(i) == BaseLightsManager::INVALID_SHADOW_VOLUME_ID &&
+    const bool small = lights_manager->getShadowId(i) == INVALID_SHADOW_VOLUME_ID &&
                        is_viewed_small(lightPosRad, length_sq, mark_small_lights_as_far_limit);
 
     if ((intersectsNear || small) && !camInSphere)
@@ -184,7 +307,7 @@ void LightsPartition::executeSpotLightsCPUPartition(const Frustum &frustum, Tab<
     znear_plane, 0, v_zero(), require_any_mask, cutoff_dist_sq);
 };
 
-void LightsPartition::executeFrustumOmniLightsCPUPartition(const Frustum &frustum, Occlusion *occlusion, vec4f znear_plane,
+void LightsPartition::prepareClusteredAndFarOmniLightBuffersCPU(const Frustum &frustum, Occlusion *occlusion, vec4f znear_plane,
   float mark_small_lights_as_far_limit, vec3f camera_pos, OmniLightMaskType require_any_mask, float cutoff_dist_sq)
 {
   executeLightsCPUPartition<OmniLightsManager>(omniLights, frustum, visibleFarOmniLightsIds, visibleClusteredOmniLightsIds,
@@ -196,7 +319,7 @@ void LightsPartition::executeFrustumOmniLightsCPUPartition(const Frustum &frustu
     renderOmniLightsFar, visibleOmniLightsMasks, visibleClusteredOmniLightsBounds, OmniLightMaskType::OMNI_LIGHT_MASK_NONE);
 }
 
-void LightsPartition::executeFrustumSpotLightsCPUPartition(const Frustum &frustum, Occlusion *occ, vec4f znear_plane,
+void LightsPartition::prepareClusteredAndFarSpotLightBuffersCPU(const Frustum &frustum, Occlusion *occ, vec4f znear_plane,
   float mark_small_lights_as_far_limit, vec3f camera_pos, SpotLightMaskType require_any_mask, float cutoff_dist_sq)
 {
   executeLightsCPUPartition<SpotLightsManager>(spotLights, frustum, visibleFarSpotLightsIds, visibleClusteredSpotLightsIds,
@@ -206,6 +329,43 @@ void LightsPartition::executeFrustumSpotLightsCPUPartition(const Frustum &frustu
   trimVisibleLightsIdLists(visibleClusteredSpotLightsIds, visibleFarSpotLightsIds, MAX_CLUSTERED_SPOT_LIGHTS);
   fillDerivativeLightsLists(spotLights, visibleClusteredSpotLightsIds, visibleFarSpotLightsIds, renderSpotLightsClustered,
     renderSpotLightsFar, visibleSpotLightsMasks, visibleClusteredSpotLightsBounds, SpotLightMaskType::SPOT_LIGHT_MASK_NONE);
+}
+
+void LightsPartition::executeLightsGPUPartition(const Frustum &frustum, vec4f znear_plane, float mark_small_lights_as_far_limit,
+  vec3f camera_pos, OmniLightMaskType omni_require_any_mask, SpotLightMaskType spot_require_any_mask, float cutoff_dist_sq)
+{
+  G_ASSERT_RETURN(isGPU(), );
+
+  Point4 planes[6];
+  v_stu(&planes[0].x, frustum.plane03X);
+  v_stu(&planes[1].x, frustum.plane03Y);
+  v_stu(&planes[2].x, frustum.plane03Z);
+  v_stu(&planes[3].x, frustum.plane03W);
+  v_stu(&planes[4].x, frustum.camPlanes[Frustum::FARPLANE]);
+  v_stu(&planes[5].x, frustum.camPlanes[Frustum::NEARPLANE]);
+  frustumPlanesCB->updateData(0, sizeof(planes), planes, VBLOCK_WRITEONLY);
+  partition_lights_frustum_planesVarId.set_buffer(frustumPlanesCB.getBuf());
+
+  ShaderGlobal::set_float4(partition_lights_znear_planeVarId, znear_plane);
+  ShaderGlobal::set_float4(partition_lights_camera_positionVarId, camera_pos);
+
+  dispatch_lights_gpu_partition(*omniLights, partitionOmniCS, scene_omni_managed_lights_structured_bufVarId,
+    scene_omni_render_lights_structured_bufVarId, scene_omni_lights_structured_buf_countVarId,
+    visible_clustered_omni_lights_structured_bufVarId, visible_clustered_omni_lights_structured_buf_countVarId,
+    visible_far_omni_lights_structured_bufVarId, visible_far_omni_lights_structured_buf_countVarId,
+    visibleClusteredOmniLightsIdsBuffer.getBuf(), visibleClusteredOmniLightsCountBuffer.getBuf(),
+    visibleFarOmniLightsIdsBuffer.getBuf(), visibleFarOmniLightsCountBuffer.getBuf(), omni_require_any_mask,
+    mark_small_lights_as_far_limit, cutoff_dist_sq);
+
+  dispatch_lights_gpu_partition(*spotLights, partitionSpotCS, scene_spot_managed_lights_structured_bufVarId,
+    scene_spot_render_lights_structured_bufVarId, scene_spot_lights_structured_buf_countVarId,
+    visible_clustered_spot_lights_structured_bufVarId, visible_clustered_spot_lights_structured_buf_countVarId,
+    visible_far_spot_lights_structured_bufVarId, visible_far_spot_lights_structured_buf_countVarId,
+    visibleClusteredSpotLightsIdsBuffer.getBuf(), visibleClusteredSpotLightsCountBuffer.getBuf(),
+    visibleFarSpotLightsIdsBuffer.getBuf(), visibleFarSpotLightsCountBuffer.getBuf(), spot_require_any_mask,
+    mark_small_lights_as_far_limit, cutoff_dist_sq);
+
+  partition_lights_frustum_planesVarId.set_buffer(nullptr);
 }
 
 void LightsPartition::trimVisibleLightsIdLists(Tab<uint16_t> &clustered_lights, Tab<uint16_t> &far_lights, int max_clustered_count)
@@ -296,6 +456,50 @@ const LightsPartition::SpotLightsCB &LightsPartition::getVisibleFarSpotLightsCB(
 
 const UniqueBuf &LightsPartition::getVisibleClusteredSpotLightsMasksSB() const { return visibleClusteredSpotLightsMasksSB; }
 const UniqueBuf &LightsPartition::getVisibleClusteredOmniLightsMasksSB() const { return visibleClusteredOmniLightsMasksSB; }
+
+const UniqueBuf &LightsPartition::getVisibleClusteredOmniLightsIdsBuffer() const
+{
+  G_ASSERT(isGPU());
+  return visibleClusteredOmniLightsIdsBuffer;
+}
+const UniqueBuf &LightsPartition::getVisibleClusteredOmniLightsCountBuffer() const
+{
+  G_ASSERT(isGPU());
+  return visibleClusteredOmniLightsCountBuffer;
+}
+
+const UniqueBuf &LightsPartition::getVisibleClusteredSpotLightsIdsBuffer() const
+{
+  G_ASSERT(isGPU());
+  return visibleClusteredSpotLightsIdsBuffer;
+}
+const UniqueBuf &LightsPartition::getVisibleClusteredSpotLightsCountBuffer() const
+{
+  G_ASSERT(isGPU());
+  return visibleClusteredSpotLightsCountBuffer;
+}
+
+const UniqueBuf &LightsPartition::getVisibleFarOmniLightsIdsBuffer() const
+{
+  G_ASSERT(isGPU());
+  return visibleFarOmniLightsIdsBuffer;
+}
+const UniqueBuf &LightsPartition::getVisibleFarOmniLightsCountBuffer() const
+{
+  G_ASSERT(isGPU());
+  return visibleFarOmniLightsCountBuffer;
+}
+
+const UniqueBuf &LightsPartition::getVisibleFarSpotLightsIdsBuffer() const
+{
+  G_ASSERT(isGPU());
+  return visibleFarSpotLightsIdsBuffer;
+}
+const UniqueBuf &LightsPartition::getVisibleFarSpotLightsCountBuffer() const
+{
+  G_ASSERT(isGPU());
+  return visibleFarSpotLightsCountBuffer;
+}
 
 
 bool LightsPartition::isLightVisible(uint32_t id) const

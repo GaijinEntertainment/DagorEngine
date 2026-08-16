@@ -38,7 +38,7 @@
 #include "profileStcode.h"
 
 static OAHashNameMap<false> g_sh_block_name_map;
-static eastl::array<UniqueBuf, 3> global_const_buffers;
+static UniqueBuf global_const_buffer;
 
 void ScriptedShadersGlobalData::initBlockIndexMap()
 {
@@ -67,81 +67,42 @@ public:
   }
 };
 
-static constexpr const char *STAGE_NAMES[] = {"cs", "ps", "vs"};
-
 class ArrayConstSetter : public shaders_internal::ConstSetter
 {
 public:
-  eastl::array<dag::RelocatableFixedVector<Color4, 4, true, framemem_allocator, uint32_t, false>, 3> consts;
+  dag::RelocatableFixedVector<Color4, 4, true, framemem_allocator, uint32_t, false> consts;
 
-  // @TODO: replace 2 calls to setConstImpl with having one global cbuf for the graphics pipeline.
-
-  virtual bool setConst(ShaderStage stage, unsigned reg_base, const void *data, unsigned num_regs) final
+  virtual bool setConst(ShaderStage, unsigned reg_base, const void *data, unsigned num_regs) final
   {
-    setConstImpl(stage, reg_base, data, num_regs);
-
-    // @HACK-ish: global const buffer hlsl declaration is shared between ps and vs stage. After the compiler update the preshader
-    // statements are filtered (relying on ODR) -- if a const is compiled in one stage, it is not compiled in the other. This makes it
-    // necessary to flush all writes to both stages' constbuffers.
-    if (stage != STAGE_CS)
-    {
-      ShaderStage otherStage = stage == STAGE_VS ? STAGE_PS : STAGE_VS;
-      setConstImpl(otherStage, reg_base, data, num_regs);
-    }
-
+    if (consts.size() < reg_base + num_regs)
+      consts.resize(reg_base + num_regs);
+    memcpy(&consts[reg_base], data, sizeof(Color4) * num_regs);
     return true;
   }
 
   void upload()
   {
-    for (int stage = STAGE_CS; stage <= STAGE_VS; stage++)
-    {
-      const auto &constData = consts[stage];
-      if (constData.empty() && (stage != STAGE_CS || consts[STAGE_PS].empty()))
-        continue;
-      UniqueBuf &constBuffer = global_const_buffers[stage];
-      const int bufferSize = stage == STAGE_CS ? consts[STAGE_PS].size() + consts[stage].size() : consts[stage].size();
-      if (!constBuffer)
-      {
-        String bufferName(32, "global_const_buf_%s", STAGE_NAMES[stage]);
-        constBuffer = dag::buffers::create_one_frame_cb(bufferSize, bufferName.c_str(), RESTAG_ENGINE);
-      }
-      if (auto destinationData = lock_sbuffer<Color4>(constBuffer.getBuf(), 0, bufferSize, VBLOCK_DISCARD | VBLOCK_WRITEONLY))
-      {
-        int updateOffset = 0;
-        if (stage == STAGE_CS && !consts[STAGE_PS].empty())
-        {
-          updateOffset = consts[STAGE_PS].size();
-          destinationData.updateDataRange(0, consts[STAGE_PS].data(), updateOffset);
-        }
-        if (!constData.empty())
-          destinationData.updateDataRange(updateOffset, constData.data(), constData.size());
-      }
-      d3d::set_const_buffer(stage, 2, constBuffer.getBuf());
-    }
+    if (consts.empty())
+      return;
+    const int bufferSize = consts.size();
+    if (!global_const_buffer)
+      global_const_buffer = dag::buffers::create_one_frame_cb(bufferSize, "global_const_buf", RESTAG_ENGINE);
+    if (auto destinationData = lock_sbuffer<Color4>(global_const_buffer.getBuf(), 0, bufferSize, VBLOCK_DISCARD | VBLOCK_WRITEONLY))
+      destinationData.updateDataRange(0, consts.data(), consts.size());
+    for (int stage = STAGE_CS; stage <= STAGE_VS; ++stage)
+      d3d::set_const_buffer(stage, 2, global_const_buffer.getBuf());
   }
 
   void dump()
   {
-    for (int stage = STAGE_CS; stage <= STAGE_VS; stage++)
-    {
-      debug("%s consts (%d)", STAGE_NAMES[stage], consts[stage].size());
-      dump_consts((ShaderStage)stage);
-    }
+    debug("consts (%d)", consts.size());
+    dump_consts();
   }
 
 private:
-  void setConstImpl(ShaderStage stage, unsigned reg_base, const void *data, unsigned num_regs)
+  void dump_consts()
   {
-    auto &values = consts[stage];
-    if (values.size() < reg_base + num_regs)
-      values.resize(reg_base + num_regs);
-    memcpy(&values[reg_base], data, sizeof(Color4) * num_regs);
-  }
-
-  void dump_consts(ShaderStage stage)
-  {
-    for (const Color4 &reg : consts[stage])
+    for (const Color4 &reg : consts)
       debug("  REG: {%f}, {%f}, {%f}, {%f}\n", reg.r, reg.g, reg.b, reg.a);
   }
 };
@@ -151,11 +112,7 @@ static void exec_stcode(dag::ConstSpan<int> cod, int block_id, shaders_internal:
 static eastl::array<ShaderBlockIds, ShaderGlobal::LAYER_OBJECT + 1> current_blocks{};
 static ShaderBlockIds current_global_const{};
 
-void shaders_internal::close_global_constbuffers()
-{
-  for (UniqueBuf &buf : global_const_buffers)
-    buf.close();
-}
+void shaders_internal::close_global_constbuffers() { global_const_buffer.close(); }
 
 static ShaderBlockIds get_block_ids_private(const char *block_name, int layer)
 {
@@ -260,8 +217,7 @@ static void set_block_private(ShaderBlockIds block_ids, int layer)
     if (block_ids.internalBlockId == -1)
     {
       current_global_const = {};
-      for (UniqueBuf &buf : global_const_buffers)
-        buf.close();
+      global_const_buffer.close();
     }
     else
     {

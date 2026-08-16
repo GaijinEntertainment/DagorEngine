@@ -1,4 +1,4 @@
-// Squirrel module under test: dagor.workcycle (registered by dagorWorkCycle.cpp)
+// Quirrel module under test: dagor.workcycle (registered by dagorWorkCycle.cpp)
 // Tests defer/timer registration and clearance API. Note: in csq-dev the
 // idle work cycle is not pumped, so we exercise registration/clearance/has APIs
 // rather than waiting for callbacks to fire.

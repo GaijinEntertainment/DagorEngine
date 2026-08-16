@@ -40,12 +40,22 @@ shader bvh_hwinstance_copy
         return;
 
       ##if bvh_hwinstance_copy_mode == copy
-        RTHWInstance instance = structuredBufferAt(source, dtId.x);
+        RTHWInstance instance;
         if (dtId.x < loadBuffer(instance_count, 0))
         {
+          instance = structuredBufferAt(source, dtId.x);
           instance.transform0.w -= world_view_pos.x;
           instance.transform1.w -= world_view_pos.y;
           instance.transform2.w -= world_view_pos.z;
+        }
+        else
+        {
+          instance.transform0 = 0;
+          instance.transform1 = 0;
+          instance.transform2 = 0;
+          instance.instanceId_mask = 0;
+          instance.instanceOffset_flags = 0;
+          instance.blas = 0;
         }
       ##else
         RTHWInstance instance;

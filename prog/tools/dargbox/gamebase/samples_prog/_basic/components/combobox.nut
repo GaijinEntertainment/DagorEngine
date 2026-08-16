@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "types" import Table
 let comboStyle = require("combobox.style.nut")
 
 let ComboPopupLayer = getconsttable()?.Layers.ComboPopup ?? 1
@@ -113,7 +114,7 @@ function combobox(watches, options, combo_style=comboStyle) {
   local changeVarOnListUpdate = true
   let xmbNode = combo_style?.xmbNode ?? XmbNode()
 
-  if (type(watches) == "table") {
+  if (watches instanceof Table) {
     wdata = watches.value
     wdisable = watches?.disable ?? {value=false}
     wupdate =  @(v) wdata.set(v)

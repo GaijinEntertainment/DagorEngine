@@ -2,6 +2,7 @@
 
 // user provided GPU sync logic implementation
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_enhanced_barrier.h>
 #include "globals.h"
 #include "global_lock.h"
 #include "device_context.h"
@@ -122,6 +123,93 @@ void d3d::resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline /*gpu_pi
       Globals::ctx.dispatchCmdNoLock<CmdBufferBarrier>({gbuf->getBufferRef(), state}); //-V522
     });
   }
+}
+
+namespace
+{
+
+// front lock must be held: appends into the current replay's barrier store
+bool queue_enhanced_image_barrier(const d3d::TextureBarrier &barrier, BaseTexture *texture)
+{
+  if (!texture)
+  {
+    D3D_ERROR("vulkan: enhanced_texture_barrier with null texture");
+    return false;
+  }
+  Image *image = cast_to_texture_base(texture)->image;
+  if (!image)
+  {
+    D3D_ERROR("vulkan: image is missing in barrier for texture %p:%s", texture, texture->getName());
+    return false;
+  }
+  if (image->isSyncTracked())
+  {
+    D3D_ERROR("vulkan: enhanced_texture_barrier called on tracked texture <%s>, create it with TEXCF_NO_STATE_TRACKING",
+      image->getDebugName());
+    return false;
+  }
+  Frontend::replay->enhancedImageBarriers.push_back({image, barrier});
+  return true;
+}
+
+bool queue_enhanced_buffer_barrier(const d3d::BufferBarrier &barrier, Sbuffer *buffer)
+{
+  if (!buffer)
+  {
+    D3D_ERROR("vulkan: enhanced_buffer_barrier with null buffer");
+    return false;
+  }
+  BufferRef bRef = ((GenericBufferInterface *)buffer)->getBufferRef();
+  if (!bRef.buffer)
+    return false;
+  if (bRef.buffer->isSyncTracked())
+  {
+    D3D_ERROR("vulkan: enhanced_buffer_barrier called on tracked buffer <%s>, create it with SBCF_NO_STATE_TRACKING",
+      buffer->getBufName());
+    return false;
+  }
+  Frontend::replay->enhancedBufferBarriers.push_back({bRef, barrier});
+  return true;
+}
+
+} // anonymous namespace
+
+void d3d::enhanced_texture_barrier(const d3d::TextureBarrier &barrier, BaseTexture *texture)
+{
+  VERIFY_GLOBAL_LOCK_ACQUIRED();
+  OSSpinlockScopedLock frontLock(Globals::ctx.getFrontLock());
+  const uint32_t idx = Frontend::replay->enhancedImageBarriers.size();
+  if (queue_enhanced_image_barrier(barrier, texture))
+    Globals::ctx.dispatchCmdNoLock<CmdEnhancedBarrierBatch>({idx, 1, 0, 0});
+}
+
+void d3d::enhanced_buffer_barrier(const d3d::BufferBarrier &barrier, Sbuffer *buffer)
+{
+  VERIFY_GLOBAL_LOCK_ACQUIRED();
+  OSSpinlockScopedLock frontLock(Globals::ctx.getFrontLock());
+  const uint32_t idx = Frontend::replay->enhancedBufferBarriers.size();
+  if (queue_enhanced_buffer_barrier(barrier, buffer))
+    Globals::ctx.dispatchCmdNoLock<CmdEnhancedBarrierBatch>({0, 0, idx, 1});
+}
+
+void d3d::enhanced_barrier_batch(dag::ConstSpan<d3d::TextureBarrierBatchItem> texture_barriers,
+  dag::ConstSpan<d3d::BufferBarrierBatchItem> buffer_barriers)
+{
+  VERIFY_GLOBAL_LOCK_ACQUIRED();
+  OSSpinlockScopedLock frontLock(Globals::ctx.getFrontLock());
+
+  const uint32_t imageIndex = Frontend::replay->enhancedImageBarriers.size();
+  uint32_t imageCount = 0;
+  for (const d3d::TextureBarrierBatchItem &item : texture_barriers)
+    imageCount += queue_enhanced_image_barrier(item.barrier, item.texture) ? 1 : 0;
+
+  const uint32_t bufferIndex = Frontend::replay->enhancedBufferBarriers.size();
+  uint32_t bufferCount = 0;
+  for (const d3d::BufferBarrierBatchItem &item : buffer_barriers)
+    bufferCount += queue_enhanced_buffer_barrier(item.barrier, item.buffer) ? 1 : 0;
+
+  if (imageCount || bufferCount)
+    Globals::ctx.dispatchCmdNoLock<CmdEnhancedBarrierBatch>({imageIndex, imageCount, bufferIndex, bufferCount});
 }
 
 void drv3d_vulkan::d3d_command_change_queue(GpuPipeline gpu_pipeline)

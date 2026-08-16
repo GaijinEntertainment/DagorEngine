@@ -1,7 +1,8 @@
 from "%darg/ui_imports.nut" import *
 from "math" import min
+from "types" import String, Array
 
-let isString = @(v) type(v) == "string"
+let isString = @(v) v instanceof String
 
 function splitTextToParts(fullText, replaceTable): array {
   local parts = [fullText]
@@ -18,7 +19,7 @@ function splitTextToParts(fullText, replaceTable): array {
       while (idx != null) {
         if (idx > startIdx)
           parts.append(text.slice(startIdx, idx))
-        if (type(comp) == "array")
+        if (comp instanceof Array)
           parts.extend(comp)
         else
           parts.append(comp)

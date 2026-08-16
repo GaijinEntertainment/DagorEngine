@@ -33,10 +33,16 @@ struct SuiteCtx {
     verbose : bool = false
     compile_only : bool = false
     use_aot : bool = false
+    aot_macros : bool = false
     cov_path : string = ""
     debugger : bool = false
     keep_alive : bool = false
     stackOnException : bool = false
+    disable_cse : bool = false
+    disable_dse : bool = false
+    disable_temp_string_reclaim : bool = false
+    disable_inline : bool = false
+    disable_auto_inline : bool = false
 
     // Testing-related options.
     testNames : array<string>
@@ -86,6 +92,7 @@ def SuiteCtx(args : DastestArgs) : SuiteCtx {
     ctx.projectPath = args.test_project
     ctx.compile_only = args.compile_only
     ctx.use_aot = args.use_aot || is_in_aot()
+    ctx.aot_macros = args.aot_macros
     ctx.cov_path = args.cov_path
     ctx.testNames := args.test_names
     ctx.bench_names := args.bench_names
@@ -93,6 +100,11 @@ def SuiteCtx(args : DastestArgs) : SuiteCtx {
     ctx.keep_alive = args.keep_alive
     ctx.debugger = args.debugger
     ctx.stackOnException = args.stack_on_exception
+    ctx.disable_cse = args.disable_cse
+    ctx.disable_dse = args.disable_dse
+    ctx.disable_temp_string_reclaim = args.disable_temp_string_reclaim
+    ctx.disable_inline = args.disable_inline
+    ctx.disable_auto_inline = args.disable_auto_inline
     let bench_format = args.bench_format
     if (bench_format == "go") {
         ctx.bench_format = BenchmarkOutputFormat.go_export
@@ -147,7 +159,7 @@ def test_file(file_name : string; var ctx : SuiteCtx) : SuiteResult {
 }
 
 
-def test_file(file_name : string; var ctx : SuiteCtx; var file_ctx : FileCtx) : SuiteResult {
+def test_file(file_name : string; var ctx : SuiteCtx; var file_ctx : FileCtx) : SuiteResult {  // nolint:STYLE038 - the compile-simulate-run pipeline for one file; the phases share policies and context state
     var res : SuiteResult
     var inscope access <- make_file_access(ctx.projectPath)
     access |> add_file_access_root("dastest", ctx.dastestRoot)
@@ -158,10 +170,21 @@ def test_file(file_name : string; var ctx : SuiteCtx; var file_ctx : FileCtx) : 
             cop.aot_module = true
             cop.aot = ctx.use_aot
             cop.fail_on_no_aot = ctx.use_aot
+            cop.aot_macros = ctx.aot_macros
+            if (ctx.aot_macros) {
+                // a lowered quote evaluates one large make-struct construction frame
+                // (same bump the `daslang -aot -aot-macros` flow applies)
+                cop.stack = 1024u * 1024u
+            }
             cop.threadlock_context = true
             cop.jit_enabled = jit_enabled()
             cop.debugger = ctx.debugger
             cop.keep_alive = ctx.keep_alive
+            cop.disable_cse = ctx.disable_cse
+            cop.disable_dse = ctx.disable_dse
+            cop.disable_temp_string_reclaim = ctx.disable_temp_string_reclaim
+            cop.disable_inline = ctx.disable_inline
+            cop.disable_auto_inline = ctx.disable_auto_inline
             if (jit_enabled()) {
                 access |> add_extra_module("just_in_time", "{get_das_root()}/daslib/just_in_time.das")
             }
@@ -247,8 +270,8 @@ def test_file(file_name : string; var ctx : SuiteCtx; var file_ctx : FileCtx) : 
                         if (module_result.total > 0 && !ctx.cov_path |> empty()) {
                             var report = ""
                             unsafe(invoke_in_context(*context, "fill_coverage_report", unsafe(addr(report)), ""))
-                            // Clone to current context.
-                            report := report
+                            // Clone to current context (:= does NOT clone without multiple_contexts)
+                            report = clone_string(report)
                             fopen(ctx.cov_path, "ab") $(fw) {
                                 if (fw != null) {
                                     to_log(LOG_INFO, "Coverage to {ctx.cov_path}\n")
@@ -409,7 +432,7 @@ def private sub_test_any_lambda(name : string; func : lambda; args_num : int; va
 }
 
 
-def private test_any(name : string; func; args_num : int; var context : FileCtx; var res : SuiteResult&) {
+def private test_any(name : string; func; args_num : int; var context : FileCtx; var res : SuiteResult&) {  // nolint:STYLE038 - one invoke-and-report arm per test-function signature
     if (!log::failuresOnly) {
         log::info("{context.indenting}=== RUN '{name}'")
     }
@@ -477,6 +500,15 @@ def private test_any(name : string; func; args_num : int; var context : FileCtx;
             dt = get_time_usec(t0)
         }
     } recover {
+        if (!deliberateRecover && context.context != null && context.context.exception |> starts_with("test skipped")) {
+            // a DIRECT T.skipNow unwound through this level (its panic tears down every
+            // test-context frame, outer [test] body included; the exception text carries a
+            // trailing newline — hence prefix match). The pipe-form `t |> skip(...)` does not
+            // unwind and never lands here. Propagate as a skip, not an error.
+            deliberateRecover = true
+            skipped = true
+            dt = get_time_usec(t0)
+        }
         if (!deliberateRecover) {
             dt = get_time_usec(t0)
             failed = true
@@ -509,7 +541,7 @@ def private test_any(name : string; func; args_num : int; var context : FileCtx;
             clonedMessages |> push(clone_string(m))
         }
         delete testMessages
-        testMessages <- clonedMessages
+        testMessages <- clonedMessages  // nolint:PERF030 - deleted on the line above; the check cannot see the delete
     }
     if (!empty(testLocation)) {
         testLocation = clone_string(testLocation)
@@ -560,7 +592,7 @@ def private run_queued_benchmarks(var suite_ctx : SuiteCtx; var file_ctx : FileC
 }
 
 [export]
-def private bench_on_start_impl(var suite_ctx : SuiteCtx; var benchmarking : B?; var file_ctx : FileCtx; func_type, name, sub_name : string) {
+def private bench_on_start_impl(suite_ctx : SuiteCtx; var benchmarking : B?; file_ctx : FileCtx; func_type, name, sub_name : string) {
     let is_first_bench = !benchmarking.started
     benchmarking.started = true
     benchmarking.current_sub_name = sub_name
@@ -586,7 +618,7 @@ def private bench_on_start_impl(var suite_ctx : SuiteCtx; var benchmarking : B?;
 }
 
 [export]
-def private bench_on_finished_impl(var suite_ctx : SuiteCtx; var benchmarking : B?; stats : BenchmarkRunStats) {
+def private bench_on_finished_impl(suite_ctx : SuiteCtx; var benchmarking : B?; stats : BenchmarkRunStats) {
     let n = stats.n
     let time_ns = stats.time_ns
     let allocs = stats.allocs
@@ -643,7 +675,7 @@ def private bench_on_finished_impl(var suite_ctx : SuiteCtx; var benchmarking : 
 
 }
 
-def private run_benchmark(var suite_ctx : SuiteCtx; var file_ctx : FileCtx; var res : SuiteResult&; name : string; func : function<(b : B?) : void>) {
+def private run_benchmark(var suite_ctx : SuiteCtx; var file_ctx : FileCtx; var res : SuiteResult&; name : string; func : function<(b : B?) : void>) {  // nolint:STYLE038 - warmup/measure/report is one benchmark pass
     var benchmarking = new B(name = name)
 
     let t0 = ref_time_ticks()

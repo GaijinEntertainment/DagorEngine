@@ -249,10 +249,10 @@ struct RendInstGenData
   private:
     bool haveNextPoolForShadowImpostors();
     bool shouldRenderGlobalShadows();
-    GlobalShadowRet renderGlobalShadow(GlobalShadowTask &task, const Point3 &sun_dir_0, bool force_update, bool use_compression);
+    GlobalShadowRet renderGlobalShadow(GlobalShadowTask &task, const Point3 &sun_dir_0, bool force_update);
 
   public:
-    GlobalShadowRet renderRendinstGlobalShadowsToTextures(const Point3 &sun_dir_0, bool force_update, bool use_compression);
+    GlobalShadowRet renderRendinstGlobalShadowsToTextures(const Point3 &sun_dir_0, bool force_update);
     bool renderRendinstClipmapShadowsToTextures(const Point3 &sunDir0, bool for_sli, bool force_update);
 
     void initImpostors();

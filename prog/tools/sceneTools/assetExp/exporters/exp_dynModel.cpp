@@ -5,6 +5,7 @@
 #include <assets/asset.h>
 #include <libTools/util/makeBindump.h>
 #include <libTools/shaderResBuilder/dynSceneResSrc.h>
+#include <libTools/shaderResBuilder/validateUv.h>
 #include <libTools/util/prepareBillboardMesh.h>
 #include <gameRes/dag_stdGameRes.h>
 #include "fatalHandler.h"
@@ -94,6 +95,8 @@ public:
   bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     ShaderMeshData::reset_channel_cvt_errors();
+    ScopedUvValidation uvScope(uvs.validate);
+    ShaderMeshData::reset_uv_range_errors();
     AutoContext auto_ctx(a, log);
     String sn;
     uint64_t tc_storage = 0;
@@ -217,6 +220,16 @@ public:
       debug("%s:  %d channel conversion errors (%d critical)", a.getName(), ShaderMeshData::get_channel_cvt_errors(), crit_cvt_err);
 
     ShaderMeshData::reset_channel_cvt_errors();
+
+    int uvErr = ShaderMeshData::get_uv_range_errors();
+    if (uvErr)
+      log.addMessage(uvs.warnOnly ? ILogWriter::WARNING : ILogWriter::ERROR,
+        "%s: %d UV verts enormous/non-finite (worst |uv|=%g), clamped to [0,1] at build. Fix the source mesh texcoords!", a.getName(),
+        uvErr, ShaderMeshData::get_uv_range_max_abs());
+    ShaderMeshData::reset_uv_range_errors();
+    if (uvErr && !uvs.warnOnly)
+      return false;
+
     if (crit_cvt_err)
     {
       log.addMessage(ILogWriter::FATAL, "%s: %d critical channel conversion errors", a.getName(), crit_cvt_err);
@@ -226,6 +239,7 @@ public:
   }
 
   LodValidationSettings lvs;
+  UvValidationSettings uvs;
   bool splitMatToDescBin = false;
   DynModelExporter()
   {
@@ -233,6 +247,10 @@ public:
                                   ->getBlockByNameEx("build")
                                   ->getBlockByNameEx("dynModel")
                                   ->getBlockByNameEx("validateLODs"));
+    uvs.loadValidationSettings(*appBlkCopy.getBlockByNameEx("assets")
+                                  ->getBlockByNameEx("build")
+                                  ->getBlockByNameEx("dynModel")
+                                  ->getBlockByNameEx("validateUVs"));
 
     splitMatToDescBin = appBlkCopy.getBlockByNameEx("assets")
                           ->getBlockByNameEx("build")

@@ -126,6 +126,27 @@ private:
   eastl::vector<GraphData::Edge> edges;
 };
 
+// Undo entry for muting / unmuting a single edge (link double-click). Only the id and the previous
+// flag are stored -- the edge itself stays in the graph either way.
+class UndoToggleEdgeMuted : public UndoRedoObject
+{
+public:
+  DAG_DECLARE_NEW(midmem)
+
+  UndoToggleEdgeMuted(GraphEditorPlg &plg, int edge_id, bool old_muted);
+
+  void restore(bool save_redo_data) override;
+  void redo() override;
+  size_t size() override;
+  void accepted() override {}
+  void get_description(String &s) override;
+
+private:
+  GraphEditorPlg &plugin;
+  int edgeId;
+  bool oldMuted;
+};
+
 // A canvas selection: the selected node ids and link (edge) ids, each kept sorted so two selections
 // compare as sets. imgui-node-editor owns one mixed selection, so nodes and links are undone together.
 struct GraphSelection

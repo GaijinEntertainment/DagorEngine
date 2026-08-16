@@ -20,6 +20,7 @@
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
 #include <stdio.h>
+#include <EASTL/array.h>
 #include <EASTL/vector_map.h>
 #include <EASTL/vector_set.h>
 #include <osApiWrappers/dag_critSec.h>
@@ -996,13 +997,32 @@ static String last_loaded_dump[2];
 
 const char *last_loaded_shaders_bindump(bool sec) { return last_loaded_dump[sec ? 1 : 0].c_str(); }
 
+static eastl::array<d3d::shadermodel::Version, 2> last_loaded_version = {d3d::smNone, d3d::smNone};
+
+static int debugDumpUsers = 0;
+static String debugDumpFile;
+
 bool load_shaders_bindump(const char *src_filename, d3d::shadermodel::Version shader_model_version, bool sec_dump_for_exp)
 {
   String &dump = last_loaded_dump[sec_dump_for_exp ? 1 : 0];
+  const String prevDump(dump);
   if (src_filename)
     dump = src_filename;
-  return load_shaders_bindump(dump.c_str(), shader_model_version, shBinDumpExOwner(!sec_dump_for_exp),
-    &shGlobalDataEx(!sec_dump_for_exp));
+  const bool loaded =
+    load_shaders_bindump(dump.c_str(), shader_model_version, shBinDumpExOwner(!sec_dump_for_exp), &shGlobalDataEx(!sec_dump_for_exp));
+  if (!loaded)
+  {
+    dump = prevDump;
+    return false;
+  }
+  last_loaded_version[sec_dump_for_exp ? 1 : 0] = shader_model_version;
+
+  if (!sec_dump_for_exp && debugDumpUsers > 0 && dump != debugDumpFile)
+  {
+    debugDumpUsers = 0;
+    logwarn("Reloaded %s over the debug shaderdump, toggle debug views to get it back", dump);
+  }
+  return true;
 }
 
 static void unload_shaders_bindump(ScriptedShadersBinDumpOwner &dest, ScriptedShadersGlobalData *gdata)
@@ -1034,14 +1054,30 @@ static d3d::shadermodel::Version forceFSH = d3d::smAny;
 d3d::shadermodel::Version getMaxFSHVersion() { return forceFSH; }
 void limitMaxFSHVersion(d3d::shadermodel::Version f) { forceFSH = f; }
 
-static bool debugDump = false;
+static String normalDumpName;
+static d3d::shadermodel::Version normalDumpVersion = d3d::smNone;
 
-bool load_shaders_debug_bindump(d3d::shadermodel::Version version)
-{
 #if DAGOR_DBGLEVEL > 0
-  if (debugDump)
-    return true;
+static bool is_debug_dump_stale(const String &debug_dump_name, d3d::shadermodel::Version version)
+{
+  eastl::array<char, DAGOR_MAX_PATH> normalFile = {};
+  eastl::array<char, DAGOR_MAX_PATH> debugFile = {};
+  build_shaderdump_filename(normalFile.data(), normalDumpName.c_str(), normalDumpVersion);
+  build_shaderdump_filename(debugFile.data(), debug_dump_name.c_str(), version);
 
+  DagorStat normalStat, debugStat;
+  if (df_stat(normalFile.data(), &normalStat) != 0 || df_stat(debugFile.data(), &debugStat) != 0)
+    return false; // packed or missing file, let the loader report it
+
+  if (debugStat.mtime >= normalStat.mtime)
+    return false;
+
+  logerr("Debug shaderdump %s is older than %s, recompile the debug shaders", debugFile.data(), normalFile.data());
+  return true;
+}
+
+static bool load_shaders_debug_bindump(d3d::shadermodel::Version version)
+{
   if (d3d::get_driver_code() != d3d::dx12 || dgs_get_settings()->getBlockByNameEx("video")->getBool("compatibilityMode", false))
   {
     debug("Debug shaderdumps only exist for PC DX12");
@@ -1050,36 +1086,90 @@ bool load_shaders_debug_bindump(d3d::shadermodel::Version version)
 
   static String shadersDir = String(dgs_get_settings()->getBlockByNameEx("debug")->getStr("shadersDir", "compiledShaders")) + ".debug";
 
+  normalDumpName = last_loaded_dump[0];
+  normalDumpVersion = last_loaded_version[0];
+
+  String debugDumpName = shadersDir + "/game_debug";
+  if (is_debug_dump_stale(debugDumpName, version))
+    return false;
+  debugDumpFile = debugDumpName;
+
   rebuild_shaders_stateblocks();
-  if (load_shaders_bindump_with_fence(shadersDir + "/game_debug", version))
-  {
-    debugDump = true;
+  if (load_shaders_bindump_with_fence(debugDumpName, version))
     return true;
-  }
   debug("The debug shaderdump cannot be found, make sure it exists: %s/game_debugDX12.ps%d%d.shdump", shadersDir, version.minor,
     version.major);
-#endif
   return false;
 }
 
-bool unload_shaders_debug_bindump(d3d::shadermodel::Version version)
+static bool restore_normal_shaders_bindump()
 {
-#if DAGOR_DBGLEVEL > 0
-  if (!debugDump)
-    return true;
-
-  static String shadersDir = String(dgs_get_settings()->getBlockByNameEx("debug")->getStr("shadersDir", "compiledShaders"));
+  if (normalDumpName.empty())
+  {
+    logerr("Cannot drop the debug shaderdump: the normal shaderdump was never loaded by name");
+    return false;
+  }
 
   rebuild_shaders_stateblocks();
-  if (load_shaders_bindump_with_fence(shadersDir + "/game", d3d::shadermodel::Version(5, 0)))
-  {
-    debugDump = false;
+  if (load_shaders_bindump_with_fence(normalDumpName, normalDumpVersion))
     return true;
-  }
-  debug("The normal shaderdump cannot be found, make sure it exists: %s/gameDX12.ps%d%d.shdump", shadersDir, version.minor,
-    version.major);
-#endif
+
+  logerr("The normal shaderdump cannot be found, make sure it exists: %s (ps%d%d)", normalDumpName, normalDumpVersion.minor,
+    normalDumpVersion.major);
   return false;
+}
+#endif
+
+int debug_shaders_refcount() { return debugDumpUsers; }
+
+bool require_debug_shaders()
+{
+#if DAGOR_DBGLEVEL > 0
+  bool loaded = debugDumpUsers > 0;
+
+  if (!loaded)
+    loaded = load_shaders_debug_bindump(last_loaded_version[0]);
+
+  // no debug dump at the running shader model: fall back to any supported one,
+  // matching the old lookup for games that compile the debug dump at a single version
+  if (!loaded)
+  {
+    const auto shaderModel = d3d::get_driver_desc().shaderModel;
+    for (auto version : d3d::smAll)
+    {
+      if (shaderModel < version || version == last_loaded_version[0])
+        continue;
+      loaded = load_shaders_debug_bindump(version);
+      if (loaded)
+        break;
+    }
+  }
+
+  if (loaded)
+    debugDumpUsers++;
+  return loaded;
+#else
+  return false;
+#endif
+}
+
+bool release_debug_shaders()
+{
+#if DAGOR_DBGLEVEL > 0
+  if (debugDumpUsers <= 0)
+    return true;
+  debugDumpUsers--;
+  if (debugDumpUsers > 0)
+    return true;
+  if (restore_normal_shaders_bindump())
+    return true;
+
+  // the debug dump is still the loaded one, keep its user so the next release retries
+  debugDumpUsers++;
+  return false;
+#else
+  return true;
+#endif
 }
 
 void dump_shader_statistics()
@@ -1206,6 +1296,7 @@ public:
     }
 
     unload_shaders_bindump();
+    debugDumpUsers = 0;
 
     shaderbindump::g_stub_texture_repo.shutdown();
   }

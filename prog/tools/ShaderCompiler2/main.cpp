@@ -212,6 +212,8 @@ static void showUsage()
     "  -dumpRegsAlways - Always dump registers from hlsl slot allocators at the end of a pass evaluation\n"
     "  -dumpRegsMacroCallstacks - Include macro callstacks in the register dumps (may blow up log size, but also may be helpful)\n"
     "  -saveDumpOnCrash - save a dump for the proccess if there is a critical issue during compilation (could cause a process hung)\n"
+    "  -crashDumpDir <dir> - path to store the crash dump (used with -saveDumpOnCrash), default is logs directory or ShaderCrashDumps "
+    "if -suppressLogs is passed\n"
     "  -clearBlkHashInDump - clears blk hash in bindump. Will cause recomp, but won't keep inc data in the dump. For codegen\n."
     "  -cppStcode       - compile cpp stcode along with bytecode (overrides compileCppStcode:b from blk). use "
     "-cppStcode=[regular|brances] for specific mode (regular is default).\n"
@@ -712,7 +714,19 @@ static void compile(Tab<String> &&source_files, const char *fn, const char *bind
   if (shc::config().dependencyDumpMode)
     return;
 
-  if (strcmp(bindump_fnprefix, "*") != 0)
+  const bool skipMainDumpRequested = streq(bindump_fnprefix, "*");
+#if _CROSS_TARGET_EMPTY
+  const bool skipMainDump = true;
+  if (!skipMainDumpRequested)
+  {
+    sh_debug(SHLOG_NORMAL, "[WARNING] STUB compiler can not build a full bindump at %s, please use \"*\" for outDumpName:t parameter",
+      bindump_fn);
+  }
+#else
+  const bool skipMainDump = skipMainDumpRequested;
+#endif
+
+  if (!skipMainDump)
   {
     dd_mkpath(bindump_fn);
     if (!shc::buildShaderBinDump(bindump_fn, compilation.dest().c_str(), shc::config().forceRebuild, false, packing_flags,
@@ -858,6 +872,9 @@ static void stderr_report_fatal_error(const char *, const char *msg, const char 
   sh_fprintf(stderr, "Fatal error: %s\n%s", msg, call_stack);
 }
 
+template <class... Args>
+static void sh_printf_only_in_parent(const char *const fmt, Args &&...args);
+
 #if HAVE_BREAKPAD_BINDER
 static void enable_breakpad()
 {
@@ -867,10 +884,16 @@ static void enable_breakpad()
 
   breakpad::Configuration cfg;
   cfg.userAgent = "SC";
-  if (shc::config().suppressLogs)
+  if (shc::config().crashDumpDir)
+    cfg.dumpPath = shc::config().crashDumpDir;
+  else if (shc::config().suppressLogs)
     cfg.dumpPath = "ShaderCrashDumps";
 
-  breakpad::init(eastl::move(p), eastl::move(cfg));
+  if (cfg.dumpPath.c_str() && !dd_mkdir(cfg.dumpPath.c_str()))
+    sh_printf_only_in_parent("[WARNING] folder for crash dumps (%s) is set but isn't accessible. Crash dumps won't be saved",
+      cfg.dumpPath);
+  else
+    breakpad::init(eastl::move(p), eastl::move(cfg));
 }
 
 static bool fatal_handler(const char *msg, const char *call_stack, const char *file, int line)
@@ -1243,6 +1266,10 @@ int DagorWinMain(bool debugmode)
       globalConfigRW.dumpSpirvOnly = true;
     else if (dd_stricmp(s, "-sortGlobalConstsByOffset") == 0)
       globalConfigRW.sortGlobalConstsByOffset = true;
+    else if (dd_stricmp(s, "-noConversionWarnings") == 0)
+      globalConfigRW.noConversionWarnings = true;
+    else if (dd_stricmp(s, "-useScalarLayout") == 0)
+      globalConfigRW.useScalarLayout = true;
     else if (dd_stricmp(s, "-android") == 0)
       globalConfigRW.usePcToken = false;
 #endif
@@ -1392,6 +1419,13 @@ int DagorWinMain(bool debugmode)
     else if (dd_stricmp(s, "-saveDumpOnCrash") == 0)
     {
       globalConfigRW.saveDumpOnCrash = true;
+    }
+    else if (dd_stricmp(s, "-crashDumpDir") == 0)
+    {
+      i++;
+      if (i >= __argc)
+        goto usage_err;
+      globalConfigRW.crashDumpDir = __argv[i];
     }
     else if (dd_stricmp(s, "-clearBlkHashInDump") == 0)
     {

@@ -35,6 +35,15 @@ assert(hash("") != hash(0))
 assert(hash("") != hash([]))
 assert(hash({}) != hash([]))
 
+local depthLimitCaught = false
+try {
+  deep_hash([], 201)
+} catch (e) {
+  depthLimitCaught = true
+}
+assert(depthLimitCaught)
+assert(deep_hash([], 199) > 0)
+
 assert(hash(0) > 100000)
 assert(hash(null) > 100000)
 assert(hash(0.0) > 100000)

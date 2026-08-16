@@ -14,7 +14,7 @@ namespace das {
 
 // Defined in module_builtin_fio.cpp — re-attempts modules whose dlopen was
 // deferred during the folder scan (sibling-module dependency loaded out of order).
-void retry_pending_dynamic_modules();
+DAS_API void retry_pending_dynamic_modules();
 
 static constexpr const char *MODULE_SUFFIX = ".das_module";
 static constexpr const char *INIT_NAME = "initialize";
@@ -74,7 +74,7 @@ static Result init_dyn_modules(smart_ptr<FileAccess> fa, string path, TextWriter
                     vec4f args[1] = {
                         cast<char *>::from(fname)
                     };
-                    auto _res = pctx->evalWithCatch(fnTest, args);
+                    pctx->evalWithCatch(fnTest, args);
                     if ( auto ex = pctx->getException() ) {
                         tout << "EXCEPTION: " << ex << " at " << pctx->exceptionAt.describe() << "\n";
                         return Result::Exception;
@@ -106,6 +106,18 @@ static das::string normalize_module_name(const das::string &name) {
 #else
     return name;
 #endif
+}
+
+// Always lowercase, on every platform — unlike normalize_module_name (which is
+// identity on case-sensitive Linux). The explicit `--disable-module` list is
+// user intent, not a filesystem-shadow concern, so `--disable-module dashv`
+// must match the on-disk folder `dasHV` everywhere, including CI's Linux.
+static das::string force_lower(const das::string &name) {
+    das::string out = name;
+    for (auto &c : out) {
+        c = (char)tolower((unsigned char)c);
+    }
+    return out;
 }
 
 // Collect directory names under path/modules/ without loading anything
@@ -146,7 +158,8 @@ static das_hash_set<das::string> collect_module_names(const das::string &path) {
 }
 
 static bool init_modules_for_folder(FileAccessPtr fa, const das::string &path, das::TextWriter &tout,
-                                    const das_hash_set<das::string> *skip_set = nullptr) {
+                                    const das_hash_set<das::string> *skip_set = nullptr,
+                                    const das_hash_set<das::string> *disabled_set = nullptr) {
     // FileAccess do not support iteratinf over directory.
 #if DAS_NO_FILEIO
     return false;
@@ -166,8 +179,11 @@ static bool init_modules_for_folder(FileAccessPtr fa, const das::string &path, d
             if (skip_set && skip_set->count(normalize_module_name(das::string(c_file.name)))) {
                 // stderr, not `tout`: this is a diagnostic, and `tout` is stdout — which for the MCP server /
                 // dastest JSON / any stdout-parsing pipeline is a structured data channel a stray line corrupts.
-                fprintf(stderr, "Warning: local '%s' shadows global — using local\n", c_file.name);
+                fprintf(stderr, "Warning: local '%s' shadows global - using local\n", c_file.name);
                 continue;
+            }
+            if (disabled_set && disabled_set->count(force_lower(das::string(c_file.name)))) {
+                continue;   // explicitly disabled (--disable-module) — never load/register
             }
             all_good &= Result::OK == init_dyn_modules(fa, modules_path + c_file.name, tout, false);
         } while (_findnext(hFile, &c_file) == 0);
@@ -184,8 +200,11 @@ static bool init_modules_for_folder(FileAccessPtr fa, const das::string &path, d
             if (skip_set && skip_set->count(normalize_module_name(das::string(ent->d_name)))) {
                 // stderr, not `tout`: this is a diagnostic, and `tout` is stdout — which for the MCP server /
                 // dastest JSON / any stdout-parsing pipeline is a structured data channel a stray line corrupts.
-                fprintf(stderr, "Warning: local '%s' shadows global — using local\n", ent->d_name);
+                fprintf(stderr, "Warning: local '%s' shadows global - using local\n", ent->d_name);
                 continue;
+            }
+            if (disabled_set && disabled_set->count(force_lower(das::string(ent->d_name)))) {
+                continue;   // explicitly disabled (--disable-module) — never load/register
             }
             all_good &= Result::OK == init_dyn_modules(fa, modules_path + ent->d_name, tout, false);
         }
@@ -217,7 +236,15 @@ bool require_dynamic_modules(FileAccessPtr file_access,
                              const das::string &das_root,
                              const das::string &project_root,
                              const das::vector<das::string> &load_modules,
+                             const das::vector<das::string> &disabled_modules,
                              das::TextWriter &tout) {
+    // Explicitly-disabled modules (case-insensitive on every platform) are never
+    // loaded/registered — keeps a native-only module out of a wasm cross-compile.
+    das_hash_set<das::string> disabled_set;
+    for (const auto &m : disabled_modules) {
+        disabled_set.insert(force_lower(m));
+    }
+    const das_hash_set<das::string> *disabled_ptr = disabled_set.empty() ? nullptr : &disabled_set;
     bool has_project = !project_root.empty() &&
         normalizeFileName(das_root.c_str()) !=
         normalizeFileName(project_root.c_str());
@@ -238,15 +265,18 @@ bool require_dynamic_modules(FileAccessPtr file_access,
         dasroot_skip.insert(name);
     }
     bool all_good = das::init_modules_for_folder(file_access, das_root, tout,
-        dasroot_skip.empty() ? nullptr : &dasroot_skip);
+        dasroot_skip.empty() ? nullptr : &dasroot_skip, disabled_ptr);
     if (has_project) {
         // Init for project_root, skipping anything an explicit -load_module
         // already covers (load_module wins over project_root/modules/<name>).
         all_good &= das::init_modules_for_folder(file_access, project_root, tout,
-            load_module_names.empty() ? nullptr : &load_module_names);
+            load_module_names.empty() ? nullptr : &load_module_names, disabled_ptr);
     }
-    // Finally, init each explicit -load_module path directly.
+    // Finally, init each explicit -load_module path directly (unless disabled).
     for (const auto &p : load_modules) {
+        if (disabled_ptr && disabled_ptr->count(force_lower(path_basename(p)))) {
+            continue;
+        }
         all_good &= (Result::OK == init_dyn_modules(file_access, p, tout));
     }
     // Module .so's may carry DT_NEEDED on sibling-module .so's (e.g. node-editor ->
@@ -256,6 +286,16 @@ bool require_dynamic_modules(FileAccessPtr file_access,
     // deferred. Retry the deferred set in fixed-point passes so order stops mattering.
     retry_pending_dynamic_modules();
     return all_good;
+}
+
+// Back-compat overload: the original 5-arg form, no disabled modules.
+bool require_dynamic_modules(FileAccessPtr file_access,
+                             const das::string &das_root,
+                             const das::string &project_root,
+                             const das::vector<das::string> &load_modules,
+                             das::TextWriter &tout) {
+    return require_dynamic_modules(file_access, das_root, project_root, load_modules,
+                                   das::vector<das::string>(), tout);
 }
 
 }

@@ -28,14 +28,27 @@ module perf_lint shared private
 //!   PERF015 — ternary min/max — use min(a, b) / max(a, b)
 //!   PERF016 — ternary abs — use abs(x)
 //!   PERF017 — length(s) == 0 / != 0 — use empty(s) / !empty(s)
-//!   PERF018 — for (i in range(length(arr))) where i only indexes arr — use 'for (c in arr)'
+//!   PERF018 — for (i in range(length(arr))) where i only indexes arr — use 'for (c in arr)'; also urange/range64/urange64 + long_length
+//!   PERF029 — for (i in range(length(X))) subscripting sibling arrays in lockstep — zip: for (a, b in X, Y); same range/length variants as PERF018
+//!   PERF030 — move-assign onto a live heap-carrying variable drops old contents — delete first or force_inscope_pod
 //!   PERF019 — int(T.a) | int(T.b) on bitfield-or-enum-with-operator-| — collapse to int(T.a | T.b)
-//!   PERF020 — T(x) where x is already T (workhorse type) — drop the redundant cast
+//!   PERF020 — T(x) where x is already T (workhorse type) — drop the redundant cast (non-generic bodies only)
 //!   PERF021 — cond ? T(a) : T(b) on workhorse cast T — hoist to T(cond ? a : b)
 //!   PERF022 — for (s in A) { B |> push(s) } / push_clone — use 'B |> push_from(A)' (bulk reserve+copy)
 //!   PERF023 — var X = clone_expression(E); ... $e(X) ... — qmacro splice already clones; drop the pre-clone
 //!   PERF024 — var X = clone_*(E); func(X) where func is [clone(...)]-annotated — callee clones; drop the pre-clone
-//!   PERF025 — string(...) inside string interpolation is redundant — interpolation already converts to string
+//!   PERF025 — string(...) inside string interpolation is redundant
+//!   PERF026 — heap traffic on a hot path ([hot_path] / [no_alloc])
+//!   PERF027 — environment lookup on a hot path ([hot_path] / [no_env])
+//!   PERF028 — console / file I/O on a hot path ([hot_path] / [no_io])
+//!
+//! PERF026-028 are annotation-gated: nothing is checked until a function declares a contract.
+//! [cold_path] prunes the walk; @scratch on a field (or on a by-ref helper parameter) declares a
+//! reused buffer whose sizing is intentional. See skills/perf_lint.md.
+//!
+//! The five markers are registered compiler-side (src/builtin/module_builtin_runtime.cpp, beside
+//! [clone]), so code under contract requires NOTHING and pays no build time. This module is the
+//! checker, and is deliberately not required by the code it checks — it runs wherever lint runs. — interpolation already converts to string
 
 require daslib/ast_boost
 require strings
@@ -52,13 +65,7 @@ struct VarStackEntry {
 }
 
 struct Perf018State {
-    //! PERF018 per-for-loop candidate. Each enclosing `for` pushes one; `matched`
-    //! flips true once we observe `for (i in range(length(V)))` with exactly one
-    //! source and one iter var, where V is a bare Variable. We push a sentinel
-    //! for non-matching loops too so visitExprFor can pop unconditionally and
-    //! iter_var refs across nesting attribute to the right frame.
-    //! `array<T>` requires T trivially-storable, so the owning ExprFor pointer
-    //! lives in a parallel `perf018_for_exprs` array.
+    //! PERF018 per-for-loop candidate. Each enclosing `for` pushes one; `matched` flips true once we observe `for (i in range(length(V)))` with exactly one source and one iter var, where V is a bare Variable. We push a sentinel for non-matching loops too so visitExprFor can pop unconditionally and iter_var refs across nesting attribute to the right frame.
     @do_not_delete iter_var : Variable?
     @do_not_delete arr_var : Variable?
     qualified_count : int
@@ -66,19 +73,16 @@ struct Perf018State {
     vars_seen : int
     disqualified : bool
     matched : bool
+    // PERF029 extension: sibling arrays subscripted by the same index in lockstep.
+    // Strings keep the state copyable ("|"-joined intptr keys for dedup; ", "-joined
+    // names for the message); other_qualified counts sibling subscripts observed.
+    other_keys : string
+    other_names : string
+    other_qualified : int
 }
 
 struct Perf022State {
-    //! PERF022 per-for-loop candidate. Detects 'for (s in A) { B |> push(s) }'
-    //! (push and push_clone; all three pipe/dot/plain-call shapes compiler-fold
-    //! to the same ExprCall). Pushed in preVisitExprFor in lockstep with PERF018.
-    //! `matched` is stamped by preVisitExprForBody when body is a single
-    //! ExprCall of the right shape against the frame's iter_var. We warn at the
-    //! for-loop's `at` (looked up via the parallel `perf022_for_exprs` stack)
-    //! rather than the inner push's `at` — the inner push location dedups
-    //! against PERF006 which also fires at that exact line:col.
-    //! `callee_id`: 1 = push, 2 = push_clone (kept trivial so the struct can live
-    //! in an array). String name is rebuilt at warn time.
+    //! PERF022 per-for-loop candidate. Detects 'for (s in A) { B |> push(s) }' (push and push_clone; all three pipe/dot/plain-call shapes compiler-fold to the same ExprCall). Pushed in preVisitExprFor in lockstep with PERF018.
     @do_not_delete iter_var : Variable?
     callee_id : int
     sources_seen : int
@@ -88,26 +92,14 @@ struct Perf022State {
 }
 
 struct Perf024Candidate {
-    //! PERF024 per-candidate state. One entry per `var X = clone_*(E)` decl
-    //! seen in the current function (any of clone_expression / clone_type /
-    //! clone_function / clone_variable / clone_structure). `safe_uses` counts
-    //! ExprVar refs to X passed directly as an arg at a [clone(...)]-annotated
-    //! position; `disqualified` is set on any other use. Reports the same way
-    //! as PERF023: !disqualified && safe_uses >= 1.
+    //! PERF024 per-candidate state. One entry per `var X = clone_*(E)` decl seen in the current function (any of clone_expression / clone_type / clone_function / clone_variable / clone_structure). `safe_uses` counts ExprVar refs to X passed directly as an arg at a [clone(...)]-annotated position; `disqualified` is set on any other use. Reports the same way as PERF023: !disqualified && safe_uses >= 1.
     @do_not_delete v : Variable?
     safe_uses : int
     disqualified : bool
 }
 
 struct Perf023Candidate {
-    //! PERF023 per-candidate state. One entry per `var X = clone_expression(E)`
-    //! decl seen in the current function. `safe_uses` counts ExprVar refs to X
-    //! whose ancestor chain (within this function) includes an `add_ptr_ref(...)`
-    //! call — the splice-wrapper installed by `apply_qrules` for every `$e(...)`
-    //! tag. `disqualified` is set on any other use (assignment, call arg passed
-    //! to a non-splice consumer, etc.); the pre-clone is then load-bearing. The
-    //! `var` carries the decl `at` directly (v.at), so the warning location is
-    //! derived without storing LineInfo in the array.
+    //! PERF023 per-candidate state. One entry per `var X = clone_expression(E)` decl seen in the current function. `safe_uses` counts ExprVar refs to X whose ancestor chain (within this function) includes an `add_ptr_ref(...)` call — the splice-wrapper installed by `apply_qrules` for every `$e(...)` tag. `disqualified` is set on any other use (assignment, call arg passed to a non-splice consumer, etc.); the pre-clone is then load-bearing. The `var` carries the decl `at` directly (v.at), so the warning location is derived without storing LineInfo in the array.
     @do_not_delete v : Variable?
     safe_uses : int
     disqualified : bool
@@ -119,6 +111,273 @@ enum private Perf025Kind {
     skip            // not flaggable: value-shape change, or not a string() cast
     equivalent      // "{x}" == string(x): drop the cast
     unsigned_hex    // "{x}" is hex but string(x) is decimal: drop + ':d' hint
+}
+
+// ---------------------------------------------------------------------------
+// PERF026-028 — hot-path contracts
+// ---------------------------------------------------------------------------
+
+bitfield private HotBits {
+    alloc   // PERF026 — heap traffic (allocate or free)
+    env     // PERF027 — environment lookup
+    io      // PERF028 — console / file I/O
+}
+
+// LineInfo is not storable in an array, so each record carries the node and derives `.at` at warn
+// time — the same trick PERF018/PERF023 use for their candidate stacks.
+struct private HotSink {
+    bit : HotBits
+    what : string
+    @do_not_delete site : ExpressionPtr
+}
+
+struct private HotEdge {
+    @do_not_delete fn : Function?
+    @do_not_delete site : ExpressionPtr   // the call site, which lives in the CALLER's body
+}
+
+// Per-function body-scan results, computed once per function per lint pass and sliced out of two
+// flat arrays — a table of non-copyable summaries would need a clone per lookup.
+struct private HotCache {
+    sinks_at : table<uint64; int2>   // mangled-name hash -> (start, count) into sinks_all
+    edges_at : table<uint64; int2>
+    sinks_all : array<HotSink>
+    edges_all : array<HotEdge>
+}
+
+struct private HotFrame {
+    @do_not_delete fn : Function?
+    parent : int                          // index into the frame array; -1 at the root
+    @do_not_delete site : ExpressionPtr   // where the parent called fn
+    // Deepest call site on this path that is still written in the root's own file. Reaching one
+    // callee from two such sites must report twice, so this is part of the dedup key below —
+    // keying on the function alone would hide every call site after the first.
+    @do_not_delete anchor : ExpressionPtr
+}
+
+def private hot_bits_of(func : Function?) : HotBits {
+    var bits : HotBits
+    for (a in func.annotations) {
+        if (a.annotation.name == "hot_path") {
+            bits = HotBits.alloc | HotBits.env | HotBits.io
+        } elif (a.annotation.name == "no_alloc") {
+            bits.alloc = true
+        } elif (a.annotation.name == "no_env") {
+            bits.env = true
+        } elif (a.annotation.name == "no_io") {
+            bits.io = true
+        }
+    }
+    return bits
+}
+
+def private is_cold_path(func : Function?) : bool {
+    for (a in func.annotations) {
+        if (a.annotation.name == "cold_path") return true
+    }
+    return false
+}
+
+// Every array/table heap op bottoms out in a __builtin_array_* / __builtin_table_* extern, so the
+// prefix (minus the probe/lock forms, which never touch the heap) covers push/reserve/resize/erase/
+// insert/delete without naming one surface generic — and a NEW builtin is caught rather than missed.
+def private is_alloc_builtin(n : string) : bool {
+    if (starts_with(n, "__builtin_array_") || starts_with(n, "__builtin_table_")) {
+        return !(ends_with(n, "_lock") || ends_with(n, "_lock_mutable")
+                 || ends_with(n, "_unlock") || ends_with(n, "_unlock_mutable")
+                 || n == "__builtin_table_find" || n == "__builtin_table_key_exists"
+                 || n == "__builtin_table_get_key" || n == "__builtin_table_keys"
+                 || n == "__builtin_table_values")
+    }
+    return n == "clone_string"
+}
+
+// Container ops whose destination may be a reused buffer. Matched on the ORIGIN name so every
+// generic instance of push/resize/... resolves to the surface spelling the author wrote.
+def private is_container_sizing(n : string) : bool {
+    return (n == "resize" || n == "resize_no_init" || n == "reserve" || n == "clear"
+            || n == "push" || n == "push_clone" || n == "emplace" || n == "push_from"
+            || n == "push_clone_from" || n == "insert" || n == "erase" || n == "pop")
+}
+
+// True when `expr` reaches a declaration marked @scratch — a struct field or a module global
+// (`var @scratch g : array<T>`, the clear()-recycled capture-rail shape) — walking through
+// indexing and deref, so `p.kblobs[b]` counts by virtue of kblobs.
+def private perf030_needs_release(td : TypeDeclPtr) : bool {
+    // heap-owning shapes: containers, lambdas, and composites carrying one transitively
+    if (td == null) return false
+    let bt = td.baseType
+    if (bt == Type.tArray || bt == Type.tTable || bt == Type.tLambda) return true
+    // fixed-array elements are live at init - their heap counts (the C++ isPodDelete blind spot)
+    if (bt == Type.tFixedArray) return perf030_needs_release(td.firstType)
+    if (bt == Type.tStructure && td.structType != null) {
+        for (fld in td.structType.fields) {
+            if (perf030_needs_release(fld._type)) return true
+        }
+        return false
+    }
+    if (bt == Type.tTuple || bt == Type.tVariant) {
+        for (aft in td.argTypes) {
+            if (perf030_needs_release(aft)) return true
+        }
+    }
+    return false
+}
+
+def private has_scratch_annotation(annotations) : bool {
+    for (a in annotations) {
+        if (a.name == "scratch") return true
+    }
+    return false
+}
+
+def private is_scratch_dest(var expr : Expression?) : bool {
+    return false if (expr == null)
+    if (expr is ExprField) {
+        var f = expr as ExprField
+        var fd = f.field
+        if (fd != null && has_scratch_annotation(fd.annotation)) return true
+        return is_scratch_dest(f.value)
+    }
+    if (expr is ExprVar) {
+        var v = (expr as ExprVar).variable
+        if (v != null) {
+            if (has_scratch_annotation(v.annotation)) return true
+            // a ref binding (`var lst & = pool.free_bufs[b]`) carries its destination's scratch-ness
+            if (v._type != null && v._type.flags.ref && v.init != null) {
+                return is_scratch_dest(v.init)
+            }
+        }
+        return false
+    }
+    if (expr is ExprRef2Value) return is_scratch_dest((expr as ExprRef2Value.subexpr))
+    if (expr is ExprAt) return is_scratch_dest((expr as ExprAt.subexpr))
+    if (expr is ExprSafeAt) return is_scratch_dest((expr as ExprSafeAt.subexpr))
+    if (expr is ExprCast) return is_scratch_dest((expr as ExprCast.subexpr))
+    return false
+}
+
+// a helper sizing a caller's reused buffer marks the PARAMETER (destination arrives by ref)
+def private takes_scratch_arg(fn : Function?) : bool {
+    return false if (fn == null)
+    for (arg in fn.arguments) {
+        for (a in arg.annotation) {
+            if (a.name == "scratch") return true
+        }
+    }
+    return false
+}
+
+def private is_env_builtin(n : string) : bool {
+    return n == "get_env_variable" || n == "has_env_variable" || n == "set_env_variable"
+}
+
+def private is_io_builtin(n : string) : bool {
+    return (n == "print" || n == "to_log" || n == "fprint" || n == "fopen" || n == "fclose"
+            || n == "fread" || n == "fwrite" || n == "fflush" || n == "popen" || n == "popen_argv")
+}
+
+// Scans one function body: the sinks it performs directly, plus its direct call edges. Indirect
+// calls (ExprInvoke) are unresolvable — annotate the implementations they reach instead. ExprAddr
+// is deliberately NOT an edge: taking a function's address is not calling it.
+class HotBodyScan : AstVisitor {
+    sinks : array<HotSink>
+    edges : array<HotEdge>
+    // Depth inside a panic(...) argument list. A panic is fatal in daslang — not an exception — so
+    // its message is on the abort path, and the interpolation building it is not hot-path traffic.
+    panic_depth : int = 0
+
+    // Depth inside a macro-generated subtree. A rewritten stub force_at-stamps the CALLER's line
+    // onto its splice, so its machinery would be blamed on every call site. Macros mark only the
+    // ROOT of their output generated (ast_match.das does), hence the depth rather than a flag test.
+    gen_depth : int = 0
+
+    def override preVisitExpression(var expr : ExpressionPtr) : void {
+        if (expr.genFlags.generated) {
+            gen_depth++
+        }
+    }
+
+    def override visitExpression(var expr : ExpressionPtr) : ExpressionPtr {
+        if (expr.genFlags.generated) {
+            gen_depth--
+        }
+        return expr
+    }
+
+    def add_sink(bit : HotBits; what : string; var site : ExpressionPtr) {
+        return if (panic_depth > 0 || gen_depth > 0)
+        sinks |> push(HotSink(bit = bit, what = what, site = site))
+    }
+
+    def override visitExprCall(var expr : ExprCall?) : ExpressionPtr {
+        if (expr.func != null && expr.func.name == "panic") {
+            panic_depth--
+        }
+        return expr
+    }
+
+    def override preVisitExprCall(var expr : ExprCall?) : void {
+        if (expr.func == null) return
+        let n = string(expr.func.name)
+        if (n == "panic") {
+            panic_depth++
+            return
+        }
+        return if (panic_depth > 0)
+        // @scratch = declared intent, at the field or on a by-ref helper's parameter
+        let origin = string(expr.func.fromGeneric != null ? expr.func.fromGeneric.name : expr.func.name)
+        if (!empty(expr.arguments)
+            && ((is_container_sizing(origin) && is_scratch_dest(expr.arguments[0]))
+                || takes_scratch_arg(expr.func))) {
+            return
+        }
+        if (is_env_builtin(n)) {
+            add_sink(HotBits.env, "{n}()", expr)
+        } elif (is_io_builtin(n)) {
+            add_sink(HotBits.io, "{n}()", expr)
+        } elif (is_alloc_builtin(n)) {
+            add_sink(HotBits.alloc, "{n}()", expr)
+        } elif (expr.func.flags.builtIn && expr.func.result != null
+                && expr.func.result.baseType == Type.tString) {
+            add_sink(HotBits.alloc, "{n}() returns a newly allocated string", expr)
+        }
+        edges |> push(HotEdge(fn = expr.func, site = expr))
+    }
+
+    def override preVisitExprNew(var expr : ExprNew?) : void {
+        add_sink(HotBits.alloc, "new", expr)
+    }
+
+    // `new Foo(field = v)` is an ExprAscend (move-to-heap) around a make-struct, not an ExprNew
+    def override preVisitExprAscend(var expr : ExprAscend?) : void {
+        add_sink(HotBits.alloc, "new", expr)
+    }
+
+    def override preVisitExprDelete(var expr : ExprDelete?) : void {
+        add_sink(HotBits.alloc, "delete", expr)
+    }
+
+    def override preVisitExprStringBuilder(var expr : ExprStringBuilder?) : void {
+        add_sink(HotBits.alloc, "string interpolation", expr)
+    }
+
+    // table[key] inserts a default entry when the key is missing, so it allocates on READ too;
+    // the ?[] form (ExprSafeAt) has its own visitor hook and never inserts. A @scratch table
+    // (the pool / residency-cache shape) is declared reuse — indexing it is the owner's strategy.
+    def override preVisitExprAt(var expr : ExprAt?) : void {
+        if (expr.subexpr == null || expr.subexpr._type == null) return
+        if (expr.subexpr._type.baseType == Type.tTable && !is_scratch_dest(expr.subexpr)) {
+            add_sink(HotBits.alloc, "table index (inserts a default entry when the key is missing)", expr)
+        }
+    }
+
+    // A lambda captures into a heap frame; a plain block does not.
+    def override preVisitExprMakeBlock(var expr : ExprMakeBlock?) : void {
+        if (expr.mmFlags.isLambda) {
+            add_sink(HotBits.alloc, "lambda capture frame", expr)
+        }
+    }
 }
 
 class PerfLintVisitor : AstVisitor {
@@ -146,19 +405,23 @@ class PerfLintVisitor : AstVisitor {
     // current function being visited (for inferStack reporting)
     @do_not_delete current_function : Function?
     in_template : bool = false
+    // PERF026-028: functions in this module carrying [hot_path] / [no_alloc] / [no_env] / [no_io],
+    // collected during the main pass so the contract scan needs no traversal of its own
+    @do_not_delete hot_roots : array<Function?>
     // PERF006: known-length loop tracking
     known_length_loop_depth : int = 0
     current_for_known_length : bool = true
     // PERF006: suppress when loop has break/continue (unpredictable iteration count)
     loop_has_early_exit : array<bool>
+    @do_not_delete perf030_released : array<Variable?>
     // PERF009: track last move-initialized variable for redundant return detection
     @do_not_delete pending_move_var : Variable?
     @safe_when_uninitialized pending_move_at : LineInfo
-    // PERF018: per-for-loop index-only candidates; arr_path (string) and the
-    // owning ExprFor (for `.at` at warn time) live in parallel arrays kept in
-    // lockstep with perf018_stack. at_qualifying_pushes records how many
-    // increments each in-flight ExprAt added to in_qualifying_idx so visitExprAt
-    // can undo them.
+    // PERF009: true when the pending var was clone-initialized (`var x := expr`,
+    // lowered to `<- clone_to_move(...)`) — the collapse is `return clone_to_move`,
+    // not `return <- expr` (which would move/destroy the source).
+    pending_move_is_clone : bool = false
+    // PERF018: per-for-loop index-only candidates; arr_path (string) and the owning ExprFor (for `.at` at warn time) live in parallel arrays kept in lockstep with perf018_stack. at_qualifying_pushes records how many increments each in-flight ExprAt added to in_qualifying_idx so visitExprAt can undo them.
     perf018_stack : array<Perf018State>
     perf018_paths : array<string>
     @do_not_delete perf018_for_exprs : array<ExprFor?>
@@ -169,26 +432,17 @@ class PerfLintVisitor : AstVisitor {
     // pointer lives in a parallel `perf022_for_exprs` array.
     perf022_stack : array<Perf022State>
     @do_not_delete perf022_for_exprs : array<ExprFor?>
-    // PERF023: per-function candidates for `var X = clone_expression(E)`. Cleared
-    // in preVisitFunction; finalized in visitFunction. `perf023_splice_depth` is
-    // a counter incremented when visiting INTO an `add_ptr_ref(...)` call
-    // (post-expansion form of `$e(...)` splice tags) and decremented on exit; an
-    // ExprVar reference to a candidate that fires while the counter is >0 is a
-    // "safe use" (apply_template will clone the substitution anyway), otherwise
-    // the candidate is disqualified.
+    // PERF023: per-function candidates for `var X = clone_expression(E)`. Cleared in preVisitFunction; finalized in visitFunction. `perf023_splice_depth` is a counter incremented when visiting INTO an `add_ptr_ref(...)` call (post-expansion form of `$e(...)` splice tags) and decremented on exit; an ExprVar reference to a candidate that fires while the counter is >0 is a "safe use" (apply_template will clone the substitution anyway), otherwise the candidate is disqualified.
     perf023_candidates : array<Perf023Candidate>
     perf023_splice_depth : int = 0
-    // PERF024: per-function candidates for `var X = clone_*(E)` whose only
-    // uses are direct args at [clone(...)]-annotated positions. `perf024_skip_iptr`
-    // holds the intptr identity of a Variable that's about to be visited via
-    // a pre-classified annotated-arg position; cleared in preVisitExprVar so
-    // that ExprVar visit doesn't re-classify (would otherwise disqualify).
+    // PERF024: per-function candidates for `var X = clone_*(E)` whose only uses are direct args at [clone(...)]-annotated positions. `perf024_skip_iptr` holds the intptr identity of a Variable that's about to be visited via a pre-classified annotated-arg position; cleared in preVisitExprVar so that ExprVar visit doesn't re-classify (would otherwise disqualify).
     perf024_candidates : array<Perf024Candidate>
     perf024_skip_iptr : uint64 = 0ul
     warning_count : int = 0
     // collection mode — when true, warnings are appended to `warnings` instead of to_log
     collect_warnings : bool = false
     warnings : array<string>
+    issues : array<LintIssue>       // structured twin of `warnings`, same entries in the same order
     // dedup: reported (file_hash, line, column) to suppress duplicate warnings from generic instantiations
     reported_locations : table<uint64>
     // PERF019: cache of enum-types we've probed for an `operator |` overload.
@@ -199,14 +453,22 @@ class PerfLintVisitor : AstVisitor {
         pass
     }
 
+    // The file is part of the key: the PERF026-028 chains report sinks in OTHER files, so a
+    // line|column key alone silently drops a finding that happens to share a position elsewhere.
     def location_key(at : LineInfo) : uint64 {
-        return uint64(at.line) | (uint64(at.column) << uint64(20))
+        let pos = uint64(at.line) | (uint64(at.column) << uint64(20))
+        return pos ^ (intptr(at.fileInfo) * 1099511628211ul)
     }
 
     // Filters: disabled (denylist) and enabled (whitelist; empty == all).
     // Caller-populated via collect overload; applied alongside // nolint suppression.
     disabled_codes : table<string>
     enabled_codes : table<string>
+
+    def is_suppressed_code(code : string) : bool {
+        return (key_exists(disabled_codes, code)
+                || (!empty(enabled_codes) && !key_exists(enabled_codes, code)))
+    }
 
     def is_suppressed(text : string; at : LineInfo) : bool {
         let code = extract_lint_code(text)
@@ -218,16 +480,14 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def perf_warning(text : string; at : LineInfo) : void {
-        // Suppress in templates and inside macro-generated functions —
-        // the user didn't write that code.
+        // suppress before the dedup insert + code in the key: a nolint'd rule must not mask a co-located sibling or fake a LINT019 stale
         if (in_template
-            || (current_function != null && current_function.flags.generated)) return
-        // Deduplicate warnings — same source location reported once, regardless of generic instantiations
-        let key = location_key(at)
+            || (current_function != null && current_function.flags.generated)
+            || is_suppressed(text, at)) return
+        // one report per (rule, location), regardless of generic instantiations
+        let key = location_key(at) ^ hash(extract_lint_code(text))
         if (key_exists(reported_locations, key)) return
         reported_locations |> insert(key)
-        // Check inline suppression: // PERFxxx on the same line
-        if (is_suppressed(text, at)) return
         warning_count++
         var msg = text
         if (current_function != null && current_function.fromGeneric != null && !empty(current_function.inferStack)) {
@@ -243,6 +503,7 @@ class PerfLintVisitor : AstVisitor {
             compiling_program() |> macro_performance_warning(at, msg)
         } elif (collect_warnings) {
             warnings |> push("performance warning: {msg} at {describe(at)}")
+            issues |> push(make_lint_issue(msg, at))
         } else {
             to_log(LOG_WARNING, "performance warning: {msg} at {describe(at)}\n")
         }
@@ -279,7 +540,6 @@ class PerfLintVisitor : AstVisitor {
 
     def is_array_func(expr : ExprCall?; fname : string) : bool {
         // Builtin generics (push, reserve, etc.) have fromGeneric set.
-        // Verify first argument is an array type.
         if (expr.func == null || expr.func.fromGeneric == null
             || expr.func.fromGeneric.name != fname || empty(expr.arguments)) return false
         let arg = expr.arguments[0]
@@ -287,9 +547,7 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def find_expr_path(var expr : Expression?; var path : string&) : Variable? {
-        //! Walks expression chains (field access, deref, index, etc.) to find the
-        //! root variable, building a path string to distinguish foo.a from foo.b.
-        //! Returns null if the chain can't be resolved (call results, Op3, etc.).
+        //! Walks expression chains (field access, deref, index, etc.) to find the root variable, building a path string to distinguish foo.a from foo.b.
         return null if (expr == null)
         if (expr is ExprVar) {
             var evar = expr as ExprVar
@@ -299,41 +557,38 @@ class PerfLintVisitor : AstVisitor {
         if (expr is ExprRef2Value) return find_expr_path((expr as ExprRef2Value.subexpr), path)
         if (expr is ExprField) {
             var field = expr as ExprField
-            path := ".{field.name}{path}"
+            path = ".{field.name}{path}"
             return find_expr_path(field.value, path)
         }
         if (expr is ExprSafeField) {
             var field = expr as ExprSafeField
-            path := ".{field.name}{path}"
+            path = ".{field.name}{path}"
             return find_expr_path(field.value, path)
         }
         if (expr is ExprAt) {
             var at = expr as ExprAt
-            path := "[*]{path}"
+            path = "[*]{path}"
             return find_expr_path(at.subexpr, path)
         }
         if (expr is ExprSafeAt) {
             var at = expr as ExprSafeAt
-            path := "[*]{path}"
+            path = "[*]{path}"
             return find_expr_path(at.subexpr, path)
         }
-        if (expr is ExprSwizzle) {
-            var swiz = expr as ExprSwizzle
-            return find_expr_path(swiz.value, path)
-        }
-        if (expr is ExprCast) {
-            var ca = expr as ExprCast
-            return find_expr_path(ca.subexpr, path)
-        }
-        if (expr is ExprRef2Ptr) {
-            var rr = expr as ExprRef2Ptr
-            return find_expr_path(rr.subexpr, path)
-        }
-        if (expr is ExprPtr2Ref) {
-            var rr = expr as ExprPtr2Ref
-            return find_expr_path(rr.subexpr, path)
+        var through = path_passthrough_child(expr)
+        if (through != null) {
+            return find_expr_path(through, path)
         }
         // Bail on everything else (Op3, NullCoalescing, calls, etc.)
+        return null
+    }
+
+    def path_passthrough_child(expr : Expression?) : Expression? {
+        // wrappers that keep the path unchanged - swizzles, casts, ref/ptr adapters
+        if (expr is ExprSwizzle) return (expr as ExprSwizzle).value
+        if (expr is ExprCast) return (expr as ExprCast.subexpr)
+        if (expr is ExprRef2Ptr) return (expr as ExprRef2Ptr.subexpr)
+        if (expr is ExprPtr2Ref) return (expr as ExprPtr2Ref.subexpr)
         return null
     }
 
@@ -367,7 +622,6 @@ class PerfLintVisitor : AstVisitor {
         return false if (inner == null || !(inner is ExprCall))
         var call = inner as ExprCall
         // After inference, string() calls may have FakeContext/FakeLineInfo extra args.
-        // Check the function name and first argument type.
         if (empty(call.arguments) || call.name != "string") return false
         var arg = call.arguments[0]
         if (arg._type == null || arg._type.baseType != Type.tHandle) return false
@@ -426,18 +680,14 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def expr_equal_struct(a : Expression? const; b : Expression? const; require_pure : bool = true) : bool {
-        //! Structural equality via describe(). With `require_pure=true` (default),
-        //! returns false when either side has side effects — protects rules that
-        //! suggest collapsing duplicated subexpressions (PERF014/015/016) from
-        //! silently changing evaluation count.
+        //! Structural equality via describe(). With `require_pure=true` (default), returns false when either side has side effects — protects rules that suggest collapsing duplicated subexpressions (PERF014/015/016) from silently changing evaluation count.
         if ((a == null || b == null)
             || (require_pure && (!a.flags.noSideEffects || !b.flags.noSideEffects))) return false
         return describe(a) == describe(b)
     }
 
     def is_workhorse_numeric(t : TypeDecl?) : bool {
-        //! True if the type is one of the six numeric workhorse scalars (int, uint,
-        //! int64, uint64, float, double). Vectors/bitfields/enums do NOT qualify.
+        //! True if the type is one of the six numeric workhorse scalars (int, uint, int64, uint64, float, double). Vectors/bitfields/enums do NOT qualify.
         if (t == null) return false
         let bt = t.baseType
         return (bt == Type.tInt || bt == Type.tUInt
@@ -447,7 +697,6 @@ class PerfLintVisitor : AstVisitor {
 
     def is_collection_length_call(expr : Expression? const) : bool {
         //! True for length(string) / length(das_string) / length(array) / length(table).
-        //! Excludes math::length(float2/3/4) which returns vector magnitude.
         if (expr == null || !(expr is ExprCall)) return false
         let call = expr as ExprCall
         if (call.func == null || call.func.name != "length") return false
@@ -459,8 +708,6 @@ class PerfLintVisitor : AstVisitor {
 
     def unwrap_int_cast(expr : Expression? const) : Expression? const {
         //! If `expr` is `int(x)` (single argument, no fake/context args), return x.
-        //! `int()` after inference is a generic call — fromGeneric.name is "int".
-        //! Peels one ExprRef2Value layer first.
         if (expr == null) return null
         var inner = expr
         if (inner is ExprRef2Value) {
@@ -475,9 +722,7 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def enum_has_or_operator(t : TypeDecl?) : bool {
-        //! Returns true if any module in the compiling program defines `def operator |(a, b : T) : ...`
-        //! for the enum represented by `t`. Result is cached on perf019_enum_or_probed / _yes by
-        //! intptr(t.enumType) so repeated checks across a large file don't re-walk the function table.
+        //! Returns true if any module in the compiling program defines `def operator |(a, b : T) : ...` for the enum represented by `t`. Result is cached on perf019_enum_or_probed / _yes by intptr(t.enumType) so repeated checks across a large file don't re-walk the function table.
         if (t == null || t.enumType == null) return false
         let key = intptr(t.enumType)
         for (idx in range(length(perf019_enum_or_probed))) {
@@ -503,10 +748,7 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def inner_type_supports_or(t : TypeDecl?) : bool {
-        //! True if `T | T` resolves: bitfields always; enums only when an
-        //! `operator |` overload exists. Vectors/ints/etc. don't get here —
-        //! the caller restricts to int-cast inputs whose underlying type is
-        //! either bitfield or enum.
+        //! True if `T | T` resolves: bitfields always; enums only when an `operator |` overload exists. Vectors/ints/etc. don't get here — the caller restricts to int-cast inputs whose underlying type is either bitfield or enum.
         if (t == null) return false
         if (t.baseType == Type.tBitfield) return true
         if (t.baseType == Type.tEnumeration) return enum_has_or_operator(t)
@@ -517,10 +759,6 @@ class PerfLintVisitor : AstVisitor {
 
     def perf020_target_basetype(fname : string) : Type {
         //! Map a workhorse cast-function name to the Type it produces.
-        //! Returns Type.none for names that are not in the workhorse-cast set.
-        //! Set: 11 numeric scalars + string + 4 bitfield flavours (15 total).
-        //! Source of truth: ADD_NUMERIC_CASTS / ADD_BITFIELD_CASTS in
-        //! src/builtin/module_builtin.cpp plus das_lexical_cast_* externs.
         if (fname == "int") return Type.tInt
         if (fname == "int8") return Type.tInt8
         if (fname == "int16") return Type.tInt16
@@ -543,8 +781,6 @@ class PerfLintVisitor : AstVisitor {
 
     def is_clone_init_call(expr : Expression const?) : bool {
         //! True when expr is a single-arg call to one of the AST clone primitives.
-        //! Used to seed PERF024 candidates (`var X = clone_*(E)`) and to detect
-        //! Type-A direct-splice form (`func(clone_*(X))`).
         if (expr == null || !(expr is ExprCall)) return false
         let c = expr as ExprCall
         if (length(c.arguments) != 1) return false
@@ -555,8 +791,7 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def get_clone_param_indices(callee : Function?; var out : array<int>&) : void {
-        //! Fills `out` with the param-index list for any [clone(...)] annotations
-        //! on callee. Caller-owned out array avoids array return ownership.
+        //! Fills `out` with the param-index list for any [clone(...)] annotations on callee. Caller-owned out array avoids array return ownership.
         out |> clear
         if (callee == null) return
         for (ann in callee.annotations) {
@@ -575,15 +810,7 @@ class PerfLintVisitor : AstVisitor {
     // --- PERF025: redundant string(...) inside string interpolation helpers ---
 
     def perf025_value_kind(arg : Expression const?) : Perf025Kind {
-        //! Classifies a string() cast's value argument by how `"{x}"` (the string
-        //! builder's own conversion) compares to `string(x)`:
-        //!   equivalent   — identical output (drop the cast): signed ints, float,
-        //!                  double, string, das_string.
-        //!   unsigned_hex — decimal vs hex difference (drop, but suggest the ':d'
-        //!                  tag): the four unsigned int widths interpolate as hex.
-        //!   skip         — not flaggable: value-shape-changing conversions
-        //!                  (array<uint8>, uri, text_range, other handled types)
-        //!                  and anything else.
+        //! Classifies a string() cast's value argument by how `"{x}"` (the string builder's own conversion) compares to `string(x)`:
         if (arg == null || arg._type == null) return Perf025Kind.skip
         let bt = arg._type.baseType
         if (bt == Type.tInt || bt == Type.tInt8 || bt == Type.tInt16 || bt == Type.tInt64
@@ -595,12 +822,7 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def perf025_string_call_value(e : Expression const?) : Expression const? {
-        //! If `e` is a `string(value)` cast call, return its value argument
-        //! (arguments[0]). Skips an explicit `string(x, true)` hex request — the
-        //! second argument being a literal `true` means the user wants hex, which
-        //! no longer matches plain interpolation for signed types. The float /
-        //! double / string / das_string overloads have no hex param, so their
-        //! arguments[1] (a FakeContext) is not an ExprConstBool and passes through.
+        //! If `e` is a `string(value)` cast call, return its value argument (arguments[0]). Skips an explicit `string(x, true)` hex request — the second argument being a literal `true` means the user wants hex, which no longer matches plain interpolation for signed types. The float / double / string / das_string overloads have no hex param, so their arguments[1] (a FakeContext) is not an ExprConstBool and passes through.
         if (e == null || !(e is ExprCall)) return null
         let c = e as ExprCall
         if (c.func == null || empty(c.arguments)) return null
@@ -614,11 +836,7 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def perf025_unwrap_element(elem : Expression const?) : Expression const? {
-        //! Peels one ExprRef2Value off an interpolation element so a `string(...)`
-        //! call read through a value-context wrapper is still exposed. A format
-        //! spec (`"{x:fmt}"`) lowers to `_::fmt(":fmt", x)`, but `fmt` has no
-        //! string-valued overload, so `string(x)` can never sit under a fmt
-        //! wrapper (it would not compile) — no fmt unwrap is needed.
+        //! Peels one ExprRef2Value off an interpolation element so a `string(...)` call read through a value-context wrapper is still exposed. A format spec (`"{x:fmt}"`) lowers to `_::fmt(":fmt", x)`, but `fmt` has no string-valued overload, so `string(x)` can never sit under a fmt wrapper (it would not compile) — no fmt unwrap is needed.
         var ex = elem
         if (ex != null && ex is ExprRef2Value) {
             ex = (ex as ExprRef2Value.subexpr)
@@ -631,6 +849,10 @@ class PerfLintVisitor : AstVisitor {
     def override preVisitFunction(var fn : FunctionPtr) : void {
         current_function = fn
         in_template = fn.moreFlags.isTemplate
+        // PERF026-028: a template carries no resolved callees, so only real functions are roots
+        if (!in_template && uint(hot_bits_of(fn)) != 0u) {
+            hot_roots |> push(fn)
+        }
         // PERF023: reset per-function candidate set.
         perf023_candidates |> clear
         perf023_splice_depth = 0
@@ -698,38 +920,30 @@ class PerfLintVisitor : AstVisitor {
             var_stack |> push(VarStackEntry(v = v, depth = loop_depth, is_iter = false))
         }
         // PERF023: seed candidate when init is `clone_expression(...)`.
-        // Closure-scoped lets are skipped — `apply_template` rules block IS a
-        // closure (the `(var rules : Template)` block argument), and pre-clones
-        // declared there have different lifetime semantics than parent-scope
-        // ones. We only fire on user-level decls.
         if (in_closure == 0 && v != null && v.init != null && v.init is ExprCall) {
             let initCall = v.init as ExprCall
             if (initCall.name == "clone_expression" && length(initCall.arguments) == 1) {
                 perf023_candidates |> push(Perf023Candidate(v = v, safe_uses = 0, disqualified = false))
             }
         }
-        // PERF024: seed candidate when init is any clone_* primitive. Broader
-        // than PERF023's clone_expression-only seed because the [clone(...)]
-        // contract covers all five AST clone primitives. Same closure-gating
-        // rationale as PERF023.
+        // PERF024: seed candidate when init is any clone_* primitive. Broader than PERF023's clone_expression-only seed because the [clone(...)] contract covers all five AST clone primitives. Same closure-gating rationale as PERF023.
         if (in_closure == 0 && v != null && is_clone_init_call(v.init)) {
             perf024_candidates |> push(Perf024Candidate(v = v, safe_uses = 0, disqualified = false))
         }
-        // PERF009: track last move-initialized variable (only explicit `var x <- expr`)
+        // PERF009: track last move-initialized variable. Two flavors:
         if (last && v.flags.init_via_move && v.init != null) {
             var dominated_by_clone = false
-            // Exclude compiler-lowered `:=` (clone_to_move) on non-copyable types
             var ini = v.init
             if (ini is ExprCall) {
                 let ecall = ini as ExprCall
-                if (ecall.func != null && ecall.func.fromGeneric != null) {
-                    dominated_by_clone = ecall.func.fromGeneric.name == "clone_to_move"
+                if (ecall.func != null) {
+                    let fname = string(ecall.func.fromGeneric != null ? ecall.func.fromGeneric.name : ecall.func.name)
+                    dominated_by_clone = fname == "clone_to_move"
                 }
             }
-            if (!dominated_by_clone) {
-                pending_move_var = v
-                pending_move_at = expr.at
-            }
+            pending_move_var = v
+            pending_move_at = expr.at
+            pending_move_is_clone = dominated_by_clone
         }
     }
 
@@ -746,7 +960,11 @@ class PerfLintVisitor : AstVisitor {
                         sub = (sub as ExprRef2Value.subexpr)
                     }
                     if (sub is ExprVar && (sub as ExprVar.variable) == pending_move_var) {
-                        perf_warning("PERF009: redundant move into variable immediately returned; use return <- expr directly", pending_move_at)
+                        if (pending_move_is_clone) {
+                            perf_warning("PERF009: redundant clone into variable immediately returned; use return clone_to_move(expr) directly", pending_move_at)
+                        } else {
+                            perf_warning("PERF009: redundant move into variable immediately returned; use return <- expr directly", pending_move_at)
+                        }
                     }
                 }
             }
@@ -831,9 +1049,7 @@ class PerfLintVisitor : AstVisitor {
     // --- PERF018: for (i in range(length(arr))) where i only indexes arr ---
 
     def perf018_push_sentinel(expr : ExprFor?) : void {
-        //! Always pushed in preVisitExprFor — keeps the stack in lockstep with
-        //! for-loop nesting so visitExprFor can pop unconditionally. Matched/
-        //! disqualified status is filled in by the per-source/per-variable hooks.
+        //! Always pushed in preVisitExprFor — keeps the stack in lockstep with for-loop nesting so visitExprFor can pop unconditionally. Matched/ disqualified status is filled in by the per-source/per-variable hooks.
         var state = Perf018State(disqualified = true, matched = false)
         perf018_stack    |> push(state)
         unsafe {
@@ -849,14 +1065,16 @@ class PerfLintVisitor : AstVisitor {
         perf018_stack    |> pop()
         perf018_for_exprs |> pop()
         if (state.matched && !state.disqualified && state.qualified_count > 0 && owning != null) {
-            perf_warning("PERF018: for (i in range(length(X))) where i only indexes X; use 'for (c in X)' for direct iteration", owning.at)
+            if (state.other_qualified > 0 && state.arr_var != null) {
+                perf_warning("PERF029: parallel-array indexing - i subscripts {state.arr_var.name}{state.other_names} in lockstep; zip them: 'for (a, b, ... in {state.arr_var.name}{state.other_names})'", owning.at)
+            } else {
+                perf_warning("PERF018: for (i in range(length(X))) where i only indexes X; use 'for (c in X)' for direct iteration", owning.at)
+            }
         }
     }
 
     def perf018_bare_var_of(var e : ExpressionPtr) : Variable? {
-        //! Returns the underlying Variable if `e` (after one optional Ref2Value
-        //! peel) is a bare ExprVar. Null otherwise — field paths, calls, etc. all
-        //! intentionally disqualify PERF018's arr resolution.
+        //! Returns the underlying Variable if `e` (after one optional Ref2Value peel) is a bare ExprVar. Null otherwise — field paths, calls, etc. all intentionally disqualify PERF018's arr resolution.
         var inner = e
         if (inner is ExprRef2Value) {
             inner = (inner as ExprRef2Value.subexpr)
@@ -866,10 +1084,23 @@ class PerfLintVisitor : AstVisitor {
         return evar.variable
     }
 
+    def perf018_peel_index_cast(var e : ExpressionPtr) : ExpressionPtr {
+        //! One optional cast layer around range's argument: ExprCast, or a 1-arg workhorse int-cast call (int/uint/int64/uint64). Casts don't change what the loop iterates, so urange(uint(length(x))) reduces to the same length shape.
+        if (e == null) return e
+        if (e is ExprCast) return (e as ExprCast.subexpr)
+        if (e is ExprCall) {
+            var c = e as ExprCall
+            if (c.func != null && length(c.arguments) == 1
+                && (c.func.name == "int" || c.func.name == "uint"
+                    || c.func.name == "int64" || c.func.name == "uint64")) {
+                return c.arguments[0]
+            }
+        }
+        return e
+    }
+
     def perf018_record_source(src : ExpressionPtr) : void {
-        //! Called from preVisitExprForSource. Peels `range(length(<bareVar>))`
-        //! (with one optional ExprCast on either layer) and, when matched, stamps
-        //! the candidate's arr_var. Iter var arrives via perf018_record_var.
+        //! Called from preVisitExprForSource. Peels `range/urange/range64/urange64(length/long_length(<bareVar>))` (with one optional cast on either layer) and, when matched, stamps the candidate's arr_var. Iter var arrives via perf018_record_var.
         if (empty(perf018_stack)) return
         let top_idx = length(perf018_stack) - 1
         var state = perf018_stack[top_idx]
@@ -889,22 +1120,20 @@ class PerfLintVisitor : AstVisitor {
             return
         }
         var rng = s as ExprCall
-        if (rng.func == null || rng.func.name != "range"
-            || length(rng.arguments) != 1) {
+        if (rng.func == null || length(rng.arguments) != 1
+            || (rng.func.name != "range" && rng.func.name != "urange"
+                && rng.func.name != "range64" && rng.func.name != "urange64")) {
             perf018_stack[top_idx] = state
             return
         }
-        var inner = rng.arguments[0]
-        if (inner is ExprCast) {
-            inner = (inner as ExprCast.subexpr)
-        }
+        var inner = perf018_peel_index_cast(rng.arguments[0])
         if (inner == null || !(inner is ExprCall)) {
             perf018_stack[top_idx] = state
             return
         }
         var len = inner as ExprCall
-        if (len.func == null || len.func.name != "length"
-            || length(len.arguments) != 1) {
+        if (len.func == null || length(len.arguments) != 1
+            || (len.func.name != "length" && len.func.name != "long_length")) {
             perf018_stack[top_idx] = state
             return
         }
@@ -919,8 +1148,6 @@ class PerfLintVisitor : AstVisitor {
 
     def perf018_record_var(var v : Variable?) : void {
         //! Called from preVisitExprForVariable. Stamps iter_var on the top frame.
-        //! When a single iter var pairs with a single recognized source, marks
-        //! the candidate matched + un-disqualified.
         if (empty(perf018_stack) || v == null) return
         let top_idx = length(perf018_stack) - 1
         var state = perf018_stack[top_idx]
@@ -935,10 +1162,7 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def perf018_finalize_on_body() : void {
-        //! Called from preVisitExprForBody — fires once per for, after every
-        //! preVisitExprForSource and preVisitExprForVariable. Flips matched=true
-        //! iff the loop had exactly one source we recognized (arr_var set) and
-        //! exactly one iter var (iter_var set).
+        //! Called from preVisitExprForBody — fires once per for, after every preVisitExprForSource and preVisitExprForVariable. Flips matched=true iff the loop had exactly one source we recognized (arr_var set) and exactly one iter var (iter_var set).
         if (empty(perf018_stack)) return
         let top_idx = length(perf018_stack) - 1
         var state = perf018_stack[top_idx]
@@ -951,9 +1175,7 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def perf018_at_matches(var at : ExprAt?; frame_idx : int) : bool {
-        //! True when `at.subexpr[at.index]` accesses the frame's arr_var (bare)
-        //! and indexes by the frame's iter_var with no arithmetic. Conservative
-        //! by design — field paths, casts on the subexpr, etc. don't qualify.
+        //! True when `at.subexpr[at.index]` accesses the frame's arr_var (bare) and indexes by the frame's iter_var with no arithmetic. Conservative by design — field paths, casts on the subexpr, etc. don't qualify.
         if (frame_idx < 0 || frame_idx >= length(perf018_stack)) return false
         let state = perf018_stack[frame_idx]
         if (state.disqualified || !state.matched
@@ -967,6 +1189,24 @@ class PerfLintVisitor : AstVisitor {
         return idx != null && idx is ExprVar && (idx as ExprVar).variable == state.iter_var
     }
 
+    def perf029_other_array_of(var at : ExprAt?; frame_idx : int) : Variable? {
+        // PERF029: a bare array-typed sibling (not the range source, not a table) indexed by the frame's iter_var
+        if (frame_idx < 0 || frame_idx >= length(perf018_stack)) return null
+        let state = perf018_stack[frame_idx]
+        if (state.disqualified || !state.matched
+            || state.arr_var == null || state.iter_var == null) return null
+        var av = perf018_bare_var_of(at.subexpr)
+        if (av == null || av == state.arr_var || av._type == null) return null
+        let bt = av._type.baseType
+        if (bt != Type.tArray && bt != Type.tFixedArray) return null
+        var idx = at.index
+        if (idx is ExprRef2Value) {
+            idx = (idx as ExprRef2Value.subexpr)
+        }
+        if (idx == null || !(idx is ExprVar) || (idx as ExprVar).variable != state.iter_var) return null
+        return av
+    }
+
     def perf018_on_at(var expr : ExprAt?) : void {
         var pushes = 0
         let n = length(perf018_stack)
@@ -976,6 +1216,19 @@ class PerfLintVisitor : AstVisitor {
                 st.qualified_count++
                 perf018_stack[i] = st
                 pushes++
+            } else {
+                var av = perf029_other_array_of(expr, i)
+                if (av != null) {
+                    var st = perf018_stack[i]
+                    st.other_qualified++
+                    let akey = "{intptr(av)}|"
+                    if (find(st.other_keys, akey) < 0) {
+                        st.other_keys += akey
+                        st.other_names += ", {av.name}"
+                    }
+                    perf018_stack[i] = st
+                    pushes++
+                }
             }
         }
         if (pushes > 0) {
@@ -992,8 +1245,7 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def perf018_on_var(v : Variable?) : void {
-        //! Called from preVisitExprVar: a bare iter_var reference outside any
-        //! qualifying ExprAt index slot disqualifies the matching frame.
+        //! Called from preVisitExprVar: a bare iter_var reference outside any qualifying ExprAt index slot disqualifies the matching frame.
         if (v == null || empty(perf018_stack) || in_qualifying_idx > 0) return
         let n = length(perf018_stack)
         for (i in range(n)) {
@@ -1008,11 +1260,7 @@ class PerfLintVisitor : AstVisitor {
     // --- PERF022: for (s in A) { B |> push(s) } — recommend bulk *_from ---
 
     def perf022_push_sentinel(expr : ExprFor?) : void {
-        //! Always pushed in preVisitExprFor so the stack stays lock-step with
-        //! for-loop nesting. preVisitExprForBody may flip `matched`; if a
-        //! frame survives to perf022_pop_and_check matched-and-undisqualified,
-        //! we fire at the for-loop's `at` (not the push's, to avoid colliding
-        //! with PERF006 under the same-location dedup in perf_warning).
+        //! Always pushed in preVisitExprFor so the stack stays lock-step with for-loop nesting. preVisitExprForBody may flip `matched`; if a frame survives to perf022_pop_and_check matched-and-undisqualified, we fire at the for-loop's `at` (not the push's, to avoid colliding with PERF006 under the same-location dedup in perf_warning).
         var state : Perf022State
         perf022_stack |> push(state)
         unsafe {
@@ -1028,9 +1276,7 @@ class PerfLintVisitor : AstVisitor {
         if (state.sources_seen > 1) {
             state.disqualified = true
         }
-        // PERF022 only suggests push_from / push_clone_from, which take array<T>
-        // or C-array sources. Disqualify range/string/iterator/generator sources
-        // — there is no bulk overload to migrate to in those cases.
+        // PERF022 only suggests push_from / push_clone_from, which take array<T> or C-array sources. Disqualify range/string/iterator/generator sources — there is no bulk overload to migrate to in those cases.
         if (src == null || src._type == null) {
             state.disqualified = true
         } else {
@@ -1058,11 +1304,7 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def perf022_inspect_body(body : Expression?) : void {
-        //! Called from preVisitExprForBody. Flips `matched` iff the body is
-        //! a single-statement ExprBlock containing exactly one ExprCall to
-        //! push/push_clone with arg[1] = the frame's iter_var. Compiler folds
-        //! 'B |> push(s)', 'B.push(s)', and 'push(B, s)' to the same shape,
-        //! so this single check covers all three call forms.
+        //! Called from preVisitExprForBody. Flips `matched` iff the body is a single-statement ExprBlock containing exactly one ExprCall to push/push_clone with arg[1] = the frame's iter_var. Compiler folds 'B |> push(s)', 'B.push(s)', and 'push(B, s)' to the same shape, so this single check covers all three call forms.
         if (empty(perf022_stack)) return
         let top_idx = length(perf022_stack) - 1
         var state = perf022_stack[top_idx]
@@ -1076,25 +1318,9 @@ class PerfLintVisitor : AstVisitor {
             || length((stmt as ExprCall).arguments) != 2) return
         var call = stmt as ExprCall
         // Destination must be `array<T>` — the `*_from` overloads are array-only.
-        // Generic `auto` parameters (e.g. `[expect_any_vector] def clone(var args;
-        // ...)` in builtin.das) where the destination accepts dasvector etc. must
-        // be skipped — no push_from overload exists for them.
         let dest = call.arguments[0]
         if (dest == null || dest._type == null || dest._type.baseType != Type.tArray) return
-        var callee_id = 0
-        if (call.func.fromGeneric != null) {
-            if (call.func.fromGeneric.name == "push") {
-                callee_id = 1
-            } elif (call.func.fromGeneric.name == "push_clone") {
-                callee_id = 2
-            }
-        } else {
-            if (call.func.name == "push") {
-                callee_id = 1
-            } elif (call.func.name == "push_clone") {
-                callee_id = 2
-            }
-        }
+        let callee_id = perf022_callee_id(call)
         if (callee_id == 0) return
         var arg1 = call.arguments[1]
         if (arg1 is ExprRef2Value) {
@@ -1106,6 +1332,16 @@ class PerfLintVisitor : AstVisitor {
         state.matched = true
         state.callee_id = callee_id
         perf022_stack[top_idx] = state
+    }
+
+    def perf022_callee_id(var call : ExprCall?) : int {
+        // 1 = push, 2 = push_clone, 0 = neither; generic instances resolve through fromGeneric
+        if (call.func.fromGeneric != null) {
+            if (call.func.fromGeneric.name == "push") return 1
+            return call.func.fromGeneric.name == "push_clone" ? 2 : 0
+        }
+        if (call.func.name == "push") return 1
+        return call.func.name == "push_clone" ? 2 : 0
     }
 
     def perf022_pop_and_check() : void {
@@ -1200,10 +1436,7 @@ class PerfLintVisitor : AstVisitor {
     // --- PERF008: unnecessary get_ptr() for is/as ---
 
     def override preVisitExprOp2(expr : ExprOp2?) : void {
-        // No in_closure check needed — loop_depth doesn't increment inside
-        // closure bodies (see preVisitExprFor/While), so PERF001's loop check
-        // is already correctly scoped. The other rules below are syntactic
-        // patterns that misbehave identically inside or outside closures.
+        // No in_closure check needed — loop_depth doesn't increment inside closure bodies (see preVisitExprFor/While), so PERF001's loop check is already correctly scoped. The other rules below are syntactic patterns that misbehave identically inside or outside closures.
         if (loop_depth > 0 && expr.op == "+=") {
             let v = find_string_var_from_expr(expr.left)
             if (v != null && is_defined_outside_loop(v)) {
@@ -1237,28 +1470,10 @@ class PerfLintVisitor : AstVisitor {
             perf_warning("PERF010: get_ptr() is unnecessary for null comparison; smart_ptr supports == and != null directly", expr.at)
         }
         // PERF013: a += ±1 / a -= ±1 → a++ / a--
-        // Derive the actual delta from (op, RHS) so each branch can suggest the
-        // correct postfix operator. RHS is one of {+1, -1}; op flips the sign.
         if (expr.op == "+=" || expr.op == "-=") {
-            if (expr.left != null && is_workhorse_numeric(expr.left._type)) {
-                let rhs_one = is_const_one(expr.right)
-                let rhs_neg = is_const_neg_one(expr.right)
-                var delta = 0
-                if (rhs_one) {
-                    delta = expr.op == "+=" ? 1 : -1
-                } elif (rhs_neg) {
-                    delta = expr.op == "+=" ? -1 : 1
-                }
-                if (delta == 1) {
-                    perf_warning("PERF013: '{expr.op} {rhs_one ? 1 : -1}' on a numeric scalar; use postfix '++' for a faster, idiomatic increment", expr.at)
-                } elif (delta == -1) {
-                    perf_warning("PERF013: '{expr.op} {rhs_one ? 1 : -1}' on a numeric scalar; use postfix '--' for a faster, idiomatic decrement", expr.at)
-                }
-            }
+            check_perf013_incdec(expr)
         }
-        // PERF014: exact char-class checks. Digit range is a single bounded range
-        // (closed joins with &&, negated complement with ||). Alpha is the both-case
-        // compound (closed = || of two ranges, negated = && of two complements).
+        // PERF014: exact char-class checks. Digit range is a single bounded range (closed joins with &&, negated complement with ||). Alpha is the both-case compound (closed = || of two ranges, negated = && of two complements).
         if (expr.op == "&&") {
             check_perf014_digit(expr, false)
             check_perf014_alpha(expr, true)
@@ -1271,10 +1486,27 @@ class PerfLintVisitor : AstVisitor {
         if (expr.op == "==" || expr.op == "!=" || expr.op == "<" || expr.op == "<=" || expr.op == ">" || expr.op == ">=") {
             check_perf017_length_zero(expr)
         }
-        // PERF019: int(T.a) | int(T.b) collapses to int(T.a | T.b) when T natively
-        // supports `|` (bitfield always; enum only when an `operator |` overload exists).
+        // PERF019: int(T.a) | int(T.b) collapses to int(T.a | T.b) when T natively supports `|` (bitfield always; enum only when an `operator |` overload exists).
         if (expr.op == "|") {
             check_perf019_int_cast_or(expr)
+        }
+    }
+
+    def check_perf013_incdec(expr : ExprOp2?) : void {
+        // Derive the actual delta from (op, RHS) so each branch suggests the correct postfix operator. RHS is one of {+1, -1}; op flips the sign.
+        if (expr.left == null || !is_workhorse_numeric(expr.left._type)) return
+        let rhs_one = is_const_one(expr.right)
+        let rhs_neg = is_const_neg_one(expr.right)
+        var delta = 0
+        if (rhs_one) {
+            delta = expr.op == "+=" ? 1 : -1
+        } elif (rhs_neg) {
+            delta = expr.op == "+=" ? -1 : 1
+        }
+        if (delta == 1) {
+            perf_warning("PERF013: '{expr.op} {rhs_one ? 1 : -1}' on a numeric scalar; use postfix '++' for a faster, idiomatic increment", expr.at)
+        } elif (delta == -1) {
+            perf_warning("PERF013: '{expr.op} {rhs_one ? 1 : -1}' on a numeric scalar; use postfix '--' for a faster, idiomatic decrement", expr.at)
         }
     }
 
@@ -1293,7 +1525,9 @@ class PerfLintVisitor : AstVisitor {
     // --- PERF020: T(x) where x is already T — redundant workhorse cast ---
 
     def check_perf020_redundant_cast(call : ExprCall?) : void {
-        if (call == null || call.func == null || length(call.arguments) != 1) return
+        // generic instances are not actionable (one source line, per-type verdicts); any arg count — the string overloads bind {str,context,at}, and an exact-1 gate let every string(<string>) no-op through
+        if (call == null || call.func == null || empty(call.arguments)
+            || (current_function != null && current_function.fromGeneric != null)) return
         let fname = string(call.func.fromGeneric != null ? call.func.fromGeneric.name : call.func.name)
         let target = perf020_target_basetype(fname)
         if (target == Type.none) return
@@ -1301,17 +1535,16 @@ class PerfLintVisitor : AstVisitor {
         if (arg is ExprRef2Value) {
             arg = (arg as ExprRef2Value.subexpr)
         }
-        if (arg == null || arg._type == null || arg._type.baseType != target) return
-        perf_warning("PERF020: redundant {fname}(...) cast — argument is already {fname}", call.at)
+        // string(msg#) is exempt: a load-bearing clone (temporary -> permanent), not a no-op
+        if (arg == null || arg._type == null || arg._type.baseType != target
+                || (target == Type.tString && arg._type.flags.temporary)) return
+        perf_warning("PERF020: redundant {fname}(...) cast - argument is already {fname}", call.at)
     }
 
     // --- PERF021: cond ? T(a) : T(b) — hoist common workhorse cast out of ternary ---
 
     def cast_call_workhorse_target(e : Expression?; var fname_out : string&) : Type {
-        //! If `e` is a workhorse cast call (after peeling ExprRef2Value), return
-        //! its target Type and write the cast name to `fname_out`. Otherwise
-        //! return Type.none. Accepts any argument count — `string(int)` is bound
-        //! with `value,hex,context,at` (4 daslang args), other casts use 1.
+        //! If `e` is a workhorse cast call (after peeling ExprRef2Value), return its target Type and write the cast name to `fname_out`. Otherwise return Type.none. Accepts any argument count — `string(int)` is bound with `value,hex,context,at` (4 daslang args), other casts use 1.
         var ee = e
         if (ee != null && ee is ExprRef2Value) {
             ee = (ee as ExprRef2Value.subexpr)
@@ -1327,8 +1560,7 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def cast_call_arg_basetype(e : Expression?) : Type {
-        //! Peel ExprRef2Value, take call.arguments[0], peel ExprRef2Value, return its baseType
-        //! (or Type.none if anything along the chain is null).
+        //! Peel ExprRef2Value, take call.arguments[0], peel ExprRef2Value, return its baseType (or Type.none if anything along the chain is null).
         var ee = e
         if (ee != null && ee is ExprRef2Value) {
             ee = (ee as ExprRef2Value.subexpr)
@@ -1345,12 +1577,7 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def cast_call_tail_args_equal(le, re : Expression?) : bool {
-        //! Compare arguments[1..] structurally between two cast calls. Skip
-        //! ExprFakeContext / ExprFakeLineInfo (auto-injected by the typer for
-        //! Context*/LineInfoArg* parameters; differ at every call site by
-        //! design). The remaining tail args — e.g. `string(int)`'s `hex` flag —
-        //! must match in count and via expr_equal_struct, otherwise the hoist
-        //! would silently lose semantically-significant arguments.
+        //! Compare arguments[1..] structurally between two cast calls. Skip ExprFakeContext / ExprFakeLineInfo (auto-injected by the typer for Context*/LineInfoArg* parameters; differ at every call site by design). The remaining tail args — e.g. `string(int)`'s `hex` flag — must match in count and via expr_equal_struct, otherwise the hoist would silently lose semantically-significant arguments.
         var lee = le
         var ree = re
         if (lee != null && lee is ExprRef2Value) {
@@ -1390,25 +1617,17 @@ class PerfLintVisitor : AstVisitor {
         let rt = cast_call_workhorse_target(expr.right, rname)
         let la = cast_call_arg_basetype(expr.left)
         let ra = cast_call_arg_basetype(expr.right)
-        // Tail-args must match so the hoisted form preserves semantically-significant
-        // arguments (e.g. `string(int, hex)`'s `hex` flag). Auto-injected
-        // ExprFakeContext / ExprFakeLineInfo are skipped — they differ at every site.
+        // Tail-args must match so the hoisted form preserves semantically-significant arguments (e.g. `string(int, hex)`'s `hex` flag). Auto-injected ExprFakeContext / ExprFakeLineInfo are skipped — they differ at every site.
         if (lt == Type.none || rt == Type.none || lt != rt || lname != rname
             || la == Type.none || la != ra
             || !cast_call_tail_args_equal(expr.left, expr.right)) return
-        perf_warning("PERF021: redundant per-branch {lname}(...) cast in ternary — hoist as {lname}(cond ? a : b)", expr.at)
+        perf_warning("PERF021: redundant per-branch {lname}(...) cast in ternary - hoist as {lname}(cond ? a : b)", expr.at)
     }
 
     // --- PERF014: exact char-class checks — is_number (digit range) / is_alpha (both-case compound) ---
 
     def parse_range_leg(leg : Expression?; upper_op, lower_op : string; var v_out : Expression?&; var bound_out : int&; var is_hi_out : bool&) : bool {
-        //! Parse `var <op> const` or `const <op> var` where op is `upper_op` or
-        //! `lower_op`. Returns true and fills outputs with: the variable
-        //! expression, the int bound, and whether this leg expresses the upper
-        //! bound of the range on var. `upper_op` is the var-on-left operator that
-        //! marks the upper-bound leg ("<=" closed-in-range, ">" open-out-of-range);
-        //! `lower_op` the lower-bound one (">=" / "<"). Yoda (const-on-left) forms
-        //! flip, so the const-on-left arm tests against `lower_op`.
+        //! Parse `var <op> const` or `const <op> var` where op is `upper_op` or `lower_op`. Returns true and fills outputs with: the variable expression, the int bound, and whether this leg expresses the upper bound of the range on var. `upper_op` is the var-on-left operator that marks the upper-bound leg ("<=" closed-in-range, ">" open-out-of-range);
         if (leg == null || !(leg is ExprOp2)) return false
         var op2 = leg as ExprOp2
         let opname = string(op2.op)
@@ -1430,10 +1649,6 @@ class PerfLintVisitor : AstVisitor {
 
     def parse_bounded_range(expr : ExprOp2?; negated : bool; var v_out : Expression?&; var lo_out : int&; var hi_out : int&) : bool {
         //! Parse a single bounded range on one variable from a two-leg ExprOp2.
-        //! Closed (`negated == false`): `c >= lo && c <= hi` (join `&&`, legs <=/>=).
-        //! Open   (`negated == true`):  `c < lo || c > hi`   (join `||`, legs </>).
-        //! Both legs must constrain the SAME (pure) expression — one upper, one
-        //! lower bound. Fills v_out / lo_out / hi_out; returns true on clean parse.
         if (expr == null || expr.op != (negated ? "||" : "&&")) return false
         let upper_op = negated ? ">" : "<="
         let lower_op = negated ? "<" : ">="
@@ -1457,23 +1672,17 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def check_perf014_digit(expr : ExprOp2?; negated : bool) : void {
-        //! Exact: `c >= '0' && c <= '9'` → is_number(c); the negated De Morgan
-        //! complement `c < '0' || c > '9'` → !is_number(c).
+        //! Exact: `c >= '0' && c <= '9'` → is_number(c); the negated De Morgan complement `c < '0' || c > '9'` → !is_number(c).
         var v : Expression? = null
         var lo = 0
         var hi = 0
         if (!parse_bounded_range(expr, negated, v, lo, hi) || lo != 48 || hi != 57) return
         let neg = negated ? "!" : ""
-        perf_warning("PERF014: char-class range check{negated ? " (negated)" : ""} '0'..'9' — use '{neg}is_number({describe(v)})' from strings module", expr.at)
+        perf_warning("PERF014: char-class range check{negated ? " (negated)" : ""} '0'..'9' - use '{neg}is_number({describe(v)})' from strings module", expr.at)
     }
 
     def check_perf014_alpha(expr : ExprOp2?; negated : bool) : void {
-        //! Exact: `('a'..'z') || ('A'..'Z')` → is_alpha(c). Its De Morgan negation
-        //! `(c < 'a' || c > 'z') && (c < 'A' || c > 'Z')` → !is_alpha(c). is_alpha
-        //! is DEFINED as exactly this both-case union, so a single-case range is
-        //! intentionally NOT flagged (no equivalent helper). The top-level join is
-        //! `||` for the closed form / `&&` for the negated form; each child is a
-        //! bounded range of the matching polarity.
+        //! Exact: `('a'..'z') || ('A'..'Z')` → is_alpha(c). Its De Morgan negation `(c < 'a' || c > 'z') && (c < 'A' || c > 'Z')` → !is_alpha(c). is_alpha is DEFINED as exactly this both-case union, so a single-case range is intentionally NOT flagged (no equivalent helper). The top-level join is `||` for the closed form / `&&` for the negated form; each child is a bounded range of the matching polarity.
         if (expr == null || expr.op != (negated ? "&&" : "||")
             || expr.left == null || expr.right == null
             || !(expr.left is ExprOp2) || !(expr.right is ExprOp2)) return
@@ -1491,7 +1700,7 @@ class PerfLintVisitor : AstVisitor {
         let upperLower = loL == 65 && hiL == 90 && loR == 97 && hiR == 122
         if (!lowerUpper && !upperLower) return
         let neg = negated ? "!" : ""
-        perf_warning("PERF014: char-class range check{negated ? " (negated)" : ""} 'a'..'z' + 'A'..'Z' — use '{neg}is_alpha({describe(vL)})' from strings module", expr.at)
+        perf_warning("PERF014: char-class range check{negated ? " (negated)" : ""} 'a'..'z' + 'A'..'Z' - use '{neg}is_alpha({describe(vL)})' from strings module", expr.at)
     }
 
     // --- PERF017: length(collection) <op> 0/1 → empty / !empty ---
@@ -1516,13 +1725,7 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def check_perf017_length_zero(expr : ExprOp2?) : void {
-        // Skip the canonical implementation of empty() in daslib/builtin.das —
-        // empty(x) is literally `return length(x) == 0`, and the rule's whole job
-        // is to suggest `empty(x)`. Self-flagging the suggestion's own body is
-        // noise. Generic instantiations of empty<T> hit this path with
-        // current_function.fromGeneric pointing at the source `empty`. Both arms
-        // also gate on _module.name == "builtin" so unrelated user methods named
-        // empty() (e.g. delegate.empty(), AOT cache empty()) keep getting linted.
+        // Skip the canonical implementation of empty() in daslib/builtin.das — empty(x) is literally `return length(x) == 0`, and the rule's whole job is to suggest `empty(x)`. Self-flagging the suggestion's own body is noise. Generic instantiations of empty<T> hit this path with current_function.fromGeneric pointing at the source `empty`. Both arms also gate on _module.name == "builtin" so unrelated user methods named empty() (e.g. delegate.empty(), AOT cache empty()) keep getting linted.
         if (current_function != null) {
             let direct_match = (current_function.name == "empty"
                 && current_function._module != null
@@ -1560,11 +1763,7 @@ class PerfLintVisitor : AstVisitor {
                 canon_op = "<="
             }
         }
-        // Map (canon_op, k) → empty / !empty
-        //   k=0: ==, <=             → empty
-        //        !=, >              → !empty
-        //   k=1: <                  → empty   (length < 1 means length == 0)
-        //        >=                 → !empty  (length >= 1 means length > 0)
+        // Map (canon_op, k) → empty / !empty k=0: ==, <=             → empty !=, >              → !empty k=1: <                  → empty   (length < 1 means length == 0) >=                 → !empty  (length >= 1 means length > 0)
         var is_empty_pattern = false
         var is_nonempty_pattern = false
         if (k == 0) {
@@ -1580,20 +1779,18 @@ class PerfLintVisitor : AstVisitor {
                 is_nonempty_pattern = true
             }
         }
-        // Diagnostic uses canon_op so Yoda forms (e.g. `1 <= length(x)`) print
-        // the canonical equivalent (`length(x) >= 1`), matching what we matched.
+        // Diagnostic uses canon_op so Yoda forms (e.g. `1 <= length(x)`) print the canonical equivalent (`length(x) >= 1`), matching what we matched.
         if (is_empty_pattern) {
-            perf_warning("PERF017: 'length(x) {canon_op} {k}' — use 'empty(x)' (avoids unnecessary strlen on strings)", expr.at)
+            perf_warning("PERF017: 'length(x) {canon_op} {k}' - use 'empty(x)' (avoids unnecessary strlen on strings)", expr.at)
         } elif (is_nonempty_pattern) {
-            perf_warning("PERF017: 'length(x) {canon_op} {k}' — use '!empty(x)' (avoids unnecessary strlen on strings)", expr.at)
+            perf_warning("PERF017: 'length(x) {canon_op} {k}' - use '!empty(x)' (avoids unnecessary strlen on strings)", expr.at)
         }
     }
 
     // --- PERF015 / PERF016: ternary min/max/abs ---
 
     def override preVisitExprOp3(expr : ExprOp3?) : void {
-        // PERF021: fires anywhere, including in closures — a redundant per-branch cast
-        // is redundant regardless of where the ternary lives.
+        // PERF021: fires anywhere, including in closures — a redundant per-branch cast is redundant regardless of where the ternary lives.
         check_perf021_ternary_cast_hoist(expr)
         if (in_closure > 0 || expr.op != "?"
             || expr.subexpr == null || !(expr.subexpr is ExprOp2)) return
@@ -1603,8 +1800,7 @@ class PerfLintVisitor : AstVisitor {
             || expr.left == null || expr.right == null) return
         let t_branch = expr.left
         let f_branch = expr.right
-        // PERF016 first — a ternary that matches abs may also superficially match
-        // min/max if x and -x ever describe-equal, but they can't. So order is fine.
+        // PERF016 first — a ternary that matches abs may also superficially match min/max if x and -x ever describe-equal, but they can't. So order is fine.
         if (try_perf016_abs(expr, cmp, t_branch, f_branch, cop)) return
         try_perf015_minmax(expr, cmp, t_branch, f_branch, cop)
     }
@@ -1621,9 +1817,7 @@ class PerfLintVisitor : AstVisitor {
         let same_order = tcl && fcr   // T==L, F==R
         let swap_order = tcr && fcl   // T==R, F==L
         if (!same_order && !swap_order) return false
-        // Mapping
-        //   <  / <=  : T==L,F==R → min;  T==R,F==L → max
-        //   >  / >=  : T==L,F==R → max;  T==R,F==L → min
+        // Mapping <  / <=  : T==L,F==R → min;  T==R,F==L → max >  / >=  : T==L,F==R → max;  T==R,F==L → min
         var is_min = false
         if (cop == "<" || cop == "<=") {
             is_min = same_order
@@ -1631,7 +1825,7 @@ class PerfLintVisitor : AstVisitor {
             is_min = swap_order
         }
         let which = is_min ? "min" : "max"
-        perf_warning("PERF015: ternary {which} — use '{which}(a, b)' from math module", expr.at)
+        perf_warning("PERF015: ternary {which} - use '{which}(a, b)' from math module", expr.at)
         return true
     }
 
@@ -1659,12 +1853,6 @@ class PerfLintVisitor : AstVisitor {
         }
         if (!ok) return false
         // Determine canonical sign of x in comparison: x < 0 or x > 0 etc.
-        // Reduce to: "is x's value-relation `negative` or `positive`" in the true branch
-        // Forms that produce abs:
-        //   x < 0 → -x  (T branch is -x, x is on left)        — neg_then=true , x_on_left=true , cop in {<, <=}
-        //   x > 0 → x   (T branch is x,  x is on left)        — neg_then=false, x_on_left=true , cop in {>, >=}
-        //   0 > x → -x                                         — neg_then=true , x_on_left=false, cop in {>, >=}
-        //   0 < x → x                                          — neg_then=false, x_on_left=false, cop in {<, <=}
         var is_abs = false
         if (x_on_left) {
             if ((cop == "<" || cop == "<=") && neg_then) {
@@ -1680,7 +1868,7 @@ class PerfLintVisitor : AstVisitor {
             }
         }
         if (!is_abs) return false
-        perf_warning("PERF016: ternary abs — use 'abs(x)' from math module", expr.at)
+        perf_warning("PERF016: ternary abs - use 'abs(x)' from math module", expr.at)
         return true
     }
 
@@ -1711,13 +1899,7 @@ class PerfLintVisitor : AstVisitor {
     // --- PERF024: detect args at [clone(...)]-annotated positions ---
 
     def override preVisitExprCallArgument(expr : ExprCall?; arg : ExpressionPtr; last : bool) : void {
-        // Fires once per argument of an ExprCall, in declaration order, BEFORE
-        // the visitor descends into the arg subtree. Used by PERF024:
-        //   Arm A (direct splice): if arg is clone_*(X) at an annotated index → flag.
-        //   Arm B (var-init-only-clone-use): if arg is a bare ExprVar matching a
-        //     candidate, at an annotated index → mark as safe_use and set
-        //     perf024_skip_var so the imminent preVisitExprVar doesn't
-        //     disqualify the candidate.
+        // Fires once per argument of an ExprCall, in declaration order, BEFORE the visitor descends into the arg subtree. Used by PERF024:
         if (expr == null || expr.func == null) return
         var indices : array<int>
         get_clone_param_indices(expr.func, indices)
@@ -1731,9 +1913,7 @@ class PerfLintVisitor : AstVisitor {
             }
         }
         if (arg_index < 0 || !has_value(indices, arg_index)) return
-        // Peel typer-inserted ExprRef2Value wrapper — when the var has reference
-        // type (e.g. `var X = clone_expression(...)`), the typer inserts a
-        // dereference wrapper around uses passed to non-ref params.
+        // Peel typer-inserted ExprRef2Value wrapper — when the var has reference type (e.g. `var X = clone_expression(...)`), the typer inserts a dereference wrapper around uses passed to non-ref params.
         var inner = arg
         if (inner is ExprRef2Value) {
             inner = (inner as ExprRef2Value).subexpr
@@ -1767,11 +1947,7 @@ class PerfLintVisitor : AstVisitor {
         if (expr.func == null) return
         // PERF020: redundant same-type cast — fires anywhere, including in closures
         check_perf020_redundant_cast(expr)
-        // PERF023: track splice-wrapper depth. apply_qrules emits `add_ptr_ref(...)`
-        // around every `$e(...)` tag; matching the function NAME is sufficient
-        // because the templates_boost wrapper is the only producer of that name
-        // and it sits at every $e splice site post-expansion. Must fire BEFORE
-        // the in_closure gate — the rules block is itself a closure.
+        // PERF023: track splice-wrapper depth. apply_qrules emits `add_ptr_ref(...)` around every `$e(...)` tag; matching the function NAME is sufficient because the templates_boost wrapper is the only producer of that name and it sits at every $e splice site post-expansion. Must fire BEFORE the in_closure gate — the rules block is itself a closure.
         if (expr.name == "add_ptr_ref" && !empty(perf023_candidates)) {
             perf023_splice_depth++
         }
@@ -1789,13 +1965,14 @@ class PerfLintVisitor : AstVisitor {
         if (in_while_cond && expr.func.name == "length" && expr.func._module.name == "strings") {
             in_length_while_call++
         }
+        if (!empty(expr.arguments) && expr.func.name |> starts_with("builtin`finalize`")) {
+            perf030_mark_released(expr.arguments[0])
+        }
     }
 
     def override visitExprCall(var expr : ExprCall?) : ExpressionPtr {
         if (expr.func == null) return <- expr
         // PERF023: pop splice-wrapper depth when leaving an add_ptr_ref call.
-        // Symmetric with the preVisitExprCall push above; fires regardless of
-        // closure depth.
         if (expr.name == "add_ptr_ref" && perf023_splice_depth > 0) {
             perf023_splice_depth--
         }
@@ -1832,7 +2009,9 @@ class PerfLintVisitor : AstVisitor {
             if (is_array_func(expr, "push") || is_array_func(expr, "push_clone") || is_array_func(expr, "emplace")) {
                 var path = ""
                 let rv = find_expr_path(expr.arguments[0], path)
-                if (rv != null && is_defined_outside_loop(rv) && !reserved_paths |> has_value(make_path_key(rv, path))) {
+                // generated destination = lowering artifact (comprehension accumulator); no reserve to add
+                if (rv != null && !rv.flags.generated && is_defined_outside_loop(rv)
+                    && !reserved_paths |> has_value(make_path_key(rv, path))) {
                     let fname = string(expr.func.fromGeneric.name)
                     perf_warning("PERF006: {fname} in loop without prior reserve() may cause repeated reallocations; consider reserve() before the loop", expr.at)
                 }
@@ -1872,11 +2051,49 @@ class PerfLintVisitor : AstVisitor {
     }
 
     def override preVisitExprMove(expr : ExprMove?) : void {
+        check_perf030_move_leak(expr)
         if (in_closure > 0 || loop_depth == 0) return
         var v = find_string_var_from_expr(expr.left)
         if (v != null && is_defined_outside_loop(v) && expr.right is ExprStringBuilder) {
             string_builder_target_var = v
         }
+    }
+
+    def check_perf030_move_leak(expr : ExprMove?) : void {
+        // podDelete = rewrite-healed; generated = a lowering (the early-out `var inscope x <- init` split), not a user reassign
+        if (expr == null || expr.move_flags.podDelete || expr.genFlags.generated) return
+        var lhs = expr.left
+        if (lhs is ExprRef2Value) {
+            lhs = (lhs as ExprRef2Value.subexpr)
+        }
+        if (lhs == null || !(lhs is ExprVar)) return
+        // CMRES/generated = the `return <- r` lowering; a `&` binding = an element/field alias, the category tab[k] <- v already excludes
+        let lv = (lhs as ExprVar).variable
+        if (lv == null || lv.flags.aliasCMRES || lv.flags.generated
+                || (lv._type != null && lv._type.flags.ref)
+                || !perf030_needs_release(expr.left._type)) return
+        let released = perf030_released |> find_index(lv)
+        if (released >= 0) {
+            perf030_released |> erase(released)
+            return
+        }
+        perf_warning("PERF030: move-assign drops the target's old contents without release (a leak on a persistent heap); when the target can be live, delete it first; when it is fresh, fold the move into the declaration; or enable force_inscope_pod so the compiler collects it", expr.at)
+    }
+
+    def perf030_mark_released(sub : ExpressionPtr) : void {
+        var e = sub
+        if (e is ExprRef2Value) {
+            e = (e as ExprRef2Value.subexpr)
+        }
+        if (e == null || !(e is ExprVar)) return
+        var v = (e as ExprVar).variable
+        if (v != null && perf030_released |> find_index(v) < 0) {
+            perf030_released |> push(v)
+        }
+    }
+
+    def override preVisitExprDelete(var expr : ExprDelete?) : void {
+        perf030_mark_released(expr.subexpr)
     }
 
     def override visitExprMove(var expr : ExprMove?) : ExpressionPtr {
@@ -1905,18 +2122,16 @@ class PerfLintVisitor : AstVisitor {
         return if (value == null)
         let kind = perf025_value_kind(value)
         if (kind == Perf025Kind.equivalent) {
-            perf_warning("PERF025: string(...) inside string interpolation is redundant — the interpolation already converts to string; drop the cast", inner.at)
+            perf_warning("PERF025: string(...) inside string interpolation is redundant - the interpolation already converts to string; drop the cast", inner.at)
         } elif (kind == Perf025Kind.unsigned_hex) {
-            perf_warning("PERF025: string(...) inside string interpolation is redundant; drop the cast — unsigned values interpolate as hex by default, so use the '\{x:d\}' format tag to keep decimal output", inner.at)
+            perf_warning("PERF025: string(...) inside string interpolation is redundant; drop the cast - unsigned values interpolate as hex by default, so use the '\{x:d\}' format tag to keep decimal output", inner.at)
         }
     }
 
     // --- Central ExprVar handler (PERF002, PERF004, PERF005) ---
 
     def override preVisitExprVar(expr : ExprVar?) : void {
-        // PERF023: classify this var-ref as safe (inside add_ptr_ref) or
-        // disqualifying. Runs before the in_closure gate because the splice
-        // site lives inside the rules-block closure.
+        // PERF023: classify this var-ref as safe (inside add_ptr_ref) or disqualifying. Runs before the in_closure gate because the splice site lives inside the rules-block closure.
         if (!empty(perf023_candidates)) {
             let vv = expr.variable
             if (vv != null) {
@@ -1932,10 +2147,7 @@ class PerfLintVisitor : AstVisitor {
                 }
             }
         }
-        // PERF024: classify this var-ref as safe (pre-classified in
-        // preVisitExprCallArgument as a direct annotated-arg) or disqualifying.
-        // perf024_skip_iptr is set just-in-time by the call-arg hook and
-        // consumed here. Same closure-skip rationale as PERF023.
+        // PERF024: classify this var-ref as safe (pre-classified in preVisitExprCallArgument as a direct annotated-arg) or disqualifying.
         if (!empty(perf024_candidates)) {
             let vv4 = expr.variable
             if (vv4 != null) {
@@ -1976,6 +2188,141 @@ class PerfLintVisitor : AstVisitor {
             }
         }
     }
+
+    // --- PERF026-028: hot-path contract scan ---
+
+    def hot_file_of(at : LineInfo) : string {
+        return at.fileInfo != null ? "{at.fileInfo.name}" : ""
+    }
+
+    def hot_visit_key(fn_hash : uint64; anchor : ExpressionPtr) : uint64 {
+        return fn_hash * 1099511628211ul + intptr(anchor)
+    }
+
+    // Walks fn's body once and slices the result into the shared flat arrays. Every later query
+    // for the same function is a table hit, so a diamond in the call graph costs one walk.
+    def hot_ensure_summary(var fn : Function?; var hc : HotCache) {
+        let h = fn.getMangledNameHash
+        return if (key_exists(hc.sinks_at, h))
+        var scan = new HotBodyScan()
+        make_visitor(*scan) $(adapter) {
+            visit(fn, adapter)
+        }
+        hc.sinks_at |> insert(h, int2(length(hc.sinks_all), length(scan.sinks)))
+        hc.sinks_all |> push_from(scan.sinks)
+        hc.edges_at |> insert(h, int2(length(hc.edges_all), length(scan.edges)))
+        hc.edges_all |> push_from(scan.edges)
+        unsafe { delete scan; }
+    }
+
+    def hot_report(frames : array<HotFrame>; fi : int; sink : HotSink; want : HotBits; root_file : string) {
+        // cast each side: AOT emits bitfield & bitfield as a raw C++ &, ambiguous when one is const
+        return if ((uint(sink.bit) & uint(want)) == 0u)
+        // honor a nolint ANYWHERE along the chain — the sink may bottom in daslib, so the honest line is often an intermediate call site
+        let code = sink.bit.alloc ? "PERF026" : (sink.bit.env ? "PERF027" : "PERF028")
+        return if (is_lint_suppressed(sink.site.at, code))
+        var si = fi
+        while (si >= 0) {
+            if (frames[si].site != null && is_lint_suppressed(frames[si].site.at, code)) {
+                return
+            }
+            si = frames[si].parent
+        }
+        // sink's own location, unless another file or a SHARED node — then the caller-side anchor
+        var at = sink.site.at
+        let shared_node = frames[fi].fn.flags.generated || frames[fi].fn.fromGeneric != null
+        if ((hot_file_of(at) != root_file || shared_node) && frames[fi].anchor != null) {
+            at = frames[fi].anchor.at
+        }
+        // ...but then say where the sink actually is, or a callee in another file is unfindable
+        var sink_pos = ""
+        if (sink.site.at.line != at.line || hot_file_of(sink.site.at) != hot_file_of(at)) {
+            sink_pos = " [at {hot_file_of(sink.site.at)}:{int(sink.site.at.line)}]"
+        }
+        // Generic instances mangle their name; the origin reads the way the author wrote the call.
+        var parts : array<string>
+        var pi = fi
+        while (pi >= 0) {
+            var pf = frames[pi].fn
+            parts |> push(string(pf.fromGeneric != null ? pf.fromGeneric.name : pf.name))
+            pi = frames[pi].parent
+        }
+        let chain = build_string() $(var w) {
+            var k = length(parts) - 1
+            while (k >= 0) {
+                w |> write(parts[k])
+                if (k > 0) {
+                    w |> write(" -> ")
+                }
+                k--
+            }
+        }
+        delete parts
+        let esc = "[cold_path] on the callee, // nolint on the line, or DAS_LINT_DISABLE for a whole run"
+        let esc_alloc = "@scratch on the destination field if it is a reused buffer, {esc}"
+        if (sink.bit.alloc) {
+            perf_warning("PERF026: {sink.what} allocates or frees on a hot path, via {chain}{sink_pos}; hoist it out of the hot path. To allow it: {esc_alloc}", at)
+        } elif (sink.bit.env) {
+            perf_warning("PERF027: {sink.what} reads the environment on a hot path, via {chain}{sink_pos}; getenv allocates a string in the context heap on every call - read it once at init and cache the value. To allow it: {esc}", at)
+        } else {
+            perf_warning("PERF028: {sink.what} performs I/O on a hot path, via {chain}{sink_pos}. To allow it: {esc}", at)
+        }
+    }
+
+    def scan_hot_root(var root : Function?; var hc : HotCache) {
+        let want = hot_bits_of(root)
+        let root_file = hot_file_of(root.at)
+        var frames : array<HotFrame>
+        var visited : table<uint64>
+        frames |> push(HotFrame(fn = root, parent = -1))
+        visited |> insert(hot_visit_key(root.getMangledNameHash, null))
+        // Breadth-first so the reported chain is the shortest route to the sink.
+        var qi = 0
+        while (qi < length(frames)) {
+            var cur = frames[qi]
+            let ci = qi
+            qi++
+            hot_ensure_summary(cur.fn, hc)
+            let h = cur.fn.getMangledNameHash
+            let ss = hc.sinks_at[h]
+            for (si in range(ss.x, ss.x + ss.y)) {
+                hot_report(frames, ci, hc.sinks_all[si], want, root_file)
+            }
+            let es = hc.edges_at[h]
+            for (ei in range(es.x, es.x + es.y)) {
+                var callee = hc.edges_all[ei].fn
+                continue if (callee == null || callee.body == null || callee.flags.builtIn
+                             || callee.moreFlags.isTemplate || callee.moreFlags.stub
+                             || is_cold_path(callee))
+                var site = hc.edges_all[ei].site
+                // the call site lives in the caller's body, so this tests the CALLER's file
+                var anchor = hot_file_of(site.at) == root_file ? site : cur.anchor
+                let key = hot_visit_key(callee.getMangledNameHash, anchor)
+                continue if (key_exists(visited, key))
+                visited |> insert(key)
+                frames |> push(HotFrame(fn = callee, parent = ci, site = site, anchor = anchor))
+            }
+        }
+        delete frames
+        delete visited
+    }
+
+    def hot_path_scan() {
+        return if (empty(hot_roots))
+        // all three off: skip the walk rather than discard it, so the disable buys compile time
+        if (is_suppressed_code("PERF026") && is_suppressed_code("PERF027")
+            && is_suppressed_code("PERF028")) {
+            hot_roots |> clear()
+            return
+        }
+        var hc : HotCache
+        while (!empty(hot_roots)) {
+            var root = hot_roots[length(hot_roots) - 1]
+            hot_roots |> erase(length(hot_roots) - 1)
+            scan_hot_root(root, hc)
+        }
+        delete hc
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1998,6 +2345,7 @@ def public perf_lint(prog : ProgramPtr; compile_time_errors : bool; disabled_cod
     make_visitor(*astVisitor) $(astVisitorAdapter) {
         visit(prog, astVisitorAdapter)
     }
+    astVisitor->hot_path_scan()
     let count = astVisitor.warning_count
     unsafe { delete astVisitor; }
     return count
@@ -2020,8 +2368,26 @@ def public perf_lint_collect(prog : ProgramPtr; var warnings : array<string>;
     make_visitor(*astVisitor) $(astVisitorAdapter) {
         visit(prog, astVisitorAdapter)
     }
+    astVisitor->hot_path_scan()
     let count = astVisitor.warning_count
     warnings |> push_from(astVisitor.warnings)
+    unsafe { delete astVisitor; }
+    return count
+}
+
+def public perf_lint_collect_issues(prog : ProgramPtr; var issues : array<LintIssue>;
+                                    disabled_codes, enabled_codes : table<string>) : int {
+    //! Structured twin of ``perf_lint_collect`` — same filters, but emits
+    //! ``LintIssue`` records (rule code + position) instead of display strings.
+    var astVisitor = new PerfLintVisitor(compile_time_errors = false, collect_warnings = true)
+    astVisitor.disabled_codes := disabled_codes
+    astVisitor.enabled_codes := enabled_codes
+    make_visitor(*astVisitor) $(astVisitorAdapter) {
+        visit(prog, astVisitorAdapter)
+    }
+    astVisitor->hot_path_scan()
+    let count = astVisitor.warning_count
+    issues |> push_from(astVisitor.issues)
     unsafe { delete astVisitor; }
     return count
 }
@@ -2038,3 +2404,4 @@ class PerfLintMacro : AstPassMacro {
         return true
     }
 }
+

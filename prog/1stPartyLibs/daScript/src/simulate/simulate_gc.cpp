@@ -1112,6 +1112,17 @@ namespace das
         return v_zero();
     }
 
+    // the no-zero variant: frees the value's owned heap through the same GcPod walk (which
+    // by construction cannot run user code) but leaves the bytes alone - for container
+    // erase/clear/shrink, where the container itself disposes of or reuses the slot memory
+    vec4f builtin_collect_local ( Context & context, SimNode_CallBase * call, vec4f * args ) {
+        if ( context.persistent ) {  // only doing any work if its a persistent heap
+            GcPod gcpod(&context, &call->debugInfo);
+            gcpod.walk(args[0], call->types[0]);
+        }
+        return v_zero();
+    }
+
     vec4f builtin_scope_free ( Context & context, SimNode_CallBase * call, vec4f * args ) {
         if ( context.persistent ) {  // only persistent heaps free individually
             auto ptr = cast<char *>::to(args[0]);

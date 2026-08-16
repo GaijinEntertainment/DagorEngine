@@ -390,7 +390,21 @@ public:
   void pop_back()
   {
     BOUNDS_CHECK_ASSERT(size() != 0);
-    data()[--base_type::used()].~value_type();
+    const size_type newCount = base_type::used() - 1;
+    value_type *s = base_type::data();
+    s[newCount].~value_type();
+    IF_CONSTEXPR (canOverflow)
+    {
+      CHECK_RELOCATABLE_OR_INPLACE()
+      // storage is chosen from the count alone, so a pop that crosses the
+      // inplace boundary must move the data back inplace and free the heap.
+      if (base_type::isInplace() != base_type::is_inplace(newCount)) [[unlikely]]
+      {
+        memcpy((void *)base_type::inplaceData(), (void *)s, newCount * sizeof(value_type));
+        deallocate(s);
+      }
+    }
+    base_type::used() = newCount;
   }
   void assign(size_type n, const value_type &value);
   void assign(const value_type *s, const value_type *e);

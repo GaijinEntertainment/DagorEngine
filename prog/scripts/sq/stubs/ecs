@@ -271,6 +271,415 @@ let ecsTypes = {
 
 let UNUSED = @(...) null
 
+//------------------------------------------------------------------------------
+// query filter_string parser + validator; mirrors the native filter parser
+// (prog/gameLibs/ecs/scripts/sq/parseExpression.cpp + queryExpression.h):
+//   filter  := component | component '==' operand | func
+//   func    := (eq|ne|lt|le|gt|ge|and|or) '(' operand ',' operand ')'
+//            | opt '(' component ',' operand ')'
+//   operand := component | func | int | float | true | false | int':eid'
+// components must be declared in comps_rw/comps_ro ('eid' is declared
+// implicitly); both operands of a function must have the same type; and/or take
+// bool, lt/le/gt/ge take int/float, opt takes an optional component (one
+// declared with a default value) and yields its value type; the whole filter
+// must yield bool.
+//------------------------------------------------------------------------------
+
+let fltFunctionNames = { eq=true, ne=true, lt=true, le=true, gt=true, ge=true, ["and"]=true, ["or"]=true, opt=true }
+let fltScalarTypes = { TYPE_INT="int", TYPE_FLOAT="float", TYPE_BOOL="bool", TYPE_EID="eid" }
+
+let fltIsSpace = @(c) c==' ' || c=='\t' || c=='\v' || c=='\n' || c=='\r'
+let fltIsDigit = @(c) c>='0' && c<='9'
+let fltIsIdentStart = @(c) (c>='a' && c<='z') || (c>='A' && c<='Z') || c=='_'
+let fltIsIdentChar = @(c) fltIsIdentStart(c) || fltIsDigit(c) || c=='.'
+
+function fltError(msg, pos) {
+  return { ferr=msg, fpos=pos }
+}
+
+function fltTokenize(s) {
+  let n = s.len()
+  let toks = []
+  local i = 0
+  while (true) {
+    while (i < n && fltIsSpace(s[i]))
+      i++
+    if (i >= n) {
+      toks.append({ t="end", pos=i, epos=i })
+      return toks
+    }
+    let start = i
+    let c = s[i]
+    if (fltIsIdentStart(c)) {
+      i++
+      while (i < n && fltIsIdentChar(s[i]))
+        i++
+      let word = s.slice(start, i)
+      if (word == "true" || word == "false")
+        toks.append({ t="bool", v=(word=="true"), pos=start, epos=i })
+      else if (word in fltFunctionNames) {
+        // like the native lexer: 'name (' is a function call, bare 'name' is a component
+        local j = i
+        while (j < n && fltIsSpace(s[j]))
+          j++
+        if (j < n && s[j] == '(') {
+          i = j + 1
+          toks.append({ t="func", fun=word, pos=start, epos=i })
+        }
+        else
+          toks.append({ t="id", name=word, pos=start, epos=i })
+      }
+      else
+        toks.append({ t="id", name=word, pos=start, epos=i })
+    }
+    else if (fltIsDigit(c) || c=='-' || (c=='.' && i+1 < n && fltIsDigit(s[i+1]))) {
+      local p = i
+      local neg = false
+      if (c == '-') {
+        p++
+        while (p < n && fltIsSpace(s[p]))
+          p++
+        if (p >= n || !(fltIsDigit(s[p]) || (s[p]=='.' && p+1 < n && fltIsDigit(s[p+1]))))
+          throw fltError("expected a number after '-'", start)
+        neg = true
+      }
+      let numStart = p
+      while (p < n && fltIsDigit(s[p]))
+        p++
+      local isFloat = false
+      if (p < n && s[p] == '.') {
+        p++
+        while (p < n && fltIsDigit(s[p]))
+          p++
+        isFloat = true
+      }
+      if (p < n && (s[p]=='e' || s[p]=='E') && (isFloat || p > numStart)) {
+        local q = p + 1
+        if (q < n && (s[q]=='+' || s[q]=='-'))
+          q++
+        if (q < n && fltIsDigit(s[q])) { // 'e' without exponent digits is not part of the number
+          q++
+          while (q < n && fltIsDigit(s[q]))
+            q++
+          p = q
+          isFloat = true
+        }
+      }
+      if (isFloat) {
+        let v = s.slice(numStart, p).tofloat()
+        if (p < n && (s[p]=='f' || s[p]=='F' || s[p]=='l' || s[p]=='L'))
+          p++
+        i = p
+        toks.append({ t="float", v=(neg ? -v : v), pos=start, epos=i })
+      }
+      else if (!neg && p + 4 <= n && s.slice(p, p + 4) == ":eid") {
+        local v = 0
+        for (local k = numStart; k < p; k++) {
+          v = v * 10 + (s[k] - '0')
+          if (v > 4294967295)
+            throw fltError("entity id literal is too large (32 bit max)", start)
+        }
+        i = p + 4
+        toks.append({ t="eid", v=v, pos=start, epos=i })
+      }
+      else {
+        local v = 0
+        for (local k = numStart; k < p; k++) {
+          v = v * 10 + (s[k] - '0')
+          if (v > 4294967295)
+            throw fltError("integer literal is too large (32 bit max)", start)
+        }
+        i = p
+        toks.append({ t="int", v=(neg ? -v : v), pos=start, epos=i })
+      }
+    }
+    else if (c == '=') {
+      if (i+1 < n && s[i+1] == '=') {
+        toks.append({ t="==", pos=start, epos=i+2 })
+        i += 2
+      }
+      else
+        throw fltError("single '=' is not a valid operator, use '=='", start)
+    }
+    else if (c == ',') {
+      toks.append({ t=",", pos=start, epos=i+1 })
+      i++
+    }
+    else if (c == ')') {
+      toks.append({ t=")", pos=start, epos=i+1 })
+      i++
+    }
+    else {
+      local hint = ""
+      if (c == '{' || c == '}')
+        hint = " (looks like an unsubstituted placeholder: .subst() was probably not applied to the filter string)"
+      else if (c == '(')
+        hint = " (only eq/ne/lt/le/gt/ge/and/or/opt function calls are supported, not parenthesized expressions)"
+      else if (c == ':')
+        hint = " (':eid' is only valid right after a non-negative integer, e.g. 123:eid)"
+      throw fltError($"unexpected character '{c.tochar()}'{hint}", start)
+    }
+  }
+}
+
+function fltTokDesc(tok) {
+  if (tok.t == "func")
+    return $"function '{tok.fun}('"
+  if (tok.t == "id")
+    return $"identifier '{tok.name}'"
+  if (tok.t == "int" || tok.t == "float")
+    return $"number {tok.v}"
+  if (tok.t == "eid")
+    return $"entity id {tok.v}:eid"
+  if (tok.t == "bool")
+    return tok.v ? "'true'" : "'false'"
+  if (tok.t == "end")
+    return "end of filter"
+  return $"'{tok.t}'"
+}
+
+function fltNextTok(st) {
+  let tok = st.toks[st.i]
+  if (tok.t != "end")
+    st.i++
+  return tok
+}
+
+function fltExpect(st, what, opened_fun = null) {
+  let tok = fltNextTok(st)
+  if (tok.t == what)
+    return tok
+  if (tok.t == "==")
+    throw fltError("'==' is allowed only as the whole filter in a 'component == value' form; inside function arguments use eq(a, b)", tok.pos)
+  let ctx = opened_fun != null ? $" closing '{opened_fun}('" : ""
+  throw fltError($"expected '{what}'{ctx}, got {fltTokDesc(tok)}", tok.pos)
+}
+
+// parses one operand: component, literal or nested function call
+function fltParseExpr(st) {
+  let tok = fltNextTok(st)
+  if (tok.t == "func") {
+    if (tok.fun == "opt") {
+      let ctok = fltNextTok(st)
+      if (ctok.t != "id")
+        throw fltError($"opt( takes an optional component name as its first argument, got {fltTokDesc(ctok)}", ctok.pos)
+      let comp = { kind="comp", name=ctok.name, optArg=true, pos=ctok.pos, epos=ctok.epos }
+      fltExpect(st, ",")
+      let def = fltParseExpr(st)
+      let close = fltExpect(st, ")", "opt")
+      return { kind="fun", fun="opt", left=comp, right=def, pos=tok.pos, epos=close.epos }
+    }
+    let a = fltParseExpr(st)
+    fltExpect(st, ",")
+    let b = fltParseExpr(st)
+    let close = fltExpect(st, ")", tok.fun)
+    return { kind="fun", fun=tok.fun, left=a, right=b, pos=tok.pos, epos=close.epos }
+  }
+  if (tok.t == "id")
+    return { kind="comp", name=tok.name, optArg=false, pos=tok.pos, epos=tok.epos }
+  if (tok.t == "int" || tok.t == "float" || tok.t == "bool" || tok.t == "eid")
+    return { kind="lit", vtype=tok.t, v=tok.v, pos=tok.pos, epos=tok.epos }
+  if (tok.t == "==")
+    throw fltError("'==' is allowed only as the whole filter in a 'component == value' form; inside function arguments use eq(a, b)", tok.pos)
+  throw fltError($"expected a component, literal or function call, got {fltTokDesc(tok)}", tok.pos)
+}
+
+// parses a query filter string; returns {src, root, error}: root = expression
+// tree on success, error = {ferr, fpos} on failure
+function parse_query_filter_string(filter_str) {
+  try {
+    let st = { toks = fltTokenize(filter_str), i = 0 }
+    local root
+    let first = st.toks[0]
+    if (first.t == "id") {
+      fltNextTok(st)
+      let comp = { kind="comp", name=first.name, optArg=false, pos=first.pos, epos=first.epos }
+      let nxt = fltNextTok(st)
+      if (nxt.t == "==") {
+        let rhs = fltParseExpr(st)
+        root = { kind="fun", fun="==", left=comp, right=rhs, pos=first.pos, epos=rhs.epos }
+      }
+      else if (nxt.t == "end")
+        root = comp
+      else
+        throw fltError($"after component '{first.name}' expected '==' or end of filter, got {fltTokDesc(nxt)}", nxt.pos)
+    }
+    else if (first.t == "func")
+      root = fltParseExpr(st)
+    else if (first.t == "end")
+      throw fltError("empty filter string (pass null when no filtering is needed)", 0)
+    else
+      throw fltError($"a filter must start with a component name or a function call eq/ne/lt/le/gt/ge/and/or/opt, got {fltTokDesc(first)}", first.pos)
+    let trailing = st.toks[st.i]
+    if (trailing.t != "end")
+      throw fltError($"unexpected {fltTokDesc(trailing)} after a complete expression (the game engine silently ignores the rest of the filter string; combine conditions with and(c1, c2))", trailing.pos)
+    return { src=filter_str, root=root, error=null }
+  }
+  catch (e) {
+    if (type(e) == "table" && "ferr" in e)
+      return { src=filter_str, root=null, error=e }
+    throw e
+  }
+}
+
+// components usable in a filter, mirrors component search in the native
+// get_component_node: comps_rw first, then comps_ro, plus implicit 'eid';
+// comps_rq/comps_no are collected only for better error messages
+function fltCollectComps(comps) {
+  let byName = {}
+  let elsewhere = {}
+  local total = 0
+  foreach (listName in ["comps_rw", "comps_ro", "comps_rq", "comps_no"]) {
+    let lst = comps?[listName]
+    if (type(lst) != "array")
+      continue
+    foreach (entry in lst) {
+      local nm = null
+      local ftype = "unknown"
+      local optional = false
+      if (type(entry) == "string")
+        nm = entry
+      else if (type(entry)=="array" && entry.len() > 0 && type(entry[0])=="string") {
+        nm = entry[0]
+        optional = entry.len() > 2 // a component declared with a default value is optional
+        if (entry.len() > 1) {
+          let typeVal = entry[1]
+          let tt = type(typeVal)
+          let tn = (tt=="class" || tt=="table" || tt=="instance") ? typeVal?.name : null
+          if (type(tn) == "string")
+            ftype = fltScalarTypes?[tn] ?? tn
+          else if (tt == "table")
+            ftype = "a script-defined type"
+          // integer type id / null: type is unknown to the stub, type checks are skipped
+        }
+      }
+      if (nm == null)
+        continue // malformed declaration, not this validator's business
+      total++
+      if (listName=="comps_rw" || listName=="comps_ro") {
+        if (nm not in byName)
+          byName[nm] <- { ftype=ftype, optional=optional, where=listName }
+      }
+      else if (nm not in elsewhere)
+        elsewhere[nm] <- listName
+    }
+  }
+  if (total > 0 && "eid" not in byName)
+    byName["eid"] <- { ftype="eid", optional=false, where="implicit" }
+  return { byName=byName, elsewhere=elsewhere }
+}
+
+function fltFormatError(src, msg, pos) {
+  let chars = []
+  foreach (c in src)
+    chars.append(fltIsSpace(c) ? " " : c.tochar())
+  let srcLine = "".join(chars)
+  let caretLine = "".concat("".join(array(pos < 0 ? 0 : pos, " ")), "^")
+  return "\n    ".join([msg, srcLine, caretLine])
+}
+
+function fltDescribeNode(src, node) {
+  if (node.kind == "comp")
+    return $"component '{node.name}'"
+  let text = src.slice(node.pos, node.epos)
+  return node.kind == "lit" ? $"literal '{text}'" : $"'{text}'"
+}
+
+function fltResolveComp(v, node) {
+  let nm = node.name
+  if (nm in v.comps.byName) {
+    let ci = v.comps.byName[nm]
+    if (node.optArg && !ci.optional) {
+      v.errors.append(fltFormatError(v.src, $"opt() needs an optional component, but '{nm}' is not optional; declare it with a default value ([\"{nm}\", <TYPE>, <default>]) or drop the opt() wrapper", node.pos))
+      return "unknown"
+    }
+    if (!node.optArg && ci.optional) {
+      v.errors.append(fltFormatError(v.src, $"component '{nm}' is optional (declared with a default value): it can appear in a filter only as opt({nm}, <default>)", node.pos))
+      return "unknown"
+    }
+    if (ci.ftype=="unknown" || ci.ftype=="int" || ci.ftype=="float" || ci.ftype=="bool" || ci.ftype=="eid")
+      return ci.ftype
+    v.errors.append(fltFormatError(v.src, $"component '{nm}' is declared as {ci.ftype}; a filter can only use TYPE_INT, TYPE_FLOAT, TYPE_BOOL or TYPE_EID components", node.pos))
+    return "unknown"
+  }
+  if (nm in v.comps.elsewhere) {
+    v.errors.append(fltFormatError(v.src, $"component '{nm}' is declared in {v.comps.elsewhere[nm]}, but a filter can only use components declared in comps_rw or comps_ro", node.pos))
+    return "unknown"
+  }
+  let known = []
+  foreach (cn, ci in v.comps.byName)
+    known.append(ci.where=="implicit" ? $"{cn} ({ci.ftype}, implicit)" : $"{cn} ({ci.ftype})")
+  known.sort()
+  let knownDesc = known.len() > 0 ? ", ".join(known) : "none (this query declares no comps_rw/comps_ro components)"
+  let hint = nm == "null" ? " ('null' hints that a null value was substituted into a dynamically built filter string)" : ""
+  v.errors.append(fltFormatError(v.src, $"unknown component '{nm}'{hint}; components available to this filter: {knownDesc}", node.pos))
+  return "unknown"
+}
+
+// returns the deduced expression type: int/float/bool/eid, or unknown after an
+// error or for components whose type the stub cannot know
+function fltDeferType(v, node) {
+  if (node.kind == "comp")
+    return fltResolveComp(v, node)
+  if (node.kind == "lit")
+    return node.vtype
+  let lt = fltDeferType(v, node.left)
+  let rt = fltDeferType(v, node.right)
+  let f = node.fun
+  let fdisp = f == "==" ? "'=='" : $"{f}()"
+  if (lt != "unknown" && rt != "unknown" && lt != rt) {
+    v.errors.append(fltFormatError(v.src,
+      $"operand types of {fdisp} do not match: {fltDescribeNode(v.src, node.left)} is {lt} while {fltDescribeNode(v.src, node.right)} is {rt}", node.right.pos))
+    return f == "opt" ? "unknown" : "bool"
+  }
+  if (f == "opt")
+    return rt != "unknown" ? rt : lt
+  if (f == "and" || f == "or") {
+    foreach (opnd in [[node.left, lt], [node.right, rt]])
+      if (opnd[1] != "unknown" && opnd[1] != "bool") {
+        let fix = opnd[0].kind == "comp" ? $"; use a comparison, e.g. eq({opnd[0].name}, <value>)" : ""
+        v.errors.append(fltFormatError(v.src, $"{fdisp} takes bool operands, but {fltDescribeNode(v.src, opnd[0])} is {opnd[1]}{fix}", opnd[0].pos))
+      }
+    return "bool"
+  }
+  if (f == "lt" || f == "le" || f == "gt" || f == "ge") {
+    foreach (opnd in [[node.left, lt], [node.right, rt]])
+      if (opnd[1] != "unknown" && opnd[1] != "int" && opnd[1] != "float")
+        v.errors.append(fltFormatError(v.src, $"{fdisp} compares numbers, but {fltDescribeNode(v.src, opnd[0])} is {opnd[1]}", opnd[0].pos))
+    return "bool"
+  }
+  return "bool" // eq/ne/'==': matching operand types are enough, all filter types are comparable
+}
+
+// validates a query filter against a components description table
+// ({comps_rw=[...], comps_ro=[...], ...}); filter is either a filter string or
+// a parse_query_filter_string() result; returns an array of readable error
+// strings, empty when the filter is valid
+function validate_query_filter(comps, filter) {
+  let parsed = type(filter) == "string" ? parse_query_filter_string(filter) : filter
+  assert(type(parsed)=="table" && "root" in parsed && "src" in parsed,
+    "validate_query_filter: filter must be a string or a parse_query_filter_string() result")
+  if (parsed.error != null)
+    return [fltFormatError(parsed.src, parsed.error.ferr, parsed.error.fpos)]
+  let v = { src = parsed.src, comps = fltCollectComps(comps), errors = [] }
+  let rootType = fltDeferType(v, parsed.root)
+  if (rootType != "unknown" && rootType != "bool") {
+    if (parsed.root.kind == "comp")
+      v.errors.append(fltFormatError(v.src, $"a filter must be a bool condition: bare component '{parsed.root.name}' is {rootType}; compare it, e.g. eq({parsed.root.name}, <value>)", parsed.root.pos))
+    else
+      v.errors.append(fltFormatError(v.src, $"a filter must evaluate to bool, this expression evaluates to {rootType}", parsed.root.pos))
+  }
+  return v.errors
+}
+
+function assertValidQueryFilter(owner, comps, filter_str) {
+  let errors = validate_query_filter(comps, filter_str)
+  if (errors.len() == 0)
+    return
+  let details = "\n  ".join(errors)
+  assert(false, @() $"{owner}: invalid filter string:\n  {details}")
+}
+
 return ecsTypes.__merge({
   EventEntityCreated
   EventScriptReloaded
@@ -309,6 +718,8 @@ return ecsTypes.__merge({
       assert(vargv.len()<2, $"query '{name}' can be created with optional filterstring or without anything")
       if (vargv.len()==1) {
         assert(["string"].contains(type(vargv[0])), $"squery '{name}' ctor can have optional filter string")
+        if (vargv[0] != "") // empty filter string in ctor is accepted by the engine and means no filter
+          assertValidQueryFilter($"query '{name}'", components, vargv[0])
       }
     }
     perform = function(...){
@@ -319,19 +730,24 @@ return ecsTypes.__merge({
       local callbackArg = isSingleEid ? vargv[1] : vargv[0]
       assert(type(callbackArg) == "function", $"query '{this.name}' perform should be called with callback as first argument or after eid")
       local filterstringArg = isSingleEid ? vargv?[2] : vargv?[1]
-      if (filterstringArg != null)
+      if (filterstringArg != null) {
         assert(type(filterstringArg) == "string", $"query '{this.name}' perform last optional argument (filterstring) should be string")
+        assertValidQueryFilter($"query '{this.name}' perform", this.components, filterstringArg)
+      }
     }
     _call = function(...){
-      assert(vargv.len() > 0 && vargv.len() <= 3, $"query '{this.name}' incorrect number of arguments. Perform should have 1 - 3 args")
+      // vargv[0] is the call environment, user arguments start at vargv[1]
+      assert(vargv.len() >= 2 && vargv.len() <= 4, $"query '{this.name}' incorrect number of arguments. Perform should have 1 - 3 args")
       assert(["integer","function"].contains(type(vargv[1])), @() $"query '{this.name}' first argument of perform should be int or callback")
       local isSingleEid = type(vargv[1]) == "integer"
       assert(!isSingleEid || vargv.len() > 2, $"query '{this.name}' too few arguments for perform with eid, callback should be second argument")
       local callbackArg = isSingleEid ? vargv[2] : vargv[1]
       assert(type(callbackArg) == "function", $"query '{this.name}' perform should be called with callback as first argument or after eid")
       local filterstringArg = isSingleEid ? vargv?[3] : vargv?[2]
-      if (filterstringArg != null)
+      if (filterstringArg != null) {
         assert(type(filterstringArg) == "string", $"query '{this.name}' perform last optional argument (filterstring) should be string")
+        assertValidQueryFilter($"query '{this.name}' perform", this.components, filterstringArg)
+      }
     }
   }
   register_entity_system = function(name,events,comps,params=null){
@@ -405,6 +821,7 @@ return ecsTypes.__merge({
       assert(type(handler)=="function")
       assert(type(comps)=="table")
       assert(type(filter)=="string")
+      assertValidQueryFilter("g_entity_mgr.performFilteredQuery", comps, filter)
     }
     getTemplateDB = @() {getTemplateByName = @(name) assert(type(name)=="string")}
     broadcastEvent = @(_event) null
@@ -415,4 +832,8 @@ return ecsTypes.__merge({
     destroyEntity = @(_eid) false
     sendEvent = @(_eid, _event) null
   }
+
+  // stub-only, not in the native module: other stubs taking a query filter
+  // validate it with this
+  __assertValidQueryFilter = assertValidQueryFilter
 })

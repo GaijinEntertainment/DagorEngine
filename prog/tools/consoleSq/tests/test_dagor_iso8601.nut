@@ -1,4 +1,4 @@
-// Squirrel module under test: dagor.iso8601 (registered by sqratIso8601Time.cpp)
+// Quirrel module under test: dagor.iso8601 (registered by sqratIso8601Time.cpp)
 
 from "dagor.iso8601" import parse_msec, parse_unix_time, format_msec, format_unix_time
 

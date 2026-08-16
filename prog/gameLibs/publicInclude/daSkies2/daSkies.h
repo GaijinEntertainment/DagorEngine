@@ -447,11 +447,6 @@ public:
   void setSolidColorMode(bool enabled, const E3DCOLOR &val = E3DCOLOR());
   bool isSolidColorMode() const { return solidColorMode; }
 
-  void setPanoramaBelowSkiesFillColor(const Color3 &fill_color, float opacity = 1.0f)
-  {
-    panoramaBelowSkiesFillColor = color4(fill_color, opacity);
-  }
-
   void renderCelestialObject(const Point3 &dir, float phase, float intensity, float size);
   void renderCelestialObject(TEXTUREID tid, const Point3 &dir, float phase, float intensity, float size);
 
@@ -650,8 +645,6 @@ protected:
   PostFxRenderer skyPanorama, cloudsPanorama, cloudsAlphaPanorama;
   PostFxRenderer applyCloudsPanorama;
   PostFxRenderer applySolidColor;
-
-  Color4 panoramaBelowSkiesFillColor{0, 0, 0, 0};
 
   float panoramaRGBMScaleFactor = 1.f;
   // values more than 15 make compression and rgbm artifacts more noticeable

@@ -296,7 +296,8 @@ namespace das {
         addExtern<DAS_BIND_FUN(das::PassFilter), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "PassFilter",
             SideEffects::worstDefault, "das::PassFilter");
         addExtern<DAS_BIND_FUN(das::text_range_string), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "string",
-            SideEffects::worstDefault, "das::text_range_string");
+            SideEffects::worstDefault, "das::text_range_string")
+                ->setTempStringResult();
         // imcolor
         addExtern<DAS_BIND_FUN(das::HSV), SimNode_ExtFuncCall, imguiTempFn>(*this, lib, "HSV",
             SideEffects::none, "das::HSV")
@@ -352,7 +353,8 @@ namespace das {
         addExtern<DAS_BIND_FUN(das::ImGTB_SetAt), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"set_at",   // TODO: do we need to learn to map operator []?
             SideEffects::worstDefault,"das::ImGTB_SetAt");
         addExtern<DAS_BIND_FUN(das::ImGTB_Slice), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"slice",
-            SideEffects::worstDefault,"das::ImGTB_Slice");
+            SideEffects::worstDefault,"das::ImGTB_Slice")
+                ->setTempStringResult();
         // ImGuiInputTextCallbackData
         addExtern<DAS_BIND_FUN(das::InsertChars), SimNode_ExtFuncCall, imguiTempFn>(*this,lib,"InsertChars",
             SideEffects::worstDefault,"das::InsertChars");

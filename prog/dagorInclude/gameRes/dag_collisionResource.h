@@ -23,7 +23,6 @@
 #include <math/dag_e3dColor.h>
 #include <EASTL/fixed_function.h>
 #include <EASTL/unique_ptr.h> // completes CollisionResourceInstancePtr for createInstance callers
-#include <EASTL/bitvector.h>
 #include <dag/dag_vector.h>
 #include <daBVH/dag_swBLAS_soa4.h> // SoA4 BLAS walkers (iterateLeafRefs) + vert21 unpack for BLAS-resident nodes
 
@@ -137,8 +136,7 @@ struct CollisionNode
   // Sentinel for nextNode / CollisionResource::*NodesHead (no node).
   static constexpr uint16_t INVALID_IDX = 0xffff;
 
-  // Be careful using that flags since entity tm might be scaled too and in most cases will be faster to assume that instance_tm*nodeTm
-  // is always scaled See also cachedMaxTmScale member if you anyway want use it
+  // Persisted authored transform class; runtime pose metadata lives in CollisionResourceInstance.
   enum NodeFlag : uint8_t
   {
     NONE = 0,
@@ -198,14 +196,13 @@ struct CollisionNode
   int16_t physMatId = -1;
 
 protected:
-  TMatrix tm = TMatrix::IDENT;
+  // Node-local bounds; public primitive accessors preserve their historical composed frames.
   BBox3 modelBBox;
   struct
   {
     Point3 c;
     float r = 0.f;
   } boundingSphere;
-  float cachedMaxTmScale = 1.f;
   friend class CollisionResource;
   friend struct CollisionResourceInstance;
   friend class CollisionResourceBVH;
@@ -278,28 +275,33 @@ public:
   // If you got crash here with (this == nullptr), it's compiler error. Try to make node iterator simpler.
   bool checkBehaviorFlags(uint16_t f) const { return (behaviorFlags & f) == f; }
   bool isBehaviorFlagsInFilter(uint16_t f) const { return (behaviorFlags | f) == f; }
-
-  TMatrix getInverseTmFlags() const
-  {
-    TMatrix ret;
-    if (DAGOR_LIKELY(flags & (ORTHONORMALIZED | ORTHOUNIFORM)))
-    {
-      ret = orthonormalized_inverse(tm);
-      if (DAGOR_UNLIKELY((flags & ORTHONORMALIZED) == 0))
-        ret *= 1.f / lengthSq(tm.getcol(0));
-    }
-    else
-      ret = inverse(tm);
-    return ret;
-  }
 };
 DAG_DECLARE_RELOCATABLE(CollisionNode);
 
 class GeomNodeTree;
 class CollisionResource;
+class CollisionResourceTraceAdapter;
 
-// Caller-owned resource-local pose; updates must be serialized against traces.
-// Legacy APIs use the resource's embedded default instance.
+// Caller-owned pose of a CollisionResource. Two owning forms plus a wrapper-internal view:
+// tree-backed (bound to a GeomNodeTree; matrices are read live from the tree, derived state
+// refreshes lazily at trace time) and owned-matrix (tree == null; the embedded default
+// instance and manual poses driven via updateNodeTm). Pose mutation must be serialized
+// against traces; the lazy refresh itself is internally locked. Concurrent traces must
+// agree on entity_tm: derived state is entity-relative, and a changed entity placement
+// is a pose change under the same serialization rule.
+// Contract of the tree-backed form: driven node wtms are rotation+translation only (no
+// scale/shear), so bind-pose metadata stays conservative for every live pose (a dev canary
+// checks a 2e-3 band; release does not enforce). A mirrored driven wtm hides its node until
+// the wtm recovers. Staleness assumes the tree pose generation cannot revisit a stamped
+// value un-refreshed (a full 2^32 wrap landing exactly on the stamp is out of contract).
+// Bit-exact identity of a 4x3 matrix. The POSE_IS_IDENTITY writers and their re-checks share
+// this one definition so the compare cannot drift per site (the trace shortcut trusts the bit).
+inline bool collres_is_exact_identity_43(mat44f_cref tm)
+{
+  return v_check_xyz_all_true(v_cmp_eq(tm.col0, V_C_UNIT_1000)) && v_check_xyz_all_true(v_cmp_eq(tm.col1, V_C_UNIT_0100)) &&
+         v_check_xyz_all_true(v_cmp_eq(tm.col2, V_C_UNIT_0010)) && v_check_xyz_all_true(v_cmp_eq(tm.col3, v_zero()));
+}
+
 struct CollisionResourceInstance
 {
   // Dispatch metadata for getNodeGeometryTm and conservative posed bounds.
@@ -312,16 +314,41 @@ struct CollisionResourceInstance
       TRACEABLE = 1,      // cleared for singular and live-mirrored poses
       GEOMETRY_BAKED = 2, // singular authored primitive kept its exporter bake
       DISABLED = 4,       // structural hide, applied before filters
+
+      // Baked frame kept for a VALID general placement (a sheared/non-uniform sphere whose
+      // Ritter radius cannot be un-baked): still poseable via posed * inverse(authored),
+      // unlike the singular bake above. Always set together with GEOMETRY_BAKED.
+      RETAINED_BAKE = 8,
+      // Finite pose with a finite inverse: accessors may compose it. Superset of TRACEABLE (a
+      // finite mirrored pose is composable but hidden from traces).
+      COMPOSABLE = 16,
+      // The STORED matrix is bit-exactly identity, so composing it is a no-op. This is not the
+      // IDENT transform class: that one is an epsilon classification the loader may keep for a
+      // near-identity placement, and the dispatch still has to compose such a placement. Set only
+      // by the two writers of nodeTm, and absent by default, so a path that forgets it loses the
+      // shortcut rather than taking it wrongly.
+      POSE_IS_IDENTITY = 32,
+      // Tree-backed seed gate result (rel-tm det floor): the lazy refresh re-derives TRACEABLE
+      // as BIND_TRACEABLE && driven-wtm det > 0, so a mirrored bone hides and can return.
+      BIND_TRACEABLE = 64,
     };
     float maxTmScale = 1.f;
     uint8_t flags = CollisionNode::IDENT | CollisionNode::ORTHONORMALIZED; // NodeFlag transform-class bits
-    uint8_t status = TRACEABLE;
+    uint8_t status = TRACEABLE | COMPOSABLE;
     bool isTraceable() const { return (status & TRACEABLE) != 0; }
     bool isGeometryBaked() const { return (status & GEOMETRY_BAKED) != 0; }
+    bool isRetainedBake() const { return (status & RETAINED_BAKE) != 0; }
     bool isDisabled() const { return (status & DISABLED) != 0; }
+    bool isComposable() const { return (status & COMPOSABLE) != 0; }
+    bool isPoseIdentity() const { return (status & POSE_IS_IDENTITY) != 0; }
+    bool isBindTraceable() const { return (status & BIND_TRACEABLE) != 0; }
     void setTraceable(bool on) { status = uint8_t(on ? status | TRACEABLE : status & ~TRACEABLE); }
     void setGeometryBaked(bool on) { status = uint8_t(on ? status | GEOMETRY_BAKED : status & ~GEOMETRY_BAKED); }
+    void setRetainedBake(bool on) { status = uint8_t(on ? status | RETAINED_BAKE : status & ~RETAINED_BAKE); }
     void setDisabled(bool on) { status = uint8_t(on ? status | DISABLED : status & ~DISABLED); }
+    void setComposable(bool on) { status = uint8_t(on ? status | COMPOSABLE : status & ~COMPOSABLE); }
+    void setPoseIdentity(bool on) { status = uint8_t(on ? status | POSE_IS_IDENTITY : status & ~POSE_IS_IDENTITY); }
+    void setBindTraceable(bool on) { status = uint8_t(on ? status | BIND_TRACEABLE : status & ~BIND_TRACEABLE); }
     // Out-of-range read fallback: bind-default compose state (IDENT class, scale 1, enabled)
     // but NOT traceable, matching isNodeTraceable's safe skip of absent slots.
     static const PoseMeta absent_slot;
@@ -332,37 +359,49 @@ struct CollisionResourceInstance
   CollisionResourceInstance &operator=(const CollisionResourceInstance &) = delete;
 
   const CollisionResource *getResource() const { return res; }
+  // Null for the owned-matrix form (default instance, manual poses).
+  const GeomNodeTree *getTree() const { return tree; }
   // Public instance mutators reject the embedded default instance.
   bool isDefault() const;
-  int nodeCount() const { return (int)nodeTm.size(); }
+  int nodeCount() const { return (int)metaCount(); }
 
   // Read-side queries may outlive a node mutation, so an absent slot reads as enabled here;
   // every other accessor asserts on out-of-range instead (callers own index validity).
   bool isNodeEnabled(int node_index) const
   {
-    return (uint32_t)node_index >= poseMeta.size() || !poseMeta[(uint32_t)node_index].isDisabled();
+    return (uint32_t)node_index >= metaCount() || !metaData()[(uint32_t)node_index].isDisabled();
   }
   // Singular and live-mirrored poses are not traceable; an absent slot is not traceable
   // either (dev asserts, release degrades to the safe answer -- the node is skipped).
   bool isNodeTraceable(int node_index) const
   {
-    G_ASSERT((uint32_t)node_index < poseMeta.size());
-    return (uint32_t)node_index < poseMeta.size() && poseMeta[(uint32_t)node_index].isTraceable();
+    G_ASSERT((uint32_t)node_index < metaCount());
+    return (uint32_t)node_index < metaCount() && metaData()[(uint32_t)node_index].isTraceable();
   }
+  bool isNodeComposable(int node_index) const
+  {
+    G_ASSERT((uint32_t)node_index < metaCount());
+    return (uint32_t)node_index < metaCount() && metaData()[(uint32_t)node_index].isComposable();
+  }
+  // Resource-local posed matrices exist only on the owned-matrix form; tree-backed poses are
+  // read from the tree (see CollisionResource::getCollisionNodeTm for a form-aware fetch).
+  // Misuse (tree-backed form or out-of-range index) asserts in dev and degrades to the bind
+  // identity with a one-time logerr in release.
   const TMatrix &getNodeTmRef(int node_index) const
   {
-    G_ASSERT((uint32_t)node_index < nodeTm.size());
     if (DAGOR_LIKELY((uint32_t)node_index < nodeTm.size()))
       return nodeTm[node_index];
-    return TMatrix::IDENT;
+    return missingOwnedPose(node_index);
   }
   const PoseMeta &getPoseMeta(int node_index) const
   {
-    G_ASSERT((uint32_t)node_index < poseMeta.size());
-    if (DAGOR_LIKELY((uint32_t)node_index < poseMeta.size()))
-      return poseMeta[node_index];
+    G_ASSERT((uint32_t)node_index < metaCount());
+    if (DAGOR_LIKELY((uint32_t)node_index < metaCount()))
+      return metaData()[node_index];
     return PoseMeta::absent_slot;
   }
+  // Returns mat44f for the SIMD hot path, unlike the same-named TMatrix accessor on
+  // CollisionResource -- a migrating call site changes value type; getNodeTmRef keeps TMatrix.
   mat44f getNodeTm(int node_index) const
   {
     mat44f m;
@@ -370,53 +409,98 @@ struct CollisionResourceInstance
     return m;
   }
   // Maps stored geometry to posed resource space without reapplying exporter-baked prim tms.
+  // Owned-matrix form only; misuse degrades like getNodeTmRef.
   mat44f getNodeGeometryTm(int node_index) const;
+  // The node's bounds in RESOURCE space, composed through getNodeGeometryTm; the instance tm is
+  // NOT applied - compose it yourself. A baked node keeps its baked frame at bind; live-posing makes
+  // it untraceable (its baked box stays available via getNodeBBox). A tree-backed instance owns no
+  // matrices, so this owned-pose accessor degrades to the BIND-identity box with a one-time
+  // logerr, like getNodeTmRef misuse - resolve driven placements through the tree instead. Empty for a zero-vert node
+  // (r < 0), a POINTS node (never a trace target), a degenerate-dropped mesh/convex, an untraceable
+  // pose, an unbound instance, or an out-of-range id (the checked-accessor convention; asserting
+  // stays with the *Unsafe tier). The enable gate is deliberately NOT consulted: a disabled node
+  // still reports its box (enable state is dynamic; the root bounds skip it). Axes thinner
+  // than the trace slab minimum are inflated to it (see getNodeGeometryBBox); a sphere composes
+  // analytically (exact). The result is an enclosing AABB: its corners are not the rotated
+  // stored-box corners.
+  BBox3 getNodeResourceBBox(int node_index) const;
   // Union of enabled posed node boxes, resource-local; conservative (node boxes carry the
   // trace slab's minimum axis thickness) and grow-only across pose writes until the next
-  // full recompute (setNodeEnabled or layout finalize).
+  // full recompute (setNodeEnabled or layout finalize). Tree-backed form: a plain read that
+  // may race the lazy trace-side refresh; call under the same serialization as traces.
   bbox3f getRootBBox() const { return rootBBox; }
   // One-way latch licensing the bind-pose combined-grid BLAS.
   bool isGridResidentPoseAtBind() const { return gridResidentPoseAtBind; }
   // Sticky latch disabling shortcuts whose bounds are valid only at bind.
   bool isPosedSinceBind() const { return posedSinceBind; }
 
-  // Mutators return false when the write is dropped (default, foreign, stale or resource-less
-  // instance, or an out-of-range node index) so callers can detect and re-create the binding.
-  // Rebuild the resource-local pose from the resource's shared geomNodeId binding.
-  bool updateFromGeomNodeTree(const GeomNodeTree &tree, mat44f_cref entity_tm);
-  // rootBBox grows conservatively until the next full update.
+  // Mutators return false when the write is dropped (default, foreign, stale, resource-less
+  // or tree-backed-where-owned-form-required instance, or an out-of-range node index) so callers
+  // can detect and re-create the binding.
+  // rootBBox grows conservatively until the next full update. A singular, mirrored or non-finite
+  // pose stores and returns true but hides the node (isNodeTraceable turns false) until a
+  // realizable pose is written. Owned-matrix form only.
   bool updateNodeTm(int node_index, mat44f_cref tm);
-  // Recomputes rootBBox (O(nodes)) because structural hides can shrink it; content-event cadence, not per-frame.
+  // Structural hides can shrink rootBBox: the owned-matrix arm recomputes it here (O(nodes)),
+  // the tree-backed arm defers to the next trace's refresh. Content-event cadence, not per-frame.
   bool setNodeEnabled(int node_index, bool enabled);
 
 protected:
   friend class CollisionResource;
+  friend class CollisionResourceTraceAdapter;
   friend struct CollisionResourceUnittest;
+  // Instances never alias: the temp-view dialect lives in the trace adapter's PoseView, whose
+  // own isMetaAliased answers for the shared core. Constant false keeps this type's arm of the
+  // templated gates folding out.
+  bool isMetaAliased() const { return false; }
+  // Primitive source for the trace core: an owning instance is its own.
+  const CollisionResourceInstance &primPoseSource() const { return *this; }
+  const PoseMeta *metaData() const { return poseMeta.data(); }
+  uint32_t metaCount() const { return (uint32_t)poseMeta.size(); }
   bool validateForUpdate() const;
+  // Cold misuse arm shared by the owned-pose accessors; returns the bind identity.
+  DAGOR_NOINLINE const TMatrix &missingOwnedPose(int node_index) const;
   void seedPose();
   // Shared write path for caller-owned and default instances.
   bool updateNodeTmImpl(int node_index, mat44f_cref tm);
-  void resetNodeToBindPose(int node_index);
   void recomputeRootBBox();
   // Reclassifies the STORED pose nodeTm[node_index] (write it first).
   void recomputePoseMeta(int node_index);
+  // Lazy derived-state rebuild for the tree-backed form; entity_tm is the trace's instance tm.
+  void refreshIfStale(mat44f_cref entity_tm) const;
+  DAGOR_NOINLINE void refreshFromTree(mat44f_cref entity_tm) const;
 
   const CollisionResource *res = nullptr;
-  dag::Vector<TMatrix> nodeTm;        // T[i] as 3x4 floats, indexed by CollisionNode::nodeIndex
-  dag::Vector<PoseMeta> poseMeta;     // parallel to nodeTm
-  bbox3f rootBBox = {};               // union of enabled posed node boxes, resource-local
-  vec4f bsphereCenterLocal = {};      // selected tree node in resource space after full update
+  const GeomNodeTree *tree = nullptr; // tree-backed form only (legacy views live in PoseView)
+  dag::Vector<TMatrix> nodeTm;        // owned-matrix form only: T[i] as 3x4 floats, by nodeIndex
+  // Owning forms; parallel to the resource node list. Mutable: the tree-backed lazy refresh
+  // re-derives driven traceability and re-syncs unbound meta under refreshLock.
+  mutable dag::Vector<PoseMeta> poseMeta;
+  mutable bbox3f rootBBox = {};          // union of enabled posed node boxes, resource-local
+  mutable vec4f bsphereCenterLocal = {}; // selected tree node in resource space after refresh
+  // 0 = never refreshed; compared against the bound tree's pose generation (never 0).
+  mutable uint32_t poseGeneration = 0;
+  // Resource defaultPoseGen at the last refresh: unbound nodes read the default pose live,
+  // so a default write stales the derived state without touching the tree generation.
+  mutable uint32_t defaultPoseGenAtRefresh = 0;
+  mutable int refreshLock = 0;      // spins only on the once-per-generation refresh
+  uint32_t treeNodeCountAtBind = 0; // layout lock for the tree-backed form
+  // One drift assert per binding: the mismatch persists until a rebind, and re-asserting on
+  // every later pose generation would spam while the conservative degrade already stands.
+  mutable bool layoutDriftAsserted = false;
+  uint32_t boundNodeLayoutGen = 0;    // resource nodeLayoutGen at bind; a sort permutes indices
   bool gridResidentPoseAtBind = true; // see isGridResidentPoseAtBind
   bool posedSinceBind = false;        // see isPosedSinceBind
-  bool hasBsphereCenterLocal = false;
+  mutable bool hasBsphereCenterLocal = false;
+
+public:
+  uint32_t nodeLayoutGeneration() const { return boundNodeLayoutGen; }
 };
-
-
-class GeomNodeTree;
 
 enum CollisionResourceDrawDebugBits
 {
   CRDD_NODES = 1,
+  // Include unbound mesh nodes in the GeomNodeTree form.
   CRDD_NON_GEOM_TREE_NODES = 2,
   CRDD_BSPHERE = 4,
   CRDD_ALL = (unsigned short)~(unsigned short)0u
@@ -424,6 +508,8 @@ enum CollisionResourceDrawDebugBits
 
 using TraceCollisionResourceStats = dag::Vector<int, framemem_allocator>;
 
+// Only the embedded default instance is mutable after setup. Create independent instances after
+// all node-list mutations so their pose arrays remain parallel.
 decl_dclass_and_id(CollisionResource, DObject, CollisionGameResClassId)
 public:
   bbox3f vFullBBox = {};      // all nodes, including box
@@ -475,10 +561,15 @@ public:
       return *instance;
     return instanceOrDefaultFallback(instance);
   }
-  // The resource must outlive each instance.
-  CollisionResourceInstancePtr createInstance() const;
+  // The resource (and the tree, when bound) must outlive each instance. A bound tree makes
+  // the instance tree-backed: no matrices are stored, poses are read live from the tree and
+  // derived state refreshes lazily at trace time. Bind after all node-list mutations and
+  // rebind whenever the tree is recreated.
+  CollisionResourceInstancePtr createInstance(const GeomNodeTree *tree = nullptr) const;
   // Rebind externally owned storage and seed it from the current pose.
-  void initInstance(CollisionResourceInstance & inst) const;
+  void initInstance(CollisionResourceInstance & inst, const GeomNodeTree *tree = nullptr) const;
+  // Bumped by node-list permutations (sortNodesList); instances bound before one are stale.
+  uint32_t nodeLayoutGeneration() const { return nodeLayoutGen; }
 
   dag::Span<CollisionNode> getAllNodes() { return make_span(allNodesList); }
   dag::ConstSpan<CollisionNode> getAllNodes() const { return allNodesList; }
@@ -562,25 +653,12 @@ public:
     return n ? getNodeNameStr(*n) : "";
   }
   const char *getNodeNameStr(const CollisionNode &n) const { return names.empty() ? "" : names.data() + n.nameOfs; }
-  // By value: node accessors may compute their result rather than return stored members.
-  // Do not keep references or pointers to the returned value across calls.
-  TMatrix getNodeTm(int node_id) const
-  {
-    const CollisionNode *n = getNode(node_id);
-    return n ? n->tm : TMatrix::IDENT;
-  }
-  void setNodeTm(int node_id, const TMatrix &new_tm)
-  {
-    CollisionNode *n = getNode(node_id);
-    if (!n)
-      return;
-    n->tm = new_tm;
-    // Keep the default pose mirror in sync; node fields stay authoritative for dispatch.
-    // Posing a grid-member node also drops the mirror's one-way bind-grid latch (unread here).
-    mat44f t;
-    v_mat44_make_from_43cu_unsafe(t, new_tm.array);
-    G_VERIFYF(defaultInstance.updateNodeTmImpl(node_id, t), "collision: pose mirror out of sync with the node list");
-  }
+  // Current default node placement, returned by value and shared by tree-less APIs.
+  TMatrix getNodeTm(int node_id) const;
+  // Replaces the SHARED default placement (every no-instance trace sees it); per-entity poses
+  // belong on an instance (updateNodeTm). Singular/mirrored live poses become untraceable, and
+  // posing a grid-member node permanently drops the bind-grid fast path (one-way latch).
+  void setNodeTm(int node_id, const TMatrix &new_tm);
 
   bool traceRay(const TMatrix &instance_tm, const Point3 &from, const Point3 &dir, float &in_out_t, Point3 *out_normal,
     int &out_mat_id) const
@@ -638,6 +716,74 @@ public:
     CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, const CollisionNodeMask &collision_node_mask,
     TraceCollisionResourceStats *out_stats) const;
 
+  // Explicit-instance twins of the transitional GeomNodeTree overloads.
+  // Foreign or stale instances assert and fall back to the current pose.
+  bool traceRay(const TMatrix &instance_tm, const CollisionResourceInstance &instance, const Point3 &from, const Point3 &dir,
+    float &in_out_t, Point3 *out_normal, int &out_mat_id, int &out_node_id) const;
+
+  bool traceRay(const TMatrix &instance_tm, const CollisionResourceInstance &instance, const Point3 &from, const Point3 &dir,
+    float &in_out_t, Point3 *out_normal = nullptr) const
+  {
+    int outMatId, outNodeId;
+    return traceRay(instance_tm, instance, from, dir, in_out_t, out_normal, outMatId, outNodeId);
+  }
+
+  bool traceRay(const TMatrix &instance_tm, const CollisionResourceInstance &instance, const Point3 &from, const Point3 &dir,
+    float &in_out_t, Point3 *out_normal, int &out_mat_id, const CollisionNodeFilter &filter, int ray_mat_id = -1,
+    uint8_t behavior_filter = CollisionNode::TRACEABLE) const;
+
+  bool traceRay(const TMatrix &instance_tm, const CollisionResourceInstance &instance, const Point3 &from, const Point3 &dir,
+    float in_t, CollResIntersectionsType &intersected_nodes_list, bool sort_intersections,
+    uint8_t behavior_filter = CollisionNode::TRACEABLE, const CollisionNodeMask *collision_node_mask = nullptr,
+    bool force_no_cull = false) const
+  {
+    alignas(EA_CACHE_LINE_SIZE) mat44f tm;
+    v_mat44_make_from_43cu_unsafe(tm, instance_tm.array);
+    return traceRay(tm, instance, from, dir, in_t, intersected_nodes_list, sort_intersections, behavior_filter, collision_node_mask,
+      force_no_cull);
+  }
+
+  bool traceRay(const mat44f &tm, const CollisionResourceInstance &instance, const Point3 &from, const Point3 &dir, float in_t,
+    CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, uint8_t behavior_filter = CollisionNode::TRACEABLE,
+    const CollisionNodeMask *collision_node_mask = nullptr, bool force_no_cull = false) const;
+
+  bool traceRay(const TMatrix &instance_tm, const CollisionResourceInstance &instance, const Point3 &from, const Point3 &dir,
+    float in_t, CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, const CollisionNodeFilter &filter) const;
+
+  bool traceRay(const TMatrix &instance_tm, const CollisionResourceInstance &instance, const Point3 &from, const Point3 &dir,
+    float in_t, CollResIntersectionsType &intersected_nodes_list, bool sort_intersections,
+    const CollisionNodeMask &collision_node_mask, TraceCollisionResourceStats *out_stats) const;
+
+  bool traceRay(const mat44f &tm, const CollisionResourceInstance &instance, vec3f from, vec3f dir, float in_t,
+    CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, const CollisionNodeMask &collision_node_mask,
+    TraceCollisionResourceStats *out_stats) const;
+
+  bool traceCapsule(const TMatrix &instance_tm, const CollisionResourceInstance &instance, const Point3 &from, const Point3 &dir,
+    float &in_out_t, float radius, Point3 &out_normal, Point3 &out_pos, int &out_mat_id) const;
+
+  bool traceCapsule(const TMatrix &instance_tm, const CollisionResourceInstance &instance, const Point3 &from, const Point3 &dir,
+    float in_t, float radius, IntersectedNode &intersected_node, float bsphere_scale, const CollisionNodeFilter &filter,
+    const uint8_t behavior_filter = CollisionNode::TRACEABLE) const;
+
+  bool traceCapsule(const TMatrix &instance_tm, const CollisionResourceInstance &instance, const Point3 &from, const Point3 &dir,
+    float in_t, float radius, IntersectedNode &intersected_node, float bsphere_scale = 1.f,
+    const uint8_t behavior_filter = CollisionNode::TRACEABLE) const;
+
+  bool capsuleHit(const TMatrix &instance_tm, const CollisionResourceInstance &instance, const Point3 &from, const Point3 &dir,
+    float in_t, float radius, CollResHitNodesType &nodes_hit) const;
+
+  bool multiRayHit(const TMatrix &instance_tm, const CollisionResourceInstance &instance, dag::Span<CollisionTrace> traces) const;
+
+  bool traceMultiRay(const TMatrix &instance_tm, const CollisionResourceInstance &instance, dag::Span<CollisionTrace> traces,
+    MultirayCollResIntersectionsType &intersected_nodes_list, bool sort_intersections, float bsphere_scale = 1.f,
+    uint8_t behavior_filter = CollisionNode::TRACEABLE, const CollisionNodeMask *collision_node_mask = nullptr,
+    TraceCollisionResourceStats *out_stats = nullptr) const;
+
+  // rayHit material-id conventions differ by overload family and are kept for source
+  // compatibility: int& forms always write it, int* forms only through a non-null pointer.
+  bool rayHit(const TMatrix &instance_tm, const CollisionResourceInstance &instance, const Point3 &from, const Point3 &dir, float in_t,
+    float bsphere_scale = 1.f, const CollisionNodeMask *collision_node_mask = nullptr, int *out_mat_id = nullptr) const;
+
   bool traceCapsule(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir,
     float &in_out_t, float radius, Point3 &out_normal, Point3 &out_pos, int &out_mat_id) const;
 
@@ -680,10 +826,12 @@ public:
 
   struct DebugDrawData
   {
+    // Used only by the GeomNodeTree form.
     bool localNodeTree;
     bool shouldDrawText;
     E3DCOLOR color;
     uint16_t drawBits;
+    // GeomNodeTree-only bounding-sphere center override.
     dag::Index16 bsphereCNode;
     vec4f bsphereOffset;
     const Bitarray *drawMask;
@@ -699,23 +847,44 @@ public:
     {}
   };
   void drawDebug(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const DebugDrawData &data = DebugDrawData()) const;
+  // Foreign/stale instance: assert in dev; log and draw the bind pose in release.
+  void drawDebug(const TMatrix &instance_tm, const CollisionResourceInstance &instance, const DebugDrawData &data = DebugDrawData())
+    const;
 
   static void registerFactory();
 
+  // Tree-less forms use both resources' current poses.
   static bool testIntersection(const CollisionResource *res1, const TMatrix &tm1, const CollisionNodeFilter &filter1,
     const CollisionResource *res2, const TMatrix &tm2, const CollisionNodeFilter &filter2, Point3 &collisionPoint1,
     Point3 &collisionPoint2, uint16_t *nodeIndex1 = NULL, uint16_t *nodeIndex2 = NULL, Tab<uint16_t> *node_indices1 = NULL);
+  static bool testIntersection(const CollisionResource *res1, const TMatrix &tm1, const CollisionNodeFilter &filter1,
+    const CollisionResourceInstance &instance1, const CollisionResource *res2, const TMatrix &tm2, const CollisionNodeFilter &filter2,
+    const CollisionResourceInstance &instance2, Point3 &collisionPoint1, Point3 &collisionPoint2, uint16_t *nodeIndex1 = NULL,
+    uint16_t *nodeIndex2 = NULL, Tab<uint16_t> *node_indices1 = NULL);
   // This function is more readable and contains new primitives for checking.
   // It does full dispatching for collision primitives.
   // This eliminetes the ordering problem:
   // the function will find an intersection regardless of res1 and res2 order.
   // Only MESH/BOX/SPHERE nodes participate; CAPSULE and CONVEX nodes are not tested.
+  // Posed instances derive the whole-pair reject from rootBBox. Foreign or stale instances
+  // assert and fall back to the current pose; disabled and untraceable nodes are skipped
+  // in every node loop, matching trace dispatch.
   static bool testIntersection(const CollisionResource *res1, const TMatrix &tm1, const CollisionResource *res2, const TMatrix &tm2,
     Point3 &collisionPoint1, Point3 &collisionPoint2, bool checkOnlyPhysNodes = false, bool useTraceFaces = false);
+  static bool testIntersection(const CollisionResource *res1, const TMatrix &tm1, const CollisionResourceInstance &instance1,
+    const CollisionResource *res2, const TMatrix &tm2, const CollisionResourceInstance &instance2, Point3 &collisionPoint1,
+    Point3 &collisionPoint2, bool checkOnlyPhysNodes = false, bool useTraceFaces = false);
 
   bool checkInclusion(const Point3 &pos, CollResIntersectionsType &intersected_nodes_list) const;
+  // Instance form: nodes test at their instance pose (disabled/untraceable nodes never report).
+  bool checkInclusion(const Point3 &pos, CollResIntersectionsType &intersected_nodes_list, const CollisionResourceInstance &instance)
+    const;
 
 private:
+  // Shared geometry-frame tail of the testInclusion overloads.
+  bool testNodeInclusionInConvex(const CollisionNode &node, const TMatrix &test_tm, dag::ConstSpan<plane3f> convex,
+    const TMatrix &tm_restrain, Point3 *res_pos) const;
+
   // No callers anywhere in the tree; scheduled for deletion.
   // Can check mesh-box, box-box and sph-box only, asserts on any other types
   bool calcOffsetForIntersection(const TMatrix &tm1, const CollisionNode &node_to_move, const CollisionNode &node_to_check,
@@ -725,9 +894,9 @@ private:
     const Point3 &axis, Point3 &offset) const;
 
 public:
-  // The test (probe) node lives in *this; the restraining (convex) node lives in
-  // restraining_resource, which may be the same or a different CollisionResource -- e.g.
-  // attachableEditor tests slot volumes against attachment geometry on a separate model.
+  // Every instance-taking test/inclusion/clip entry below skips disabled (setNodeEnabled)
+  // and untraceable (singular or mirrored-pose) nodes, matching trace dispatch.
+  // The probe belongs to this resource; the restraining convex may belong to another.
   bool testInclusion(int test_node_index, const TMatrix &tm_test, const CollisionResource *restraining_resource,
     int restraining_node_index, const TMatrix &tm_restrain, const GeomNodeTree *test_node_tree = NULL,
     const GeomNodeTree *restrain_node_tree = NULL) const;
@@ -735,10 +904,25 @@ public:
   bool testInclusion(int test_node_index, const TMatrix &tm_test, dag::ConstSpan<plane3f> convex, const TMatrix &tm_restrain,
     const GeomNodeTree *test_node_tree = NULL, Point3 *res_pos = nullptr) const;
 
+  // Instance forms pose the probe and restraining convex independently.
+  bool testInclusion(int test_node_index, const TMatrix &tm_test, const CollisionResource *restraining_resource,
+    int restraining_node_index, const TMatrix &tm_restrain, const CollisionResourceInstance &test_instance,
+    const CollisionResourceInstance &restrain_instance) const;
+
+  bool testInclusion(int test_node_index, const TMatrix &tm_test, dag::ConstSpan<plane3f> convex, const TMatrix &tm_restrain,
+    const CollisionResourceInstance &test_instance, Point3 *res_pos = nullptr) const;
+
   bool testSphereIntersection(const CollisionNodeFilter &filter, const BSphere3 &sphere, const Point3 &dir_norm, Point3 &out_norm,
     float &out_depth, int &out_node_id) const;
+  // Penetration depth is exact under uniform posed scale; a non-uniform pose converts the local
+  // depth by the pose's stretch along the contact normal (hits are never missed; the conservative
+  // probe inflation can overshoot the reported depth slightly).
+  bool testSphereIntersection(const CollisionNodeFilter &filter, const BSphere3 &sphere, const Point3 &dir_norm, Point3 &out_norm,
+    float &out_depth, int &out_node_id, const CollisionResourceInstance &instance) const;
   bool testCapsuleNodeIntersection(const Point3 &p0, const Point3 &p1, float radius) const;
+  bool testCapsuleNodeIntersection(const Point3 &p0, const Point3 &p1, float radius, const CollisionResourceInstance &instance) const;
 
+  // All sharers of a bound resource must use one GeomNodeTree layout.
   void initializeWithGeomNodeTree(const GeomNodeTree &geom_node_tree);
   // Caller-migration surface: adopted when the legacy tree trace API is dropped.
   bool isGeomNodeTreeBound() const { return geomNodeTreeBound; }
@@ -747,13 +931,30 @@ public:
     const;
   void getCollisionNodeTm(const CollisionNode *node, mat44f_cref instance_tm, const GeomNodeTree *geom_node_tree, mat44f &out_tm)
     const;
+  // Instance forms return instance_tm * node pose for every node type. Foreign or stale
+  // instances assert and fall back to the current pose. Exception: a tree-backed instance's
+  // driven node returns the tree wtm with instance_tm NOT composed (the tree already carries
+  // the entity placement); EntityCollTrace relies on this.
+  void getCollisionNodeTm(const CollisionNode *node, const TMatrix &instance_tm, const CollisionResourceInstance &instance,
+    TMatrix &out_tm) const;
+  void getCollisionNodeTm(const CollisionNode *node, mat44f_cref instance_tm, const CollisionResourceInstance &instance,
+    mat44f &out_tm) const;
 
   void clipCapsule(const TMatrix &instance_tm, const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, const Point3 &movedirNormalized);
+  // No-instance form clips against the current pose.
   void clipCapsule(const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, const Point3 &movedirNormalized);
+  // The combined grid is used only while the instance still licenses its bind geometry.
+  // Foreign or stale instances assert and fall back to the current pose.
+  void clipCapsule(const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, const Point3 &movedirNormalized,
+    const CollisionResourceInstance &instance);
 
   bool test_sphere_node_intersection(const BSphere3 &sphere, const CollisionNode *node, const Point3 &dir_norm, Point3 &out_norm,
     float &out_depth) const;
+  bool test_sphere_node_intersection(const BSphere3 &sphere, const CollisionNode *node, const CollisionResourceInstance &instance,
+    const Point3 &dir_norm, Point3 &out_norm, float &out_depth) const;
   bool test_capsule_node_intersection(const Point3 &p0, const Point3 &p1, float radius, const CollisionNode *node) const;
+  bool test_capsule_node_intersection(const Point3 &p0, const Point3 &p1, float radius, const CollisionNode *node,
+    const CollisionResourceInstance &instance) const;
 
   template <typename Func, CollisionResourceNodeType node_type = COLLISION_NODE_TYPE_MESH, bool binded_to_gntree = true>
   void visitCollisionNodes(const Func &func) const
@@ -1076,26 +1277,43 @@ public:
       cb(i, p[i]);
   }
 
-  BBox3 getNodeBBox(int node_id) const
+  // Historical per-type frames: BOX/SPHERE composed with the current pose (conservative
+  // corner-mapped AABB for boxes, analytic for spheres); mesh/convex/capsule stay stored-space.
+  // A stored-and-hidden unrealizable pose reports the stored value (never NaN bounds).
+  // Composing getNodeTm on top of a BOX/SPHERE result re-applies the pose (as it always
+  // double-applied the baked placement); compose it only over mesh/convex/capsule results.
+  // STORED geometry -> the node-local frame bone/tree wtms bind to: inverse(authored) where
+  // the loader kept the authored frame, identity otherwise (a singular bake stays raw).
+  TMatrix getStoredToNodeLocalTm(int node_id) const;
+  // Prefer the uniform-frame getNodeResourceBBox / getNodeGeometryBBox in new code.
+  BBox3 getNodeBBox(int node_id) const;
+  // The node's bounds in RESOURCE space per the default instance's CURRENT pose (legacy setNodeTm
+  // writes land there); same contract as the instance overload above.
+  BBox3 getNodeResourceBBox(int node_id) const { return defaultInstance.getNodeResourceBBox(node_id); }
+  // Resource-space center of the node's bounds; a geometry-less or untraceable node
+  // degenerates to the node placement (finite while the stored pose is).
+  Point3 getNodeResourceCenter(int node_id) const;
+  // The node's CURRENT placement classifies as identity: stored geometry is consumable without
+  // composing the node tm. node.flags class bits are load-only; the live class follows the pose.
+  bool isIdentNode(int node_id) const
   {
-    const CollisionNode *n = getNode(node_id);
-    return n ? n->modelBBox : BBox3();
+    return getNode(node_id) &&
+           (defaultInstance.poseMeta[node_id].flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) == CollisionNode::IDENT;
   }
   // Stored-space bounds for every node type, with degenerate axes conservatively inflated.
   bbox3f getNodeGeometryBBox(const CollisionNode &node) const;
-  BSphere3 getNodeBSphere(int node_id) const
-  {
-    const CollisionNode *n = getNode(node_id);
-    if (!n || n->boundingSphere.r < 0)
-      return BSphere3(); // empty: r = r2 = -1
-    return BSphere3(n->boundingSphere.c, n->boundingSphere.r);
-  }
+  // SPHERE composed with the pose: center mapped, radius widened by the conservative scale
+  // stamp (1.0015 tolerance-volume bound for non-bit-exact eps classes, spectral * 1.0002 for
+  // live poses, exact for bit-exact rigid bases).
+  BSphere3 getNodeBSphere(int node_id) const;
+  // The capsule at its CURRENT default placement (stored node-local capsule transformed by T).
+  // Fails for the exporter's zero-vert marker (r < 0): there is no capsule to report.
   bool getNodeCapsule(int node_id, Capsule &out) const
   {
     const CollisionNode *n = getNode(node_id);
-    if (n && n->type == COLLISION_NODE_TYPE_CAPSULE)
+    if (n && n->type == COLLISION_NODE_TYPE_CAPSULE && n->boundingSphere.r >= 0.f)
     {
-      out = capsules[n->capsuleIndex];
+      out = getNodeCapsuleUnsafe(node_id);
       return true;
     }
     return false;
@@ -1115,52 +1333,55 @@ public:
   // per-node compaction).
   void compactNodeBlasData();
 
-  float getNodeMaxTmScale(int node_id) const
-  {
-    const CollisionNode *n = getNode(node_id);
-    return n ? n->cachedMaxTmScale : 1.f;
-  }
+  // Max scale of the node's CURRENT placement (see getNodeTm): the default PoseMeta value.
+  float getNodeMaxTmScale(int node_id) const;
 
-  // Unsafe accessors: no bounds check in release, use G_ASSERT for validation.
-  // Same by-value contract as the checked forms.
+  // Source-compatible wrappers; only getNodeCapsuleUnsafe still indexes unchecked.
   TMatrix getNodeTmUnsafe(int node_id) const
   {
     G_ASSERT((uint32_t)node_id < allNodesList.size());
-    return allNodesList[node_id].tm;
+    return getNodeTm(node_id);
   }
   BBox3 getNodeBBoxUnsafe(int node_id) const
   {
     G_ASSERT((uint32_t)node_id < allNodesList.size());
-    return allNodesList[node_id].modelBBox;
+    return getNodeBBox(node_id);
   }
   BSphere3 getNodeBSphereUnsafe(int node_id) const
   {
     G_ASSERT((uint32_t)node_id < allNodesList.size());
-    const auto &b = allNodesList[node_id].boundingSphere;
-    if (b.r < 0)
-      return BSphere3(); // empty: r = r2 = -1
-    return BSphere3(b.c, b.r);
+    return getNodeBSphere(node_id);
   }
   Point3 getNodeBSphereCenter(int node_id) const
   {
     const CollisionNode *n = getNode(node_id);
-    return n ? n->boundingSphere.c : Point3(0, 0, 0);
+    return n ? getNodeBSphere(node_id).c : Point3(0, 0, 0);
   }
   float getNodeBSphereRadius(int node_id) const
   {
     const CollisionNode *n = getNode(node_id);
-    return n ? n->boundingSphere.r : -1.f;
+    return n ? getNodeBSphere(node_id).r : -1.f;
   }
-  Capsule getNodeCapsuleUnsafe(int node_id) const
+  Capsule getNodeCapsuleUnsafe(int node_id) const // by value: composed with the node's current default T
   {
     G_ASSERT((uint32_t)node_id < allNodesList.size());
     G_ASSERT(allNodesList[node_id].type == COLLISION_NODE_TYPE_CAPSULE);
-    return capsules[allNodesList[node_id].capsuleIndex];
+    Capsule c = capsules[allNodesList[node_id].capsuleIndex];
+    // A stored-and-hidden unrealizable pose (see updateNodeTm) must not compose: report the
+    // stored capsule instead of a NaN/collapsed one.
+    if (DAGOR_UNLIKELY(!defaultInstance.isNodeComposable(node_id)))
+      return c;
+    const float storedR = c.r;
+    c.transform(getNodeTm(node_id));
+    // Capsule::transform scales r by |col0| alone; the trace tests the exact pose-mapped shape, so
+    // a non-uniform pose needs the max scale to keep the reported capsule conservative.
+    c.r = storedR * getNodeMaxTmScale(node_id);
+    return c;
   }
   float getNodeMaxTmScaleUnsafe(int node_id) const
   {
     G_ASSERT((uint32_t)node_id < allNodesList.size());
-    return allNodesList[node_id].cachedMaxTmScale;
+    return getNodeMaxTmScale(node_id);
   }
 
   template <class CB> // void(const CollisionNode &node) or bool(const CollisionNode &node) - return true to stop
@@ -1209,6 +1430,10 @@ public:
   void setBsphereCenterNode(int ni) { bsphereCenterNode = dag::Index16(ni); }
   vec4f getWorldBoundingSphere(const mat44f &tm, const GeomNodeTree *geom_node_tree) const;
   Point3 getWorldBoundingSphere(const TMatrix &tm, const GeomNodeTree *geom_node_tree) const;
+  // Instance forms preserve a selected tree-node center even without collision geometry.
+  // Foreign or stale instances assert and fall back to the current pose.
+  vec4f getWorldBoundingSphere(const mat44f &tm, const CollisionResourceInstance &instance) const;
+  Point3 getWorldBoundingSphere(const TMatrix &tm, const CollisionResourceInstance &instance) const;
   // raw_verts / raw_indices (exporter only): the full-precision geometry the export pipeline owns. The
   // gate then validates the exact floats + face list that serialize. Empty (runtime) -> verts decode
   // from vert21 and faces from the BLAS. Pass both or neither.
@@ -1228,12 +1453,12 @@ public:
   void rebuildNodesLL(); //< rebuild *NodesHead linked lists for actual nodes
 
 private:
-  // Per-pair tri-tri test for testIntersection's mesh-vs-mesh inner loop. A static member (not a
-  // free function) so it inherits CollisionNode's friend grant -- it dereferences node1's protected
-  // tm / modelBBox / nodeIndex. Defined in collisionGameRes.cpp next to testIntersection.
+  // Mesh-pair narrow phase; node2_wtm and returned contacts are world-space. node2_grid_at_bind
+  // licenses the bind-frame grid arm (pass node2's instance latch); when false, faces brute-force
+  // through the caller's posed tms.
   static bool testMeshNodePair(const CollisionNode *node1, dag::ConstSpan<Point3_vec4> node1Faces, const CollisionResource *res2,
-    const CollisionNode *node2, const TMatrix &tm1ToWorld, const TMatrix &tm2, const TMatrix &tm2to1, Point3 &cp1, Point3 &cp2,
-    uint16_t *node_index1, uint16_t *node_index2);
+    const CollisionNode *node2, const TMatrix &node2_wtm, const TMatrix &tm1ToWorld, const TMatrix &tm2to1, Point3 &cp1, Point3 &cp2,
+    uint16_t *node_index1, uint16_t *node_index2, bool node2_grid_at_bind);
 
   template <class CB>
   void forEachNodeImpl(uint16_t headIdx, CB & cb) const
@@ -1268,20 +1493,27 @@ private:
     CAPSULE_HIT
   };
 
-  template <IterationMode trace_mode, CollisionTraceType trace_type, typename filter_t, typename callback_t>
-  __forceinline bool forEachIntersectedNode(mat44f tm, const GeomNodeTree *geom_node_tree, vec3f from, vec3f dir, float len,
-    bool calc_normal, float bsphere_scale, uint8_t behavior_filter, const filter_t &filter, const callback_t &callback,
+  // The single pose source: an owned-matrix instance, a persistent tree-backed instance, or
+  // the PoseView aggregate the legacy entry points build over a GeomNodeTree argument.
+  // pose_may_refresh: only a persistent tree-backed instance can be a pose generation behind;
+  // it defaults to true (a new call site is correct-but-slower rather than stale) and the
+  // legacy surface passes false. pose_t is whatever the core reads the pose through
+  // (CollisionResourceInstance or CollisionResourceTraceAdapter::PoseView).
+  template <IterationMode trace_mode, CollisionTraceType trace_type, bool pose_may_refresh = true, typename pose_t, typename filter_t,
+    typename callback_t>
+  __forceinline bool forEachIntersectedNode(mat44f tm, const pose_t &instance, vec3f from, vec3f dir, float len, bool calc_normal,
+    float bsphere_scale, uint8_t behavior_filter, const filter_t &filter, const callback_t &callback,
     TraceCollisionResourceStats *out_stats, bool force_no_cull) const;
 
-  template <IterationMode trace_mode, CollisionTraceType trace_type, bool is_single_ray = false, typename filter_t,
-    typename callback_t>
-  __forceinline bool forEachIntersectedNode(mat44f tm, const GeomNodeTree *geom_node_tree, dag::Span<CollisionTrace> traces,
-    bool calc_normal, float bsphere_scale, uint8_t behavior_filter, const filter_t &filter, const callback_t &callback,
+  template <IterationMode trace_mode, CollisionTraceType trace_type, bool is_single_ray = false, bool pose_may_refresh = true,
+    typename pose_t, typename filter_t, typename callback_t>
+  __forceinline bool forEachIntersectedNode(mat44f tm, const pose_t &instance, dag::Span<CollisionTrace> traces, bool calc_normal,
+    float bsphere_scale, uint8_t behavior_filter, const filter_t &filter, const callback_t &callback,
     TraceCollisionResourceStats *out_stats, bool force_no_cull) const;
 
   template <bool orthonormalized_instance_tm, IterationMode trace_mode, CollisionTraceType trace_type, bool is_single_ray = false,
-    typename filter_t, typename callback_t>
-  __forceinline bool forEachIntersectedNode(mat44f tm, float max_tm_scale_sq, vec3f woffset, const GeomNodeTree *geom_node_tree,
+    typename pose_t, typename filter_t, typename callback_t>
+  __forceinline bool forEachIntersectedNode(mat44f tm, float max_tm_scale_sq, vec3f woffset, const pose_t &instance,
     dag::Span<CollisionTrace> traces, bool calc_normal, uint8_t behavior_filter, const filter_t &filter, const callback_t &callback,
     TraceCollisionResourceStats *out_stats, bool force_no_cull) const;
 
@@ -1350,24 +1582,29 @@ private:
     dag::Vector<uint32_t, framemem_allocator> &idxScratch, CollisionNode &node_copy, const Point3_vec4 *&out_verts_base,
     const uint32_t *&out_idx_base, const CollisionNode *&out_node) const;
 
-  __forceinline mat44f getMeshNodeTmInline(const CollisionNode *node, mat44f_cref instance_tm, vec3f instance_woffset,
-    const GeomNodeTree *geom_node_tree) const;
+  // Form-aware posed node->world matrix: tree wtm for driven nodes of a tree-backed pose,
+  // instance_tm * stored T otherwise (unbound nodes fall back to the default pose).
+  template <typename pose_t>
+  __forceinline mat44f getPosedNodeWtmInline(const CollisionNode *node, mat44f_cref instance_tm, vec3f instance_woffset,
+    const pose_t &instance) const;
 
   // Cold arm of instanceOrDefault: null/unbound normalizes silently, foreign asserts + logs.
   const CollisionResourceInstance &instanceOrDefaultFallback(const CollisionResourceInstance *instance) const;
   // Foreign or stale instances fall back to the current pose.
   const CollisionResourceInstance *resolveInstanceForTrace(const CollisionResourceInstance &instance) const;
-  // A null tree selects the current pose.
-  const CollisionResourceInstance *dispatchPose(const GeomNodeTree *geom_node_tree) const
-  {
-    return geom_node_tree ? nullptr : &defaultInstance;
-  }
+  // Stored-pose queries additionally reject tree-backed poses (default pose + LOGWARN).
+  const CollisionResourceInstance *resolveOwnedPoseForQuery(const CollisionResourceInstance &instance, const char *site) const;
+  // Shared geometry-frame core: maps stored geometry to the given resource-local posed matrix
+  // without reapplying exporter-baked prim tms.
+  mat44f geometryTmFromPosed(int node_index, mat44f_cref posed, const CollisionResourceInstance::PoseMeta &pm) const;
   // Class-aware inverse of the node's GEOMETRY frame (inv of getNodeGeometryTm), not of the
   // raw posed matrix; IDENT preserves exporter-baked primitive geometry.
   TMatrix invNodeTm(int node_index) const;
   static TMatrix invInstNodeTm(const CollisionResourceInstance &instance, int node_index);
   // Erase a node and every parallel per-node slot in lockstep.
   void eraseNodeAt(int node_index);
+  bool testSphereNodeIntersectionLocal(const TMatrix &itm, const BSphere3 &sphere, const CollisionNode *node, const Point3 &dir_norm,
+    Point3 &out_norm, float &out_depth) const;
 
 public:
   // Per-behavior container holding the combined BLAS over all behavior_flag-matching IDENT mesh
@@ -1476,6 +1713,7 @@ public:
 
 protected:
   friend class CollisionGameResFactory;
+  friend class CollisionResourceTraceAdapter;
   friend CollisionExporter;
   friend dabuildExp_collision::CollisionExporter;
   friend struct CollisionResourceUnittest;
@@ -1483,15 +1721,40 @@ protected:
 
   // Shared transform classifier for authored and live poses.
   static uint8_t classifyNodeTmFlags(mat44f_cref tm, float &out_max_scale);
+  // A slot whose readers compose through inverse(authoredNodeTm): the eps-IDENT box/sphere
+  // compatibility frame and retained bakes. Writer, readers and the unittest all key on this
+  // one test, so a new consumer class lands everywhere at once.
+  static bool usesAuthoredFrame(const CollisionNode &n, const CollisionResourceInstance::PoseMeta &pm)
+  {
+    return pm.isRetainedBake() ||
+           ((n.type == COLLISION_NODE_TYPE_BOX || n.type == COLLISION_NODE_TYPE_SPHERE) && (n.flags & CollisionNode::IDENT));
+  }
+  // Largest singular value (see mat33_spectral_norm); shared with the loader's un-bake divisor.
+  static float mat33SpectralNorm(mat44f_cref tm);
+  // Scale-free singularity floor (max-element-normalized, overflow-proof); out_ndet is the
+  // normalized signed determinant for mirror detection.
+  static bool relativeDetAboveFloor(mat44f_cref tm, float &out_ndet);
   // Authored mirrored placements remain traceable; singular placements do not.
   // Also invalidates the cached bind trace sphere until the next layout finalize.
   void setAuthoredNodeTm(int node_index, mat44f_cref tm, uint8_t class_flags, float max_scale);
   // Runtime-only conservative scale for transforms under-bounded by column lengths.
   void stampConservativePoseScale(int node_index);
+  // Convert serialized BOX/SPHERE geometry to node-local storage.
+  static void unbakePrimNode(CollisionNode & n, const TMatrix &tm, CollisionResourceInstance::PoseMeta &pm);
 
   // Immutable base for relative motion of exporter-baked primitives.
   dag::Vector<TMatrix> authoredNodeTm;
+  // inverse(authoredNodeTm[i]), rebuilt by rebuildNodesLL and refreshed by setAuthoredNodeTm.
+  // Sized only once the layout finalizes; readers compute the inverse while unsized.
+  // getStoredToNodeLocalTm stays un-cached on purpose: it returns scalar inverse() bits.
+  dag::Vector<TMatrix> authoredNodeItm;
   bool geomNodeTreeBound = false; // initializeWithGeomNodeTree ran at least once
+  uint32_t nodeLayoutGen = 0;     // see nodeLayoutGeneration()
+  // Bumped by default-pose mutations: tree-backed instances read unbound nodes from the
+  // default pose live, so their lazy refresh keys on this beside the tree generation.
+  // Mutable because instances hold const resource pointers; writes ride the pose-write
+  // serialization contract.
+  mutable uint32_t defaultPoseGen = 1;
 
   CollisionResourceInstance defaultInstance;
 

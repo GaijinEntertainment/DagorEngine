@@ -3,6 +3,7 @@ from "dagor.clipboard" import set_clipboard_text
 from "%darg/ui_imports.nut" import *
 import "inspectorViews.nut" as fieldsMap
 import "simpleCursors.nut" as cursors
+from "types" import String, Function, Class
 
 //let {locate_element_source, sh, ph} = require("daRg")
 let utf8 = require_optional("utf8")
@@ -168,7 +169,7 @@ let textColor = @(sf: int): int sf & S_ACTIVE ? 0xFFFFFF00
 function mkPropContent(desc, key, sf) {
   let { text, valCtor } = getPropValueTexts(desc, key, 200)
   local keyValue = $"{key.tostring()} = <color={valColor}>{text}</color>"
-  if (type(valCtor) == "string")
+  if (valCtor instanceof String)
     keyValue = $"{keyValue} {valCtor}"
   local content = {
     rendObj = ROBJ_TEXTAREA
@@ -179,14 +180,14 @@ function mkPropContent(desc, key, sf) {
     hangingIndent = sh(3)
     text = keyValue
   }
-  if (type(valCtor) == "function")
+  if (valCtor instanceof Function)
     content = valCtor?(content)
   return content
 }
 
 function propPanel(desc) {
   local pKeys = []
-  if (type(desc) == "class")
+  if (desc instanceof Class)
     foreach (key, _ in desc)
       pKeys.append(key)
   else
@@ -410,7 +411,7 @@ let elementPicker = @() {
 function inspectorRoot() {
   let res = {
     watch = [pickerActive, shown]
-    size = [sw(100), sh(100)]
+    size = const [sw(100), sh(100)]
     zOrder = getroottable()?.Layers.Inspector ?? 10
     skipInspection = true
   }

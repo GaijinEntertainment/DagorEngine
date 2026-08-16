@@ -68,7 +68,7 @@ class AllocationTracker : DapiDebugAgent {
     def override onAllocateString(var ctx : Context; data : void?; size : uint64;
                                   tempString : bool; at : LineInfo) : void {
         string_allocs++
-        let str = escape(unsafe(reinterpret<string> data))
+        let str = escape(unsafe(reinterpret<string>(data)))
         let kind = tempString ? "temp" : "heap"
         print("  [str+]    ({kind}) '{str}' {size} bytes at {describe(at)}\n")
     }
@@ -96,7 +96,7 @@ class AllocationTracker : DapiDebugAgent {
 var tracker : AllocationTracker?
 
 [export]
-def install_tracker(ctx : Context) {
+def install_tracker(_ctx : Context) {
     assert(this_context().category.debug_context)
     var agent = new AllocationTracker()
     tracker = agent

@@ -111,8 +111,6 @@
   file:t = "tiledLights.dshl"
   file:t = "find_max_depth_2d.dshl"
 
-  //file:t = "giHelpers/gi_voxelize_shaders.dshl"
-  //file:t = "giHelpers/trees_above.dshl"
   file:t = "../debugShadows.dshl"
   file:t = "hudprim/gui_aces.dshl"
   file:t = "../rendinst_clipmap.dshl"

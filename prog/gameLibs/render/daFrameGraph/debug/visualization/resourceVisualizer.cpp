@@ -96,6 +96,7 @@ constexpr eastl::pair<d3d::AccessFlag, const char *> ENHANCED_ACCESS_NAMES[]{
   {d3d::AccessFlag::BlitWrite, "BlitWrite"},
   {d3d::AccessFlag::ResolveRead, "ResolveRead"},
   {d3d::AccessFlag::ResolveWrite, "ResolveWrite"},
+  {d3d::AccessFlag::ClearWrite, "ClearWrite"},
   {d3d::AccessFlag::ShadingRate, "ShadingRate"},
 };
 
@@ -117,6 +118,7 @@ constexpr eastl::pair<d3d::TextureLayout, const char *> ENHANCED_LAYOUT_NAMES[]{
   {d3d::TextureLayout::BlitDest, "BlitDest"},
   {d3d::TextureLayout::ResolveSource, "ResolveSource"},
   {d3d::TextureLayout::ResolveDest, "ResolveDest"},
+  {d3d::TextureLayout::ClearDest, "ClearDest"},
   {d3d::TextureLayout::ShadingRateSource, "ShadingRateSource"},
 };
 

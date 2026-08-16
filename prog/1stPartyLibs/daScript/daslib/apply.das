@@ -58,12 +58,7 @@ def private field_rtti_annotations(fld : FieldDeclaration) : ExpressionPtr {
     return qmacro($v(rttiAnnValues))
 }
 
-// Inline one field into the caller's scope: clone the per-field block, bind its `field` param to a real
-// reference local — `let/var <field> & = unsafe(<access>)` (const-ref iff `isConst`) — its `name` param to
-// a const string via `assume`, and (struct only) its `annotations` param to the static RTTI array via
-// `assume`; then drop the block params. The `unsafe` is satisfied by `alwaysSafe` flags on the let + the
-// access (local-ref-to-nonlocal and variant `as` both gate on it). `capture_as_ref` lets a nested block in
-// the body capture the field-ref (the json/xml `move_to_ref(field, ...)` pattern).
+// Inline one field into the caller's scope: clone the per-field block, bind its `field` param to a real reference local — `let/var <field> & = unsafe(<access>)` (const-ref iff `isConst`) — its `name` param to a const string via `assume`, and (struct only) its `annotations` param to the static RTTI array via `assume`; then drop the block params. The `unsafe` is satisfied by `alwaysSafe` flags on the let + the access (local-ref-to-nonlocal and variant `as` both gate on it). `capture_as_ref` lets a nested block in the body capture the field-ref (the json/xml `move_to_ref(field, ...)` pattern).
 [macro_function]
 def private inline_apply_field(nameStr : string; var access : ExpressionPtr; fieldType : TypeDeclPtr;
                                isConst : bool; hasExtraArg : bool; var annExpr : ExpressionPtr;
@@ -101,12 +96,6 @@ def private inline_apply_field(nameStr : string; var access : ExpressionPtr; fie
 }
 
 // ===== Invoke fallback: per-field helper generation (used when the block escapes via `return`) =====
-//
-//  def apply`Foo(self:Foo; __arg_field1:block<(name:string,value:field1-type):void>; __arg_field2:...)
-//      invoke(__arg_field1, self.field1)
-//      invoke(__arg_field2, self.field2)
-//      ...
-//  (3-arg form additionally passes the static RTTI annotation array per field)
 [macro_function]
 def generateApplyVisitStruct(stype : TypeDeclPtr; frange : range; fnname : string; at : LineInfo; var names : array<string>; hasExtraArg : bool) {
     assert(stype.baseType == Type.tStructure)
@@ -206,10 +195,7 @@ def generateApplyVisitTuple(stype : TypeDeclPtr; fnname : string; at : LineInfo)
     return <- names
 }
 
-//  def apply`Foo(self:Foo; __arg_field1:block<...>; __arg_field2:...)   // variant: only the active arm runs
-//      if variant_index(self)==0  { invoke(__arg_field1, self.field1); return }
-//      if variant_index(self)==1  { invoke(__arg_field2, self.field2); return }
-//      ...
+// def apply`Foo(self:Foo; __arg_field1:block<...>; __arg_field2:...)   // variant: only the active arm runs if variant_index(self)==0  { invoke(__arg_field1, self.field1); return } if variant_index(self)==1  { invoke(__arg_field2, self.field2); return } ...
 [macro_function]
 def generateApplyVisitVariant(stype : TypeDeclPtr; frange : range; fnname : string; at : LineInfo; var names : array<string>) {
     assert(stype.baseType == Type.tVariant)
@@ -297,10 +283,7 @@ class FindEscapingReturn : AstVisitor {
     }
 }
 
-// True when the per-field block has no function-escaping `return` — then `apply` may inline the body
-// directly. A `return` at the block's top level (or inside a transparent if/for/static_if) escapes the
-// inlined caller, so the macro falls back to the invoke helper instead. Returns inside a nested $(){}
-// belong to that block and are ignored (canVisitMakeBlockBody == false stops descent).
+// True when the per-field block has no function-escaping `return` — then `apply` may inline the body directly. A `return` at the block's top level (or inside a transparent if/for/static_if) escapes the inlined caller, so the macro falls back to the invoke helper instead. Returns inside a nested $(){} belong to that block and are ignored (canVisitMakeBlockBody == false stops descent).
 [macro_function]
 def private apply_block_inline_safe(blk : ExpressionPtr) : bool {
     if (!(blk is ExprMakeBlock)) {
@@ -319,26 +302,7 @@ def private apply_block_inline_safe(blk : ExpressionPtr) : bool {
 
 [call_macro(name = "apply")]  // apply(value, block)
 class ApplyMacro : AstCallMacro {
-    //! Visits every field of a struct, tuple, or variant with a per-field block. The block is
-    //! ``$(name, field)`` — ``name`` is the field-name string (a compile-time constant, so
-    //! ``static_if (name == "...")`` folds) and ``field`` is a reference to the field value (read or
-    //! mutate; writes propagate to the source). A struct may use a third ``annotations`` param receiving
-    //! ``array<tuple<name:string; data:RttiValue>>`` per field. A variant runs only its active arm.
-    //!
-    //! The body inlines directly into the caller when it has no escaping ``return``; a block that uses
-    //! ``return`` to skip a field transparently falls back to a generated per-field helper (where
-    //! ``return`` keeps its block-local "skip this field" meaning). Either way the source is unchanged.
-    //!
-    //! .. code-block:: das
-    //!
-    //!     struct Bar {
-    //!         x, y : float
-    //!     }
-    //!     apply(Bar(x=1.0, y=2.0)) $(name, field) {
-    //!         print("{name} = {field} ")
-    //!     }
-    //!
-    //! Would print ``x = 1 y = 2``
+    //! Visits every field of a struct, tuple, or variant with a per-field block. The block is ``$(name, field)`` — ``name`` is the field-name string (a compile-time constant, so ``static_if (name == "...")`` folds) and ``field`` is a reference to the field value (read or mutate; writes propagate to the source). A struct may use a third ``annotations`` param receiving ``array<tuple<name:string; data:RttiValue>>`` per field. A variant runs only its active arm.
     def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
         macro_verify(expr.arguments |> length == 2, prog, expr.at, "expecting apply(value, block)")
         if (expr.arguments[0]._type == null) {  // need value inferred
@@ -372,16 +336,12 @@ class ApplyMacro : AstCallMacro {
 [macro_function]
 def private inline_apply(var expr : ExprCallMacro?; argT : TypeDeclPtr; hasExtraArg : bool) : ExpressionPtr {
     let selfIsConst = argT.flags.constant
-    // bind self once (single-evaluation). lvalue -> reference binding so mutations through `field`
-    // propagate back; rvalue -> materialize into a local (a reference to a temporary dangles for variants).
-    // The typer wraps a read of a var/param in ExprRef2Value (stripping ref), so peel to the underlying
-    // lvalue and bind to it directly.
+    // bind self once (single-evaluation). lvalue -> reference binding so mutations through `field` propagate back; rvalue -> materialize into a local (a reference to a temporary dangles for variants).
     var selfPeeled = expr.arguments[0]
     while (selfPeeled != null && selfPeeled is ExprRef2Value) {
         selfPeeled = (selfPeeled as ExprRef2Value).subexpr
     }
-    // lvalue == an expression denoting storage (var/param/field/index): ref-bind it. A var/param read
-    // is an ExprVar with ref=false in its value type, so detect by node kind, not the ref flag.
+    // lvalue == an expression denoting storage (var/param/field/index): ref-bind it. A var/param read is an ExprVar with ref=false in its value type, so detect by node kind, not the ref flag.
     let selfIsRef = selfPeeled != null && (selfPeeled is ExprVar || selfPeeled is ExprField
         || selfPeeled is ExprSafeField || selfPeeled is ExprAt || selfPeeled is ExprSafeAt || selfPeeled is ExprSwizzle)
     let selfName = "__apply_self`{expr.at.line}`{expr.at.column}"
@@ -513,14 +473,6 @@ def private inline_apply_imm_field(fldname : string; var fieldAccess : Expressio
 [call_macro(name = "apply_imm")]  // apply_imm(struct_value, block)
 class ApplyImmMacro : AstCallMacro {
     //! Struct-only, faster sibling of ``apply`` for a hot field walk (e.g. a serialization materializer).
-    //! Like ``apply`` it inlines the block body once per field, but it aliases the block params via
-    //! ``assume`` (``name`` -> the field-name string, ``field`` -> the ``self.field`` lvalue, optional
-    //! ``annotations`` -> static RTTI) rather than binding a real ``let/var field &`` reference local — no
-    //! per-field local, so it is ~25% faster than ``apply`` under the interpreter (identical under JIT; see
-    //! ``benchmarks/micro/apply_vs_apply_imm.das``). It handles **structs only** and re-reads ``self`` per
-    //! field, so use ``apply`` for tuples/variants or a side-effecting/rvalue ``self``. Because it always
-    //! inlines it has no invoke fallback, so its block may **not** use ``return`` (use ``apply`` for that).
-    //! Same ``$(name, var field[, annotations])`` block shape.
     def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
         macro_verify(expr.arguments |> length == 2, prog, expr.at, "expecting apply_imm(value, block)")
         if (expr.arguments[0]._type == null) {  // need value inferred

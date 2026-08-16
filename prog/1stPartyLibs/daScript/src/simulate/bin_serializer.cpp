@@ -113,6 +113,9 @@ namespace das {
                 uint64_t newSize = 0;
                 load(newSize);
                 array_clear(*context, *pa, /*at*/nullptr);
+                // exact reserve first: the final size is known, so the resize never grows -
+                // no pow2 slack on big payloads, and no max_unreserved_size panic
+                array_reserve(*context, *pa, newSize, getTypeBaseSize(ti), /*at*/nullptr);
                 array_resize(*context, *pa, newSize, getTypeBaseSize(ti), true, /*at*/nullptr);
             } else {
                 save(pa->size);

@@ -30,6 +30,7 @@ let HUGE_N = 2200_l * 1024_l * 1024_l
 def test_temp_array_arr_huge(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     arr[0_l] = uint8(0xC0)
     arr[HUGE_N - 1_l] = uint8(0xDE)
@@ -46,6 +47,7 @@ def test_temp_array_arr_huge(t : T?) {
 def test_temp_array_data_lenA_huge(t : T?) {
     if (!huge_enabled()) return
     var arr : array<uint8>
+    arr |> reserve(HUGE_N)
     arr |> resize(HUGE_N)
     arr[0_l] = uint8(0x11)
     arr[HUGE_N - 1_l] = uint8(0x22)

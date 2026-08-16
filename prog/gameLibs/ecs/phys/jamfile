@@ -32,6 +32,7 @@ SourceES =
   ragdollES.cpp.inl
   physVarsES.cpp.inl
   gravityES.cpp.inl
+  segHumanPhysES.cpp.inl
   turretControlES.cpp.inl
 ;
 

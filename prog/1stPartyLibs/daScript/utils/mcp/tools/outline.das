@@ -1,5 +1,7 @@
 options gen2
 
+module outline
+
 require common public
 require grep_usage public
 require daslib/json
@@ -62,6 +64,16 @@ def find_earliest(text : string; chars : array<int>) : int {
     return best
 }
 
+def strip_modifiers(rest0 : string; modifiers : array<string>) : string {
+    var rest = rest0
+    for (m in modifiers) {
+        if (starts_with(rest, m)) {
+            rest = strip(slice(rest, length(m)))
+        }
+    }
+    return rest
+}
+
 def extract_name_from_text(text, kind : string) : string {
     // Extract the declaration name from the first line of text
     // e.g. "def foo(x : int) : string {" -> "foo"
@@ -72,14 +84,9 @@ def extract_name_from_text(text, kind : string) : string {
         // "def name(" or "def name {" or "def name<"
         let def_pos = find(line, "def ")
         if (def_pos >= 0) {
-            var rest = strip(slice(line, def_pos + 4))
             // skip visibility: "def private foo" / "def public foo" / "def abstract foo" / "def override foo" / "def static foo" / "def sealed foo" / "def const foo"
-            let modifiers = ["private ", "public ", "abstract ", "override ", "static ", "sealed ", "const "]
-            for (m in modifiers) {
-                if (starts_with(rest, m)) {
-                    rest = strip(slice(rest, length(m)))
-                }
-            }
+            let rest = strip_modifiers(strip(slice(line, def_pos + 4)),
+                ["private ", "public ", "abstract ", "override ", "static ", "sealed ", "const "])
             // name ends at '(' or '{' or ' ' or end
             return slice(rest, 0, find_earliest(rest, ['(', '{', ' ']))
         }
@@ -93,26 +100,13 @@ def extract_name_from_text(text, kind : string) : string {
             if (sp >= 0) {
                 rest = strip(slice(rest, sp + 1))
             }
-            // skip modifiers
-            let modifiers = ["public ", "private ", "sealed ", "template "]
-            for (m in modifiers) {
-                if (starts_with(rest, m)) {
-                    rest = strip(slice(rest, length(m)))
-                }
-            }
+            rest = strip_modifiers(rest, ["public ", "private ", "sealed ", "template "])
             return slice(rest, 0, find_earliest(rest, ['{', ':', ' ']))
         }
     } elif (kind == "enum") {
         let kw_pos = find(line, "enum ")
         if (kw_pos >= 0) {
-            var rest = strip(slice(line, kw_pos + 5))
-            // skip visibility
-            let modifiers = ["public ", "private "]
-            for (m in modifiers) {
-                if (starts_with(rest, m)) {
-                    rest = strip(slice(rest, length(m)))
-                }
-            }
+            let rest = strip_modifiers(strip(slice(line, kw_pos + 5)), ["public ", "private "])
             return slice(rest, 0, find_earliest(rest, ['{', ' ', ':']))
         }
     } elif (kind == "global") {
@@ -124,13 +118,7 @@ def extract_name_from_text(text, kind : string) : string {
             if (sp >= 0) {
                 rest = strip(slice(rest, sp + 1))
             }
-            // skip modifiers
-            let modifiers = ["shared ", "public ", "private "]
-            for (m in modifiers) {
-                if (starts_with(rest, m)) {
-                    rest = strip(slice(rest, length(m)))
-                }
-            }
+            rest = strip_modifiers(rest, ["shared ", "public ", "private "])
             // Handle block form: "let private {" -> skip
             if (first_character(rest) == '{') return ""
             // Handle annotations before name
@@ -151,25 +139,13 @@ def extract_name_from_text(text, kind : string) : string {
     } elif (kind == "bitfield") {
         let kw_pos = find(line, "bitfield ")
         if (kw_pos >= 0) {
-            var rest = strip(slice(line, kw_pos + 9))
-            let modifiers = ["public ", "private "]
-            for (m in modifiers) {
-                if (starts_with(rest, m)) {
-                    rest = strip(slice(rest, length(m)))
-                }
-            }
+            let rest = strip_modifiers(strip(slice(line, kw_pos + 9)), ["public ", "private "])
             return slice(rest, 0, find_earliest(rest, ['{', ' ', ':']))
         }
     } elif (kind == "variant") {
         let kw_pos = find(line, "variant ")
         if (kw_pos >= 0) {
-            var rest = strip(slice(line, kw_pos + 8))
-            let modifiers = ["public ", "private "]
-            for (m in modifiers) {
-                if (starts_with(rest, m)) {
-                    rest = strip(slice(rest, length(m)))
-                }
-            }
+            let rest = strip_modifiers(strip(slice(line, kw_pos + 8)), ["public ", "private "])
             return slice(rest, 0, find_earliest(rest, ['{', ' ']))
         }
     }
@@ -197,9 +173,7 @@ def get_first_line(text : string) : string {
     return strip(clean)
 }
 
-def do_outline(file, glob_filter : string) : string {
-    if (empty(file) && empty(glob_filter)) return make_tool_result("'file' or 'glob' argument is required", true)
-    let das_root = get_das_root()
+def build_outline_cmd(file, glob_filter, das_root : string) : string {
     let rules_path = "{das_root}/tree-sitter-daslang/outline_rules.yml"
     // build target path(s)
     var target : string
@@ -218,6 +192,34 @@ def do_outline(file, glob_filter : string) : string {
     } elif (!empty(glob_filter)) {
         cmd = "{cd_root}{sg} scan -r \"{rules_path}\" --globs \"{glob_filter}\" --json \"{das_root}\""
     }
+    return cmd
+}
+
+def format_outline(entries : array<OutlineEntry>; var by_file : table<string; array<int>>; file_order : array<string>) : string {
+    let multi_file = length(file_order) > 1
+    return build_string() $(var w) {
+        for (fp_idx in range(length(file_order))) {
+            let fp = file_order[fp_idx]
+            if (multi_file) {
+                write(w, "{fp}:\n")
+            }
+            unsafe {
+                for (idx in by_file[fp]) {
+                    let e & = entries[idx]
+                    write(w, "  {e.line}: [{e.kind}] {e.text}\n")
+                }
+            }
+            if (multi_file && fp_idx < length(file_order) - 1) {
+                write(w, "\n")
+            }
+        }
+    }
+}
+
+def do_outline(file, glob_filter : string) : string {
+    if (empty(file) && empty(glob_filter)) return make_tool_result("'file' or 'glob' argument is required", true)
+    let das_root = get_das_root()
+    let cmd = build_outline_cmd(file, glob_filter, das_root)
     var raw_json : string
     unsafe {
         popen(cmd) $(f) {
@@ -229,6 +231,7 @@ def do_outline(file, glob_filter : string) : string {
             }
         }
     }
+    raw_json = strip_ast_grep_banner(raw_json)
     if (empty(raw_json) || raw_json == "[]") return make_tool_result("No declarations found")
     var err : string
     var parsed = read_json(raw_json, err)
@@ -274,24 +277,5 @@ def do_outline(file, glob_filter : string) : string {
             }
         }
     }
-    // format output
-    let multi_file = length(file_order) > 1
-    let output = build_string() $(var w) {
-        for (fp_idx in range(length(file_order))) {
-            let fp = file_order[fp_idx]
-            if (multi_file) {
-                write(w, "{fp}:\n")
-            }
-            unsafe {
-                for (idx in by_file[fp]) {
-                    let e & = entries[idx]
-                    write(w, "  {e.line}: [{e.kind}] {e.text}\n")
-                }
-            }
-            if (multi_file && fp_idx < length(file_order) - 1) {
-                write(w, "\n")
-            }
-        }
-    }
-    return make_tool_result(output)
+    return make_tool_result(format_outline(entries, by_file, file_order))
 }

@@ -1,16 +1,16 @@
 options gen2
 options indenting = 4
 options persistent_heap = true
+options gc
 options _allow_glfw_calls = true
 
 require imgui/imgui_harness
+require imgui/imgui_live
 require opengl/opengl_boost
 require glfw/glfw_boost
 require live/glfw_live
-require imgui_app
 require daslib/safe_addr
 require daslib/math_boost
-require daslib/strings
 
 // Custom 3D + ImGui hybrid: the harness gives us the boost-v2 widget surface
 // (window/edit_*/text) and the daslang theme via live_imgui_init, but we
@@ -128,7 +128,7 @@ def update() {
 
     end_of_frame()
     Render()
-    ImGui_ImplOpenGL3_RenderDrawData(GetDrawData())
+    live_imgui_render()
     live_end_frame()
 }
 
@@ -142,6 +142,7 @@ def main() {
     init()
     while (!exit_requested()) {
         update()
+        maybe_collect_gc()
     }
     shutdown()
 }
@@ -178,9 +179,21 @@ struct Vertex {
     xy : float2
 }
 
+// GL_LINE_SMOOTH is a desktop-only line anti-aliasing hint; WebGL2 has no such capability, so a raw
+// glEnable/glDisable(GL_LINE_SMOOTH) spams INVALID_ENUM every frame in the browser. Gate it on the
+// runtime platform (get_running_platform_name, not the host-folded get_platform_name) — a no-op on web.
+def line_smooth(on : bool) {
+    if (get_running_platform_name() == "emscripten") return
+    if (on) {
+        glEnable(GL_LINE_SMOOTH)
+    } else {
+        glDisable(GL_LINE_SMOOTH)
+    }
+}
+
 def draw_circle(origin : float2; radius : float; color : float3) {
     glUseProgram(program)
-    glEnable(GL_LINE_SMOOTH)
+    line_smooth(true)
     f_color = color
     v_offset = origin
     v_scale = float2(radius, radius)
@@ -189,12 +202,12 @@ def draw_circle(origin : float2; radius : float; color : float3) {
     fs_main_bind_uniform(program)
     glBindVertexArray(vao_circle)
     glDrawArrays(GL_LINE_LOOP, 0, 360)
-    glDisable(GL_LINE_SMOOTH)
+    line_smooth(false)
 }
 
 def draw_arrow(origin : float2; c : float2; color : float3) {
     glUseProgram(program)
-    glEnable(GL_LINE_SMOOTH)
+    line_smooth(true)
     f_color = color
     v_offset = origin
     v_rot = c
@@ -203,12 +216,12 @@ def draw_arrow(origin : float2; c : float2; color : float3) {
     fs_main_bind_uniform(program)
     glBindVertexArray(vao_arrow)
     glDrawArrays(GL_LINE_LOOP, 0, 360)
-    glDisable(GL_LINE_SMOOTH)
+    line_smooth(false)
 }
 
 def draw_graph(color : float3) {
     glUseProgram(program)
-    glEnable(GL_LINE_SMOOTH)
+    line_smooth(true)
     f_color = color
     v_offset = float2(0.0f, 0.0f)
     v_rot = float2(1.0f, 0.0f)
@@ -219,7 +232,7 @@ def draw_graph(color : float3) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo_graph)
     compute_graph()
     glDrawArrays(GL_LINE_LOOP, 0, NGRAPH)
-    glDisable(GL_LINE_SMOOTH)
+    line_smooth(false)
 }
 
 def create_gl_objects {
@@ -231,6 +244,7 @@ def create_gl_objects {
         glGenBuffers(1, safe_addr(vbo_circle))
         glBindBuffer(GL_ARRAY_BUFFER, vbo_circle)
         var vertices : array<Vertex>
+        vertices |> reserve(360)
         for (t in range(360)) {
             let T = float(t) * 2.0 * PI / 360.0
             vertices |> push(Vertex(xy = float2(cos(T), sin(T))))
@@ -289,6 +303,7 @@ def compute_fn(t : float) {
 
 def compute_graph {
     var vertices : array<Vertex>
+    vertices |> reserve(NGRAPH)
     for (t in range(NGRAPH)) {
         let T = float(t) / float(NGRAPH)
         let p = compute_fn(T)

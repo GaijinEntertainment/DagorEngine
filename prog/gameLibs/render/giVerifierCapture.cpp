@@ -205,10 +205,8 @@ bool save_capture(const char *dir, const TMatrix &view_itm, const Driver3dPerspe
   UniqueTex capD = dag::create_tex(NULL, width, height, TEXFMT_R32F | TEXCF_RTARGET, 1, "gi_verify_cap_depth");
   {
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target(capA.getTex2D(), 0);
-    d3d::set_render_target(1, capN.getTex2D(), 0);
-    d3d::set_render_target(2, capM.getTex2D(), 0);
-    d3d::set_render_target(3, capD.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW,
+      {{capA.getTex2D(), 0, 0}, {capN.getTex2D(), 0, 0}, {capM.getTex2D(), 0, 0}, {capD.getTex2D(), 0, 0}});
     PostFxRenderer capPass;
     capPass.init("gi_verify_capture");
     if (!capPass.getElem())
@@ -243,7 +241,7 @@ bool save_capture(const char *dir, const TMatrix &view_itm, const Driver3dPerspe
       bool envShaderOk = false;
       {
         SCOPE_RENDER_TARGET;
-        d3d::set_render_target(capE.getTex2D(), 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{capE.getTex2D(), 0, 0}});
         PostFxRenderer envPass;
         envPass.init("gi_verify_env_latlong");
         envShaderOk = envPass.getElem() != nullptr;

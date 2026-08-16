@@ -1852,7 +1852,7 @@ if $(ReproducibleExeBuild) = yes {
       if $(OS) = NT && $(Platform) in windows {
         $(t)__POSTLINK_CMD =
           set_filter nul /Patching/$(NEWLINE_STR_)
-          call_filtered $(_DEVTOOL)/ducible.exe $(target_exe) $(target_pdb) $(NEWLINE_STR_)
+          call_filtered $(PYTHON_EXE) $(Root)/prog/_jBuild/_scripts/run_ducible.py $(_DEVTOOL)/ducible.exe $(target_exe) $(target_pdb) $(NEWLINE_STR_)
           $($(t)__POSTLINK_CMD)
         ;
       }

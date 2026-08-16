@@ -1,0 +1,68 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+ConsoleExe = yes ;
+PlatformSpec_windows_x86_64 = clang ;
+CheckedContainers ?= yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/metronome/tests ;
+
+TargetType  = exe ;
+OutDir      = $(Root)/$(Location)/bin/$(LegacyPlatformSuffix) ;
+Target      = testMetronome ;
+
+UseD3DMulti = yes ;
+UseD3DMultiList = DX12 stub ;
+UseD3DMultiForced = windows ;
+include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;
+
+if $(PlatformSpec) = clang
+{
+  CPPopt +=
+    -Wc++11-narrowing
+    -Wswitch
+    -Wbitfield-constant-conversion
+    -Wmissing-field-initializers
+  ;
+}
+
+
+UseProgLibs =
+  engine/memory
+  engine/kernel
+  engine/osApiWrappers
+  engine/coreUtil
+  engine/baseUtil
+  engine/ioSys
+  engine/math
+  engine/shaders
+  engine/lib3d
+  engine/image
+  engine/startup
+  engine/workCycle
+  engine/perfMon/stub
+
+  engine/drv/drv3d_pc_multi
+
+  3rdPartyLibs/eastl
+  3rdPartyLibs/catch2
+
+  gameLibs/render/daFrameGraph
+  gameLibs/render/metronome
+;
+
+ShaderVarsStub ?= mock ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/render/daFrameGraph
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/catch2/src
+;
+
+Sources =
+  main.cpp
+  metronomeTests.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

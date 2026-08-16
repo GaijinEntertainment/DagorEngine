@@ -242,6 +242,10 @@ public:
   // Remove all entities and all entity systems
   void clear();
 
+  // Frees the calling thread's query scratch data. Call from an exiting thread that ran queries on this
+  // manager: the dtor (on another thread) would otherwise write into the exited thread's freed TLS
+  void freePerThreadQueryData();
+
   // Get entity components iterator (with or without template ones)
   // Warning: DO NOT recreateEntity from within this iterator - it might get invalidated!
   ComponentsIterator getComponentsIterator(EntityId eid, bool including_templates = true) const;

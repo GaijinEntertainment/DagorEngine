@@ -2,6 +2,7 @@
 #pragma once
 
 #include "canvas_clipboard.h"
+#include "graph_dead_paths.h"
 #include "graph_edge_reconnect.h"
 #include "graph_undo.h" // GraphSelection
 
@@ -190,8 +191,17 @@ private:
   ImVec2 cullViewMin = ImVec2(0.0f, 0.0f);
   ImVec2 cullViewMax = ImVec2(0.0f, 0.0f);
 
-  void drawCommentNode(const GraphData::Node &n);
-  void drawBlockNode(const GraphData::Node &n);
+  DeadPaths deadPaths;
+  // Pins touched by any edge, and the subset touched by at least one live one, as makePinId keys.
+  // ne::PinHadAnyLinks cannot serve instead: a muted link is still submitted, so ne keeps reporting
+  // its pins as fed.
+  eastl::hash_set<uint64_t> linkedPins;
+  eastl::hash_set<uint64_t> livePins;
+  uint64_t deadPathsRevision = ~uint64_t(0);
+  void refreshDeadPaths();
+
+  void drawCommentNode(const GraphData::Node &n, bool selected);
+  void drawBlockNode(const GraphData::Node &n, bool selected);
 
   void showNextSelectedNode();
   void removeSelectedKeepingConnections();

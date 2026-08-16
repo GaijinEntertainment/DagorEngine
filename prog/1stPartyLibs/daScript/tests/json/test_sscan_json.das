@@ -723,3 +723,36 @@ def test_table_key_types(t : T?) {
         t |> equal(dst.data?[float2(1.0, 2.0)] ?? "", "coords")
     }
 }
+
+// ============================================================
+//  test: 16/8-bit lattice vectors — array form fills every lane;
+//  object form (x/y/z/w names) is 4-lane-max, rejected past that
+// ============================================================
+
+struct WithLatticeVecs {
+    h2 : half2
+    h8 : half8
+    s8 : short8
+    b16 : byte16
+}
+
+[test]
+def test_lattice_vectors(t : T?) {
+    t |> run("array form fills all lanes; object form ok at <= 4 lanes") @(t : T?) {
+        var v : WithLatticeVecs
+        let ok = sscan_json("\{\"h2\":\{\"x\":1.5,\"y\":2.5\},\"h8\":[1,2,3,4,5,6,7,8],\"s8\":[10,20,30,40,50,60,70,80],\"b16\":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]\}", v)
+        t |> success(ok)
+        t |> success(v.h2.x == 1.5h && v.h2.y == 2.5h, "half2 object form")
+        t |> success(v.h8.s0 == 1.0h && v.h8.s7 == 8.0h, "half8 first/last lane")
+        t |> success(int(v.s8.s0) == 10 && int(v.s8.s7) == 80, "short8 first/last lane")
+        t |> success(int(v.b16.s0) == 1 && int(v.b16.sf) == 16, "byte16 first/last lane")
+    }
+    t |> run("object form rejected for 8/16-lane vectors") @(t : T?) {
+        var v1 : WithLatticeVecs
+        t |> success(!sscan_json("\{\"h8\":\{\"x\":1\}\}", v1), "half8 object form rejected")
+        var v2 : WithLatticeVecs
+        t |> success(!sscan_json("\{\"s8\":\{\"x\":1\}\}", v2), "short8 object form rejected")
+        var v3 : WithLatticeVecs
+        t |> success(!sscan_json("\{\"b16\":\{\"x\":1\}\}", v3), "byte16 object form rejected")
+    }
+}

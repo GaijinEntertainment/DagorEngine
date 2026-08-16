@@ -33,10 +33,10 @@ void update_samplers();
 void clear(bool completeClear = false);
 
 // update buffer
-void before_render(float dt, const Point3 &origin);
+void before_render(float dt, const Point3 &origin, bool need_deform_pressure_buffer = false);
 
 // render tires
-void render_to_clipmap(bool for_displacement);
+void render_strips(bool apply_clipmap_writemask);
 void render_projective_decals();
 
 void render_debug(bool show_nodes_data);
@@ -47,6 +47,8 @@ void render_debug(bool show_nodes_data);
 // so, if prio_scale_factor is 10 - it will be suppose to be sqrt(10) times more distant, and so, less important
 // ownership will be obtained for minTimeToOwn
 int create_emitter(float width, float texture_length_factor, float minTimeToOwn, float prio_scale_factor, int track_type_no);
+
+void set_emitter_deform_pressure(int id, float deform_pressure_mult);
 
 // delete track emitter.
 void delete_emitter(int id);

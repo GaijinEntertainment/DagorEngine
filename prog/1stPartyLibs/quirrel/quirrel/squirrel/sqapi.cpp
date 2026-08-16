@@ -778,10 +778,7 @@ SQRESULT sq_setnativeclosuredocstring(HSQUIRRELVM v,SQInteger idx,const char *do
     SQObject o = stack_get(v, idx);
     if(sq_isnativeclosure(o)) {
         SQObjectPtr docValue(SQString::Create(_ss(v), docstring));
-        SQObjectPtr docKey;
-        docKey._type = OT_USERPOINTER;
-        docKey._unVal.pUserPointer = (void *)_nativeclosure(o)->_function;
-        _table(_ss(v)->doc_objects)->NewSlot(docKey, docValue);
+        _table(_ss(v)->doc_objects)->NewSlot(sq_docstring_key(_nativeclosure(o)), docValue);
         return SQ_OK;
     }
     return sq_throwerror(v,"the object is not a nativeclosure");
@@ -793,13 +790,11 @@ SQRESULT sq_setobjectdocstring(HSQUIRRELVM v, const HSQOBJECT *obj, const char *
     assert(docstring);
     if (sq_isclass(*obj) || sq_istable(*obj) || sq_isnativeclosure(*obj) || sq_isclosure(*obj)) {
         SQObjectPtr docValue(SQString::Create(_ss(v), docstring));
-        SQObjectPtr docKey;
-        docKey._type = OT_USERPOINTER;
-        docKey._unVal.pUserPointer =
-            sq_isclass(*obj) || sq_istable(*obj) ? (void *)_userpointer(*obj) :
-            sq_isnativeclosure(*obj) ? (void *)_nativeclosure(*obj)->_function :
-            sq_isclosure(*obj) ? (void *)_closure(*obj)->_function : NULL;
-        _table(_ss(v)->doc_objects)->NewSlot(docKey, docValue);
+        const void *docKey =
+            sq_isclass(*obj) || sq_istable(*obj) ? (const void *)_userpointer(*obj) :
+            sq_isnativeclosure(*obj) ? (const void *)_nativeclosure(*obj) :
+            sq_isclosure(*obj) ? (const void *)_closure(*obj)->_function : NULL;
+        _table(_ss(v)->doc_objects)->NewSlot(sq_docstring_key(docKey), docValue);
         return SQ_OK;
     }
     return sq_throwerror(v,"the object is not a table, class or function");
@@ -881,18 +876,12 @@ SQRESULT sq_new_closure_slot_from_decl_string(HSQUIRRELVM v, SQFUNCTION func, SQ
 #if SQ_STORE_DOC_OBJECTS
     if (docstring) {
         SQObjectPtr docValue(SQString::Create(_ss(v), docstring));
-        SQObjectPtr docKey;
-        docKey._type = OT_USERPOINTER;
-        docKey._unVal.pUserPointer = (void *)func;
-        _table(_ss(v)->doc_objects)->NewSlot(docKey, docValue);
+        _table(_ss(v)->doc_objects)->NewSlot(sq_docstring_key(nc), docValue);
     }
 
     {
         SQObjectPtr declValue(SQString::Create(_ss(v), function_decl));
-        SQObjectPtr declKey;
-        declKey._type = OT_USERPOINTER;
-        declKey._unVal.pUserPointer = (void *)(((size_t)(void *)func) ^ ~size_t(0));
-        _table(_ss(v)->doc_objects)->NewSlot(declKey, declValue);
+        _table(_ss(v)->doc_objects)->NewSlot(sq_declstring_key(nc), declValue);
     }
 #else
     (void)(docstring);

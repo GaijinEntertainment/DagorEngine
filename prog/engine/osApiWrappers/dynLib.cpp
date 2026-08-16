@@ -77,6 +77,20 @@ void *os_dll_get_symbol(void *handle, const char *function)
 #endif
 }
 
+// Get handle to a loaded dynamic library by name. Return NULL if failed.
+void *os_dll_get_handle(const char *name)
+{
+#if _TARGET_PC_LINUX | _TARGET_APPLE | _TARGET_ANDROID
+
+  return ::dlopen(name, RTLD_NOLOAD | RTLD_LAZY);
+#elif _TARGET_PC_WIN | _TARGET_XBOX
+
+  return ::GetModuleHandle(name);
+#else
+  return NULL;
+#endif
+}
+
 
 // Close dynamic library.
 bool os_dll_close(void *handle)

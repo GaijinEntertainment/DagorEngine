@@ -121,20 +121,21 @@ void init(ContextId context_id)
   bvhConnection.contexts.insert(context_id);
 }
 
-void teardown(ContextId context_id)
-{
-  if (!context_id->hasAny(Features::GpuObjects))
-    return;
-
-  bvhConnection.contexts.erase(context_id);
-}
-
 void on_unload_scene(ContextId context_id)
 {
   if (!context_id->hasAny(Features::GpuObjects))
     return;
 
   bvhConnection.teardown();
+}
+
+void teardown(ContextId context_id)
+{
+  if (!context_id->hasAny(Features::GpuObjects))
+    return;
+
+  bvh::gobj::on_unload_scene(context_id);
+  bvhConnection.contexts.erase(context_id);
 }
 
 void get_instances(ContextId context_id, Sbuffer *&instances, Sbuffer *&instance_count)

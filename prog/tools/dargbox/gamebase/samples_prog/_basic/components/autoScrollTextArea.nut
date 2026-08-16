@@ -1,5 +1,6 @@
 from "daRg" import *
 from "%darg/darg_library.nut" import hdpx, Behaviors, FLEX_H
+from "types" import Table
 
 let autoScrollTextArea = @(params) {
   size = FLEX_H
@@ -14,7 +15,7 @@ let autoScrollTextArea = @(params) {
     delay = const [3.0,2.5]
     speed = const [hdpx(10), 1]
     orientation = O_VERTICAL
-  }.__update(type(params) == "table" ? params : { text = params })
+  }.__update(params instanceof Table ? params : { text = params })
 }
 
 return autoScrollTextArea

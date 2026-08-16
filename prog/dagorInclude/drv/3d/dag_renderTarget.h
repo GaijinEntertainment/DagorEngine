@@ -93,63 +93,6 @@ bool set_depth(BaseTexture *tex, DepthAccess access);
 bool set_depth(BaseTexture *tex, int layer, DepthAccess access);
 
 /**
- * @brief Sets the render target for rendering.
- *
- * @warning if texture is depth texture format, it is the same as call set_depth() DON'T USE THIS BEHAVIOR!!!
- * @deprecated Use set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors) instead.
- *
- * @param rt_index The index of the render target. The maximum number of render targets is defined by Driver3dRenderTarget::MAX_SIMRT.
- * @param texture A pointer to the BaseTexture object representing the render target.
- * @param fc The face of the texture (for cube textures and texture arrays). If face is RENDER_TO_WHOLE_ARRAY, then the whole Texture
- * Array/Volume Tex will be set as render target. This is to be used with geom shader (and Metal allows with vertex shader).
- * @param level The level of the render target.
- * @return True if the render target was set successfully, false otherwise.
- */
-bool set_render_target(int rt_index, BaseTexture *, int fc, uint8_t level);
-
-/**
- * @brief Sets the render target for rendering.
- *
- * @warning if texture is depth texture format, it is the same as call set_depth() DON'T USE THIS BEHAVIOR!!!
- * @deprecated Use set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors) instead.
- *
- * @param rt_index The index of the render target. The maximum number of render targets is defined by Driver3dRenderTarget::MAX_SIMRT.
- * @param texture A pointer to the BaseTexture object representing the render target.
- * @param level The level of the render target.
- * @return True if the render target was set successfully, false otherwise.
- */
-bool set_render_target(int rt_index, BaseTexture *, uint8_t level);
-
-/**
- * @brief Sets the render target for rendering. All other render targets will be set to nullptr.
- *
- * @warning if texture is depth texture format, it is the same as call set_depth() DON'T USE THIS BEHAVIOR!!!
- * @deprecated Use set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors) instead.
- *
- * @param texture A pointer to the BaseTexture object representing the render target.
- * @param level The level of the render target.
- * @return True if the render target was set successfully, false otherwise.
- */
-inline bool set_render_target(BaseTexture *t, uint8_t level) { return set_render_target() && set_render_target(0, t, level); }
-
-/**
- * @brief Sets the render target for rendering. All other render targets will be set to nullptr.
- *
- * @warning if texture is depth texture format, it is the same as call set_depth() DON'T USE THIS BEHAVIOR!!!
- * @deprecated Use set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors) instead.
- *
- * @param t A pointer to the BaseTexture object representing the render target.
- * @param fc The face of the texture (for cube textures and texture arrays). If face is RENDER_TO_WHOLE_ARRAY, then the whole Texture
- * Array/Volume Tex will be set as render target. This is to be used with geom shader (and Metal allows with vertex shader).
- * @param level The level of the render target.
- * @return True if the render target was set successfully, false otherwise.
- */
-inline bool set_render_target(BaseTexture *t, int fc, uint8_t level)
-{
-  return set_render_target() && set_render_target(0, t, fc, level);
-}
-
-/**
  * @brief Sets the render target for rendering. All other render targets will be set to nullptr.
  *
  * @param depth The depth render target.
@@ -226,7 +169,7 @@ bool get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t level =
 bool clearview(int what, E3DCOLOR c, float z, uint32_t stencil);
 
 /**
- * @brief Get the size of the screen (backbuffer).
+ * @brief Get the size of the screen.
  *
  * @warning The size of the screen can be different from the size of the framebuffer.
  *
@@ -265,11 +208,6 @@ inline bool clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val
 inline bool set_render_target() { return d3di.set_render_target(); }
 inline bool set_depth(BaseTexture *tex, DepthAccess access) { return d3di.set_depth(tex, access); }
 inline bool set_depth(BaseTexture *tex, int layer, DepthAccess access) { return d3di.set_depth(tex, layer, access); }
-inline bool set_render_target(int rt_index, BaseTexture *t, int fc, uint8_t level)
-{
-  return d3di.set_render_target(rt_index, t, fc, level);
-}
-inline bool set_render_target(int rt_index, BaseTexture *t, uint8_t level) { return d3di.set_render_target(rt_index, t, level); }
 inline void get_render_target(Driver3dRenderTarget &out_rt) { return d3di.get_render_target(out_rt); }
 inline bool set_render_target(const Driver3dRenderTarget &rt) { return d3di.set_render_target(rt); }
 inline void set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors)

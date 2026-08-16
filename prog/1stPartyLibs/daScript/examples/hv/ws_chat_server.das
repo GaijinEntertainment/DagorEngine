@@ -1,10 +1,17 @@
-// WebSocket Chat Server
+// WebSocket Chat Server — the canonical daslang server shape.
 //
 // A chat server that:
 //   1. Serves chat.html at http://localhost:9090/
 //   2. Accepts WebSocket connections at ws://localhost:9090/chat
 //   3. Broadcasts messages to all connected clients
 //   4. Shows join/leave notifications
+//
+// Lifecycle: [export] init() constructs the server and starts listening,
+// update() runs one tick, shutdown() stops and frees it. The standalone
+// main() drives init -> loop(update + maybe_collect_gc) -> shutdown; under
+// daslang-live the host calls the trio itself (and collects each frame).
+// maybe_collect_gc() is the GC boundary a long-running standalone loop must
+// provide (needs `options gc` + `options persistent_heap` above).
 //
 // Usage:
 //   daslang.exe examples/hv/ws_chat_server.das
@@ -18,6 +25,8 @@ options gc
 
 require dashv/dashv_boost public
 require daslib/fio
+require live/live_gc
+require live_host
 require strings
 
 let PORT = 9090
@@ -65,7 +74,7 @@ class ChatServer : HvWebServer {
         // Handle /nick command
         if (starts_with(text, "/nick ")) {
             let new_name = slice(text, 6)
-            if (length(new_name) > 0 && length(new_name) <= 20) {
+            if (!empty(new_name) && length(new_name) <= 20) {
                 let old_name = nickname
                 clients |> erase(channel)
                 clients |> insert_clone(channel, new_name)
@@ -92,24 +101,47 @@ class ChatServer : HvWebServer {
     }
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────
+// ── Lifecycle ────────────────────────────────────────────────────────────
+
+// Module-global: main must hold no collectable locals across maybe_collect_gc()
+// (JIT collection cannot see stack locals as GC roots).
+var g_server : ChatServer?
 
 [export]
-def main() {
+def init() {
     print("Starting chat server on port {PORT}...\n")
     print("  Open http://localhost:{PORT} in your browser\n")
     print("  Or run: daslang.exe examples/hv/ws_chat_client.das\n")
     print("  Press Ctrl+C to stop\n\n")
-    var server = new ChatServer()
-    server->init(PORT)
-    server->start()
-    while (true) {
-        server->tick()
-        sleep(10u)
-    }
-    server->stop()
-    server->cleanup()
+    g_server = new ChatServer()
+    g_server->init(PORT)
+    g_server->start()
+}
+
+[export]
+def update() {
+    return if (g_server == null)
+    g_server->tick()
+    sleep(10u)
+}
+
+[export]
+def shutdown() {
+    return if (g_server == null)
+    g_server->stop()
+    g_server->cleanup()
     unsafe {
-        delete server
+        delete g_server
     }
+    g_server = null
+}
+
+[export]
+def main() {
+    init()
+    while (!exit_requested()) {
+        update()
+        maybe_collect_gc()
+    }
+    shutdown()
 }

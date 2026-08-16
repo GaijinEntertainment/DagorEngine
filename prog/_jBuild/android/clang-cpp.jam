@@ -55,11 +55,11 @@ if $(OS) in LINUX MACOSX {
                         ]*([^ \\\
                         ]+)[ \\\
                         ]" ;
-    HDRRULE  on $(>) = DepRule ;
+    HDRRULE  on $(>) = DepRuleDotDot ;
     HDRFS    on $(>) = yes ;
   }
 
-  rule DepRule
+  if ! DepRuleDotDot in $(JAM_BUILTINS) { rule DepRuleDotDot
   {
     local changed_dep = ;
 
@@ -69,7 +69,6 @@ if $(OS) in LINUX MACOSX {
       local rel_path = ;
       switch $(dep)
       {
-        case /Develop/SDK* : dep = ; # skip target part
         case *: : dep = ; # skip target part
         case /* : changed_dep += $(dep) ;   # absolute path with drive
         case *  : rel_path = [ MATCH "[\.\\\/]*([^ \
@@ -80,9 +79,9 @@ if $(OS) in LINUX MACOSX {
 
     Includes $(<) : $(changed_dep) ;
     null_action $(changed_dep) ;
-  }
+  } }
 } else {
-  rule DepRule
+  if ! DepRuleDotDot in $(JAM_BUILTINS) { rule DepRuleDotDot
   {
     local changed_dep = ;
 
@@ -100,7 +99,7 @@ if $(OS) in LINUX MACOSX {
     }
     Includes $(<) : $(changed_dep) ;
     null_action $(changed_dep) ;
-  }
+  } }
 
   rule CheckHeaders
   {
@@ -112,7 +111,7 @@ if $(OS) in LINUX MACOSX {
     HDRSCAN  on $(>) = "[ \.\\\/\
                         ]*([^ \
                         ]+)" ;
-    HDRRULE  on $(>) = DepRule ;
+    HDRRULE  on $(>) = DepRuleDotDot ;
     HDRFS    on $(>) = yes ;
   }
 }

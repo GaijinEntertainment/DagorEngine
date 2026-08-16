@@ -1,0 +1,91 @@
+include "dagi_irrad_grid_sample.dshl"
+
+// whether the ambient baked into gbuffer lighting is valid around a point;
+// the default asks the irradiance grid. A project with a different ambient
+// source overrides this, keeping the voxel lit scene decoupled from the grid.
+// Override contract: define bool dagi_project_lit_scene_ambient_ready_at(
+// float3 world_pos, float sample_extent) - world_pos arrives in TRUE XYZ
+// order (not the clipmap's xzy; the default reorders internally),
+// sample_extent is the world-space PER-AXIS half-extent of the axis-aligned
+// neighborhood around world_pos the caller sampled the ambient in (0 = only
+// at world_pos), and true means the ambient is valid, bake the voxel.
+// Returning false skips the lit scene radiance write only
+define_macro_if_not_defined PROJECT_DAGI_LIT_SCENE_AMBIENT_READY(code)
+  (code) {
+    // everything the default predicate reads is bound here under aliased
+    // names (the project light point hook may bind the same clip math, and a
+    // caller may bind world_view_pos itself), so any shader can instantiate
+    // this macro standalone
+    dagi_lit_irrad_sizei@i4 = dagi_irrad_grid_clipmap_sizei;
+    dagi_lit_irrad_first_valid@i1 = dagi_irrad_grid_first_valid_clip;
+    dagi_lit_irrad_size0@f1 = dagi_irrad_grid_probe_size0;
+    dagi_lit_irrad_view_pos@f3 = world_view_pos;
+    dagi_lit_irrad_lt@i4[] = {dagi_irrad_grid_clipmap_lt_coord_0, dagi_irrad_grid_clipmap_lt_coord_1, dagi_irrad_grid_clipmap_lt_coord_2, dagi_irrad_grid_clipmap_lt_coord_3, dagi_irrad_grid_clipmap_lt_coord_4, dagi_irrad_grid_clipmap_lt_coord_5, dagi_irrad_grid_clipmap_lt_coord_6, dagi_irrad_grid_clipmap_lt_coord_7, dagi_irrad_grid_clipmap_lt_invalid};
+  }
+  hlsl(code) {
+    // ready when a current clip window contains the whole sampling
+    // neighborhood at its expected quality or finer: a finer covering clip is
+    // better data, while a coarser covering one would bake low-detail ambient
+    // into voxels that outlive the transient - the latch the skip prevents
+    bool dagi_project_lit_scene_ambient_ready_at(float3 world_pos, float sample_extent)
+    {
+      // -1: nothing publishes readiness for the irradiance vars (no radiance
+      // grid and no replicated sky vis clipmap) - there is no ambient source
+      // to wait for, keep the pre-change marking
+      int firstValidI = dagi_lit_irrad_first_valid;
+      if (firstValidI < 0)
+        return true;
+      // the lt binding holds 8 real windows (+1 invalid sentinel); sky vis
+      // replication publishes its clip count unclamped, so a 9+ clip config
+      // must not index past the array - excess classes join the far field
+      uint clipCount = min(uint(dagi_lit_irrad_sizei.z), 8u);
+      float3 resf = float3(dagi_lit_irrad_sizei.xxy);
+      // clip 0's GUARANTEED per-axis coverage: the covered short edge
+      // (floor(res/2) probes - odd sizes center asymmetrically) minus half a
+      // probe of sampling footprint, one probe of move threshold and half a
+      // probe of world_to_voxel rounding; clip sizes double per level
+      float3 reach0 = (floor(0.5*resf) - 2.0)*dagi_lit_irrad_size0;
+      if (!all(reach0 > 0))
+        return true; // degenerate small clipmap: containment at rest cannot be guaranteed, do not gate
+      float3 dist = abs(world_pos - dagi_lit_irrad_view_pos).xzy + sample_extent;
+      float t = max3(dist.x/reach0.x, dist.y/reach0.y, dist.z/reach0.z);
+      // beyond the coarsest guaranteed reach the lagged window may never
+      // contain the point even at rest: gating would leave a permanently
+      // unmarked band. Checked before the all-invalid rejection below, so a
+      // fully invalidated clipmap (teleport clear) never gates the far field
+      if (t >= float(1u << (clipCount - 1)))
+        return true;
+      // invalidated clips hold no data; they re-validate coarsest first, so
+      // the valid set is the suffix [firstValid..clipCount-1] (a hole would
+      // only cost loop steps: an invalid window fails containment anyway)
+      uint firstValid = uint(firstValidI);
+      if (firstValid >= clipCount)
+        return false; // the whole clipmap is invalidated: no valid ambient in reach yet
+      // class thresholds are integer-built powers of two (bit-exact, unlike
+      // exp2/log2 whose backend rounding could decide a boundary). Boundaries
+      // are open - an exact reach edge promotes to the next class - because
+      // the sampler rejects windows with a strict border test too, and a
+      // point exactly on clip k's resting edge must stay markable via k+1
+      uint expected = 0;
+      LOOP
+      for (uint k = 0; k + 1 < clipCount; ++k)
+        if (t >= float(1u << k))
+          expected = k + 1;
+      LOOP
+      for (uint clip = firstValid; clip <= expected; ++clip)
+      {
+        int4 lt = dagi_lit_irrad_lt[clip];
+        float probeSize = asfloat(lt.w);
+        float3 coordLt = world_pos.xzy/probeSize - lt.xyz;
+        // strict interval, widened by the per-axis sampling extent, matching
+        // the sampler (dagi_irrad_grid_get_best_enclosing_clip, border 0.5,
+        // strict compares): a window this gate accepts must be one the
+        // sampler actually serves, or its coarse fallback slips through
+        float margin = 0.5 + sample_extent/probeSize;
+        if (all(coordLt > margin) && all(coordLt < resf - margin))
+          return true;
+      }
+      return false;
+    }
+  }
+endmacro

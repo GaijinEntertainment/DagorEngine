@@ -6,15 +6,12 @@ include "rt/grass_generate_rt_inc.dshl"
 buffer grass_draw_instances_indirect_buffer_for_bvh;
 
 int gpu_grass_bvh_max_instances;
-int4 gpu_grass_bvh_blas;
-int4 gpu_grass_bvh_blas_horizontal;
-int gpu_grass_bvh_meta_index;
-int gpu_grass_bvh_meta_index_horizontal;
 int gpu_grass_bvh_meta_count;
 
 buffer gpu_grass_bvh_counter;
 buffer gpu_grass_bvh_instances;
 buffer gpu_grass_bvh_indirect;
+buffer gpu_grass_bvh_mapping;
 
 hlsl
 {
@@ -83,10 +80,10 @@ shader gpu_grass_bvh_instantiate
       #include <RTHWInstance.hlsli>
       RWStructuredBuffer<RTHWInstance> gpu_grass_bvh_instances@uav;
     };
-    gpu_grass_bvh_blas@u2 = gpu_grass_bvh_blas;
-    gpu_grass_bvh_blas_horizontal@u2 = gpu_grass_bvh_blas_horizontal;
-    gpu_grass_bvh_meta_index@u1 = gpu_grass_bvh_meta_index;
-    gpu_grass_bvh_meta_index_horizontal@u1 = gpu_grass_bvh_meta_index_horizontal;
+    gpu_grass_bvh_mapping@buf = gpu_grass_bvh_mapping hlsl {
+      #include <grassInstance.hlsli>
+      StructuredBuffer<GpuGrassBvhMapping> gpu_grass_bvh_mapping@buf;
+    };
     gpu_grass_bvh_meta_count@u1 = gpu_grass_bvh_meta_count;
     world_view_pos@f3 = world_view_pos;
     grass_max_instance_count@u1 = grass_max_instance_count;
@@ -128,6 +125,15 @@ shader gpu_grass_bvh_instantiate
       if (!(keep_grass_for_bvh_sphere(boundingSphereWpos, boundingSphereRadius, world_view_pos) && keep_grass_randomly(round_grass_world_pos_for_bvh(position)) && !discard_burnt_grass(position)))
         return;
 
+      ##assert(grassInstance.grassType < GRASS_MAX_TYPES, "grassInstance.grassType = %d is out of range! GRASS_MAX_TYPES = %d", grassInstance.grassType, GRASS_MAX_TYPES);
+      uint grassTextureType = grass_colors_vs[grassInstance.grassType].grassTextureType;
+      ##assert(grassTextureType < gpu_grass_bvh_meta_count, "grassTextureType = %d is out of range! gpu_grass_bvh_meta_count = %d", grassTextureType, gpu_grass_bvh_meta_count);
+      uint mappingIndex = (is_horizontal ? gpu_grass_bvh_meta_count : 0) + min(grassTextureType, gpu_grass_bvh_meta_count - 1);
+      GpuGrassBvhMapping mapping = structuredBufferAt(gpu_grass_bvh_mapping, mappingIndex);
+      // Before the counter increment: a texture that is not in the BVH must not use an instance slot.
+      if (!gpu_grass_bvh_mapping_is_valid(mapping))
+        return;
+
       uint outputLocation;
       gpu_grass_bvh_counter.InterlockedAdd(0, 1, outputLocation);
       if (outputLocation >= gpu_grass_bvh_max_instances)
@@ -151,18 +157,13 @@ shader gpu_grass_bvh_instantiate
         zVec = normalize(cross(rightVec, upVec));
       }
 
-      ##assert(grassInstance.grassType < GRASS_MAX_TYPES, "grassInstance.grassType = %d is out of range! GRASS_MAX_TYPES = %d", grassInstance.grassType, GRASS_MAX_TYPES);
-      uint grassTextureType = grass_colors_vs[grassInstance.grassType].grassTextureType;
-      ##assert(grassTextureType < gpu_grass_bvh_meta_count, "grassTextureType = %d is out of range! gpu_grass_bvh_meta_count = %d", grassTextureType, gpu_grass_bvh_meta_count);
-      uint metaIndex = (is_horizontal ? gpu_grass_bvh_meta_index_horizontal :  gpu_grass_bvh_meta_index) + min(grassTextureType, gpu_grass_bvh_meta_count);
-
       RTHWInstance bvhInstance;
       bvhInstance.transform0 = float4(float3(rightVec.x, upVec.x, zVec.x), position.x);
       bvhInstance.transform1 = float4(float3(rightVec.y, upVec.y, zVec.y), position.y);
       bvhInstance.transform2 = float4(float3(rightVec.z, upVec.z, zVec.z), position.z);
-      bvhInstance.instanceId_mask = pack_rt_instance_id_mask(metaIndex, bvhGroupGrass);
+      bvhInstance.instanceId_mask = pack_rt_instance_id_mask(mapping.metaIndex, bvhGroupGrass);
       bvhInstance.instanceOffset_flags = pack_rt_instance_flags(RT_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE);
-      bvhInstance.blas = is_horizontal ? gpu_grass_bvh_blas_horizontal : gpu_grass_bvh_blas;
+      bvhInstance.blas = mapping.blas;
 
       structuredBufferAt(gpu_grass_bvh_instances, outputLocation) = bvhInstance;
     }

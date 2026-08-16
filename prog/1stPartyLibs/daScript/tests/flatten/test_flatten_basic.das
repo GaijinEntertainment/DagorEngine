@@ -151,6 +151,19 @@ def partial_scalar(x : float) : float {
     return s + 1.0
 }
 
+// fixed-array literal in a flatten body (ExprMakeArray): elements lower/optimize like any operand,
+// and a user call inside is inlined (lift_expr recurses the array). Integer arithmetic so reassoc
+// stays exact for the differential equal().
+def isq(a : int) : int {
+    return a * a + 1
+}
+
+[flatten]
+def fixed_arr(x : int) : int {
+    let a = fixed_array(isq(x), x * 2, x - 1, isq(x + 1))
+    return a[0] + a[1] - a[2] + a[3]
+}
+
 // ----- differential driver -----
 
 var GRID : array<int>
@@ -226,6 +239,11 @@ def test_flatten_equivalence(t : T?) {
                 t |> equal(g.a.x, eg.a.x)
                 t |> equal(g.b, eg.b)
             }
+        }
+    }
+    t |> run("fixed-array literal (ExprMakeArray), user call inside") @(t : T?) {
+        for (v in GRID) {
+            t |> equal(fixed_arr_flat(v), fixed_arr(v))
         }
     }
 }

@@ -1,4 +1,4 @@
-// Squirrel module under test: dagor.fs (registered by dagorFS.cpp)
+// Quirrel module under test: dagor.fs (registered by dagorFS.cpp)
 
 from "dagor.fs" import file_exists, dir_exists, is_path_absolute, scan_folder, stat, resolve_mountpoint,
   read_text_from_file, read_text_from_file_on_disk, write_text_to_file, mkdir, mkpath, remove_file, remove_dirtree

@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "types" import String
 
 let imgSize = hdpxi(22)
 
@@ -21,7 +22,7 @@ let shaderExt = ["hlsl"]
 
 function get_image(filename, isDir=false, image=null) {
   if (image != null) {
-    if (type(image)=="string" && image.indexof("/") != null) {
+    if (image instanceof String && image.indexof("/") != null) {
       return Picture(image)
     }
     if (type(image) == "instance")

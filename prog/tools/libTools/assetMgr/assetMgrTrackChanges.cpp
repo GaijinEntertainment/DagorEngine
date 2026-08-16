@@ -16,6 +16,7 @@
 #include "assetCreate.h"
 #include "vAssetRule.h"
 #include <ioSys/dag_msgIo.h>
+#include <debug/dag_except.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -244,15 +245,22 @@ public:
           logerr("insufficient ChangesTracker buffer, avail=%d pos=%d, break...", avail_sz, cwr->tell());
           break;
         }
-        cwr->beginBlock();
-        cwr->writeInt(get_time_msec_qpc());
-        cwr->writeIntP<1>(fd.rootIdx);
-        cwr->writeIntP<1>(notifyAction);
-        cwr->writeIntP<2>(count);
-        cwr->write(szFile, count);
-        cwr->alignOnDword(count + 2);
-        cwr->endBlock();
-
+        DAGOR_TRY
+        {
+          cwr->beginBlock();
+          cwr->writeInt(get_time_msec_qpc());
+          cwr->writeIntP<1>(fd.rootIdx);
+          cwr->writeIntP<1>(notifyAction);
+          cwr->writeIntP<2>(count);
+          cwr->write(szFile, count);
+          cwr->alignOnDword(count + 2);
+          cwr->endBlock();
+        }
+        DAGOR_CATCH(const IGenSave::SaveException &)
+        {
+          logerr("ChangesTracker: write error, avail=%d pos=%d, break...", avail_sz, cwr->tell());
+          break;
+        }
       } while (hasNextEntry);
       fd.io->endWrite();
     }
@@ -315,16 +323,25 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
 
   for (; msg_count > 0; msg_count--)
   {
-    crd->beginBlock();
-    int time_msec = crd->readInt();
-    int rootIdx = crd->readIntP<1>();
-    int type = crd->readIntP<1>();
-    int len = crd->readIntP<2>();
-    if (len >= sizeof(fname))
-      len = sizeof(fname) - 1;
-    crd->read(fname, len);
-    fname[len] = '\0';
-    crd->endBlock();
+    int time_msec = 0, rootIdx = -1, type = 0, len = 0;
+    DAGOR_TRY
+    {
+      crd->beginBlock();
+      time_msec = crd->readInt();
+      rootIdx = crd->readIntP<1>();
+      type = crd->readIntP<1>();
+      len = crd->readIntP<2>();
+      if (len >= sizeof(fname))
+        len = sizeof(fname) - 1;
+      crd->read(fname, len);
+      fname[len] = '\0';
+      crd->endBlock();
+    }
+    DAGOR_CATCH(const IGenLoad::LoadException &)
+    {
+      logerr("ChangesTracker: read error, %d message(s) dropped", msg_count);
+      break;
+    }
 
     int fidx = detectFolder(folders, baseRoots[rootIdx].folder, fname, fdir);
     if (fidx == -1)

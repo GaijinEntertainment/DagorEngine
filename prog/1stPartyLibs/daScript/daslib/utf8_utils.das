@@ -181,7 +181,9 @@ def public is_utf8_string_valid(utf8_string : string const) : bool {
     var codepoint = 0u
     var state = 0u
     for (ch in utf8_string) {
-        let byte = uint(ch)
+        // String iteration yields a signed byte in JIT; normalize it before
+        // indexing the 256-entry byte-class table.
+        let byte = uint(uint8(ch))
         let type_ = s_utf8d[byte]
         codepoint = (state != UTF8_ACCEPT) ? (byte & 0x3F) | (codepoint << 6u) : (0xFF >> type_) & byte
         state = s_utf8d[256u + state + type_]

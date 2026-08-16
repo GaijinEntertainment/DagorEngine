@@ -105,7 +105,7 @@ SINGLE_ARG_FUNC(round)
 SINGLE_ARG_FUNC(exp)
 
 template<SQInteger CmpRes>
-static SQInteger math_min_max(HSQUIRRELVM v)
+static SQInteger math_min_max(HSQUIRRELVM v, const char *funcname)
 {
   SQInteger nArgs = sq_gettop(v);
   SQObject objRes;
@@ -115,7 +115,7 @@ static SQInteger math_min_max(HSQUIRRELVM v)
     SQObject cur;
     sq_getstackobj(v, i, &cur);
     if (!(sq_type(cur) & SQOBJECT_NUMERIC)) {
-      sq_throwparamtypeerror(v, i, _RT_FLOAT | _RT_INTEGER, sq_type(cur));
+      v->Raise_ParamTypeError(i - 1, _RT_FLOAT | _RT_INTEGER, sq_type(cur), funcname);
       return SQ_ERROR;
     }
 
@@ -133,12 +133,12 @@ static SQInteger math_min_max(HSQUIRRELVM v)
 
 static SQInteger math_min(HSQUIRRELVM v)
 {
-  return math_min_max<-1>(v);
+  return math_min_max<-1>(v, "min");
 }
 
 static SQInteger math_max(HSQUIRRELVM v)
 {
-  return math_min_max<+1>(v);
+  return math_min_max<+1>(v, "max");
 }
 
 static SQInteger math_clamp(HSQUIRRELVM v)
@@ -206,7 +206,7 @@ static const SQRegFunctionFromStr mathlib_funcs[] = {
     { math_max,    "pure fastcall max(x: number, y: number, ...: number): number", "Returns the maximum value from the arguments" },
     { math_clamp,  "pure fastcall clamp(x: number, min: number, max: number): number", "Clamps x to the range [min, max]" },
     { sq_math_hash, "pure hash(obj): int",           "Returns a hash value for the given object" },
-    { sq_math_deep_hash, "pure deep_hash(obj, [depth: int]): int", "Returns a hash value for the given object, hashing nested objects up to the specified depth" },
+    { sq_math_deep_hash, "pure deep_hash(obj, [depth: int]): int", "Returns a hash value for the given object, hashing nested objects up to the specified depth (1..200)" },
     { NULL, NULL, NULL }
 };
 

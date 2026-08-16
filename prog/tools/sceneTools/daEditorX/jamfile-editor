@@ -6,6 +6,7 @@ PhysName = Jolt ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
 UseD3DMulti = yes ;
+UseD3DMultiForced ?= windows linux ;
 if ! $(UseD3DMultiList) {
   UseD3DMultiList_windows = DX11 vulkan stub ;
   UseD3DMultiList_linux   = vulkan stub ;
@@ -69,6 +70,8 @@ Sources =
   pluginService/graph_tex_gen_service.cpp
   pluginService/image_export.cpp
   pluginService/landscape_preview_service.cpp
+  pluginService/texgen_dshl_assemble.cpp
+  pluginService/texgen_dshl_compile.cpp
 ;
 
 if $(Platform) = windows {
@@ -231,14 +234,6 @@ if $(Platform) = windows {
 else if $(Platform) = linux {
   UseProgLibs +=
     engine/drv/hid_joystick_linux
-    gameLibs/spirv
-  ;
-  # editor texgen compiles node HLSL -> SPIR-V in-process (no driver-side runtime HLSL on Vulkan)
-  Sources += pluginService/texgen_hlsl_compile.cpp ;
-  # drv3d_commonCode: MAX_PS_CONSTS. vulkan/include: vulkan.h, pulled in by spirv/compiler.h.
-  AddIncludes +=
-    $(Root)/prog/engine/drv/drv3d_commonCode
-    $(Root)/prog/3rdPartyLibs/vulkan/include
   ;
   dasStdDlg_UserProvidedPlatform = yes ;
 }

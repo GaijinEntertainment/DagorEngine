@@ -5,6 +5,114 @@
 
 namespace das {
 
+    class SetRefSpVisitor : public Visitor {
+    public:
+        SetRefSpVisitor ( bool r, bool c, uint32_t s, uint32_t o )
+            : ref(r), cmres(c), sp(s), off(o) {}
+    protected:
+        bool ref, cmres;
+        uint32_t sp, off;
+
+        void applyFields ( ExprMakeLocal * e ) {
+            e->useStackRef = ref;
+            e->useCMRES = cmres;
+            e->doesNotNeedSp = true;
+            e->doesNotNeedInit = true;
+            e->stackTop = sp;
+            e->extraOffset = off;
+        }
+
+        static void markCmresSkip ( Expression * val ) {
+            if ( val->rtti_isCall() ) {
+                auto cll = static_cast<ExprCall*>(val);
+                if ( cll->allowCmresSkip() ) cll->doesNotNeedSp = true;
+            } else if ( val->rtti_isInvoke() ) {
+                auto cll = static_cast<ExprInvoke*>(val);
+                if ( cll->allowCmresSkip() ) cll->doesNotNeedSp = true;
+            }
+        }
+
+        void recurse ( Expression * val, uint32_t childOff ) {
+            if ( val->rtti_isMakeLocal() ) {
+                SetRefSpVisitor sub(ref, cmres, sp, childOff);
+                val->dispatch(sub);
+            } else {
+                markCmresSkip(val);
+            }
+        }
+
+        virtual void preVisit ( ExprMakeTuple * expr ) override {
+            applyFields(expr);
+            int total = int(expr->values.size());
+            for ( int index=0; index != total; ++index ) {
+                recurse(expr->values[index], expr->extraOffset + expr->makeType->getTupleFieldOffset(index));
+            }
+        }
+
+        virtual void preVisit ( ExprMakeArray * expr ) override {
+            applyFields(expr);
+            int total = int(expr->values.size());
+            uint32_t stride = expr->recordType->getSizeOf();
+            for ( int index=0; index != total; ++index ) {
+                recurse(expr->values[index], expr->extraOffset + index*stride);
+            }
+        }
+
+        virtual void preVisit ( ExprMakeStruct * expr ) override {
+            applyFields(expr);
+            auto mkBaseT = expr->makeType;
+            while ( mkBaseT->baseType==Type::tFixedArray && mkBaseT->firstType ) mkBaseT = mkBaseT->firstType;
+            if ( mkBaseT->baseType == Type::tHandle ) return;
+            int total = int(expr->structs.size());
+            int stride = expr->makeType->getStride();
+            for ( int index=0; index != total; ++index ) {
+                auto & fields = expr->structs[index];
+                for ( const auto & decl : *fields ) {
+                    auto field = mkBaseT->structType->findField(decl->name);
+                    DAS_ASSERT(field && "should have failed in type infer otherwise");
+                    recurse(decl->value, expr->extraOffset + index*stride + field->offset);
+                }
+            }
+        }
+
+        virtual void preVisit ( ExprMakeVariant * expr ) override {
+            applyFields(expr);
+            auto mkBaseT = expr->makeType;
+            while ( mkBaseT->baseType==Type::tFixedArray && mkBaseT->firstType ) mkBaseT = mkBaseT->firstType;
+            int stride = expr->makeType->getStride();
+            int index = 0;
+            for ( const auto & decl : expr->variants ) {
+                auto fieldVariant = mkBaseT->findArgumentIndex(decl->name);
+                DAS_ASSERT(fieldVariant!=-1 && "should have failed in type infer otherwise");
+                if ( decl->value->rtti_isMakeLocal() ) {
+                    auto fieldOffset = mkBaseT->getVariantFieldOffset(fieldVariant);
+                    uint32_t offset = expr->extraOffset + index*stride + fieldOffset;
+                    SetRefSpVisitor sub(ref, cmres, sp, offset);
+                    decl->value->dispatch(sub);
+                    static_cast<ExprMakeLocal*>(decl->value)->doesNotNeedInit = false;
+                } else {
+                    markCmresSkip(decl->value);
+                }
+                index++;
+            }
+        }
+    };
+
+    static void applySetRefSp ( ExprMakeLocal * mkl, bool ref, bool cmres, uint32_t sp, uint32_t off ) {
+        SetRefSpVisitor vis(ref, cmres, sp, off);
+        mkl->dispatch(vis);
+    }
+
+    // escape analysis stack-allocates a non-escaping `new` pointee into the frame (allocate_on_stack).
+    // That pointee is the variable's backing storage and must live to scope exit, so the scoped
+    // allocator must NOT reclaim it together with the initializer's temporaries.
+    static bool initAllocatesOnStack ( Expression * init ) {
+        if ( !init ) return false;
+        if ( init->rtti_isAscend() ) return static_cast<ExprAscend *>(init)->allocate_on_stack;
+        if ( init->rtti_isNewExpr() ) return static_cast<ExprNew *>(init)->allocate_on_stack;
+        return false;
+    }
+
     class VarCMRes : public Visitor {
     public:
         VarCMRes( const ProgramPtr & prog, bool everything ) {
@@ -19,6 +127,12 @@ namespace das {
         VariablePtr             cmresVAR = nullptr;
         bool                    failedToCMRES = false;
         bool                    isEverything = false;
+        // SimNode_MakeArrayHeap repoints abiCMRES at the heap block while constructing
+        // elements, so a CMRES-aliased local read inside a heap-mode literal would resolve
+        // into the (zeroed) heap buffer instead of the return slot. Track such reads and
+        // decline the elision for that variable — an extra move at return, always correct.
+        das_hash_set<Variable *> usedInHeapLiteral;
+        int                     heapLiteralDepth = 0;
     protected:
 
         virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
@@ -32,12 +146,30 @@ namespace das {
             func = f;
         }
         virtual FunctionPtr visit ( Function * that ) override {
-            if ( cmresVAR && !failedToCMRES ) cmresVAR->aliasCMRES = true;
+            if ( cmresVAR && !failedToCMRES
+                && usedInHeapLiteral.find(cmresVAR) == usedInHeapLiteral.end() ) cmresVAR->aliasCMRES = true;
             func = nullptr;
             cmresVAR = nullptr;
             failedToCMRES = false;
+            usedInHeapLiteral.clear();
             DAS_ASSERT(blocks.size()==0);
+            DAS_ASSERT(heapLiteralDepth==0);
             return Visitor::visit(that);
+        }
+    // heap-mode array literal (gen2 [..] feeding to_array_move/to_table_move)
+        virtual void preVisit ( ExprMakeArray * expr ) override {
+            Visitor::preVisit(expr);
+            if ( expr->makeArrayOnHeap ) heapLiteralDepth ++;
+        }
+        virtual ExpressionPtr visit ( ExprMakeArray * expr ) override {
+            if ( expr->makeArrayOnHeap ) heapLiteralDepth --;
+            return Visitor::visit(expr);
+        }
+        virtual void preVisit ( ExprVar * expr ) override {
+            Visitor::preVisit(expr);
+            if ( heapLiteralDepth && expr->local && expr->variable ) {
+                usedInHeapLiteral.insert(expr->variable);
+            }
         }
     // ExprBlock
         virtual void preVisit ( ExprBlock * block ) override {
@@ -214,7 +346,7 @@ namespace das {
                             << "\tinit global " << var->name << " [[ ]], line " << var->init->at.line << "\n";
                     }
                     auto mkl = static_cast<ExprMakeLocal*>(var->init);
-                    mkl->setRefSp(true, false, refStackTop, 0);
+                    applySetRefSp(mkl, true, false, refStackTop, 0);
                     mkl->doesNotNeedInit = false;
                     mkl->doesNotNeedSp = true;
                 } else if ( var->init->rtti_isCall() ) {
@@ -296,7 +428,11 @@ namespace das {
                 DAS_ASSERT(!expr->returnInBlock);
             }
             if ( expr->subexpr ) {
-                if ( expr->subexpr->rtti_isMakeLocal() ) {
+                // only route a make-local return through CMRES when the function returns via
+                // CMRES; a register-returned (non-cmres) function has no result buffer, so
+                // writing the make-local through one segfaults — build a normal local instead.
+                bool makeLocalCMRES = expr->returnInBlock || !func || func->copyOnReturn || func->moveOnReturn;
+                if ( expr->subexpr->rtti_isMakeLocal() && makeLocalCMRES ) {
                     uint32_t sz = sizeof(void *);
                     expr->refStackTop = allocateStack(sz);
                     expr->takeOverRightStack = true;
@@ -306,9 +442,9 @@ namespace das {
                     }
                     auto mkl = static_cast<ExprMakeLocal*>(expr->subexpr);
                     if ( expr->returnInBlock ) {
-                        mkl->setRefSp(true, false, expr->refStackTop, 0);
+                        applySetRefSp(mkl, true, false, expr->refStackTop, 0);
                     } else {
-                        mkl->setRefSp(true, true, expr->refStackTop, 0);
+                        applySetRefSp(mkl, true, true, expr->refStackTop, 0);
                         expr->returnCMRES = true;
                     }
                     mkl->doesNotNeedInit = false;
@@ -352,6 +488,12 @@ namespace das {
             block->stackVarTop = allocateStack(0);
             block->stackCleanVars.clear();
             if ( inStruct ) return;
+            // A block with a `finally` section runs that section on EVERY exit, including
+            // an early return that precedes a later variable's declaration. Disable stack
+            // reuse for the whole block so its locals keep distinct slots and the
+            // block-entry memzero (SimulateVisitor::visit(ExprBlock*)) stays valid when
+            // the finally fires before a variable's initializer ran.
+            if ( block->finalList.size() ) doNotOptimize++;
             if ( block->isClosure ) {
                 blocks.push_back(block);
             }
@@ -368,6 +510,7 @@ namespace das {
             pushSp();
         }
         virtual ExpressionPtr visit ( ExprBlock * block ) override {
+            if ( !inStruct && block->finalList.size() ) doNotOptimize--;
             auto top = inStruct ? stackTop : popSp().maxStack;
             block->stackVarBottom = top;
 
@@ -460,21 +603,9 @@ namespace das {
     // ExprCall
         virtual void preVisit ( ExprCall * expr ) override {
             Visitor::preVisit(expr);
-            // what we do here is check, if the function can't possibly capture string
-            // and if so, we mark the LAST string builder as temporary
-            auto efun = expr->func;
-            if ( !efun ) return;
-            if ( /*efun->builtIn &&*/       // BBATKIN: if captureString side effects are not calculated correctly, this will blow up!!!
-                 !efun->policyBased && !efun->invoke && !efun->captureString ) {
-                for ( int ai=int(expr->arguments.size())-1; ai>=0; ai-- ) {
-                    auto & arg = expr->arguments[ai];
-                    if ( arg->rtti_isStringBuilder() ) {
-                        auto sb = static_cast<ExprStringBuilder*>(arg);
-                        sb->isTempString = true;
-                        break;
-                    }
-                }
-            }
+            // temp-string marking (builders and [temp_string_result] calls) lives in
+            // MarkTempStrings - one global pass at the head of Program::allocateStack
+            if ( !expr->func ) return;
             if ( inStruct ) return;
             if ( !expr->doesNotNeedSp ) {
                 if ( expr->func->copyOnReturn || expr->func->moveOnReturn ) {
@@ -575,7 +706,7 @@ namespace das {
             if ( var->init ) {
                 if ( var->init->rtti_isMakeLocal() ) {
                     auto mkl = static_cast<ExprMakeLocal*>(var->init);
-                    mkl->setRefSp(false, var->aliasCMRES, var->stackTop, 0);
+                    applySetRefSp(mkl, false, var->aliasCMRES, var->stackTop, 0);
                     mkl->doesNotNeedInit = false;
                 } else if ( var->init->rtti_isCall() ) {
                     auto cll = static_cast<ExprCall*>(var->init);
@@ -594,12 +725,16 @@ namespace das {
                 }
             }
             if (!var->type->ref && var->type->baseType != Type::tBlock) {
+                // a stack-allocated pointee is the variable's storage, not a temporary - keep it past
+                // the init's stack-reuse scope so a later local does not clobber the live pointee
+                if ( initAllocatesOnStack(var->init) ) doNotOptimize++;
                 pushSp(); // Free everything allocated to init let (not let itself)
             }
         }
         virtual VariablePtr visitLet ( ExprLet * /*expr*/, const VariablePtr & var, bool /*last*/ ) override {
             if (!inStruct && !var->type->ref && var->type->baseType != Type::tBlock) {
                 popSp();
+                if ( initAllocatesOnStack(var->init) ) doNotOptimize--;
             }
             return var;
         }
@@ -646,7 +781,7 @@ namespace das {
                         logs << "\t" << expr->stackTop << "\t" << sz
                         << "\tascend stack, line " << expr->at.line << "\n";
                     }
-                    mkl->setRefSp(false, false, expr->stackTop, 0);
+                    applySetRefSp(mkl, false, false, expr->stackTop, 0);
                 } else {
                     uint32_t sz = sizeof(void *);
                     expr->stackTop = allocateStack(sz);
@@ -655,7 +790,7 @@ namespace das {
                         logs << "\t" << expr->stackTop << "\t" << sz
                         << "\tascend, line " << expr->at.line << "\n";
                     }
-                    mkl->setRefSp(true, false, expr->stackTop, 0);
+                    applySetRefSp(mkl, true, false, expr->stackTop, 0);
                 }
             }
             pushSp();
@@ -679,7 +814,7 @@ namespace das {
                     logs << "\t" << cStackTop << "\t" << sz
                         << "\t[[" << expr->type->describe() << "]], line " << expr->at.line << "\n";
                 }
-                expr->setRefSp(false, false, cStackTop, 0);
+                applySetRefSp(expr, false, false, cStackTop, 0);
                 expr->doesNotNeedSp = false;
                 expr->doesNotNeedInit = false;
             }
@@ -704,7 +839,9 @@ namespace das {
                     logs << "\t" << cStackTop << "\t" << sz
                     << "\t[[" << expr->type->describe() << "]], line " << expr->at.line << "\n";
                 }
-                expr->setRefSp(false, false, cStackTop, 0);
+                // heap array literal: slot holds the array<T> value (sizeof Array); element writes
+                // go into the heap buffer via cmres (set to arr.data by SimNode_MakeArrayHeap).
+                applySetRefSp(expr, false, expr->makeArrayOnHeap, cStackTop, 0);
                 expr->doesNotNeedSp = false;
                 expr->doesNotNeedInit = false;
             }
@@ -729,7 +866,7 @@ namespace das {
                     logs << "\t" << cStackTop << "\t" << sz
                     << "\t[[" << expr->type->describe() << "]], line " << expr->at.line << "\n";
                 }
-                expr->setRefSp(false, false, cStackTop, 0);
+                applySetRefSp(expr, false, false, cStackTop, 0);
                 expr->doesNotNeedSp = false;
                 expr->doesNotNeedInit = false;
             }
@@ -754,7 +891,7 @@ namespace das {
                     logs << "\t" << cStackTop << "\t" << sz
                     << "\t[[" << expr->type->describe() << "]], line " << expr->at.line << "\n";
                 }
-                expr->setRefSp(false, false, cStackTop, 0);
+                applySetRefSp(expr, false, false, cStackTop, 0);
                 expr->doesNotNeedSp = false;
                 expr->doesNotNeedInit = false;
             }
@@ -811,7 +948,7 @@ namespace das {
                         logs << "\t" << expr->stackTop << "\t" << sz
                             << "\tcopy [[ ]], line " << expr->at.line << "\n";
                     }
-                    mkl->setRefSp(true, false, expr->stackTop, 0);
+                    applySetRefSp(mkl, true, false, expr->stackTop, 0);
                     mkl->doesNotNeedInit = false;
                 }
             } else if ( expr->right->rtti_isCall() ) {
@@ -854,7 +991,7 @@ namespace das {
                         logs << "\t" << expr->stackTop << "\t" << sz
                             << "\tcopy [[ ]], line " << expr->at.line << "\n";
                     }
-                    mkl->setRefSp(true, false, expr->stackTop, 0);
+                    applySetRefSp(mkl, true, false, expr->stackTop, 0);
                     mkl->doesNotNeedInit = false;
                 }
             } else if ( expr->right->rtti_isCall() ) {
@@ -924,9 +1061,300 @@ namespace das {
         }
     };
 
+    // Temp-string reclaim: pick ONE queue site per consuming call and route it through the
+    // 1-slot dispose queue - a marked string builder (allocates, then queues itself) or a
+    // [temp_string_result] call wrapped in _temp_string_result (frees the previously queued
+    // temp, parks the fresh result).
+    //
+    // Soundness: a queued temp lives until its consuming call returns, and the only code that
+    // can run in that window is the evaluation of the SIBLING arguments. Extern (interop)
+    // argument evaluation order is UNSPECIFIED (right-to-left on MSVC), so a nested queue site
+    // in ANY sibling subtree could flush the site while it is still live and the persistent-heap
+    // shoe would reissue the cell - a silent use-after-free. Hence ONE site per call, and site
+    // creation is inhibited in every sibling subtree. (The old per-call "mark the last builder"
+    // scan violated this: compare(to_upper("{b}"), "{a}") corrupted arg1 on every iteration.)
+    static bool isFreshStringCall ( Expression * e ) {
+        if ( !e->rtti_isCall() ) return false;
+        auto c = static_cast<ExprCall *>(e);
+        return c->func && c->func->tempStringResult && c->type && c->type->isString() && !c->type->ref;
+    }
+
+    static ExprCall * makeTempStringWrapper ( Function * wrapper, Expression * inner ) {
+        auto w = new ExprCall(inner->at, wrapper->name);
+        w->func = wrapper;
+        w->generated = true;
+        w->notDiscarded = true;
+        w->type = new TypeDecl(*wrapper->result);
+        w->arguments.push_back(inner);
+        auto fakeContext = new ExprFakeContext(inner->at);
+        fakeContext->generated = true;
+        fakeContext->type = new TypeDecl(Type::fakeContext);
+        w->arguments.push_back(fakeContext);
+        auto fakeLineInfo = new ExprFakeLineInfo(inner->at);
+        fakeLineInfo->generated = true;
+        fakeLineInfo->type = new TypeDecl(Type::fakeLineInfo);
+        w->arguments.push_back(fakeLineInfo);
+        return w;
+    }
+
+    // does this subtree CALL INTO code that may hit a queue site? Lexical sites are handled
+    // by inhibition/scanning; this is the interprocedural half - a call to a may-queue das
+    // function, an invoke (unknown target), or an invoke-carrying extern (runs lambdas we
+    // cannot see). A parked temp must not be live across any of these.
+    class CallsIntoQueueSite : public Visitor {
+    public:
+        bool found = false;
+        virtual void preVisit ( ExprInvoke * expr ) override {
+            Visitor::preVisit(expr);
+            found = true;
+        }
+        virtual void preVisit ( ExprCall * expr ) override {
+            Visitor::preVisit(expr);
+            auto f = expr->func;
+            // a das function the side-effect pass never computed reads as all-clear - treat as danger
+            if ( !f || f->mayQueueTempString || (f->builtIn ? f->invoke : !f->knownSideEffects) ) found = true;
+        }
+    };
+
+    static bool callsIntoQueueSite ( Expression * e ) {
+        CallsIntoQueueSite cq;
+        e->visit(cq);
+        return cq.found;
+    }
+
+    class MarkTempStrings : public Visitor {
+    public:
+        MarkTempStrings ( Function * wrapperFn, bool insertWrappers_, bool everything_ )
+            : wrapper(wrapperFn), insertWrappers(insertWrappers_), isEverything(everything_) {}
+    protected:
+        Function *  wrapper = nullptr;
+        bool        insertWrappers = false;
+        bool        isEverything = false;
+        int32_t     inhibit = 0;
+        // same gates as every pass in this file: templates are uninstantiated (never mutate),
+        // argument/field inits were cloned to their use sites at infer, quotes are inert AST
+        virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
+        virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
+        virtual bool canVisitGlobalVariable ( Variable * var ) override { return isEverything || var->used; }
+        virtual bool canVisitFunction ( Function * fun ) override {
+            return !fun->isTemplate && !fun->stub && (isEverything || fun->used);
+        }
+        das_hash_map<ExprCall *, Expression *> siteOf;
+        bool isWrapperCall ( Expression * e ) const {
+            return wrapper && e->rtti_isCall() && static_cast<ExprCall *>(e)->func == wrapper;
+        }
+        virtual void preVisit ( ExprCall * expr ) override {
+            Visitor::preVisit(expr);
+            auto efun = expr->func;
+            if ( !efun || efun==wrapper ) return;
+            if ( inhibit ) return;
+            // BBATKIN: if captureString side effects are not calculated correctly, this will blow up!!!
+            if ( efun->policyBased || efun->invoke || efun->captureString ) return;
+            if ( efun->mayQueueTempString ) return;     // the callee's own body could flush the parked temp while still reading it
+            if ( !efun->builtIn && !efun->knownSideEffects ) return;    // uncomputed das function - its flags cannot be trusted
+            for ( int ai=int(expr->arguments.size())-1; ai>=0; ai-- ) {
+                auto & arg = expr->arguments[ai];
+                bool eligible = arg->rtti_isStringBuilder() || isWrapperCall(arg)
+                    || (insertWrappers && isFreshStringCall(arg));
+                if ( !eligible ) continue;
+                // a SIBLING calling into may-queue code flushes this site while it is live
+                // (argument evaluation order is unspecified) - then no site at all
+                bool siblingDanger = false;
+                for ( int aj=int(expr->arguments.size())-1; aj>=0 && !siblingDanger; aj-- ) {
+                    if ( aj!=ai && callsIntoQueueSite(expr->arguments[aj]) ) siblingDanger = true;
+                }
+                if ( siblingDanger ) break;
+                if ( arg->rtti_isStringBuilder() ) {
+                    static_cast<ExprStringBuilder *>(arg)->isTempString = true;
+                    siteOf[expr] = arg;
+                } else if ( isWrapperCall(arg) ) {          // already wrapped - a re-run on the same tree
+                    siteOf[expr] = arg;
+                } else {
+                    auto w = makeTempStringWrapper(wrapper, arg);
+                    arg = w;
+                    siteOf[expr] = w;
+                }
+                break;
+            }
+        }
+        virtual void preVisitCallArg ( ExprCall * call, Expression * arg, bool last ) override {
+            Visitor::preVisitCallArg(call, arg, last);
+            auto it = siteOf.find(call);
+            if ( it!=siteOf.end() && it->second!=arg ) inhibit ++;
+        }
+        virtual ExpressionPtr visitCallArg ( ExprCall * call, Expression * arg, bool last ) override {
+            auto it = siteOf.find(call);
+            if ( it!=siteOf.end() && it->second!=arg ) inhibit --;
+            return Visitor::visitCallArg(call, arg, last);
+        }
+        virtual ExpressionPtr visit ( ExprCall * expr ) override {
+            siteOf.erase(expr);
+            return Visitor::visit(expr);
+        }
+    };
+
+    // counts references to one variable inside a statement, and how many are SAFE:
+    // a safe reference is a plain read that is the DIRECT argument of a non-capturing,
+    // non-invoke, non-policy call - what a nested call returns is a different value, so
+    // only the immediate consumer of the reference matters. any reference inside a block
+    // literal, and any other shape (return, store, addr, operator operand), stays unsafe
+    class VarUseClassifier : public Visitor {
+    public:
+        VarUseClassifier ( Variable * v ) : var(v) {}
+        uint32_t total = 0;
+        uint32_t safe = 0;
+    protected:
+        Variable *  var = nullptr;
+        int32_t     blockDepth = 0;
+        static Expression * peelR2V ( Expression * e ) {
+            return e->rtti_isR2V() ? static_cast<ExprRef2Value *>(e)->subexpr : e;
+        }
+        virtual void preVisit ( ExprVar * expr ) override {
+            Visitor::preVisit(expr);
+            if ( expr->variable==var ) total ++;
+        }
+        virtual void preVisit ( ExprMakeBlock * expr ) override {
+            Visitor::preVisit(expr);
+            blockDepth ++;
+        }
+        virtual ExpressionPtr visit ( ExprMakeBlock * expr ) override {
+            blockDepth --;
+            return Visitor::visit(expr);
+        }
+        virtual void preVisitCallArg ( ExprCall * call, Expression * arg, bool last ) override {
+            Visitor::preVisitCallArg(call, arg, last);
+            if ( blockDepth ) return;
+            auto f = call->func;
+            if ( !f || f->captureString || f->invoke || f->policyBased ) return;
+            if ( f->mayQueueTempString ) return;    // its body could flush the parked temp mid-read
+            if ( !f->builtIn && !f->knownSideEffects ) return;  // uncomputed das function - flags untrusted
+            auto barg = peelR2V(arg);
+            if ( barg->rtti_isVar() && static_cast<ExprVar *>(barg)->variable==var ) safe ++;
+        }
+    };
+
+    class HasQueueSite : public Visitor {
+    public:
+        HasQueueSite ( Function * w ) : wrapper(w) {}
+        bool found = false;
+    protected:
+        Function * wrapper = nullptr;
+        virtual void preVisit ( ExprStringBuilder * expr ) override {
+            Visitor::preVisit(expr);
+            if ( expr->isTempString ) found = true;
+        }
+        virtual void preVisit ( ExprInvoke * expr ) override {
+            Visitor::preVisit(expr);
+            found = true;       // unknown target - may queue
+        }
+        virtual void preVisit ( ExprCall * expr ) override {
+            Visitor::preVisit(expr);
+            auto f = expr->func;
+            // lexical sites (the wrapper) plus the interprocedural half: calls whose bodies
+            // may queue. A plain [temp_string_result] call is NOT a site by itself. An
+            // uncomputed das function (no knownSideEffects) reads as all-clear - treat as a site
+            if ( !f || f==wrapper || f->mayQueueTempString
+                || (f->builtIn ? f->invoke : !f->knownSideEffects) ) found = true;
+        }
+    };
+
+    // Phase B of temp-string reclaim: the let-local live range. `let s = <flagged call>`
+    // wraps its initializer when s provably dies before the next queue site:
+    //  - every reference to s is a safe read per VarUseClassifier;
+    //  - no statement from the let through the LAST-reference statement contains a queue
+    //    site (marked builder or wrapper call). Statements after the last use may queue
+    //    freely - s is dead by then. A loop re-executing the let is the same case: the
+    //    local's scope ends with the block, so the previous iteration's value is dead.
+    // Runs AFTER MarkTempStrings (per-call sites are final); candidates are processed in
+    // REVERSE statement order so a wrap here is visible as a site to earlier candidates.
+    // Sites inside the initializer's own subtree are fine - that is the chain pattern
+    // (each nested temp dies before the next link queues).
+    class WrapLetTempStrings : public Visitor {
+    public:
+        WrapLetTempStrings ( Function * wrapperFn, bool everything_ )
+            : wrapper(wrapperFn), isEverything(everything_) {}
+    protected:
+        Function *  wrapper = nullptr;
+        bool        isEverything = false;
+        // same gates as MarkTempStrings above - this pass mutates let initializers
+        virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
+        virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
+        virtual bool canVisitGlobalVariable ( Variable * var ) override { return isEverything || var->used; }
+        virtual bool canVisitFunction ( Function * fun ) override {
+            return !fun->isTemplate && !fun->stub && (isEverything || fun->used);
+        }
+        virtual ExpressionPtr visit ( ExprBlock * block ) override {
+            auto & stmts = block->list;
+            for ( int i=int(stmts.size())-1; i>=0; --i ) {
+                if ( !stmts[i]->rtti_isLet() ) continue;
+                auto elet = static_cast<ExprLet *>(stmts[i]);
+                if ( elet->variables.size()!=1 ) continue;
+                auto & var = elet->variables[0];
+                if ( !var->init || !var->type || !var->type->isString() || var->type->ref ) continue;
+                // a builder initializer self-queues when marked - no wrapper call needed;
+                // an already-marked builder or an existing wrapper fails both tests - idempotent
+                bool builderInit = var->init->rtti_isStringBuilder()
+                    && !static_cast<ExprStringBuilder *>(var->init)->isTempString;
+                if ( !builderInit && !isFreshStringCall(var->init) ) continue;
+                int lastUse = -1;
+                bool ok = true;
+                for ( size_t j=i+1; j<stmts.size() && ok; ++j ) {
+                    VarUseClassifier uc(var);
+                    stmts[j]->visit(uc);
+                    if ( uc.total ) {
+                        if ( uc.total!=uc.safe ) ok = false;
+                        else lastUse = int(j);
+                    }
+                }
+                if ( ok ) {
+                    for ( auto & fs : block->finalList ) {          // finally is outside the range model
+                        VarUseClassifier uc(var);
+                        fs->visit(uc);
+                        if ( uc.total ) { ok = false; break; }
+                    }
+                }
+                if ( !ok || lastUse<0 ) continue;
+                for ( int j=i+1; j<=lastUse && ok; ++j ) {
+                    HasQueueSite qs(wrapper);
+                    stmts[j]->visit(qs);
+                    if ( qs.found ) ok = false;
+                }
+                if ( !ok ) continue;
+                if ( builderInit ) {
+                    static_cast<ExprStringBuilder *>(var->init)->isTempString = true;
+                } else {
+                    var->init = makeTempStringWrapper(wrapper, var->init);
+                }
+            }
+            return Visitor::visit(block);
+        }
+    };
+
     // program
 
     void Program::allocateStack(TextWriter & logs, bool permanent, bool everything) {
+        // temp-string sites: builder marking + [temp_string_result] wrapping (must precede AllocateStack).
+        // ALWAYS wrap, regardless of heap options: this pass mutates function bodies (shared-module
+        // ASTs included), so gating it on the driving program's options makes a function's tree — and
+        // its AOT hash — depend on who compiled it first (macro-context compiles run with
+        // macro_context_persistent_heap and wrapped shared daslib functions that AOT stub generation
+        // left bare → error 50101 on link). The heap modes are handled at runtime instead:
+        // freeTempString no-ops for interned heaps and when reclaim is disabled, and linear-heap
+        // frees are safe bump-retreat no-ops.
+        {
+            Function * wrapperFn = nullptr;
+            if ( auto bmod = Module::require("$") ) {
+                wrapperFn = bmod->findUniqueFunction("_temp_string_result");
+            }
+            MarkTempStrings mts(wrapperFn, wrapperFn!=nullptr, everything);
+            visit(mts);
+            if ( wrapperFn ) {
+                WrapLetTempStrings wlt(wrapperFn, everything);
+                visit(wlt);
+            }
+        }
         // string heap
         AllocateConstString vstr;
         for (auto & pm : library.modules) {

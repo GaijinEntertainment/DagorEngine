@@ -1,4 +1,5 @@
 options gen2
+options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 // PERF007: Unnecessary string(das_string) in comparison
 //
 // Problem:

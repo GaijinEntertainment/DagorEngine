@@ -7,6 +7,8 @@
 
 options gen2
 
+module git_signature
+
 require strings public
 require daslib/fio public
 require daslib/strings_boost public

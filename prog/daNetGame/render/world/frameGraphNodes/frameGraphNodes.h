@@ -21,8 +21,6 @@ namespace resource_slot
 struct NodeHandleWithSlotsAccess;
 }
 
-enum class SSRQuality;
-
 enum class MainNodeRenderPass
 {
   MainColorPass = 0,
@@ -98,16 +96,6 @@ enum
   SSR_DENOISER_NONE = 0,
   SSR_DENOISER_SIMPLE = 1
 };
-eastl::fixed_vector<dafg::NodeHandle, 3> makeScreenSpaceReflectionNodes(
-  int w, int h, bool is_fullres, int denoiser, uint32_t fmt, SSRQuality ssr_quality);
-
-enum class AoAlgo
-{
-  SSAO,
-  GTAO
-};
-eastl::array<dafg::NodeHandle, 3> makeAmbientOcclusionNodes(AoAlgo algo, int w, int h, uint32_t flags = SsaoCreationFlags::SSAO_NONE);
-
 
 dafg::NodeHandle makeGiCalcNode();
 dafg::NodeHandle makeGiFeedbackNode();

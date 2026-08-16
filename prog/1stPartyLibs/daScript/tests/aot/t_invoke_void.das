@@ -4,6 +4,7 @@ options stack = 4096
 options no_coverage
 
 require dastest/testing_boost public
+require jit
 
 // Test that das_invoke_function<void> uses AOT dispatch (direct call)
 // rather than callOrFastcall (which pushes daScript stack frames).
@@ -12,8 +13,10 @@ require dastest/testing_boost public
 // pushing a stack frame. With a small stack (4096) and deep recursion, this overflows.
 // With the fix, invoke uses aotFunction directly — no daScript stack frames — so it works.
 //
-// In interpreter mode (no AOT), aotFunction is never set, so both void and non-void
-// paths use callOrFastcall and overflow — that's expected.
+// Tier map: AOT → aotFunction dispatch, frame-less, succeeds. JIT with the invoke
+// fastpath armed (has_jit_fastpath) → jitFunction dispatch, frame-less too, succeeds.
+// Pure interpreter (and a JIT that declined these functions) → callOrFastcall pushes
+// frames and overflows — that's expected.
 
 var g_counter : int = 0
 
@@ -51,8 +54,8 @@ def test_invoke_void_aot_dispatch(t : T?) {
         } recover {
             ok = false
         }
-        if (use_aot) {
-            // In AOT: invoke uses aotFunction directly, no stack frames — should succeed
+        if (use_aot || has_jit_fastpath(g_void_fn)) {
+            // AOT (aotFunction) or armed JIT fastpath (jitFunction): frame-less — should succeed
             t |> success(ok)
             if (ok) {
                 t |> equal(g_counter, depth + 1)
@@ -71,8 +74,8 @@ def test_invoke_void_aot_dispatch(t : T?) {
         } recover {
             ok = false
         }
-        if (use_aot) {
-            // In AOT: invoke uses aotFunction directly — should succeed
+        if (use_aot || has_jit_fastpath(g_int_fn)) {
+            // AOT (aotFunction) or armed JIT fastpath (jitFunction): frame-less — should succeed
             t |> success(ok)
         } else {
             // In interpreter: should overflow

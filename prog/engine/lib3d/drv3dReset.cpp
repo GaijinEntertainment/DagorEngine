@@ -81,8 +81,10 @@ void zero_reset_3d_device_counter()
 
 bool check_and_handle_window_resize()
 {
+#if !_TARGET_ANDROID
   if (dgs_get_window_mode() != WindowMode::WINDOWED_RESIZABLE)
     return false;
+#endif
 
   int scrW, scrH;
   d3d::get_screen_size(scrW, scrH);

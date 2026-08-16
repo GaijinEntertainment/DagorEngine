@@ -13,8 +13,10 @@
 #include <shaders/dag_linearSbufferAllocator.h>
 #include <math/dag_Point4.h>
 #include <util/dag_threadPool.h>
+#include <rendInst/riexHandle.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/shared_ptr.h>
+#include <EASTL/fixed_function.h>
 #include <bvh/bvh_instanceMapper.h>
 
 class Sbuffer;
@@ -22,7 +24,10 @@ class LandMeshManager;
 class RandomGrass;
 class Cables;
 class SmokeTracerManager;
+class LRURendinstCollision;
 class TMatrix;
+class String;
+class DynamicRenderableSceneLodsResource;
 struct RaytraceGeometryDescription;
 struct RaytraceBottomAccelerationStructure;
 struct RaytraceOpacityMicroMapTriangleArray;
@@ -40,10 +45,10 @@ namespace bvh
 {
 struct Context;
 using ContextId = Context *;
-static inline constexpr ContextId InvalidContextId = nullptr;
+inline constexpr ContextId InvalidContextId = nullptr;
 extern bool use_batched_skinned_vertex_processor;
 
-static constexpr size_t hardware_destructive_interference_size =
+inline constexpr size_t hardware_destructive_interference_size =
 #if defined(__x86_64__) || defined(_M_X64)
   128;
 #else
@@ -58,16 +63,21 @@ struct alignas(hardware_destructive_interference_size) Padded : T
 
 namespace dynrend
 {
-enum class ContextId;
+enum class ContextId : uint32_t;
 using BVHSetInstanceData = void (*)(int instance_offset);
 struct BVHCamoData
 {
   float condition = 1, scale = 1, rotation = 0;
   TEXTUREID burntCamo;
 };
+struct BVHSkinnedMemoryUsage
+{
+  int64_t max_bytes = -1; // negative value disables memory cap
+  int64_t current_bytes = 0;
+};
 using BVHIterateOneInstanceCallback = void (*)(const DynamicRenderableSceneInstance &inst, const DynamicRenderableSceneResource &res,
   const uint8_t *path_filter, uint32_t path_filter_size, uint8_t render_mask, dag::ConstSpan<int> offsets,
-  BVHSetInstanceData set_instance_data, bool animate, BVHCamoData &camo_data, void *user_data);
+  BVHSetInstanceData set_instance_data, bool animate, BVHCamoData &camo_data, BVHSkinnedMemoryUsage &skin_mem, void *user_data);
 using BVHIterateCallback = void (*)(BVHIterateOneInstanceCallback iter, const Point3 &view_position, void *user_data);
 } // namespace dynrend
 
@@ -537,23 +547,38 @@ enum class BvhType
   Dyn
 };
 
+// Keeps a resolver and not a name because resolve_game_resource_name does a linear search over all
+// resources. Resolve only when a diagnostic is written.
+struct AssetNameRef
+{
+  const void *resource = nullptr;
+  bool (*resolver)(String &out_name, const void *resource) = nullptr;
+
+  String resolve() const; // the asset name, or "?" on failure
+};
+
+AssetNameRef make_asset_name_ref(const RenderableInstanceLodsResource *resource);
+AssetNameRef make_asset_name_ref(const DynamicRenderableSceneLodsResource *resource);
+
 struct ObjectInfo
 {
   dag::Vector<MeshInfo> meshes;
   BvhType type = BvhType::None;
   bool isAnimated = false;
   const char *tag = "untagged";
+  // For diagnostics. Unlike tag, which is the coarse LOD category, this names the asset itself.
+  AssetNameRef assetName;
 };
 
-static constexpr uint32_t bvhGroupTerrain = 1 << 0;
-static constexpr uint32_t bvhGroupRi = 1 << 1;
-static constexpr uint32_t bvhGroupDynrend = 1 << 2;
-static constexpr uint32_t bvhGroupGrass = 1 << 3;
-static constexpr uint32_t bvhGroupImpostor = 1 << 4;
-static constexpr uint32_t bvhGroupNoShadow = 1 << 5;
-static constexpr uint32_t bvhGroupGPUFoliage = 1 << 6;
-static constexpr uint32_t bvhGroupWater = 1 << 7;
-static constexpr uint32_t bvhGroupCamoNet = 1 << 7; // The same as water by intent. Water is DNG only, CamoNet is WT only.
+inline constexpr uint32_t bvhGroupTerrain = 1 << 0;
+inline constexpr uint32_t bvhGroupRi = 1 << 1;
+inline constexpr uint32_t bvhGroupDynrend = 1 << 2;
+inline constexpr uint32_t bvhGroupGrass = 1 << 3;
+inline constexpr uint32_t bvhGroupImpostor = 1 << 4;
+inline constexpr uint32_t bvhGroupNoShadow = 1 << 5;
+inline constexpr uint32_t bvhGroupGPUFoliage = 1 << 6;
+inline constexpr uint32_t bvhGroupWater = 1 << 7;
+inline constexpr uint32_t bvhGroupCamoNet = 1 << 7; // The same as water by intent. Water is DNG only, CamoNet is WT only.
 
 enum Features
 {
@@ -574,6 +599,7 @@ enum Features
   GPUGrass = 1 << 13,          // GPUGrass is enabled.
   Splinegen = 1 << 14,         // SplineGen is enabled.
   SmokeTracers = 1 << 15,      // Smoke tracers are enabled.
+  LruCollision = 1 << 16,      // Collision geometry streamed around the camera into a dedicated TLAS.
 
   ForRendering = Terrain | RIFull | DynrendRigidFull | DynrendSkinnedFull | GpuObjects | Grass | Fx | Cable | BinScene | SmokeTracers,
   ForGI = Terrain | RIBaked | GpuObjects,
@@ -644,6 +670,8 @@ struct AdditionalSettings
   bool enableOmm = false;
   int ommDataArrayBudget = 0;        // bytes per mesh OMM array, <= 0 means unlimited
   bool retainOmmBakeResults = false; // keep baked buffers alive for the OMM debug viewer
+  bool strictAssetChecks = false;    // report bad assets in place of a work-around for them
+  bool enableHair = true;            // hair is both VRAM and GPU time intensive
 };
 
 void init(elem_rules_fn elem_rules = nullptr, screenshot_fn screenshot = nullptr, AdditionalSettings settings = {});
@@ -770,6 +798,59 @@ void connect_smoke_tracers(ContextId context_id, smoke_tracers_connect_callback 
 void update_smoke_tracer_instances(SmokeTracerManager *mgr);
 
 void ensure_particle_buffer_capacity(int fx_max, int smoke_tracer_max);
+
+struct LruCollisionSettings
+{
+  float radius = 256.f; // > 0; instances within origin+radius are guaranteed in the TLAS once streamed in
+  // >= 0; prefetch margin, a refresh kicks per border/2 moved; keep it below
+  // radius or window moves hit the teleport sync fill instead of streaming
+  float border = 64.f;
+  uint32_t maxModelBuildsPerFrame = 8;  // > 0; teleports and the initial fill ignore it and build everything
+  uint64_t initialCacheSize = 16 << 20; // starting BLAS cache budget; grows with the window, never shrinks
+};
+
+// enumerate instances intersecting box, one transform per handle (both vectors
+// pre-cleared by the caller). Usually runs on a threadpool worker while the
+// render thread is inside build() - it must also work on the caller's thread
+// (teleports, tools without a threadpool) and must not call back into bvh
+// (teardown and invalidate wait on it). Enumeration must be deterministic for
+// an unchanged scene: the resident set is compared order-sensitively, and a
+// reordered result bumps the revision on every refresh
+using lru_collision_gather_fn = eastl::fixed_function<sizeof(void *) * 4,
+  void(bbox3f_cref box, dag::Vector<rendinst::riex_handle_t> &out_handles, dag::Vector<mat43f> &out_transforms)>;
+
+// false and a logerr: feature flag missing, module compiled out or invalid
+// settings; silently false for InvalidContextId
+bool connect_lru_collision(ContextId context_id, LRURendinstCollision *lru_coll, lru_collision_gather_fn gather,
+  const LruCollisionSettings &settings);
+// full disconnect: the BLAS cache and the TLAS are freed, nothing reconnects
+// implicitly, and stats read zeros afterwards
+void remove_lru_collision(ContextId context_id);
+// changed collision set: drops all cached geometry; the connection stays and
+// the next build() refills the window synchronously
+void invalidate_lru_collision(ContextId context_id);
+// invalid values are rejected with a logerr, keeping the previous range
+void set_lru_collision_range(ContextId context_id, float radius, float border);
+
+struct LruCollisionStats
+{
+  uint32_t residentInstances = 0;
+  uint32_t builtModels = 0;
+  uint64_t cachedBytes = 0;
+  uint64_t cacheLimit = 0;
+  uint64_t normalsHeapBytes = 0; // the face normal pool heap
+  // bumped whenever the traced content changes: the resident set or a
+  // transform, a BLAS build landing, a cache eviction, an invalidation.
+  // Builds land in the same build() that registers them, so this alone gates
+  // consumers that cache trace results; monotonic across reconnects
+  uint32_t revision = 0;
+  // the applied window covers the configured radius and every resident model
+  // is built (or has nothing to trace); false while a gather is in flight, a
+  // model still waits on its resource or VRAM, or the gather emitted fewer
+  // transforms than handles
+  bool settled = false;
+};
+LruCollisionStats get_lru_collision_stats(ContextId context_id);
 
 
 using on_parallel_jobs_finished_callback = void (*)();

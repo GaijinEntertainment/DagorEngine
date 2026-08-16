@@ -4,6 +4,7 @@
 #include "parser_state.h"
 
 #include "daScript/ast/ast_generate.h"
+#include "daScript/ast/ast_handle.h"
 
 #undef yyextra
 #define yyextra (*((das::DasParserState **)(scanner)))
@@ -539,6 +540,37 @@ namespace das {
         }
     }
 
+    void ast_distinctDeclaration ( yyscan_t scanner, string * name, const LineInfo & atName, bool isPrivate, TypeDecl * tdecl ) {
+        das_checkName(scanner,*name,atName);
+        if ( tdecl->baseType==Type::tDistinct ) {
+            das_yyerror(scanner,"distinct type can't be defined in terms of another distinct type "+*name, atName,
+                CompilationError::invalid_distinct_type);
+            return;
+        }
+        if ( tdecl->isAutoOrAlias() ) {
+            das_yyerror(scanner,"distinct type underlying type is not fully resolved "+*name+" = "+tdecl->describe(), atName,
+                CompilationError::invalid_distinct_type);
+            return;
+        }
+        if ( tdecl->ref || tdecl->constant || tdecl->temporary ) {
+            das_yyerror(scanner,"distinct type underlying type can't be a reference, const, or temporary "+*name, atName,
+                CompilationError::invalid_distinct_type);
+            return;
+        }
+        if ( !tdecl->isWorkhorseType() ) {
+            das_yyerror(scanner,"distinct type underlying type must be a workhorse type "+*name+" = "+tdecl->describe(), atName,
+                CompilationError::invalid_distinct_type);
+            return;
+        }
+        auto dann = new DistinctTypeAnnotation(*name, tdecl);
+        dann->at = atName;
+        dann->isPrivate = isPrivate;
+        if ( !yyextra->g_Program->thisModule->addAnnotation(dann, true) ) {
+            das_yyerror(scanner,"distinct type is already defined "+*name, atName,
+                CompilationError::invalid_distinct_type);
+        }
+    }
+
     void ast_enumDeclaration (  yyscan_t scanner, AnnotationList * annL, const LineInfo & atannL, bool pubE, Enumeration * pEnum, Enumeration * pE, Type ebt ) {
         if ( !pEnum->module ) {
             return;
@@ -1014,15 +1046,31 @@ namespace das {
         auto pLet = new ExprLet();
         pLet->at = kwd_letAt;
         pLet->atInit = declAt;
+        if ( decl->atEnd.line ) {
+            // declAt includes the terminating SEMICOLON, which for newline-terminated
+            // statements is lexer-synthesized and occupies phantom columns past the
+            // source text — clamp to the last real token of the declaration
+            pLet->atInit.last_line = decl->atEnd.last_line;
+            pLet->atInit.last_column = decl->atEnd.last_column;
+        }
         pLet->inScope = inScope;
         pLet->isTupleExpansion = decl->isTupleExpansion;
         if ( decl->pTypeDecl ) {
+            size_t nameIndex = 0;
             for ( const auto & name_at : *decl->pNameList ) {
-                if ( !pLet->find(name_at.name) ) {
+                // tagged names (`$i(expr)`) all parse to the same literal placeholder — skip the
+                // dup check for them; post-substitution duplicates surface during type inference
+                if ( name_at.tag || !pLet->find(name_at.name) ) {
                     VariablePtr pVar = new Variable();
                     pVar->name = name_at.name;
                     pVar->aka = name_at.aka;
                     pVar->at = name_at.at;
+                    // the front tag travels as an ExprTag wrapper around the whole let (below);
+                    // later tagged slots carry per-variable tag+source, same as block arguments
+                    if ( name_at.tag && nameIndex>0 ) {
+                        pVar->tag = true;
+                        pVar->source = name_at.tag;
+                    }
                     if ( decl->pNameList->size()>1 ) {
                         pVar->type = new TypeDecl(*decl->pTypeDecl);
                     } else {
@@ -1047,6 +1095,7 @@ namespace das {
                     das_yyerror(scanner,"local variable is already declared " + name_at.name,name_at.at,
                         CompilationError::already_declared_local);
                 }
+                nameIndex ++;
             }
         }
         if ( auto pTagExpr = decl->pNameList->front().tag ) {
@@ -1063,15 +1112,26 @@ namespace das {
         auto pLet = new ExprLet();
         pLet->at = kwd_letAt;
         pLet->atInit = declAt;
+        if ( !decl.empty() && decl.back()->atEnd.line ) {
+            // same phantom-SEMICOLON clamp as ast_Let, using the last declaration's end
+            pLet->atInit.last_line = decl.back()->atEnd.last_line;
+            pLet->atInit.last_column = decl.back()->atEnd.last_column;
+        }
         pLet->inScope = inScope;
         for ( auto pDecl : decl ) {
             if ( pDecl->pTypeDecl ) {
                 for ( const auto & name_at : *pDecl->pNameList ) {
-                    if ( !pLet->find(name_at.name) ) {
+                    if ( name_at.tag || !pLet->find(name_at.name) ) {
                         VariablePtr pVar = new Variable();
                         pVar->name = name_at.name;
                         pVar->aka = name_at.aka;
                         pVar->at = name_at.at;
+                        // no ExprTag wrapper in the list form — every tagged name travels
+                        // as per-variable tag+source, same as block arguments
+                        if ( name_at.tag ) {
+                            pVar->tag = true;
+                            pVar->source = name_at.tag;
+                        }
                         if ( pDecl->pNameList->size()>1 ) {
                             pVar->type = new TypeDecl(*pDecl->pTypeDecl);
                         } else {
@@ -1160,9 +1220,24 @@ namespace das {
 
     void ast_requireModule ( yyscan_t scanner, string * name, string * modalias, bool pub, const LineInfo & atName, string * guard ) {
         // Optional require `require ?guard target`: when the guard module is not available, skip the
-        // require entirely (no error). A present guard with a missing target still errors below.
+        // require entirely (no error) — WITHOUT resolving the target (matches the collector; a
+        // skipped require must not probe file paths). A present guard with a missing target still
+        // errors below.
         if ( guard ) {
-            bool guardAvailable = Module::requireEx(*guard, false) != nullptr;
+            // Path guard (contains '/'): availability = the guard's OWN file resolves — the rail for
+            // pure-das packages (nothing C++ to guard on) and cross-package dependencies the target's
+            // resolvability can't express. Plain-name guard: STRICT — the guard module is registered
+            // (a linked C++ module). No target-resolvability fallback: `require ?sqlite ...`-style
+            // guards mean "loaded only when <mod> is linked", and module source dirs are present in
+            // every checkout regardless of build config. Must match the require collector's rule
+            // (ast_parse.cpp getAllRequireReq).
+            bool guardAvailable;
+            if ( guard->find('/') != string::npos ) {
+                auto ginfo = yyextra->g_Access->getModuleInfo(*guard, yyextra->g_FileAccessStack.back()->name);
+                guardAvailable = !ginfo.fileName.empty() && yyextra->g_Access->getFileInfo(ginfo.fileName) != nullptr;
+            } else {
+                guardAvailable = Module::requireEx(*guard, false) != nullptr;
+            }
             delete guard;
             if ( !guardAvailable ) {
                 delete name;
@@ -1175,7 +1250,10 @@ namespace das {
             yyextra->g_Program->allRequireDecl.push_back(make_tuple(mod,*name,info.fileName,pub,atName));
             yyextra->g_Program->thisModule->addDependency(mod, pub);
             das_collect_all_keywords(mod,scanner);
-            if ( !info.importName.empty() ) {
+            // an explicit `as` alias registers for every require form; the importName gate
+            // only guards the implicit path-stem registration (path rails set it, the
+            // daslib / builtin / extraRoots / dynamic resolvers leave it empty)
+            if ( modalias || !info.importName.empty() ) {
                 auto malias = modalias ? *modalias : info.importName;
                 auto ita = yyextra->das_module_alias.find(malias);
                 if ( ita !=yyextra->das_module_alias.end() ) {

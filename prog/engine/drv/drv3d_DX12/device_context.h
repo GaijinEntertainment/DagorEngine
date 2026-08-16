@@ -33,10 +33,6 @@
 #include "xess_wrapper.h"
 #include "fsr_wrapper.h"
 
-#if USE_DLSS_WITHOUT_STREAMLINE
-#include "dlss.h"
-#endif
-
 #include <dag/dag_vector.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_renderPass.h>
@@ -1434,7 +1430,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     {
       for (auto &stage : stageState)
       {
-        stage.resetAllState();
+        stage.resetBindings(BindingsResetMode::All);
       }
     }
 
@@ -1447,7 +1443,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
 
       for (auto &stage : stageState)
       {
-        stage.resetAllState();
+        stage.resetBindings(BindingsResetMode::KeepRaytraceOverrides);
       }
 
       cmdBuffer.resetForFrameStart();
@@ -1819,7 +1815,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void bufferBarrier(BufferResourceReference buffer, ResourceBarrier barrier, GpuPipeline queue);
     void textureBarrier(Image *tex, SubresourceRange sub_res_range, uint32_t tex_flags, ResourceBarrier barrier, GpuPipeline queue,
       bool force_barrier);
-    void enhancedTextureBarrier(const d3d::TextureBarrier &barrier, Image *image);
+    void enhancedTextureBarrier(const d3d::TextureBarrier &barrier, Image *image, uint32_t tex_flags);
     void enhancedBufferBarrier(const d3d::BufferBarrier &barrier, BufferResourceReference buffer);
     void discardTexture(Image *tex, uint32_t tex_flags);
 #if D3D_HAS_RAY_TRACING
@@ -2031,10 +2027,6 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   eastl::optional<StreamlineAdapter> streamlineAdapter;
 #endif
 
-#if USE_DLSS_WITHOUT_STREAMLINE
-  DLSSSuperResolutionDirect dlssInterface;
-#endif
-
   StackedProfileEvents profilerStack;
   uint32_t minPipelinesToCompilePerFrame = 10;
 
@@ -2206,7 +2198,7 @@ public:
   void destroyBuffer(BufferState buffer);
   void discardBuffer(BufferState &to_discared_ref, DeviceMemoryClass memory_class, FormatStore format, uint32_t struct_size,
     bool raw_view, bool struct_view, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name);
-  void checkFramebufferIntegityNoLock(Image *img);
+  void checkFramebufferIntegrityNoLock(Image *img);
   void destroyImageNoLock(Image *img, bool is_rt);
   // blocks the input sampling until the GPU finished the running frame
   void gpuLatencyWait();
@@ -2358,9 +2350,6 @@ public:
   void recoverStreamline(DXGIAdapter *adapter);
 #if _TARGET_PC_WIN
   eastl::optional<StreamlineAdapter> &getStreamlineAdapter() { return streamlineAdapter; }
-#endif
-#if USE_DLSS_WITHOUT_STREAMLINE
-  nv::DLSS &getDlss() { return dlssInterface; }
 #endif
   bool isXessQualityAvailableAtResolution(uint32_t target_width, uint32_t target_height, int xess_quality) const
   {

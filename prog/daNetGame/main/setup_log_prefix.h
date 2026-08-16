@@ -21,12 +21,8 @@ static void init_early() // called from within main(), but before log system ini
     fflush(stdout);
     _exit(0); // don't call static dtors
   }
-#if _TARGET_PC_LINUX
-#ifdef DAGOR_THREAD_SANITIZER // use big idle timeout to prevent exit of AIO threads which prevents TSAN suppressions to work
-  aioinit aioi{20 /* aio_threads */, 64 /* aio_num */, 0, 0, 0, 0, 600 /* aio_idle_time*/, 0};
-#else
+#if _TARGET_PC_LINUX && !DAGOR_THREAD_SANITIZER
   aioinit aioi{20 /* aio_threads */, 64 /* aio_num */, 0, 0, 0, 0, 30 /* aio_idle_time*/, 0};
-#endif
   aio_init(&aioi);
 #endif
 }

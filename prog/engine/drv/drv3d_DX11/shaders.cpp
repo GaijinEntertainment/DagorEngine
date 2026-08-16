@@ -1546,33 +1546,16 @@ bool d3d::set_const(unsigned stage, unsigned reg_base, const void *data, unsigne
 
 int d3d::set_cs_constbuffer_register_count(int required_count)
 {
-  if (required_count > 0)
-  {
-    int size = clamp(get_bigger_pow2(required_count), DEF_CS_CONSTS, g_csbin_max_size);
-    g_render_state.constants.constsRequired[STAGE_CS] = size;
-    return size;
-  }
-  else
-  {
-    g_render_state.constants.constsRequired[STAGE_CS] = 0;
-    return 0;
-  }
+  int size = required_count > 0 ? clamp(get_bigger_pow2(required_count), DEF_CS_CONSTS, g_csbin_max_size) : DEF_CS_CONSTS;
+  g_render_state.constants.constsRequired[STAGE_CS] = size;
+  return size;
 }
 
 int d3d::set_vs_constbuffer_register_count(int required_count)
 {
-  if (required_count > 0)
-  {
-    int id = g_render_state.constants.getVsConstBufferId(required_count);
-    int size = g_vsbin_sizes[id];
-    g_render_state.constants.constsRequired[STAGE_VS] = size;
-    return size;
-  }
-  else
-  {
-    g_render_state.constants.constsRequired[STAGE_VS] = 0;
-    return 0;
-  }
+  int size = required_count > 0 ? g_vsbin_sizes[g_render_state.constants.getVsConstBufferId(required_count)] : DEF_VS_CONSTS;
+  g_render_state.constants.constsRequired[STAGE_VS] = size;
+  return size;
 }
 
 

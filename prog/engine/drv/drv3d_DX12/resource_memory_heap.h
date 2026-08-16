@@ -64,9 +64,13 @@ protected:
 public:
   dag::Expected<ImageCreateResult, MemoryAllocationError> createTexture(DXGIAdapter *adapter, Device &device, const ImageInfo &ii,
     const char *name);
+  using ImageCloneResult = dag::Expected<eastl::optional<Image *>, MemoryAllocationError>;
+  using ImageResult = dag::Expected<Image *, MemoryAllocationError>;
+
+  // Can not fail, the image object pool aborts when it is out of memory.
   Image *adoptTexture(ID3D12Resource *texture, const char *name);
 #if _TARGET_PC_WIN
-  Image *cloneRenderTarget(DXGIAdapter *adapter, Device &device, Image *original,
+  ImageResult cloneRenderTarget(DXGIAdapter *adapter, Device &device, Image *original,
     D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_RENDER_TARGET);
 #endif
 
@@ -111,9 +115,12 @@ public:
     return !isAlreadyRemoved;
   }
 
-  Image *tryCloneTexture(DXGIAdapter *adapter, ID3D12Device *device, Image *original, D3D12_RESOURCE_STATES initialState,
+  /// Empty when no memory could be found for the copy, which is how defragmentation learns that a
+  /// heap group is full. A rejected request or a failed resource creation is an error.
+  ImageCloneResult tryCloneTexture(DXGIAdapter *adapter, ID3D12Device *device, Image *original, D3D12_RESOURCE_STATES initialState,
     AllocationFlags allocation_flags);
-  Image *tryCloneTextureToMemory(ID3D12Device *device, Image *original, D3D12_RESOURCE_STATES initial_state,
+  /// The memory is provided by the caller, so this either creates the texture or fails hard.
+  ImageResult tryCloneTextureToMemory(ID3D12Device *device, Image *original, D3D12_RESOURCE_STATES initial_state,
     const D3D12_RESOURCE_DESC &desc, const ResourceMemory &memory, ImagePoolState::AccessToken &access);
 
 protected:

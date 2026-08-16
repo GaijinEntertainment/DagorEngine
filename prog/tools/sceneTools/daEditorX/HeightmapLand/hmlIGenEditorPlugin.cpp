@@ -4901,9 +4901,13 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
   // front so code between here and the eager generateLandColors in
   // beforeMainLoop sees an accurate "not yet generated" state.
   landClsMapGenerated = false;
+
+  LandscapeObjectTypeState::resetAllObjectTypesToDefault();
   EditLayerProps::resetLayersToDefauls();
+  LandscapeObjectTypeState::loadAllObjectTypeConfig(local_data);
   if (blk.getBlockByName("layers"))
     EditLayerProps::loadLayersConfig(blk, local_data);
+  EditLayerProps::updateEntityLayerHiddenMask();
 
   origBasePath = base_path;
   if (d3d::is_stub_driver())
@@ -6175,6 +6179,7 @@ void HmapLandPlugin::beforeClose()
 void HmapLandPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path)
 {
 #define ST_LOCAL_VAR(X, TYPE) local_data.set##TYPE(#X, X)
+  LandscapeObjectTypeState::saveAllObjectTypeConfig(local_data);
   EditLayerProps::saveLayersConfig(blk, local_data);
 
   storeLayerTex();
@@ -7497,12 +7502,7 @@ void HmapLandPlugin::onAfterExport(unsigned target_code)
   TMatrix itm;
   DAGORED2->getCurrentViewport()->getCameraTransform(itm);
 
-  for (uint32_t i = 0; i < EditLayerProps::layerProps.size(); ++i)
-  {
-    LayerHiddenMask lhMask = DAEDITOR3.getEntityLayerHiddenMask();
-    lhMask.setHidden(i, EditLayerProps::layerProps[i].hide);
-    DAEDITOR3.setEntityLayerHiddenMask(lhMask);
-  }
+  EditLayerProps::updateEntityLayerHiddenMask();
 }
 
 void HmapLandPlugin::selectLayerObjects(int lidx, bool sel)

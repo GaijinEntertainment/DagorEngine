@@ -10,6 +10,46 @@
 
 namespace das {
 
+    // local or global (only used by type inference)
+    static bool isLocalOrGlobal ( ExpressionPtr expr ) {
+        if ( expr->rtti_isVar() ) {
+            auto ev = static_cast<ExprVar*>(expr);
+            return ev->local || !(ev->argument || ev->block);
+        } else if ( expr->rtti_isAt() ) {
+            auto ea = static_cast<ExprAt*>(expr);
+            if ( ea->subexpr && ea->subexpr->type && ea->subexpr->type->baseType==Type::tFixedArray ) {
+                return isLocalOrGlobal(ea->subexpr);
+            }
+        } else if ( expr->rtti_isField() ) {
+            auto ef = static_cast<ExprField*>(expr);
+            if ( ef->value && ef->value->type && (ef->value->type->baseType!=Type::tHandle || ef->value->type->isLocal()) ) {
+                return isLocalOrGlobal(ef->value);
+            }
+        } else if ( expr->rtti_isSwizzle() ) {
+            auto sw = static_cast<ExprSwizzle*>(expr);
+            if ( sw->value ) {
+                return isLocalOrGlobal(sw->value);
+            }
+        } else if ( expr->rtti_isCallLikeExpr() ) {
+            if ( expr->type && expr->type->ref ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static bool isFreshTemporary ( ExpressionPtr expr ) {
+        if ( !expr ) return false;
+        if ( expr->rtti_isCast() ) {
+            return isFreshTemporary(static_cast<ExprCast*>(expr)->subexpr);
+        } else if ( expr->rtti_isNullCoalescing() ) {
+            return isFreshTemporary(static_cast<ExprNullCoalescing*>(expr)->defaultValue);
+        } else if ( expr->rtti_isCallLikeExpr() ) {
+            return !(expr->type && expr->type->ref);    // a call returning a reference is storage
+        }
+        return expr->rtti_isMakeLocal();
+    }
+
     // in ast_handle of all places, due to reporting fields
     void reportTrait(const TypeDeclPtr &type, const string &prefix, const callable<void(const TypeDeclPtr &, const string &)> &report);
 
@@ -68,6 +108,7 @@ namespace das {
         debugInferFlag = prog->options.getBoolOption("debug_infer_flag", prog->policies.debug_infer_flag);
         enableInferTimeFolding = prog->options.getBoolOption("infer_time_folding", !prog->policies.no_infer_time_folding);
         disableAot = prog->options.getBoolOption("no_aot", false);
+        noHeapArrayLiterals = prog->options.getBoolOption("no_heap_array_literals", false);
         multiContext = prog->options.getBoolOption("multiple_contexts", prog->policies.multiple_contexts);
         standaloneContext = prog->options.getBoolOption("standalone_context", prog->policies.standalone_context);
         checkNoGlobalVariablesAtAll = prog->options.getBoolOption("no_global_variables_at_all", prog->policies.no_global_variables_at_all);
@@ -82,6 +123,8 @@ namespace das {
         relaxedAssign = prog->options.getBoolOption("relaxed_assign", prog->policies.relaxed_assign);
         relaxedPointerConst = prog->options.getBoolOption("relaxed_pointer_const", prog->policies.relaxed_pointer_const);
         unsafeTableLookup = prog->options.getBoolOption("unsafe_table_lookup", prog->policies.unsafe_table_lookup);
+        defaultInitContainers = prog->options.getBoolOption("default_init_containers", prog->policies.default_init_containers);
+        withModuleIsUnsafe = prog->options.getBoolOption("with_module_is_unsafe", prog->policies.with_module_is_unsafe);
         forceInscopePod = prog->options.getBoolOption("force_inscope_pod", prog->policies.force_inscope_pod);
         logInscopePod = prog->options.getBoolOption("log_inscope_pod", prog->policies.log_inscope_pod);
         thisModule = prog->thisModule.get();
@@ -261,6 +304,12 @@ namespace das {
         Visitor::preVisitStructureField(that, decl, last);
         checkEmptyName(decl.name, "structure field", decl.at);
         that->fieldLookup[decl.name] = fieldIndex++;
+        if (!decl.type) {
+            program->stickyError("malformed AST, structure field '" + decl.name + "' is missing its type",
+                  "likely a macro-generated declaration; set its type to auto to request inference", "",
+                  decl.at, CompilationError::internal_field);
+            decl.type = new TypeDecl(Type::autoinfer);  // repair in place; the sticky error still fails the compile
+        }
         if (decl.type->isAuto() && !decl.init) {
             error("structure field type can't be inferred, it needs an initializer", "", "",
                   decl.at, CompilationError::missing_structure_field);
@@ -395,7 +444,8 @@ namespace das {
             }
             fieldOffset = (fieldOffset + fa) & ~fa;
             decl.offset = int(fieldOffset);
-            fieldOffset += decl.type->getSizeOf64();
+            // An empty-struct field is 0 bytes here but >=1 in the AOT-emitted C++.
+            fieldOffset += das::max(uint64_t(1), decl.type->getSizeOf64());
         }
         verifyType(decl.type, false, decl.classMethod);
     }
@@ -437,6 +487,12 @@ namespace das {
     void InferTypes::preVisitGlobalLet(const VariablePtr &var) {
         Visitor::preVisitGlobalLet(var);
         checkEmptyName(var->name, "global variable declaration", var->at);
+        if (!var->type) {
+            program->stickyError("malformed AST, global variable '" + var->name + "' is missing its type",
+                  "likely a macro-generated declaration; set its type to auto to request inference", "",
+                  var->at, CompilationError::internal_variable);
+            var->type = new TypeDecl(Type::autoinfer);  // repair in place; the sticky error still fails the compile
+        }
         if (noUnsafeUninitializedStructs && !var->init && var->type->unsafeInit()) {
             if (!hasSafeWhenUninitialized(var->annotation)) {
                 error("Uninitialized variable " + var->name + " is unsafe. Use initializer syntax or @safe_when_uninitialized when intended.", "", "",
@@ -493,6 +549,9 @@ namespace das {
                       var->at, CompilationError::invalid_global_init_type);
             } else {
                 varT->ref = false;
+                if (var->init_via_clone && varT->isString()) {
+                    varT->temporary = false;
+                }
                 TypeDecl::applyAutoContracts(varT, var->type);
                 if (!relaxedPointerConst) { // var a = Foo? const -> var a : Foo const? = Foo? const
                     if (varT->isPointer() && !varT->constant && var->init->type->constant && varT->firstType) {
@@ -546,7 +605,9 @@ namespace das {
             }
         } else {
             if (var->init_via_clone) {
-                if (var->init->type->isWorkhorseType()) {
+                if (var->init->type->isString() && (var->init->type->isTemp() || multiContext)) {
+                    return promoteStringInitToClone(var);
+                } else if (var->init->type->isWorkhorseType()) {
                     var->init_via_clone = false;
                     var->init_via_move = false;
                     reportAstChanged();
@@ -628,6 +689,22 @@ namespace das {
     void InferTypes::preVisit(Function *f) {
         Visitor::preVisit(f);
         checkEmptyName(f->name, "function declaration", f->at);
+        if (!f->result) {
+            program->stickyError("malformed AST, function '" + f->name + "' is missing its result type",
+                  "likely a macro-generated function; set result to auto to request inference", "",
+                  f->at, CompilationError::internal_function);
+            f->result = new TypeDecl(Type::autoinfer);  // repair in place; the sticky error still fails the compile
+        }
+        for (auto it = f->arguments.begin(); it != f->arguments.end();) {
+            if (*it == nullptr) {
+                program->stickyError("malformed AST, function '" + f->name + "' has a null argument entry",
+                      "likely a macro-generated function", "",
+                      f->at, CompilationError::internal_function);
+                it = f->arguments.erase(it);  // repair in place; the sticky error still fails the compile
+            } else {
+                ++it;
+            }
+        }
         oneReturn = nullptr;
         returnCount = 0;
         canFoldResult = true;
@@ -652,6 +729,12 @@ namespace das {
     void InferTypes::preVisitArgument(Function *fn, const VariablePtr &var, bool lastArg) {
         Visitor::preVisitArgument(fn, var, lastArg);
         checkEmptyName(var->name, "function argument", var->at);
+        if (!var->type) {
+            program->stickyError("malformed AST, function argument '" + var->name + "' is missing its type",
+                  "likely a macro-generated declaration; set its type to auto to request inference", "",
+                  var->at, CompilationError::internal_variable);
+            var->type = new TypeDecl(Type::autoinfer);  // repair in place; the sticky error still fails the compile
+        }
         if (var->type->isAlias()) {
             if (auto aT = inferAlias(var->type)) {
                 var->type = aT;
@@ -920,6 +1003,10 @@ namespace das {
     }
     ExpressionPtr InferTypes::visit(ExprUnsafe *expr) {
         unsafeDepth--;
+        // an expression-position wrapper (macro-made) carries its body's type; the
+        // parser's statement-position `unsafe { }` wraps a statement block and stays untyped
+        if (expr->body->type)
+            expr->type = new TypeDecl(*expr->body->type);
         return Visitor::visit(expr);
     }
     Expression *InferTypes::findLabel(int32_t label) const {
@@ -1013,6 +1100,10 @@ namespace das {
                 auto ewsType = new TypeDecl(*(expr->subexpr->type));
                 ewsType->ref = false;
                 auto ews = Program::makeConst(expr->at, ewsType, v_zero());
+                if (!ews) {
+                    // 16/8-bit lattice vectors have no const nodes — lower to the zero ctor call
+                    return new ExprCall(expr->at, das_to_string(ewsType->baseType));
+                }
                 ews->type = ewsType;
                 return ews;
             } else {
@@ -1140,6 +1231,20 @@ namespace das {
     ExpressionPtr InferTypes::visit(ExprPtr2Ref *expr) {
         if (!expr->subexpr->type)
             return Visitor::visit(expr);
+        // deref of a distinct type peels one level - underlying type, in place, no runtime op.
+        // ref-ness and const flow from the handle (the const model), so `*a = 5` writes iff `a` is a mutable ref
+        if (expr->subexpr->type->isDistinct()) {
+            if (!expr->subexpr->type->firstType) {
+                error("distinct type is missing its underlying type", "", "",
+                      expr->at, CompilationError::invalid_distinct_type);
+                return Visitor::visit(expr);
+            }
+            TypeDecl::clone(expr->type, expr->subexpr->type->firstType);
+            expr->type->ref = expr->subexpr->type->ref;
+            expr->type->constant |= expr->subexpr->type->constant;
+            propagateTempType(expr->subexpr->type, expr->type);
+            return Visitor::visit(expr);
+        }
         // safe deref of non-pointer is it
         if (expr->alwaysSafe && !expr->subexpr->type->isPointer() && !(expr->subexpr->type->baseType == Type::autoinfer || expr->subexpr->type->baseType == Type::alias)) {
             reportAstChanged();
@@ -1166,6 +1271,13 @@ namespace das {
             propagateTempType(expr->subexpr->type, expr->type); // deref(Foo#?) is Foo#
         }
         return Visitor::visit(expr);
+    }
+    void InferTypes::preVisit(ExprRef2Ptr *expr) {
+        Visitor::preVisit(expr);
+        // addr(tab[k]) is raw slot access — no default_init_containers rewrite
+        if (expr->subexpr->rtti_isAt()) {
+            static_cast<ExprAt*>(expr->subexpr)->noTableInit = true;
+        }
     }
     ExpressionPtr InferTypes::visit(ExprRef2Ptr *expr) {
         if (!expr->subexpr->type)
@@ -1333,7 +1445,7 @@ namespace das {
                         message = iscf ? "concept assert failed" : "static assert failed";
                     }
                 } else {
-                    message = iscf ? "static assert failed" : "concept failed";
+                    message = iscf ? "concept assert failed" : "static assert failed";
                 }
                 if (iscf) {
                     LineInfo atC = expr->at;
@@ -1405,9 +1517,13 @@ namespace das {
         expr->type = new TypeDecl(Type::tPointer);
         expr->type->firstType = new TypeDecl(Type::tHandle);
         expr->type->firstType->annotation = (TypeAnnotation *)Module::require("ast_core")->findAnnotation("Expression");
-        // mark quote as noAot
+        // mark quote as noAot, unless daslib/quote lowering will replace it
+        // (aot_macros or jit_enabled policy, or per-module `options aot_macros` — same gate
+        // as QuotePass, including its macro-module exclusion for the jit trigger)
         if (func) {
-            if (!program->policies.aot_macros) {
+            if (!program->policies.aot_macros
+                    && !(program->policies.jit_enabled && !program->needMacroModule)
+                    && !program->options.getBoolOption("aot_macros", false)) {
                 func->noAot = true;
             }
         }
@@ -1538,7 +1654,7 @@ namespace das {
                                         if (classHasUserNamedFunction(program, mid, mid->name)) {
                                             error("call to super." + eField->name + " in " + func->name
                                                     + " cannot skip " + mid->name
-                                                    + " which has its own constructor — call super." + mid->name + "(...) instead",
+                                                    + " which has its own constructor - call super." + mid->name + "(...) instead",
                                                   "", "", expr->at, CompilationError::invalid_super_call);
                                             return Visitor::visit(expr);
                                         }
@@ -1577,7 +1693,7 @@ namespace das {
                                 if (classHasUserNamedFunction(program, baseClass, eField->name)) {
                                     error("call to super." + eField->name + " in " + func->name
                                             + " cannot skip " + baseClass->name + " which defines its own "
-                                            + eField->name + " — adjust args to match " + baseClass->name + "'s overload",
+                                            + eField->name + " - adjust args to match " + baseClass->name + "'s overload",
                                           "", "", expr->at, CompilationError::invalid_super_call);
                                     return Visitor::visit(expr);
                                 }
@@ -2116,7 +2232,7 @@ namespace das {
                   expr->at, CompilationError::not_resolved_yet_type);
             return Visitor::visit(expr);
         }
-        verifyType(expr->typeexpr, true);
+        verifyType(expr->typeexpr, true, false, /*allowTemplate*/ true);  // type<> introspects; template is fine here
         TypeDecl::clone(expr->type, expr->typeexpr);
         return Visitor::visit(expr);
     }
@@ -2168,7 +2284,7 @@ namespace das {
                       expr->at, CompilationError::not_resolved_yet_typeinfo);
                 return Visitor::visit(expr);
             }
-            verifyType(expr->typeexpr, true);
+            verifyType(expr->typeexpr, true, false, /*allowTemplate*/ true);  // typeinfo introspects; template is fine here
         }
         if (nErrors == program->errors.size()) {
             if (expr->trait == "sizeof") {
@@ -2362,6 +2478,9 @@ namespace das {
             } else if (expr->trait == "is_handle") {
                 reportAstChanged();
                 return new ExprConstBool(expr->at, expr->typeexpr->isHandle());
+            } else if (expr->trait == "is_distinct") {
+                reportAstChanged();
+                return new ExprConstBool(expr->at, expr->typeexpr->isDistinct());
             } else if (expr->trait == "is_ref") {
                 reportAstChanged();
                 return new ExprConstBool(expr->at, expr->typeexpr->isRef());
@@ -2484,6 +2603,31 @@ namespace das {
             } else if (expr->trait == "is_unsafe_when_uninitialized") {
                 reportAstChanged();
                 return new ExprConstBool(expr->at, noUnsafeUninitializedStructs && expr->typeexpr->unsafeInit());
+            } else if (expr->trait == "is_safe_to_delete") {
+                reportAstChanged();
+                return new ExprConstBool(expr->at, expr->typeexpr->isSafeToDelete());
+            } else if (expr->trait == "needs_container_init") {
+                reportAstChanged();
+                return new ExprConstBool(expr->at, defaultInitContainers && expr->typeexpr->unsafeInit());
+            } else if (expr->trait == "is_pod_delete") {
+                reportAstChanged();
+                return new ExprConstBool(expr->at, isPodDelete(expr->typeexpr));
+            } else if (expr->trait == "needs_container_finalize") {
+                // the COLLECT half rides force_inscope_pod - the same policy that governs
+                // builtin_collect_local_and_zero on move-assign/scope-exit; container init
+                // (default_init_containers) is the construct half only, a separate knob.
+                // isPodDelete: collection must be fully GENERATED (user finalizers never run
+                // implicitly), must only free heap the value owns, and there must be some — so POD
+                // structs cost nothing. isSafeToDelete on top: a generated finalizer that would
+                // DELETE POINTEES (a struct with a raw-pointer field, e.g. sql_linq's JoinSpec) is
+                // unsafe to run implicitly — those keep the old drop-the-slot behavior.
+                reportAstChanged();
+                const auto & tt = expr->typeexpr;
+                return new ExprConstBool(expr->at, forceInscopePod && !tt->isConst()
+                                                    && isPodDelete(tt) && tt->isSafeToDelete());
+            } else if (expr->trait == "needs_nontrivial_init") {
+                reportAstChanged();
+                return new ExprConstBool(expr->at, expr->typeexpr->unsafeInit());
             } else if (expr->trait == "has_nontrivial_ctor") {
                 reportAstChanged();
                 return new ExprConstBool(expr->at, expr->typeexpr->hasNonTrivialCtor());
@@ -2632,7 +2776,9 @@ namespace das {
                 } else {
                     if (expr->subexpr->rtti_isVar()) {
                         auto evar = static_cast<ExprVar*>(expr->subexpr);
-                        auto mod = Module::requireEx(evar->name, false);
+                        // allowPromoted: pairs with the `require ?guard` check (ast_parse.cpp), which
+                        // also accepts shared das modules compiled earlier in the process
+                        auto mod = Module::requireEx(evar->name, true);
                         reportAstChanged();
                         return new ExprConstBool(mod != nullptr);
                     } else {
@@ -2792,6 +2938,7 @@ namespace das {
                     // string finalizeName = (fn->module->name.empty() ? "_" : fn->module->name) + "::finalize";
                     string finalizeName = "_::finalize";
                     auto finalizeFn = new ExprCall(expr->at, finalizeName);
+                    finalizeFn->generated = true;   // anchored at the `delete` token, not call text
                     finalizeFn->arguments.push_back(expr->subexpr->clone());
                     return finalizeFn;
                 } else {
@@ -2922,6 +3069,15 @@ namespace das {
         }
         return Visitor::visit(expr);
     }
+    void InferTypes::preVisit(ExprCast *expr) {
+        Visitor::preVisit(expr);
+        // addr<T?>(x) sugar: unsafe() on the reinterpret covers the generated addr under it.
+        // gated on generated so the flag can't broaden safety onto a user-written addr
+        if (expr->fromAddrSugar && expr->alwaysSafe && expr->subexpr->rtti_isRef2Ptr()
+            && expr->subexpr->generated && !expr->subexpr->alwaysSafe) {
+            expr->subexpr->alwaysSafe = true;
+        }
+    }
     ExpressionPtr InferTypes::visit(ExprCast *expr) {
         if (!expr->subexpr->type)
             return Visitor::visit(expr);
@@ -2943,6 +3099,11 @@ namespace das {
         if (expr->castType->isAuto()) {
             error("casting to undefined type " + describeType(expr->castType), "", "",
                   expr->at, CompilationError::lookup_cast_type);
+            return Visitor::visit(expr);
+        }
+        if (expr->fromAddrSugar && !expr->castType->isPointer()) {
+            error("addr<> type must be a pointer, not " + describeType(expr->castType), "", "",
+                  expr->at, CompilationError::invalid_cast_type);
             return Visitor::visit(expr);
         }
         if (expr->subexpr->type->isSameExactType(*expr->castType)) {
@@ -3232,6 +3393,23 @@ namespace das {
                 error("table index requires unsafe", "use 'get_value', 'insert', 'insert_clone' or 'emplace' instead. consider 'get'", "",
                       expr->at, CompilationError::unsafe_table_index);
             }
+            // default_init_containers: a non-store index over an init-carrying value type becomes
+            // _table_index_and_init(tab,key) - a ref-returning wrapper - so a fresh slot runs its
+            // initializers (builtin.das owns the wrapper; its own body is exempt below, which is
+            // what keeps its Tab[at] from recursing into itself). Temporary tables keep the raw
+            // index - a # view is a borrowed shape whose indexed inserts panic on the lock at
+            // runtime anyway; rewriting it would only trade that for a compile error naming a
+            // compiler-internal generic.
+            if (defaultInitContainers && !unsafeTableLookup && !expr->noTableInit
+                && !seT->temporary && seT->secondType->unsafeInit()
+                && !(func && func->fromGeneric && func->fromGeneric->name == "_table_index_and_init")) {
+                auto pCall = new ExprCall(expr->at, "_table_index_and_init");
+                pCall->arguments.push_back(expr->subexpr->clone());
+                pCall->arguments.push_back(expr->index->clone());
+                pCall->generated = true;
+                reportAstChanged();
+                return pCall;
+            }
             TypeDecl::clone(expr->type, seT->secondType);
             expr->type->ref = true;
             expr->type->constant |= seT->constant;
@@ -3280,6 +3458,21 @@ namespace das {
                 TypeDecl::clone(expr->type, seT->firstType);
                 expr->type->ref = true;
                 expr->type->constant |= seT->constant;
+            } else if (seT->baseType == Type::tFixedArray) {
+                if (!ixT->isIndexExt()) {
+                    expr->type = nullptr;
+                    error("index type must be 'int', 'int64', 'uint', or 'uint64', not '" + describeType(ixT) + "'", "", "",
+                          expr->index->at, CompilationError::invalid_index_type);
+                    return Visitor::visit(expr);
+                } else if (!seT->isAutoArrayResolved()) {
+                    error("type dimensions are not resolved yet: '" + describeType(seT) + "'", "", "",
+                          expr->subexpr->at, CompilationError::not_resolved_yet_array_dimension);
+                    return Visitor::visit(expr);
+                }
+                // peel one level - same element-access pattern as tArray
+                TypeDecl::clone(expr->type, seT->firstType);
+                expr->type->ref = true;
+                expr->type->constant |= seT->constant;
             } else if (!ixT->isIndex()) {
                 expr->type = nullptr;
                 error("index type must be 'int' or 'uint', not '" + describeType(ixT) + "'", "", "",
@@ -3289,19 +3482,10 @@ namespace das {
                 expr->type = new TypeDecl(seT->getVectorBaseType());
                 expr->type->ref = seT->ref;
                 expr->type->constant = seT->constant;
-            } else if (seT->baseType != Type::tFixedArray) {
+            } else {
                 error("type can't be indexed: '" + describeType(seT) + "'", "", "",
                       expr->subexpr->at, CompilationError::cant_index);
                 return Visitor::visit(expr);
-            } else if (!seT->isAutoArrayResolved()) {
-                error("type dimensions are not resolved yet: '" + describeType(seT) + "'", "", "",
-                      expr->subexpr->at, CompilationError::not_resolved_yet_array_dimension);
-                return Visitor::visit(expr);
-            } else {
-                // peel one level - same element-access pattern as tArray
-                TypeDecl::clone(expr->type, seT->firstType);
-                expr->type->ref = true;
-                expr->type->constant |= seT->constant;
             }
         }
         propagateTempType(expr->subexpr->type, expr->type); // foo#[a] = a#
@@ -3356,10 +3540,11 @@ namespace das {
                 // expr->type = seT->annotation->makeIndexType(expr->subexpr, expr->index);
                 // expr->type->constant |= seT->constant;
             } else if (seT->isVectorType() || seT->isGoodArrayType() || seT->baseType==Type::tFixedArray) {
-                // arrays accept int/int64/uint/uint64; vector and fixed_array — int/uint only
-                if (seT->isGoodArrayType() ? !ixT->isIndexExt() : !ixT->isIndex()) {
+                // arrays and fixed arrays accept int/int64/uint/uint64; vector — int/uint only
+                bool indexExt = seT->isGoodArrayType() || seT->baseType==Type::tFixedArray;
+                if (indexExt ? !ixT->isIndexExt() : !ixT->isIndex()) {
                     expr->type = nullptr;
-                    error(seT->isGoodArrayType()
+                    error(indexExt
                           ? "index type must be 'int', 'int64', 'uint', or 'uint64', not '" + describeType(ixT) + "'"
                           : "index type must be 'int' or 'uint', not '" + describeType(ixT) + "'", "", "",
                           expr->index->at, CompilationError::invalid_index_type);
@@ -3441,8 +3626,8 @@ namespace das {
                 error("safe-index of fixed_array<> must be inside the 'unsafe' block", "", "",
                       expr->at, CompilationError::unsafe_fixed_array_safe_index);
             }
-            if (!ixT->isIndex()) {
-                error("index type must be 'int' or 'uint', not '" + describeType(ixT) + "'", "", "",
+            if (!ixT->isIndexExt()) {
+                error("index type must be 'int', 'int64', 'uint', or 'uint64', not '" + describeType(ixT) + "'", "", "",
                       expr->index->at, CompilationError::invalid_index_type);
                 return Visitor::visit(expr);
             }
@@ -3474,6 +3659,16 @@ namespace das {
     }
     void InferTypes::preVisit(ExprBlock *block) {
         Visitor::preVisit(block);
+        for (auto it = block->arguments.begin(); it != block->arguments.end();) {
+            if (*it == nullptr) {
+                program->stickyError("malformed AST, block has a null argument entry",
+                      "likely a macro-built block", "",
+                      block->at, CompilationError::internal_variable);
+                it = block->arguments.erase(it);  // repair in place; the sticky error still fails the compile
+            } else {
+                ++it;
+            }
+        }
         block->hasEarlyOut = false;
         block->hasReturn = false;
         block->forLoop = false;
@@ -3503,6 +3698,12 @@ namespace das {
     void InferTypes::preVisitBlockArgument(ExprBlock *block, const VariablePtr &var, bool lastArg) {
         Visitor::preVisitBlockArgument(block, var, lastArg);
         checkEmptyName(var->name, "block argument", var->at);
+        if (!var->type) {
+            program->stickyError("malformed AST, block argument '" + var->name + "' is missing its type",
+                  "likely a macro-generated declaration; set its type to auto to request inference", "",
+                  var->at, CompilationError::internal_variable);
+            var->type = new TypeDecl(Type::autoinfer);  // repair in place; the sticky error still fails the compile
+        }
         if (!var->can_shadow && !program->policies.allow_block_variable_shadowing) {
             if (func) {
                 for (auto &fna : func->arguments) {
@@ -3678,6 +3879,12 @@ namespace das {
         int dim = valT->getVectorDim();
         if (!TypeDecl::buildSwizzleMask(expr->mask, dim, expr->fields)) {
             error("invalid swizzle mask " + expr->mask, "", "",
+                  expr->at, CompilationError::invalid_swizzle_mask);
+        } else if (int rdim = int(expr->fields.size());
+                   valT->isRange() ? (rdim > 2) : !TypeDecl::hasVectorType(valT->getVectorBaseType(), rdim)) {
+            // e.g. .s01230123 on a float4 — 8 lanes, but the float family has no 8-wide vector
+            error("swizzle ." + expr->mask + " yields " + to_string(rdim)
+                    + " lane(s) - no such vector of '" + das_to_string(valT->getVectorBaseType()) + "'", "", "",
                   expr->at, CompilationError::invalid_swizzle_mask);
         } else {
             auto bt = valT->getVectorBaseType();
@@ -3910,6 +4117,7 @@ namespace das {
                             if (!found->init) {
                                 error("bitfield constant '" + expr->name + "' of type " + describeType(alias) + " is not initialized", "", "",
                                       expr->at, CompilationError::missing_bitfield_init);
+                                return Visitor::visit(expr);
                             } else if (!found->init->type || !found->init->type->constant || !found->init->type->isBitfield()) {
                                 error("not a valid bitfield constant " + expr->name + " of type " + describeType(found->type), "", "",
                                       expr->at, CompilationError::invalid_bitfield);
@@ -4361,10 +4569,8 @@ namespace das {
                     error("can't access private variable '" + expr->name + "'", "not visible due to privacy:\n" + errs.str(), "",
                           expr->at, CompilationError::invalid_variable_private);
                 } else {
-                    if (verbose) {
-                        error("can't locate variable '" + expr->name + "'", "", "",
-                          expr->at, CompilationError::lookup_variable);
-                    }
+                    error("can't locate variable '" + expr->name + "'", "", "",
+                      expr->at, CompilationError::lookup_variable);
                 }
             } else {
                 error("can't locate variable '" + expr->name + "'", "", "",
@@ -4383,10 +4589,8 @@ namespace das {
                 error("too many matching variables '" + expr->name + "'", "candidates are:\n" + errs.str(), "",
                       expr->at, CompilationError::ambiguous_variable);
             } else {
-                if (verbose) {
-                    error("too many matching variables '" + expr->name + "'", "", "",
-                      expr->at, CompilationError::ambiguous_variable);
-                }
+                error("too many matching variables '" + expr->name + "'", "", "",
+                  expr->at, CompilationError::ambiguous_variable);
             }
         }
         return Visitor::visit(expr);
@@ -4424,8 +4628,10 @@ namespace das {
             expr->block = block;
             block->hasReturn = true;
             if (expr->subexpr) {
-                if (!expr->subexpr->type)
+                if (!expr->subexpr->type) {
+                    reportUnresolvedReturnValue(expr);
                     return Visitor::visit(expr);
+                }
                 if (!block->returnType->ref) {
                     expr->subexpr = Expression::autoDereference(expr->subexpr);
                 } else {
@@ -4466,8 +4672,10 @@ namespace das {
             // infer
             func->hasReturn = true;
             if (expr->subexpr) {
-                if (!expr->subexpr->type)
+                if (!expr->subexpr->type) {
+                    reportUnresolvedReturnValue(expr);
                     return Visitor::visit(expr);
+                }
                 if (!func->result->ref) {
                     if (!expr->moveSemantics) {
                         expr->subexpr = Expression::autoDereference(expr->subexpr);
@@ -4821,8 +5029,31 @@ namespace das {
     void InferTypes::preVisitWithBody ( ExprWith * expr, Expression * body) {
         Visitor::preVisitWithBody(expr, body);
         with.push_back(expr);
+        if (expr->isModuleWith()) {
+            auto mod = program->library.findModule(expr->moduleName);
+            if (!mod) {
+                auto slash = expr->moduleName.find_last_of('/');
+                if (slash != string::npos) { // path form - the module is named by the last component
+                    mod = program->library.findModule(expr->moduleName.substr(slash + 1));
+                }
+            }
+            if (!mod) {
+                error("with module '" + expr->moduleName + "' is not found", "", "",
+                      expr->at, CompilationError::invalid_with_module);
+            }
+            moduleScope.push_back(mod);     // nullptr = poisoned scope, behaves as if absent
+        }
     }
     ExpressionPtr InferTypes::visit(ExprWith *expr) {
+        if (expr->isModuleWith()) {
+            moduleScope.pop_back();
+            if ((withModuleIsUnsafe || expr->moduleUnsafeByProject) && !expr->generated && !safeExpression(expr)) {
+                error("with (module " + expr->moduleName + ") requires unsafe", "", "",
+                      expr->at, CompilationError::unsafe_with_module);
+            }
+            with.pop_back();
+            return Visitor::visit(expr);
+        }
         if (auto wT = expr->with->type) {
             StructurePtr pSt = nullptr;
             if (wT->baseType == Type::tFixedArray) {
@@ -4891,6 +5122,30 @@ namespace das {
         Visitor::preVisit(expr);
         // macro generated invisible variables
         // DAS_ASSERT(expr->visibility.line);
+        if (!expr->body && expr != comprehensionFor) {  // a comprehension's embedded for legally has no body until lowering
+            program->stickyError("malformed AST, for loop is missing its body",
+                  "likely a macro-built loop; set body to an ExprBlock", "",
+                  expr->at, CompilationError::internal_expression);
+            expr->body = new ExprBlock();  // repair in place; the sticky error still fails the compile
+            expr->body->at = expr->at;
+        }
+        for (size_t i = 0; i < expr->sources.size();) {
+            if (expr->sources[i] == nullptr) {
+                program->stickyError("malformed AST, for loop has a null source entry",
+                      "likely a macro-built loop", "",
+                      expr->at, CompilationError::internal_expression);
+                // repair in place (erase the whole iterator column, keeping the parallel
+                // vectors consistent); the sticky error still fails the compile
+                expr->sources.erase(expr->sources.begin() + i);
+                if (expr->iterators.size() > i) expr->iterators.erase(expr->iterators.begin() + i);
+                if (expr->iteratorsAt.size() > i) expr->iteratorsAt.erase(expr->iteratorsAt.begin() + i);
+                if (expr->iteratorsAka.size() > i) expr->iteratorsAka.erase(expr->iteratorsAka.begin() + i);
+                if (expr->iteratorsTupleExpansion.size() > i) expr->iteratorsTupleExpansion.erase(expr->iteratorsTupleExpansion.begin() + i);
+                if (expr->iteratorsTags.size() > i) expr->iteratorsTags.erase(expr->iteratorsTags.begin() + i);
+            } else {
+                ++i;
+            }
+        }
         loop.push_back(expr);
         pushVarStack();
     }
@@ -4904,6 +5159,14 @@ namespace das {
             error("for loop needs as many iterators as there are sources", "", "",
                   expr->at, CompilationError::invalid_for_iterator_count);
             return;
+        }
+        if (expr->iteratorsAt.size() < expr->iterators.size() || expr->iteratorsAka.size() < expr->iterators.size()) {
+            program->stickyError("malformed AST, for loop iteratorsAt/iteratorsAka are shorter than the iterator list",
+                  "likely a macro-built loop; keep iterators, iteratorsAt and iteratorsAka the same length", "",
+                  expr->at, CompilationError::internal_expression);
+            // repair in place (pad with defaults); the sticky error still fails the compile
+            if (expr->iteratorsAt.size() < expr->iterators.size()) expr->iteratorsAt.resize(expr->iterators.size());
+            if (expr->iteratorsAka.size() < expr->iterators.size()) expr->iteratorsAka.resize(expr->iterators.size());
         }
         // iterator variables
         int idx = 0;
@@ -4986,7 +5249,7 @@ namespace das {
             }
             local.push_back(pVar);
             expr->iteratorVariables.push_back(pVar);
-            if (expr->iteratorsTupleExpansion.size() > idx && expr->iteratorsTupleExpansion[idx]) {
+            if (int64_t(expr->iteratorsTupleExpansion.size()) > idx && expr->iteratorsTupleExpansion[idx]) {
                 if (pVar->type && !pVar->type->isTuple()) {
                     error("for loop iterator variable " + pVar->name + " is not a tuple", "", "",
                           expr->at, CompilationError::invalid_for_iterator_tuple);
@@ -5092,6 +5355,16 @@ namespace das {
     }
     void InferTypes::preVisit(ExprLet *expr) {
         Visitor::preVisit(expr);
+        for (auto it = expr->variables.begin(); it != expr->variables.end();) {
+            if (*it == nullptr) {
+                program->stickyError("malformed AST, let expression has a null variable entry",
+                      "likely a macro-built declaration list", "",
+                      expr->at, CompilationError::internal_variable);
+                it = expr->variables.erase(it);  // repair in place; the sticky error still fails the compile
+            } else {
+                ++it;
+            }
+        }
         DAS_ASSERT(!scopes.empty());
         auto scope = scopes.back();
         expr->visibility.fileInfo = expr->at.fileInfo;
@@ -5107,6 +5380,12 @@ namespace das {
         checkEmptyName(var->name, "variable declaration", var->at);
         var->single_return_via_move = false;
         var->consumed = false;
+        if (!var->type) {
+            program->stickyError("malformed AST, variable '" + var->name + "' is missing its type",
+                  "likely a macro-generated declaration; set its type to auto to request inference", "",
+                  var->at, CompilationError::internal_variable);
+            var->type = new TypeDecl(Type::autoinfer);  // repair in place; the sticky error still fails the compile
+        }
         if (var->type && var->type->isExprType()) {
             return;
         }
@@ -5178,8 +5457,14 @@ namespace das {
         if (var->type->ref && !var->init)
             error("local reference has to be initialized", "", "",
                   var->at, CompilationError::missing_local_reference_init);
-        if (var->type->ref && var->init && !(var->init->alwaysSafe || isLocalOrGlobal(var->init)) && !safeExpression(expr) && !(var->init->type && var->init->type->temporary)) {
-            if (program->policies.local_ref_is_unsafe) {
+        if (var->type->ref && var->init && var->init->type && !var->init->type->temporary) {
+            if (isFreshTemporary(var->init)) {
+                error("local reference to a temporary value is not allowed",
+                      "a reference must bind to addressable storage (a variable, a field, or a function "
+                      "returning a reference); a freshly-built temporary has none", "",
+                      var->at, CompilationError::unsafe_local_reference);
+            } else if (!(var->init->alwaysSafe || isLocalOrGlobal(var->init))
+                    && !safeExpression(expr) && program->policies.local_ref_is_unsafe) {
                 error("local reference to non-local expression is unsafe", "", "",
                       var->at, CompilationError::unsafe_local_reference);
             }
@@ -5216,9 +5501,11 @@ namespace das {
                 }
             }
             if (forceInscopePod && !expr->inScope && !var->pod_delete && !var->type->ref) { // no constant for now
-                if ((expr->variables.size() == 1)                                           // only one variable
-                                                                                            // very restrictive on functions
-                    && (func && !func->generated && !func->generator && !func->lambda)
+                // lambda and @@{} local-function bodies are generated wrappers around verbatim
+                // user blocks - their locals are ordinary per-invocation stack locals, so
+                // scope-exit collection is as sound there as in a plain function. Generators
+                // stay excluded: their locals persist across yields in the state machine.
+                if ((func && (!func->generated || func->lambda || func->localFunction) && !func->generator)
                     // not in the generator block
                     && (blocks.empty() || !blocks.back()->isGeneratorBlock)) {
                     if (isPodDelete(var->type)) {
@@ -5328,6 +5615,9 @@ namespace das {
                       var->at, CompilationError::invalid_local_init_type);
             } else {
                 varT->ref = false;
+                if (var->init_via_clone && varT->isString()) {
+                    varT->temporary = false;
+                }
                 TypeDecl::applyAutoContracts(varT, var->type);
                 if (!relaxedPointerConst) { // var a = Foo? const -> var a : Foo const? = Foo? const
                     if (varT->isPointer() && varT->firstType && !varT->constant && var->init->type->constant) {
@@ -5391,7 +5681,9 @@ namespace das {
             }
         } else {
             if (var->init_via_clone) {
-                if (var->init->type->isWorkhorseType()) {
+                if (var->init->type->isString() && (var->init->type->isTemp() || multiContext)) {
+                    return promoteStringInitToClone(var);
+                } else if (var->init->type->isWorkhorseType()) {
                     var->init_via_clone = false;
                     var->init_via_move = false;
                     reportAstChanged();
@@ -5414,6 +5706,11 @@ namespace das {
             for (auto &var : expr->variables) {
                 if (var->type->isAutoOrAlias()) {
                     error("type not ready yet", "", "", var->at, CompilationError::not_resolved_yet_local_type);
+                    return Visitor::visit(expr);
+                }
+                if (var->type->isGoodBlockType()) {
+                    error("local block variable " + var->name + " can't be declared in generator", "", "",
+                          var->at, CompilationError::invalid_local_type);
                     return Visitor::visit(expr);
                 }
             }
@@ -5556,6 +5853,20 @@ namespace das {
                 reportAstChanged();
                 return demoteCall(expr, generics.back());
             } else {
+                // piped block on a named call: retry with pad-aware matching so the block can land on a
+                // later block param across defaults, exactly like a regular piped call. runs before the
+                // method paths - it also covers dot-syntax calls that resolve to a free function
+                // (w.foo(...) == foo(w, ...)); a genuine class method falls through to the member path below.
+                if (expr->pipedCallArgument) {
+                    MatchingFunctions pipedAmbiguous;
+                    if (auto demoted = tryPipedNamedCallPadding(expr, nonNamedTypes, pipedAmbiguous)) {
+                        return demoted; // reportAstChanged already called inside
+                    }
+                    if (!pipedAmbiguous.empty()) {
+                        reportExcess(expr, nonNamedTypes, "too many matching functions or generics: ", pipedAmbiguous, generics);
+                        return Visitor::visit(expr);
+                    }
+                }
                 if (expr->methodCall) {
                     if ( expr->nonNamedArguments.empty() ) {
                         reportMissing(expr, nonNamedTypes, "no matching functions or generics: ", true);
@@ -5572,6 +5883,10 @@ namespace das {
                         auto callStruct = tp->structType;
                         vector<TypeDeclPtr> nonNamedArgumentTypes;
                         nonNamedArgumentTypes.push_back(vSelf->type);
+                        // include the middle positionals + the piped block (was: self only, which dropped them)
+                        for (size_t i = 1, n = expr->nonNamedArguments.size(); i != n; ++i) {
+                            nonNamedArgumentTypes.push_back(expr->nonNamedArguments[i]->type);
+                        }
                         if (hasMatchingMemberCall(callStruct, expr->name, *expr->arguments, nonNamedArgumentTypes, true)) {
                             reportAstChanged();
                             auto pInvoke = makeInvokeMethod(expr->at, callStruct, vSelf, expr->name);
@@ -5581,6 +5896,12 @@ namespace das {
                                 pInvoke->arguments.push_back(newArguments[i]);
                             }
                             return pInvoke;
+                        }
+                        // piped block needs to pad across defaults to reach a later block param (self already at [0])
+                        if (expr->pipedCallArgument) {
+                            if (auto demoted = tryPipedMemberCallPadding(expr, callStruct, vSelf, nonNamedArgumentTypes)) {
+                                return demoted;
+                            }
                         }
                         string moreError = reportMismatchingMemberCall(callStruct, expr->name, *expr->arguments, nonNamedArgumentTypes, true);
                         reportMissing(expr, nonNamedTypes, "no matching functions or generics: ", true, CompilationError::function_not_found, moreError);
@@ -5607,6 +5928,23 @@ namespace das {
                             pInvoke->arguments.push_back(newArguments[i]);
                         }
                         return pInvoke;
+                    }
+                    // piped block needs to pad across defaults to reach a later block param. self is implicit here,
+                    // so prepend it to both the type list and the arguments (mirrors the non-piped path's insert);
+                    // restore on failure so a not-yet-ready retry does not double the self argument.
+                    if (expr->pipedCallArgument) {
+                        vector<TypeDeclPtr> fullNonNamedTypes;
+                        fullNonNamedTypes.reserve(nonNamedArgumentTypes.size() + 1);
+                        fullNonNamedTypes.push_back(new TypeDecl(selfStruct));
+                        for (auto &t : nonNamedArgumentTypes) {
+                            fullNonNamedTypes.push_back(t);
+                        }
+                        auto self = new ExprVar(expr->at, "self");
+                        expr->nonNamedArguments.insert(expr->nonNamedArguments.begin(), self);
+                        if (auto demoted = tryPipedMemberCallPadding(expr, selfStruct, self, fullNonNamedTypes)) {
+                            return demoted;
+                        }
+                        expr->nonNamedArguments.erase(expr->nonNamedArguments.begin());
                     }
                     string moreError = reportMismatchingMemberCall(selfStruct, expr->name, *expr->arguments, nonNamedArgumentTypes, false);
                     reportMissing(expr, nonNamedTypes, "no matching functions or generics: ", true, CompilationError::function_not_found, moreError);
@@ -5654,7 +5992,19 @@ namespace das {
                   "use let _ = " + call->name + "(...)", "",
                   call->at, CompilationError::invalid_function_result_discarded);
         }
-        // super() constructor rewrite is done in visit(ExprCall*), once argument types are inferred
+        // Array/table literal: `[..]` / `array<T>(..)` parse to to_array_move(ExprMakeArray), and
+        // `{..}` table literals to to_table_move(ExprMakeArray of tuples). Flag the gen2 make_array
+        // (here, in preVisit, BEFORE the child is type-inferred) so it builds a heap `array<T>`
+        // directly instead of a stack `T[N]` that to_array_move/to_table_move then copies. The
+        // type carries the decision: to_array_move/to_table_move resolve their `array<T>` overload
+        // at compile time (no runtime check). Only the gen2 literal shape is flagged.
+        if ((call->name == "to_array_move" || call->name == "to_table_move")
+                && call->arguments.size() == 1 && call->arguments[0]->rtti_isMakeArray()) {
+            auto mka = static_cast<ExprMakeArray*>(call->arguments[0]);
+            if (mka->gen2 && !noHeapArrayLiterals) {
+                mka->makeArrayOnHeap = true;
+            }
+        }
     }
     void InferTypes::preVisitCallArg(ExprCall *call, Expression *arg, bool last) {
         Visitor::preVisitCallArg(call, arg, last);
@@ -5718,7 +6068,7 @@ namespace das {
                     // have ANY user-defined ctor? If yes, we'd silently skip its invariants — reject.
                     if (classHasUserNamedFunction(program, baseClass, baseClass->name)) {
                         error("call to super in " + func->name + " cannot skip " + baseClass->name
-                                + " which has its own constructor — adjust super(...) args to match " + baseClass->name,
+                                + " which has its own constructor - adjust super(...) args to match " + baseClass->name,
                               "", "", expr->at, CompilationError::invalid_super_call);
                         return Visitor::visit(expr);
                     }
@@ -5777,6 +6127,29 @@ namespace das {
                         mks->makeType = new TypeDecl(*aliasT);
                         return mks;
                     }
+                } else if (aliasT->isDistinct()) {
+                    // Foo(expr) - the only way IN to a distinct type: exactly one argument of
+                    // exactly the underlying type, relabeled in place (reinterpret, zero cost)
+                    if (expr->arguments.size() != 1) {
+                        error("distinct type " + describeType(aliasT) + " is constructed from exactly one argument of its underlying type", "", "",
+                              expr->at, CompilationError::mismatching_distinct_type);
+                        return Visitor::visit(expr);
+                    }
+                    auto argT = expr->arguments[0]->type;
+                    if (!argT || argT->isAliasOrExpr()) {
+                        return Visitor::visit(expr);        // not inferred yet
+                    }
+                    if (!aliasT->firstType || !argT->isSameType(*aliasT->firstType, RefMatters::no, ConstMatters::no, TemporaryMatters::no)) {
+                        error("can't construct " + describeType(aliasT) + " from " + describeType(argT),
+                              "distinct type is constructed from exactly its underlying type " + (aliasT->firstType ? describeType(aliasT->firstType) : ""), "",
+                              expr->at, CompilationError::mismatching_distinct_type);
+                        return Visitor::visit(expr);
+                    }
+                    reportAstChanged();
+                    auto ecast = new ExprCast(expr->at, expr->arguments[0]->clone(), new TypeDecl(*aliasT));
+                    ecast->reinterpret = true;
+                    ecast->alwaysSafe = true;
+                    return ecast;
                 } else if (expr->arguments.empty()) {
                     // this is Blah() - so we promote to default<Blah>
                     reportAstChanged();
@@ -5941,6 +6314,10 @@ namespace das {
         }
         return Visitor::visit(expr);
     }
+    void InferTypes::preVisitStringBuilderElement(ExprStringBuilder *sb, Expression *expr, bool last) {
+        Visitor::preVisitStringBuilderElement(sb, expr, last);
+        markNoDiscard(expr);    // interpolation formats the value into the string — a [nodiscard] result here is consumed
+    }
     ExpressionPtr InferTypes::visitStringBuilderElement(ExprStringBuilder *, Expression *expr, bool) {
         auto res = Expression::autoDereference(expr);
         if (expr->type) {
@@ -5965,16 +6342,31 @@ namespace das {
 
     // try infer, if failed - no macros
     // run macros til any of them does work, then reinfer and restart (i.e. infer after each macro)
-    void Program::inferTypes(TextWriter &logs, ModuleGroup &libGroup) {
-        newLambdaIndex = 1;
+    static bool applyPreInferMacros ( Program * program ) {
+        auto nErr = program->errors.size();
+        // program->library, not Module::foreach: the latter walks every module in the
+        // process, so a nested compile would run macros from an unrelated program
+        program->library.foreach([&](Module * mod) -> bool {
+            for ( const auto & pm : mod->preInferMacros ) {
+                pm->apply(program, program->thisModule.get());
+            }
+            return true;
+        }, "*");
+        // the next pass clears program->errors, so a violation has to stop the loop
+        return program->errors.size() == nErr;
+    }
+
+    void inferTypes(Program * program, TextWriter &logs, ModuleGroup &libGroup) {
+        program->newLambdaIndex = 1;
         // inferPassesUsed is NOT reset here — parseDaScript resets it once per module
         // before the restartInfer: loop, so multiple inferTypes legs accumulate properly.
-        inferTypesDirty(logs, false);
+        applyPreInferMacros(program);
+        inferTypesDirty(program, logs, false);
         bool anyMacrosDidWork = false;
         bool anyMacrosFailedToInfer = false;
         int pass = 0;
-        int32_t maxInferPasses = options.getIntOption("max_infer_passes", policies.max_infer_passes);
-        if (failed())
+        int32_t maxInferPasses = program->options.getIntOption("max_infer_passes", program->policies.max_infer_passes);
+        if (program->failed())
             goto failed_to_infer;
         do {
             if (pass++ >= maxInferPasses)
@@ -5982,19 +6374,20 @@ namespace das {
             anyMacrosDidWork = false;
             anyMacrosFailedToInfer = false;
             auto modMacro = [&](Module *mod) -> bool { // we run all macros for each module
-                if (thisModule->isVisibleDirectly(mod) && mod != thisModule.get()) {
+                if (program->thisModule->isVisibleDirectly(mod) && mod != program->thisModule.get()) {
                     for (const auto &pm : mod->macros) {
-                        bool anyWork = pm->apply(this, thisModule.get());
-                        if (failed()) { // if macro failed, we report it, and we are done
-                            error("macro '" + mod->name + "::" + pm->name + "' failed", "", "", LineInfo(), CompilationError::runtime_macro);
+                        bool anyWork = pm->apply(program, program->thisModule.get());
+                        if (program->failed()) { // if macro failed, we report it, and we are done
+                            program->error("macro '" + mod->name + "::" + pm->name + "' failed", "", "", LineInfo(), CompilationError::runtime_macro);
                             return false;
                         }
                         if (anyWork) { // if macro did anything, we done
-                            reportingInferErrors = true;
-                            inferTypesDirty(logs, true);
-                            reportingInferErrors = false;
-                            if (failed()) { // if it failed to infer types after, we report it
-                                error("macro '" + mod->name + "::" + pm->name + "' failed to infer", "", "", LineInfo(), CompilationError::runtime_macro_infer);
+                            applyPreInferMacros(program);
+                            program->reportingInferErrors = true;
+                            inferTypesDirty(program, logs, true);
+                            program->reportingInferErrors = false;
+                            if (program->failed()) { // if it failed to infer types after, we report it
+                                program->error("macro '" + mod->name + "::" + pm->name + "' failed to infer", "", "", LineInfo(), CompilationError::runtime_macro_infer);
                                 anyMacrosFailedToInfer = true;
                                 return false;
                             }
@@ -6006,85 +6399,74 @@ namespace das {
                 return true;
             };
             Module::foreach (modMacro);
-            if (failed())
+            if (program->failed())
                 break;
             if (anyMacrosDidWork)
                 continue;
-            if (relocatePotentiallyUninitialized(logs)) {
+            if (program->relocatePotentiallyUninitialized(logs)) {
                 anyMacrosDidWork = true;
-                reportingInferErrors = true;
-                inferTypesDirty(logs, true);
-                reportingInferErrors = false;
-                if (failed()) {
-                    error("internal compiler error: variable relocation infer to fail", "", "", LineInfo(), CompilationError::internal_relocate_infer);
+                program->reportingInferErrors = true;
+                inferTypesDirty(program, logs, true);
+                program->reportingInferErrors = false;
+                if (program->failed()) {
+                    program->error("internal compiler error: variable relocation infer to fail", "", "", LineInfo(), CompilationError::internal_relocate_infer);
                 }
                 continue;
             }
             libGroup.foreach (modMacro, "*");
-            if (inScopePodAnalysis(logs)) {
+            if (program->inScopePodAnalysis(logs)) {
                 anyMacrosDidWork = true;
-                reportingInferErrors = true;
-                inferTypesDirty(logs, true);
-                reportingInferErrors = false;
-                if (failed()) {
-                    error("internal compiler error: pod analysis infer to fail", "", "", LineInfo(), CompilationError::internal_pod_analysis_infer);
+                program->reportingInferErrors = true;
+                inferTypesDirty(program, logs, true);
+                program->reportingInferErrors = false;
+                if (program->failed()) {
+                    program->error("internal compiler error: pod analysis infer to fail", "", "", LineInfo(), CompilationError::internal_pod_analysis_infer);
                 }
                 continue;
             }
-            escapeAnalysis(logs);   // pure analysis: annotate Variable::does_not_escape (idempotent, no AST change)
-            if (scopeFreeOptimization(logs)) {
-                anyMacrosDidWork = true;
-                reportingInferErrors = true;
-                inferTypesDirty(logs, true);
-                reportingInferErrors = false;
-                if (failed()) {
-                    error("internal compiler error: escape free optimization infer to fail", "", "", LineInfo(), CompilationError::internal_pod_analysis_infer);
-                }
-                continue;
-            }
-        } while (!failed() && anyMacrosDidWork);
+        } while (!program->failed() && anyMacrosDidWork);
     failed_to_infer:;
-        if (failed() && !anyMacrosFailedToInfer && !macroException) {
-            reportingInferErrors = true;
-            inferTypesDirty(logs, true);
-            reportingInferErrors = false;
+        if (program->failed() && !anyMacrosFailedToInfer && !program->macroException) {
+            program->reportingInferErrors = true;
+            inferTypesDirty(program, logs, true);
+            program->reportingInferErrors = false;
         }
         if (pass >= maxInferPasses) {
-            error("type inference exceeded maximum allowed number of passes (" + to_string(maxInferPasses) + ")\n"
+            program->error("type inference exceeded maximum allowed number of passes (" + to_string(maxInferPasses) + ")\n"
                                                                                                              "this is likely due to a macro continuously being applied",
                   "", "",
                   LineInfo(), CompilationError::exceeds_infer_passes);
         }
     }
 
-    void Program::inferTypesDirty(TextWriter &logs, bool verbose) {
+    void inferTypesDirty(Program * program, TextWriter &logs, bool verbose) {
         int pass = 0;
-        int32_t maxInferPasses = options.getIntOption("max_infer_passes", policies.max_infer_passes);
-        bool logInferPasses = options.getBoolOption("log_infer_passes", false);
+        int32_t maxInferPasses = program->options.getIntOption("max_infer_passes", program->policies.max_infer_passes);
+        bool logInferPasses = program->options.getBoolOption("log_infer_passes", false);
         if (logInferPasses) {
             logs << "INITIAL CODE:\n"
-                 << *this;
+                 << *program;
         }
         // Per-pass collect+swap: infer mints a lot of throwaway TypeDecls/Expressions. When a
         // pass grows the working root enough, collect the live tree into a fresh root and swap
         // it in (O(1)); the old root's dtor sweeps that pass's garbage. Fire when growth since
         // the last collect crosses a node threshold (~2 MB) OR a fraction of the live set.
-        bool gcInferCollect = options.getBoolOption("gc_infer_collect", policies.gc_infer_collect);
-        int32_t gcInferNodes = options.getIntOption("gc_infer_collect_nodes", policies.gc_infer_collect_nodes);
-        int32_t gcInferPct = options.getIntOption("gc_infer_collect_pct", policies.gc_infer_collect_pct);
-        bool gcInferLog = options.getBoolOption("log_gc_infer_collect", false);
+        bool gcInferCollect = program->options.getBoolOption("gc_infer_collect", program->policies.gc_infer_collect);
+        int32_t gcInferNodes = program->options.getIntOption("gc_infer_collect_nodes", program->policies.gc_infer_collect_nodes);
+        int32_t gcInferPct = program->options.getIntOption("gc_infer_collect_pct", program->policies.gc_infer_collect_pct);
+        bool gcInferLog = program->options.getBoolOption("log_gc_infer_collect", false);
         uint64_t gcLastCount = gc_root::gc_get_active_root()->gc_count;
         // Collect the module's working root into a fresh root and swap it in (O(1)); the old
         // root's dtor sweeps the garbage. Returns the live count. No-op outside the normal
         // compile flow (the active root must BE the module's root) so tool/macro re-infer is safe.
         auto gcCollectAndSwap = [&]() -> uint64_t {
             gc_root * cur = gc_root::gc_get_active_root();
-            if ( cur != thisModule->module_gc_root.get() ) return gcLastCount;
+            if ( cur != program->thisModule->module_gc_root.get() ) return gcLastCount;
             auto fresh = make_unique<gc_root>();
-            thisModule->gc_collect(cur, fresh.get());        // live cur -> fresh (fresh target: full walk, no early-out)
+            program->thisModule->gc_collect(cur, fresh.get());        // live cur -> fresh (fresh target: full walk, no early-out)
             gc_root * live = fresh.get();
             gc_root::gc_get_active_root() = live;
-            thisModule->module_gc_root = das::move(fresh);   // deletes cur -> sweeps the garbage
+            program->thisModule->module_gc_root = das::move(fresh);   // deletes cur -> sweeps the garbage
             return live->gc_count;
         };
         for (pass = 0; pass < maxInferPasses; ++pass) {
@@ -6094,7 +6476,7 @@ namespace das {
                 bool fire = grown >= uint64_t(gcInferNodes)
                          || ( gcLastCount && grown * 100 >= gcLastCount * uint64_t(gcInferPct) );
                 if ( gcInferLog ) {
-                    logs << "[gc-infer] " << thisModule->name << " pass " << pass
+                    logs << "[gc-infer] " << program->thisModule->name << " pass " << pass
                          << " live=" << curCount << " grown=" << grown
                          << " (" << (gcLastCount ? grown * 100 / gcLastCount : 0) << "%)"
                          << (fire ? " -> COLLECT" : "") << "\n";
@@ -6102,19 +6484,22 @@ namespace das {
                 if ( fire )
                     gcLastCount = gcCollectAndSwap();
             }
-            if (macroException)
+            if (program->macroException)
                 break;
-            inferPassesUsed++;   // count each body invocation; avoids undercount when loop breaks early (pass is 0-based)
-            failToCompile = false;
-            errors.clear();
-            InferTypes context(this, &logs);
+            program->inferPassesUsed++;   // count each body invocation; avoids undercount when loop breaks early (pass is 0-based)
+            program->failToCompile = false;
+            program->errors.clear();
+            if (!applyPreInferMacros(program)) {
+                break;
+            }
+            InferTypes context(program, &logs);
             context.verbose = verbose || logInferPasses;
-            visit(context);
+            program->visit(context);
             for (auto efn : context.extraFunctions) {
-                addFunction(efn);
+                program->addFunction(efn);
             }
             vector<tuple<Function *, uint64_t, uint64_t>> refreshFunctions;
-            thisModule->functions.foreach_with_hash([&](auto fn, uint64_t hash) {
+            program->thisModule->functions.foreach_with_hash([&](auto fn, uint64_t hash) {
                 auto mnh = fn->getMangledNameHash();
                 if ( hash != mnh ) {
                     refreshFunctions.emplace_back(make_tuple(fn, hash, mnh));
@@ -6122,28 +6507,28 @@ namespace das {
                     fn->notInferred();
                 } });
             for (auto rfn : refreshFunctions) {
-                if (!thisModule->functions.refresh_key(get<1>(rfn), get<2>(rfn))) {
-                    error("internal compiler error: failed to refresh '" + get<0>(rfn)->getMangledName() + "'", "", "", get<0>(rfn)->at, CompilationError::internal_function_refresh);
+                if (!program->thisModule->functions.refresh_key(get<1>(rfn), get<2>(rfn))) {
+                    program->error("internal compiler error: failed to refresh '" + get<0>(rfn)->getMangledName() + "'", "", "", get<0>(rfn)->at, CompilationError::internal_function_refresh);
                     goto failedIt;
                 }
             }
             bool anyMacrosDidWork = false;
             auto modMacro = [&](Module *mod) -> bool {
-                if (thisModule->isVisibleDirectly(mod) && mod != thisModule.get()) {
+                if (program->thisModule->isVisibleDirectly(mod) && mod != program->thisModule.get()) {
                     for (const auto &pm : mod->inferMacros) {
-                        anyMacrosDidWork |= pm->apply(this, thisModule.get());
+                        anyMacrosDidWork |= pm->apply(program, program->thisModule.get());
                     }
                 }
                 return true;
             };
             Module::foreach (modMacro);
-            library.foreach (modMacro, "*");
-            inferLint(logs);
+            program->library.foreach (modMacro, "*");
+            program->inferLint(logs);
             if (logInferPasses) {
                 logs << "PASS " << pass << ":\n"
-                     << *this;
-                sort(errors.begin(), errors.end());
-                for (auto &err : errors) {
+                     << *program;
+                sort(program->errors.begin(), program->errors.end());
+                for (auto &err : program->errors) {
                     logs << reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
                 }
             }
@@ -6154,10 +6539,15 @@ namespace das {
         }
     failedIt:;
         if (pass == maxInferPasses) {
-            error("type inference exceeded maximum allowed number of passes (" + to_string(maxInferPasses) + ")\n"
+            program->error("type inference exceeded maximum allowed number of passes (" + to_string(maxInferPasses) + ")\n"
                                                                                                              "this is likely due to a loop in the type system",
                   "", "",
                   LineInfo(), CompilationError::exceeds_infer_passes);
+        }
+        // re-arm sticky (malformed-AST) reports: the tree was repaired in place so the guard that
+        // detected the damage won't re-fire, and every pass cleared program->errors
+        for (auto &serr : program->stickyErrors) {
+            program->error(serr.what, serr.extra, serr.fixme, serr.at, serr.cerr);
         }
         // End-of-leg collect: sweep this leg's accumulated garbage so the next inferTypes
         // leg (macro restart / restartInfer) inherits only live nodes, not a compounding

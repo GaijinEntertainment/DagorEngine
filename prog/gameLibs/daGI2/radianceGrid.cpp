@@ -54,6 +54,8 @@ CONSOLE_INT_VAL("gi", gi_irradiance_spatial_passes, 1, 0, 4);
 
 static ShaderVariableInfo dagi_rad_grid_clipmap_lt_coordVarId[DAGI_MAX_RAD_GRID_CLIPS],
   dagi_irrad_grid_clipmap_lt_coordVarId[DAGI_MAX_IRRAD_GRID_CLIPS];
+static ShaderVariableInfo dagi_irrad_grid_first_valid_clipVarId, dagi_irrad_grid_probe_size0VarId;
+void dagi_publish_irradiance_first_valid(int first_valid, float probe_size0);
 
 const uint32_t debug_flag = 0; // SBCF_USAGE_READ_BACK;
 
@@ -72,6 +74,8 @@ static void init_vars()
     str.sprintf("dagi_irrad_grid_clipmap_lt_coord_%d", i);
     dagi_irrad_grid_clipmap_lt_coordVarId[i] = get_shader_variable_id(str.c_str(), false);
   }
+  dagi_irrad_grid_first_valid_clipVarId = get_shader_variable_id("dagi_irrad_grid_first_valid_clip", true);
+  dagi_irrad_grid_probe_size0VarId = get_shader_variable_id("dagi_irrad_grid_probe_size0", true);
 }
 
 void RadianceGrid::fixup_settings(uint8_t &w, uint8_t &d, uint8_t &clips, uint8_t &additional_iclips, float &irradianceProbeDetail)
@@ -141,6 +145,8 @@ void RadianceGrid::clearIrradiancePosition()
 {
   for (int i = 0; i < DAGI_MAX_IRRAD_GRID_CLIPS; ++i)
     ShaderGlobal::set_int4(dagi_irrad_grid_clipmap_lt_coordVarId[i], calc_clip_var(VoxelClip::get_invalid_lt(), -1.0f));
+  // none valid until the next updatePos re-publishes
+  ShaderGlobal::set_int(dagi_irrad_grid_first_valid_clipVarId, DAGI_MAX_IRRAD_GRID_CLIPS);
 }
 void RadianceGrid::clearPosition()
 {
@@ -320,6 +326,9 @@ RadianceGrid::~RadianceGrid()
   ShaderGlobal::set_int4(dagi_rad_grid_clipmap_sizei_np2VarId, 0, 0, 0, 0);
   ShaderGlobal::set_int4(dagi_irrad_grid_clipmap_sizeiVarId, 0, 0, 0, 0);
   ShaderGlobal::set_int4(dagi_irrad_grid_clipmap_sizei_np2VarId, 0, 0, 0, 0);
+  // no owner until the next publisher (a new grid, or sky vis replication)
+  // takes over: the lit scene ambient gate stays off meanwhile
+  dagi_publish_irradiance_first_valid(-1, 0);
 }
 
 bool RadianceGrid::updateClip(uint32_t clip_no, const Point3 &world_pos)
@@ -516,6 +525,16 @@ void set_irradiance_grid_textures(TEXTUREID sph0, TEXTUREID sph1)
   ShaderGlobal::set_texture(dagi_irradiance_grid_sph1VarId, sph1);
 }
 
+// shared with SkyVisibility: whichever owner serves the irradiance vars (the
+// grid, or the replicated sky vis clipmap) must publish validity for the lit
+// scene ambient gate; -1 = no owner, the gate is off
+void dagi_publish_irradiance_first_valid(int first_valid, float probe_size0)
+{
+  init_vars();
+  ShaderGlobal::set_int(dagi_irrad_grid_first_valid_clipVarId, first_valid);
+  ShaderGlobal::set_float(dagi_irrad_grid_probe_size0VarId, probe_size0);
+}
+
 void set_irradiance_grid_params(uint32_t w, uint32_t d, uint32_t clips, int grid_info)
 {
   if (!clips)
@@ -627,6 +646,9 @@ void RadianceGrid::initClipmapIrradiance(uint32_t clipW, uint32_t clipD, uint32_
   irradiance.resetHistory(clips_);
 
   createIrradiance();
+  // both readiness globals together: all-invalid until updatePos, with the
+  // real probe size, or the gate reads a zero reach and turns itself off
+  dagi_publish_irradiance_first_valid(int(clips_), get_irradiance_probe_size(0));
 }
 
 void RadianceGrid::initTemporal(uint32_t batch_count, float temporal_speed)
@@ -787,8 +809,26 @@ void RadianceGrid::updatePos(const Point3 &world_pos, bool update_all)
 
   updatePosIrradiance(world_pos, update_all);
 
+  publishIrradianceValidity();
+
   if (DAGOR_UNLIKELY(gi_radiance_grid_reset == 2))
     afterReset();
+}
+
+void RadianceGrid::publishIrradianceValidity()
+{
+  // ground truth for readiness consumers, so they need no shader-side
+  // sentinel scan; clips re-validate coarsest first, the valid set is a
+  // suffix
+  auto &grid = irradianceType == IrradianceType::DIRECT ? radiance : irradiance;
+  int firstValid = grid.clipmap.size();
+  for (int i = 0; i < grid.clipmap.size(); ++i)
+    if (grid.clipmap[i].lt != VoxelClip::get_invalid_lt())
+    {
+      firstValid = i;
+      break;
+    }
+  dagi_publish_irradiance_first_valid(firstValid, get_irradiance_probe_size(0));
 }
 
 void RadianceGrid::drawDebug(int debug_type)

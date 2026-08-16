@@ -1,4 +1,4 @@
-// Squirrel module under test: platform (registered by platformMisc.cpp)
+// Quirrel module under test: platform (registered by platformMisc.cpp)
 
 import "platform" as platform
 

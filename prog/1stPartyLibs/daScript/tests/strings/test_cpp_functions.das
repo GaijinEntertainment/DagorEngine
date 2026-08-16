@@ -5,13 +5,12 @@ require dastest/testing_boost public
 require daslib/strings_boost
 
 // Tests for C++ string functions that lacked coverage:
-// fmt, safe_unescape, to_lower_in_place, to_upper_in_place,
-// character_at, character_uat, append, resize,
+// fmt, safe_unescape, character_at, character_uat, append, resize,
 // is_alnum, is_hex, is_tab_or_space, ltrim, trim, format, fast to_int8/etc.
 
 
 [test]
-def test_fmt(t : T?) {
+def test_fmt(t : T?) { // nolint:STYLE038 — flat one-run-per-numeric-type list
     // fmt uses Python-style {fmt} format specifiers, not printf-style
     t |> run("fmt int") @@(t : T?) {
         let s = build_string() $(var writer) {

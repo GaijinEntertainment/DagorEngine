@@ -104,50 +104,41 @@ bool useBaseVertexPatch(const char *source)
   return true;
 }
 
-CompileResult compileShaderSpirV(const spirv::DXCContext *dxc_ctx, const char *source, const char *profile, const char *entry,
-  bool need_disasm, bool hlsl2021, bool enable_fp16, bool skipValidation, bool optimize, int max_constants_no, const char *shader_name,
-  uint64_t shader_variant_hash, bool enable_bindless, bool embed_debug_data, bool dump_spirv_only,
-  bool validate_global_consts_offset_order)
+CompileResult compileShaderSpirV(const SpirVCompileInputs &inputs)
 {
   CompileResult result;
-  // just to have it for debugging
-  (void)need_disasm;
-
-#if DAGOR_DBGLEVEL > 1
-  optimize = false;
-#endif
 
   spirv::ShaderHeader header = {};
   Tab<spirv::ChunkHeader> chunks;
   Tab<uint8_t> chunkStore;
   std::vector<unsigned int> spirv;
 
-  if (embed_debug_data)
-    add_chunk(chunks, chunkStore, spirv::ChunkType::UNPROCESSED_HLSL, 0, source, static_cast<uint32_t>(strlen(source)));
+  if (inputs.embedDebugData)
+    add_chunk(chunks, chunkStore, spirv::ChunkType::UNPROCESSED_HLSL, 0, inputs.source, static_cast<uint32_t>(strlen(inputs.source)));
 
-  string codeCopy(source);
+  string codeCopy(inputs.source);
 
   // code preprocess to fix SV_VertexID disparity between DX and vulkan
-  if (useBaseVertexPatch(source))
+  if (useBaseVertexPatch(inputs.source))
   {
     if (!fix_vertex_id_for_DXC(codeCopy, result))
       return result;
   }
 
-  eastl::vector<eastl::string_view> disabledSpirvOptims = scanDisabledSpirvOptimizations(source);
+  eastl::vector<eastl::string_view> disabledSpirvOptims = scanDisabledSpirvOptimizations(inputs.source);
 
   string macros = "#define SHADER_COMPILER_DXC 1\n"
                   "#define HW_VERTEX_ID uint vertexId: SV_VertexID;\n"
                   "#define HW_BASE_VERTEX_ID [[vk::builtin(\"BaseVertex\")]] uint baseVertexId : DXC_SPIRV_BASE_VERTEX_ID;\n"
                   "#define HW_BASE_VERTEX_ID_OPTIONAL [[vk::builtin(\"BaseVertex\")]] uint baseVertexId : DXC_SPIRV_BASE_VERTEX_ID;\n";
-  if (enable_bindless)
+  if (inputs.enableBindless)
   {
     macros += "#define BINDLESS_TEXTURE_SET_META_ID " + std::to_string(spirv::bindless::TEXTURE_DESCRIPTOR_SET_META_INDEX) + "\n";
     macros += "#define BINDLESS_SAMPLER_SET_META_ID " + std::to_string(spirv::bindless::SAMPLER_DESCRIPTOR_SET_META_INDEX) + "\n";
     macros += "#define BINDLESS_BUFFER_SET_META_ID " + std::to_string(spirv::bindless::BUFFER_DESCRIPTOR_SET_META_INDEX) + "\n";
   }
 
-  if (enable_fp16)
+  if (inputs.enableFp16)
   {
     macros += "#define SHADER_COMPILER_FP16_ENABLED 1\n";
   }
@@ -162,7 +153,7 @@ CompileResult compileShaderSpirV(const spirv::DXCContext *dxc_ctx, const char *s
   }
 
   // format for profile is *s_X_Y
-  bool allowWaveIntrisics = strlen(profile) > 3 && profile[3] >= '6';
+  bool allowWaveIntrisics = strlen(inputs.profile) > 3 && inputs.profile[3] >= '6';
   if (allowWaveIntrisics)
   {
     macros += "#define WAVE_INTRINSICS 1\n";
@@ -171,13 +162,16 @@ CompileResult compileShaderSpirV(const spirv::DXCContext *dxc_ctx, const char *s
 
   auto sourceRange = make_span(codeCopy.c_str(), codeCopy.size());
 
-  auto flags = enable_bindless ? spirv::CompileFlags::ENABLE_BINDLESS_SUPPORT : spirv::CompileFlags::NONE;
-  flags |= enable_fp16 ? spirv::CompileFlags::ENABLE_HALFS : spirv::CompileFlags::NONE;
-  flags |= hlsl2021 ? spirv::CompileFlags::ENABLE_HLSL21 : spirv::CompileFlags::NONE;
+  auto flags = inputs.enableBindless ? spirv::CompileFlags::ENABLE_BINDLESS_SUPPORT : spirv::CompileFlags::NONE;
+  flags |= inputs.enableFp16 ? spirv::CompileFlags::ENABLE_HALFS : spirv::CompileFlags::NONE;
+  flags |= inputs.hlsl2021 ? spirv::CompileFlags::ENABLE_HLSL21 : spirv::CompileFlags::NONE;
   flags |= allowWaveIntrisics ? spirv::CompileFlags::ENABLE_WAVE_INTRINSICS : spirv::CompileFlags::NONE;
-  flags |= validate_global_consts_offset_order ? spirv::CompileFlags::VALIDATE_GLOBAL_CONSTS_OFFSET_ORDER : spirv::CompileFlags::NONE;
+  flags |=
+    inputs.validateGlobalConstsOffsetOrder ? spirv::CompileFlags::VALIDATE_GLOBAL_CONSTS_OFFSET_ORDER : spirv::CompileFlags::NONE;
+  flags |= inputs.noConversionWarnings ? spirv::CompileFlags::NO_CONVERSION_WARNINGS : spirv::CompileFlags::NONE;
+  flags |= inputs.useScalarLayout ? spirv::CompileFlags::USE_SCALAR_LAYOUT : spirv::CompileFlags::NONE;
 
-  auto finalSpirV = spirv::compileHLSL_DXC(dxc_ctx, sourceRange, entry, profile, flags, disabledSpirvOptims);
+  auto finalSpirV = spirv::compileHLSL_DXC(inputs.dxcCtx, sourceRange, inputs.entry, inputs.profile, flags, disabledSpirvOptims);
   spirv = eastl::move(finalSpirV.byteCode);
   header = finalSpirV.header;
 
@@ -208,7 +202,7 @@ CompileResult compileShaderSpirV(const spirv::DXCContext *dxc_ctx, const char *s
   else if (flatLogString.length())
     debug("%s", flatLogString.c_str());
 
-  if (profile[0] == 'c')
+  if (inputs.profile[0] == 'c')
   {
     result.computeShaderInfo.threadGroupSizeX = finalSpirV.computeShaderInfo.threadGroupSizeX;
     result.computeShaderInfo.threadGroupSizeY = finalSpirV.computeShaderInfo.threadGroupSizeY;
@@ -216,7 +210,7 @@ CompileResult compileShaderSpirV(const spirv::DXCContext *dxc_ctx, const char *s
   }
 
 #if 0
-  if (!skipValidation)
+  if (!inputs.skipValidation)
   {
     spvtools::SpirvTools tools{SPV_ENV_VULKAN_1_0};
 
@@ -260,7 +254,7 @@ CompileResult compileShaderSpirV(const spirv::DXCContext *dxc_ctx, const char *s
   }
 #endif
 
-  if (embed_debug_data)
+  if (inputs.embedDebugData)
   {
     spvtools::SpirvTools tools{SPV_ENV_VULKAN_1_0};
 
@@ -291,14 +285,14 @@ CompileResult compileShaderSpirV(const spirv::DXCContext *dxc_ctx, const char *s
     string spirvDisas;
     tools.Disassemble(spirv, &spirvDisas, SPV_BINARY_TO_TEXT_OPTION_FRIENDLY_NAMES);
 
-    const String name = String(-1, "%s_%.2s", "spirv_dxc", profile);
-    if (!dump_spirv_only)
-      spitfile(shader_name, entry, name, shader_variant_hash, (void *)spirvDisas.data(), (int)data_size(spirvDisas));
-    spitfile(shader_name, entry, name + "_raw", shader_variant_hash, (void *)spirv.data(), (int)data_size(spirv));
+    const String name = String(-1, "%s_%.2s", "spirv_dxc", inputs.profile);
+    if (!inputs.dumpSpirvOnly)
+      spitfile(inputs.shaderName, inputs.entry, name, inputs.shaderVariantHash, (void *)spirvDisas.data(), (int)data_size(spirvDisas));
+    spitfile(inputs.shaderName, inputs.entry, name + "_raw", inputs.shaderVariantHash, (void *)spirv.data(), (int)data_size(spirv));
   }
 
   header.verMagic = spirv::HEADER_MAGIC_VER;
-  header.maxConstantCount = max_constants_no;
+  header.maxConstantCount = inputs.maxConstantsNo;
 
   smolv::ByteArray smol;
   smolv::Encode(spirv.data(), spirv.size() * sizeof(unsigned int), smol, 0);
@@ -307,7 +301,7 @@ CompileResult compileShaderSpirV(const spirv::DXCContext *dxc_ctx, const char *s
 
   header.smolvSize = uint32_t(smol.size());
   add_chunk(chunks, chunkStore, spirv::ChunkType::SHADER_HEADER, 0, &header, 1);
-  add_chunk(chunks, chunkStore, spirv::ChunkType::SHADER_NAME, 0, shader_name, static_cast<uint32_t>(strlen(shader_name)));
+  add_chunk(chunks, chunkStore, spirv::ChunkType::SHADER_NAME, 0, inputs.shaderName, static_cast<uint32_t>(strlen(inputs.shaderName)));
 
   result.metadata = get_SpirV_bytecode(chunks, chunkStore);
 

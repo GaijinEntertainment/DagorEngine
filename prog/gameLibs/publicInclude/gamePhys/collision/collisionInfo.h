@@ -26,8 +26,7 @@ struct CollisionObjectInfo
   virtual ~CollisionObjectInfo() = default;
 
   virtual float onImpulse(float impulse, const Point3 & /*dir*/, const Point3 & /*pos*/, float /*point_vel*/,
-    const Point3 & /*collision_normal*/, uint32_t /*flags*/ = CIF_NONE, int32_t /* user_data */ = -1,
-    const char * /*actor_name*/ = nullptr)
+    const Point3 & /*collision_normal*/, uint32_t /*flags*/ = CIF_NONE, int32_t /* user_data */ = -1)
   {
     return impulse;
   }
