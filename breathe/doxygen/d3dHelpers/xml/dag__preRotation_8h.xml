@@ -1,0 +1,69 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__preRotation_8h" kind="file" language="C++">
+    <compoundname>dag_preRotation.h</compoundname>
+    <innerclass refid="classprerotation_1_1Scope" prot="public">prerotation::Scope</innerclass>
+    <innernamespace refid="namespaceprerotation">prerotation</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">BaseTexture;</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="namespaceprerotation" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceprerotation" kindref="compound">prerotation</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_ANDROID</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceprerotation_1ac689a4204d012caf7af3f1d1afd27026" kindref="member">refresh</ref>();</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceprerotation_1ac8af18413d756432b881be0637cbf89b" kindref="member">frame_angle</ref>();</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceprerotation_1a850a16d626f6647b79cc7e2f59179de9" kindref="member">angle_for_target</ref>(BaseTexture<sp/>*dst);</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceprerotation_1a48766e5ce8a1ad7debb6abfe8fd6d753" kindref="member">set_shader_var</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>angle);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceprerotation_1aa2aceae6c82438a5466e2111855bffde" kindref="member">get_current_angle</ref>();</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classprerotation_1_1Scope" kindref="compound">Scope</ref></highlight></codeline>
+<codeline lineno="23"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>savedAngle;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classprerotation_1_1Scope" kindref="compound">Scope</ref>(BaseTexture<sp/>*dst);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><ref refid="classprerotation_1_1Scope_1a14f540522ab1f7c6c8f0ea8b0531064f" kindref="member">~Scope</ref>();</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><ref refid="classprerotation_1_1Scope" kindref="compound">Scope</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classprerotation_1_1Scope" kindref="compound">Scope</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><ref refid="classprerotation_1_1Scope" kindref="compound">Scope</ref><sp/>&amp;<ref refid="classprerotation_1_1Scope_1a963390b6ab215e70eb3822df69f69d37" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classprerotation_1_1Scope" kindref="compound">Scope</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="namespaceprerotation_1ac689a4204d012caf7af3f1d1afd27026" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceprerotation_1ac689a4204d012caf7af3f1d1afd27026" kindref="member">refresh</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="namespaceprerotation_1ac8af18413d756432b881be0637cbf89b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceprerotation_1ac8af18413d756432b881be0637cbf89b" kindref="member">frame_angle</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="namespaceprerotation_1a850a16d626f6647b79cc7e2f59179de9" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceprerotation_1a850a16d626f6647b79cc7e2f59179de9" kindref="member">angle_for_target</ref>(BaseTexture<sp/>*)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="namespaceprerotation_1a48766e5ce8a1ad7debb6abfe8fd6d753" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceprerotation_1a48766e5ce8a1ad7debb6abfe8fd6d753" kindref="member">set_shader_var</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)<sp/>{}</highlight></codeline>
+<codeline lineno="42" refid="namespaceprerotation_1aa2aceae6c82438a5466e2111855bffde" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceprerotation_1aa2aceae6c82438a5466e2111855bffde" kindref="member">get_current_angle</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="classprerotation_1_1Scope" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classprerotation_1_1Scope" kindref="compound">Scope</ref></highlight></codeline>
+<codeline lineno="45"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="47" refid="classprerotation_1_1Scope_1a78abfccd298d6960748bebcd64e20162" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classprerotation_1_1Scope_1a78abfccd298d6960748bebcd64e20162" kindref="member">Scope</ref>(BaseTexture<sp/>*)<sp/>{}</highlight></codeline>
+<codeline lineno="48" refid="classprerotation_1_1Scope_1a14f540522ab1f7c6c8f0ea8b0531064f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classprerotation_1_1Scope_1a14f540522ab1f7c6c8f0ea8b0531064f" kindref="member">~Scope</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="49" refid="classprerotation_1_1Scope_1a59dfc5192616e70f018b5fdd8c24e364" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classprerotation_1_1Scope_1a59dfc5192616e70f018b5fdd8c24e364" kindref="member">Scope</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classprerotation_1_1Scope" kindref="compound">Scope</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="50" refid="classprerotation_1_1Scope_1a963390b6ab215e70eb3822df69f69d37" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classprerotation_1_1Scope" kindref="compound">Scope</ref><sp/>&amp;<ref refid="classprerotation_1_1Scope_1a963390b6ab215e70eb3822df69f69d37" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classprerotation_1_1Scope" kindref="compound">Scope</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>prerotation</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_preRotation.h"/>
+  </compounddef>
+</doxygen>

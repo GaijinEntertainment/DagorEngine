@@ -1,0 +1,163 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classImpUtilDesc" kind="class" language="C++" prot="public">
+    <compoundname>ImpUtilDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classImpUtilDesc_1a3a66a492da3ff9c4e4515655aa77c1ef" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ImpUtilDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>ImpUtilDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1254" column="7" bodyfile="dagimp.cpp" bodystart="1254" bodyend="1254"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtilDesc_1a33eb9fbe6448100f51259e03ebdc0511" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * ImpUtilDesc::Create</definition>
+        <argsstring>(BOOL loading=FALSE) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>ImpUtilDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1255" column="8" bodyfile="dagimp.cpp" bodystart="1255" bodyend="1255"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtilDesc_1ad4dc3a61ac88ba15736a5e2a6af66f96" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * ImpUtilDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>ImpUtilDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1256" column="15" bodyfile="dagimp.cpp" bodystart="1256" bodyend="1256"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtilDesc_1aa9bcdf63e2b849632b97d6e28c84b5d1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const MCHAR *</type>
+        <definition>const MCHAR * ImpUtilDesc::NonLocalizedClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>ImpUtilDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1257" column="15" bodyfile="dagimp.cpp" bodystart="1257" bodyend="1257"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtilDesc_1a16f7a15268e46a0b5115b91c2f399c58" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID ImpUtilDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>ImpUtilDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1258" column="13" bodyfile="dagimp.cpp" bodystart="1258" bodyend="1258"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtilDesc_1a2455c3b3767d328d6a941e007d7256ed" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID ImpUtilDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>ImpUtilDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1259" column="12" bodyfile="dagimp.cpp" bodystart="1259" bodyend="1259"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtilDesc_1a79d5248ddfe0711c5fc3a0dd01165ac3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * ImpUtilDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>ImpUtilDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1260" column="15" bodyfile="dagimp.cpp" bodystart="1260" bodyend="1260"/>
+      </memberdef>
+      <memberdef kind="function" id="classImpUtilDesc_1afc3f38ac8009d482bf067a20cf9491b0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL ImpUtilDesc::NeedsToSave</definition>
+        <argsstring>() override</argsstring>
+        <name>NeedsToSave</name>
+        <qualifiedname>ImpUtilDesc::NeedsToSave</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1261" column="8" bodyfile="dagimp.cpp" bodystart="1261" bodyend="1261"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>ImpUtilDesc</label>
+        <link refid="classImpUtilDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>ImpUtilDesc</label>
+        <link refid="classImpUtilDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dagimp.cpp" line="1251" column="1" bodyfile="dagimp.cpp" bodystart="1252" bodyend="1262"/>
+    <listofallmembers>
+      <member refid="classImpUtilDesc_1a79d5248ddfe0711c5fc3a0dd01165ac3" prot="public" virt="non-virtual"><scope>ImpUtilDesc</scope><name>Category</name></member>
+      <member refid="classImpUtilDesc_1a2455c3b3767d328d6a941e007d7256ed" prot="public" virt="non-virtual"><scope>ImpUtilDesc</scope><name>ClassID</name></member>
+      <member refid="classImpUtilDesc_1ad4dc3a61ac88ba15736a5e2a6af66f96" prot="public" virt="non-virtual"><scope>ImpUtilDesc</scope><name>ClassName</name></member>
+      <member refid="classImpUtilDesc_1a33eb9fbe6448100f51259e03ebdc0511" prot="public" virt="non-virtual"><scope>ImpUtilDesc</scope><name>Create</name></member>
+      <member refid="classImpUtilDesc_1a3a66a492da3ff9c4e4515655aa77c1ef" prot="public" virt="non-virtual"><scope>ImpUtilDesc</scope><name>IsPublic</name></member>
+      <member refid="classImpUtilDesc_1afc3f38ac8009d482bf067a20cf9491b0" prot="public" virt="non-virtual"><scope>ImpUtilDesc</scope><name>NeedsToSave</name></member>
+      <member refid="classImpUtilDesc_1aa9bcdf63e2b849632b97d6e28c84b5d1" prot="public" virt="non-virtual"><scope>ImpUtilDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classImpUtilDesc_1a16f7a15268e46a0b5115b91c2f399c58" prot="public" virt="non-virtual"><scope>ImpUtilDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

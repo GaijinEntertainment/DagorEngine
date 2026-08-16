@@ -1,0 +1,141 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classAutotoggle" kind="class" language="C++" prot="public">
+    <compoundname>Autotoggle</compoundname>
+    <includes refid="common_8h" local="no">common.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classAutotoggle_1acf2cf7ce7d2c5cf38f6cc0eddd10b4e1" prot="private" static="no" mutable="no">
+        <type>bool &amp;</type>
+        <definition>bool&amp; Autotoggle::f</definition>
+        <argsstring></argsstring>
+        <name>f</name>
+        <qualifiedname>Autotoggle::f</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="12" column="8" bodyfile="common.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAutotoggle_1a205e2a0b5d08d8928cddd2ed00fc45a2" prot="private" static="no" mutable="no">
+        <type>const bool</type>
+        <definition>const bool Autotoggle::prev</definition>
+        <argsstring></argsstring>
+        <name>prev</name>
+        <qualifiedname>Autotoggle::prev</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="13" column="14" bodyfile="common.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classAutotoggle_1a48bfacef9c18801952be4ab568b01329" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Autotoggle::Autotoggle</definition>
+        <argsstring>(bool &amp;f_)</argsstring>
+        <name>Autotoggle</name>
+        <qualifiedname>Autotoggle::Autotoggle</qualifiedname>
+        <param>
+          <type>bool &amp;</type>
+          <declname>f_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="16" column="12" bodyfile="common.h" bodystart="16" bodyend="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classAutotoggle_1ab10e9de5afa6b7294c93dd4b6ed3f449" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Autotoggle::Autotoggle</definition>
+        <argsstring>(bool &amp;f_, bool v_)</argsstring>
+        <name>Autotoggle</name>
+        <qualifiedname>Autotoggle::Autotoggle</qualifiedname>
+        <param>
+          <type>bool &amp;</type>
+          <declname>f_</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>v_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="17" column="3" bodyfile="common.h" bodystart="17" bodyend="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classAutotoggle_1a561dbcdbee6ee8c12b42aa328caa60be" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Autotoggle::~Autotoggle</definition>
+        <argsstring>()</argsstring>
+        <name>~Autotoggle</name>
+        <qualifiedname>Autotoggle::~Autotoggle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="18" column="3" bodyfile="common.h" bodystart="18" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classAutotoggle_1ae2551cb886bf49063ea01480e03321ea" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>Autotoggle::Autotoggle</definition>
+        <argsstring>(const Autotoggle &amp;)=delete</argsstring>
+        <name>Autotoggle</name>
+        <qualifiedname>Autotoggle::Autotoggle</qualifiedname>
+        <param>
+          <type>const <ref refid="classAutotoggle" kindref="compound">Autotoggle</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="20" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classAutotoggle_1a925382cea8f923426524e05f7f6575e3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classAutotoggle" kindref="compound">Autotoggle</ref> &amp;</type>
+        <definition>Autotoggle &amp; Autotoggle::operator=</definition>
+        <argsstring>(const Autotoggle &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>Autotoggle::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classAutotoggle" kindref="compound">Autotoggle</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="21" column="14"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="common.h" line="10" column="1" bodyfile="common.h" bodystart="11" bodyend="22"/>
+    <listofallmembers>
+      <member refid="classAutotoggle_1a48bfacef9c18801952be4ab568b01329" prot="public" virt="non-virtual"><scope>Autotoggle</scope><name>Autotoggle</name></member>
+      <member refid="classAutotoggle_1ab10e9de5afa6b7294c93dd4b6ed3f449" prot="public" virt="non-virtual"><scope>Autotoggle</scope><name>Autotoggle</name></member>
+      <member refid="classAutotoggle_1ae2551cb886bf49063ea01480e03321ea" prot="public" virt="non-virtual"><scope>Autotoggle</scope><name>Autotoggle</name></member>
+      <member refid="classAutotoggle_1acf2cf7ce7d2c5cf38f6cc0eddd10b4e1" prot="private" virt="non-virtual"><scope>Autotoggle</scope><name>f</name></member>
+      <member refid="classAutotoggle_1a925382cea8f923426524e05f7f6575e3" prot="public" virt="non-virtual"><scope>Autotoggle</scope><name>operator=</name></member>
+      <member refid="classAutotoggle_1a205e2a0b5d08d8928cddd2ed00fc45a2" prot="private" virt="non-virtual"><scope>Autotoggle</scope><name>prev</name></member>
+      <member refid="classAutotoggle_1a561dbcdbee6ee8c12b42aa328caa60be" prot="public" virt="non-virtual"><scope>Autotoggle</scope><name>~Autotoggle</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

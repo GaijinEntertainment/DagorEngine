@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderCacheLevelIds" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderCacheLevelIds</compoundname>
+    <includes refid="shaderBytecodeCache_8h" local="no">shaderBytecodeCache.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderCacheLevelIds_1a76d5721344e9218ea223a9d5507ed9ba" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCacheLevelIds::l1</definition>
+        <argsstring></argsstring>
+        <name>l1</name>
+        <qualifiedname>ShaderCacheLevelIds::l1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="23" column="7" bodyfile="shaderBytecodeCache.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCacheLevelIds_1a0b9dfbfd3b5416f62b85374373ee5fa1" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCacheLevelIds::l2</definition>
+        <argsstring></argsstring>
+        <name>l2</name>
+        <qualifiedname>ShaderCacheLevelIds::l2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="23" column="10" bodyfile="shaderBytecodeCache.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCacheLevelIds_1aa43aa9dff1c4c13daa508cb176765047" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderCacheLevelIds::l3</definition>
+        <argsstring></argsstring>
+        <name>l3</name>
+        <qualifiedname>ShaderCacheLevelIds::l3</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="23" column="13" bodyfile="shaderBytecodeCache.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shaderBytecodeCache.h" line="21" column="1" bodyfile="shaderBytecodeCache.h" bodystart="22" bodyend="24"/>
+    <listofallmembers>
+      <member refid="structShaderCacheLevelIds_1a76d5721344e9218ea223a9d5507ed9ba" prot="public" virt="non-virtual"><scope>ShaderCacheLevelIds</scope><name>l1</name></member>
+      <member refid="structShaderCacheLevelIds_1a0b9dfbfd3b5416f62b85374373ee5fa1" prot="public" virt="non-virtual"><scope>ShaderCacheLevelIds</scope><name>l2</name></member>
+      <member refid="structShaderCacheLevelIds_1aa43aa9dff1c4c13daa508cb176765047" prot="public" virt="non-virtual"><scope>ShaderCacheLevelIds</scope><name>l3</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

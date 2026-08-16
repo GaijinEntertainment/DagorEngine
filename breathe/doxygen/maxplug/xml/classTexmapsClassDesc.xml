@@ -1,0 +1,147 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTexmapsClassDesc" kind="class" language="C++" prot="public">
+    <compoundname>TexmapsClassDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTexmapsClassDesc_1a6ff400ee19b578c43ca3203dc13729e4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int TexmapsClassDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>TexmapsClassDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="193" column="7" bodyfile="mater.cpp" bodystart="193" bodyend="193"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmapsClassDesc_1a7c4a60a1dc7baa642fa3358d3dfd6a08" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * TexmapsClassDesc::Create</definition>
+        <argsstring>(BOOL loading) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>TexmapsClassDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="194" column="8" bodyfile="mater.cpp" bodystart="194" bodyend="194"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmapsClassDesc_1a8a5276e7e54469f350c866a34e6792e5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * TexmapsClassDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>TexmapsClassDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="195" column="15" bodyfile="mater.cpp" bodystart="195" bodyend="195"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmapsClassDesc_1aa3e4cf7434c41ac7d8a53256598d8ca0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const MCHAR *</type>
+        <definition>const MCHAR * TexmapsClassDesc::NonLocalizedClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>TexmapsClassDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="196" column="15" bodyfile="mater.cpp" bodystart="196" bodyend="196"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmapsClassDesc_1ac5e1211da6e10d59cd396e8ed14e1f8d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID TexmapsClassDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>TexmapsClassDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="197" column="13" bodyfile="mater.cpp" bodystart="197" bodyend="197"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmapsClassDesc_1a60b687a4d58065b6832681b57c6963c3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID TexmapsClassDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>TexmapsClassDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="198" column="12" bodyfile="mater.cpp" bodystart="198" bodyend="198"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmapsClassDesc_1a7545342d21796c14c75a947821adac0b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * TexmapsClassDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>TexmapsClassDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="199" column="15" bodyfile="mater.cpp" bodystart="199" bodyend="199"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>TexmapsClassDesc</label>
+        <link refid="classTexmapsClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>TexmapsClassDesc</label>
+        <link refid="classTexmapsClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="mater.cpp" line="190" column="1" bodyfile="mater.cpp" bodystart="191" bodyend="200"/>
+    <listofallmembers>
+      <member refid="classTexmapsClassDesc_1a7545342d21796c14c75a947821adac0b" prot="public" virt="non-virtual"><scope>TexmapsClassDesc</scope><name>Category</name></member>
+      <member refid="classTexmapsClassDesc_1a60b687a4d58065b6832681b57c6963c3" prot="public" virt="non-virtual"><scope>TexmapsClassDesc</scope><name>ClassID</name></member>
+      <member refid="classTexmapsClassDesc_1a8a5276e7e54469f350c866a34e6792e5" prot="public" virt="non-virtual"><scope>TexmapsClassDesc</scope><name>ClassName</name></member>
+      <member refid="classTexmapsClassDesc_1a7c4a60a1dc7baa642fa3358d3dfd6a08" prot="public" virt="non-virtual"><scope>TexmapsClassDesc</scope><name>Create</name></member>
+      <member refid="classTexmapsClassDesc_1a6ff400ee19b578c43ca3203dc13729e4" prot="public" virt="non-virtual"><scope>TexmapsClassDesc</scope><name>IsPublic</name></member>
+      <member refid="classTexmapsClassDesc_1aa3e4cf7434c41ac7d8a53256598d8ca0" prot="public" virt="non-virtual"><scope>TexmapsClassDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classTexmapsClassDesc_1ac5e1211da6e10d59cd396e8ed14e1f8d" prot="public" virt="non-virtual"><scope>TexmapsClassDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

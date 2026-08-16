@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classEcAutoBusy" kind="class" language="C++" prot="public">
+    <compoundname>EcAutoBusy</compoundname>
+    <includes refid="ec__input_8h" local="no">ec_input.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classEcAutoBusy_1a06171b29a49c169f04d124816e8d759e" prot="private" static="no" mutable="no">
+        <type>const bool</type>
+        <definition>const bool EcAutoBusy::oldBusy</definition>
+        <argsstring></argsstring>
+        <name>oldBusy</name>
+        <qualifiedname>EcAutoBusy::oldBusy</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_input.h" line="57" column="14" bodyfile="ec_input.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classEcAutoBusy_1af5bccd57cc81d07a01debf6fb1249381" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>EcAutoBusy::EcAutoBusy</definition>
+        <argsstring>()</argsstring>
+        <name>EcAutoBusy</name>
+        <qualifiedname>EcAutoBusy::EcAutoBusy</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_input.h" line="53" column="3" bodyfile="ec_input.h" bodystart="53" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classEcAutoBusy_1abf5d32e33dd101b114b78e98a485d1a5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>EcAutoBusy::~EcAutoBusy</definition>
+        <argsstring>()</argsstring>
+        <name>~EcAutoBusy</name>
+        <qualifiedname>EcAutoBusy::~EcAutoBusy</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_input.h" line="54" column="3" bodyfile="ec_input.h" bodystart="54" bodyend="54"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_input.h" line="50" column="1" bodyfile="ec_input.h" bodystart="51" bodyend="58"/>
+    <listofallmembers>
+      <member refid="classEcAutoBusy_1af5bccd57cc81d07a01debf6fb1249381" prot="public" virt="non-virtual"><scope>EcAutoBusy</scope><name>EcAutoBusy</name></member>
+      <member refid="classEcAutoBusy_1a06171b29a49c169f04d124816e8d759e" prot="private" virt="non-virtual"><scope>EcAutoBusy</scope><name>oldBusy</name></member>
+      <member refid="classEcAutoBusy_1abf5d32e33dd101b114b78e98a485d1a5" prot="public" virt="non-virtual"><scope>EcAutoBusy</scope><name>~EcAutoBusy</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

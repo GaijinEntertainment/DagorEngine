@@ -1,0 +1,168 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classAtomicPrintfMutex" kind="class" language="C++" prot="public">
+    <compoundname>AtomicPrintfMutex</compoundname>
+    <includes refid="atomicPrintf_8h" local="no">atomicPrintf.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classAtomicPrintfMutex_1a6319e2f1bcb78199e056fad1073e1a56" prot="private" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* AtomicPrintfMutex::mutex</definition>
+        <argsstring></argsstring>
+        <name>mutex</name>
+        <qualifiedname>AtomicPrintfMutex::mutex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="atomicPrintf.h" line="53" column="8" bodyfile="atomicPrintf.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAtomicPrintfMutex_1a109f7a7e1c234c9f4316e6ccefc0f987" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool AtomicPrintfMutex::locked</definition>
+        <argsstring></argsstring>
+        <name>locked</name>
+        <qualifiedname>AtomicPrintfMutex::locked</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="atomicPrintf.h" line="54" column="8" bodyfile="atomicPrintf.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAtomicPrintfMutex_1a3fbeb2000c2c4e6888e3eda411a63e4e" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String AtomicPrintfMutex::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>AtomicPrintfMutex::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="atomicPrintf.h" line="55" column="10" bodyfile="atomicPrintf.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" prot="public" static="yes" mutable="no">
+        <type><ref refid="classAtomicPrintfMutex" kindref="compound">AtomicPrintfMutex</ref></type>
+        <definition>AtomicPrintfMutex AtomicPrintfMutex::inst</definition>
+        <argsstring></argsstring>
+        <name>inst</name>
+        <qualifiedname>AtomicPrintfMutex::inst</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="atomicPrintf.h" line="101" column="28" bodyfile="atomicPrintf.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classAtomicPrintfMutex_1a1a840879e1f194ce31a114e3a33e98b3" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void AtomicPrintfMutex::init</definition>
+        <argsstring>(const char *exe_name, const char *config_path)</argsstring>
+        <name>init</name>
+        <qualifiedname>AtomicPrintfMutex::init</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>exe_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>config_path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="atomicPrintf.h" line="58" column="15" bodyfile="atomicPrintf.h" bodystart="58" bodyend="69"/>
+      </memberdef>
+      <memberdef kind="function" id="classAtomicPrintfMutex_1aaccc8fdabc016c06cc83aa99fbf0cb80" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void AtomicPrintfMutex::term</definition>
+        <argsstring>()</argsstring>
+        <name>term</name>
+        <qualifiedname>AtomicPrintfMutex::term</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="atomicPrintf.h" line="70" column="15" bodyfile="atomicPrintf.h" bodystart="70" bodyend="79"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classAtomicPrintfMutex_1a718fd138437ccc1898c32808e2e596d7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void AtomicPrintfMutex::lock</definition>
+        <argsstring>()</argsstring>
+        <name>lock</name>
+        <qualifiedname>AtomicPrintfMutex::lock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="atomicPrintf.h" line="81" column="9" bodyfile="atomicPrintf.h" bodystart="81" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="classAtomicPrintfMutex_1a1937277391805024595efbc29b1f8d04" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void AtomicPrintfMutex::unlock</definition>
+        <argsstring>(FILE *fp, bool flush_always=false)</argsstring>
+        <name>unlock</name>
+        <qualifiedname>AtomicPrintfMutex::unlock</qualifiedname>
+        <param>
+          <type>FILE *</type>
+          <declname>fp</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>flush_always</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="atomicPrintf.h" line="89" column="9" bodyfile="atomicPrintf.h" bodystart="89" bodyend="99"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>AtomicPrintfMutex</label>
+        <link refid="classAtomicPrintfMutex"/>
+        <childnode refid="1" relation="usage">
+          <edgelabel>inst</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="atomicPrintf.h" line="51" column="1" bodyfile="atomicPrintf.h" bodystart="52" bodyend="102"/>
+    <listofallmembers>
+      <member refid="classAtomicPrintfMutex_1a1a840879e1f194ce31a114e3a33e98b3" prot="public" virt="non-virtual"><scope>AtomicPrintfMutex</scope><name>init</name></member>
+      <member refid="classAtomicPrintfMutex_1a26f0cef81d31181db9393775d2eb81b1" prot="public" virt="non-virtual"><scope>AtomicPrintfMutex</scope><name>inst</name></member>
+      <member refid="classAtomicPrintfMutex_1a718fd138437ccc1898c32808e2e596d7" prot="public" virt="non-virtual"><scope>AtomicPrintfMutex</scope><name>lock</name></member>
+      <member refid="classAtomicPrintfMutex_1a109f7a7e1c234c9f4316e6ccefc0f987" prot="private" virt="non-virtual"><scope>AtomicPrintfMutex</scope><name>locked</name></member>
+      <member refid="classAtomicPrintfMutex_1a6319e2f1bcb78199e056fad1073e1a56" prot="private" virt="non-virtual"><scope>AtomicPrintfMutex</scope><name>mutex</name></member>
+      <member refid="classAtomicPrintfMutex_1a3fbeb2000c2c4e6888e3eda411a63e4e" prot="private" virt="non-virtual"><scope>AtomicPrintfMutex</scope><name>name</name></member>
+      <member refid="classAtomicPrintfMutex_1aaccc8fdabc016c06cc83aa99fbf0cb80" prot="public" virt="non-virtual"><scope>AtomicPrintfMutex</scope><name>term</name></member>
+      <member refid="classAtomicPrintfMutex_1a1937277391805024595efbc29b1f8d04" prot="public" virt="non-virtual"><scope>AtomicPrintfMutex</scope><name>unlock</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

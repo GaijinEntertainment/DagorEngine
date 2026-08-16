@@ -1,0 +1,86 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structBinDumpReader_1_1Block" kind="struct" language="C++" prot="protected">
+    <compoundname>BinDumpReader::Block</compoundname>
+    <includes refid="binDumpReader_8h" local="no">binDumpReader.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structBinDumpReader_1_1Block_1a0968322d33c349becb3df4def6866d23" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BinDumpReader::Block::ofs</definition>
+        <argsstring></argsstring>
+        <name>ofs</name>
+        <qualifiedname>BinDumpReader::Block::ofs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="149" column="9" bodyfile="binDumpReader.h" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBinDumpReader_1_1Block_1a24eba229e4c9e8a8fe7d4dd7a4100b67" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BinDumpReader::Block::len</definition>
+        <argsstring></argsstring>
+        <name>len</name>
+        <qualifiedname>BinDumpReader::Block::len</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="149" column="13" bodyfile="binDumpReader.h" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structBinDumpReader_1_1Block_1a5706c3b0cad7e4701ecbba66a3bb398f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BinDumpReader::Block::end</definition>
+        <argsstring>()</argsstring>
+        <name>end</name>
+        <qualifiedname>BinDumpReader::Block::end</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="151" column="9" bodyfile="binDumpReader.h" bodystart="151" bodyend="151"/>
+      </memberdef>
+      <memberdef kind="function" id="structBinDumpReader_1_1Block_1a81f4b6287c6bc0d018ea9a9aaa834ddd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BinDumpReader::Block::set</definition>
+        <argsstring>(int o, int l)</argsstring>
+        <name>set</name>
+        <qualifiedname>BinDumpReader::Block::set</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>o</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>l</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="152" column="10" bodyfile="binDumpReader.h" bodystart="152" bodyend="156"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="binDumpReader.h" line="147" column="3" bodyfile="binDumpReader.h" bodystart="148" bodyend="157"/>
+    <listofallmembers>
+      <member refid="structBinDumpReader_1_1Block_1a5706c3b0cad7e4701ecbba66a3bb398f" prot="public" virt="non-virtual"><scope>BinDumpReader::Block</scope><name>end</name></member>
+      <member refid="structBinDumpReader_1_1Block_1a24eba229e4c9e8a8fe7d4dd7a4100b67" prot="public" virt="non-virtual"><scope>BinDumpReader::Block</scope><name>len</name></member>
+      <member refid="structBinDumpReader_1_1Block_1a0968322d33c349becb3df4def6866d23" prot="public" virt="non-virtual"><scope>BinDumpReader::Block</scope><name>ofs</name></member>
+      <member refid="structBinDumpReader_1_1Block_1a81f4b6287c6bc0d018ea9a9aaa834ddd" prot="public" virt="non-virtual"><scope>BinDumpReader::Block</scope><name>set</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

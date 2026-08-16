@@ -1,0 +1,155 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structserial__buffer_1_1SerialBufferCounter" kind="struct" language="C++" prot="public">
+    <compoundname>serial_buffer::SerialBufferCounter</compoundname>
+    <includes refid="dag__serialIntBuffer_8h" local="no">dag_serialIntBuffer.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="structserial__buffer_1_1SerialBufferCounter_1a40924e2191a0593c2bdf34431e23dde1" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t serial_buffer::SerialBufferCounter::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>serial_buffer::SerialBufferCounter::count</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="65" column="12" bodyfile="dag_serialIntBuffer.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structserial__buffer_1_1SerialBufferCounter_1ab45e61be10b1504ec70653b8e3d5e2d1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void serial_buffer::SerialBufferCounter::init</definition>
+        <argsstring>(uint32_t count_)</argsstring>
+        <name>init</name>
+        <qualifiedname>serial_buffer::SerialBufferCounter::init</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>count_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="40" column="8" bodyfile="dag_serialIntBuffer.h" bodystart="40" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="structserial__buffer_1_1SerialBufferCounter_1ab5be0db885efba6b24469f95b1702bdd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>serial_buffer::SerialBufferCounter::SerialBufferCounter</definition>
+        <argsstring>(uint32_t count_)</argsstring>
+        <name>SerialBufferCounter</name>
+        <qualifiedname>serial_buffer::SerialBufferCounter::SerialBufferCounter</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>count_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="47" column="3" bodyfile="dag_serialIntBuffer.h" bodystart="47" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="structserial__buffer_1_1SerialBufferCounter_1a9795210d6be8c753d82facb5a80472cd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>serial_buffer::SerialBufferCounter::SerialBufferCounter</definition>
+        <argsstring>()=default</argsstring>
+        <name>SerialBufferCounter</name>
+        <qualifiedname>serial_buffer::SerialBufferCounter::SerialBufferCounter</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="48" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structserial__buffer_1_1SerialBufferCounter_1a5d4b2d393393d9c244f037e8683dfc9e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>serial_buffer::SerialBufferCounter::SerialBufferCounter</definition>
+        <argsstring>(SerialBufferCounter &amp;&amp;a)</argsstring>
+        <name>SerialBufferCounter</name>
+        <qualifiedname>serial_buffer::SerialBufferCounter::SerialBufferCounter</qualifiedname>
+        <param>
+          <type><ref refid="structserial__buffer_1_1SerialBufferCounter" kindref="compound">SerialBufferCounter</ref> &amp;&amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="49" column="3" bodyfile="dag_serialIntBuffer.h" bodystart="49" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="structserial__buffer_1_1SerialBufferCounter_1a90512420010dcc5f1bec9d8eb28f3e4f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structserial__buffer_1_1SerialBufferCounter" kindref="compound">SerialBufferCounter</ref> &amp;</type>
+        <definition>SerialBufferCounter &amp; serial_buffer::SerialBufferCounter::operator=</definition>
+        <argsstring>(SerialBufferCounter &amp;&amp;a)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>serial_buffer::SerialBufferCounter::operator=</qualifiedname>
+        <param>
+          <type><ref refid="structserial__buffer_1_1SerialBufferCounter" kindref="compound">SerialBufferCounter</ref> &amp;&amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="50" column="23" bodyfile="dag_serialIntBuffer.h" bodystart="50" bodyend="56"/>
+      </memberdef>
+      <memberdef kind="function" id="structserial__buffer_1_1SerialBufferCounter_1abb2fe14469c3bcaa5a82ca3e035dc982" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structserial__buffer_1_1SerialBufferUsage" kindref="compound">SerialBufferUsage</ref></type>
+        <definition>SerialBufferUsage serial_buffer::SerialBufferCounter::get</definition>
+        <argsstring>()</argsstring>
+        <name>get</name>
+        <qualifiedname>serial_buffer::SerialBufferCounter::get</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="57" column="21" bodyfile="dag_serialIntBuffer.h" bodystart="57" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="structserial__buffer_1_1SerialBufferCounter_1ad03435e65f91dc26d3cc1049671ed67d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>serial_buffer::SerialBufferCounter::~SerialBufferCounter</definition>
+        <argsstring>()</argsstring>
+        <name>~SerialBufferCounter</name>
+        <qualifiedname>serial_buffer::SerialBufferCounter::~SerialBufferCounter</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="58" column="3" bodyfile="dag_serialIntBuffer.h" bodystart="58" bodyend="62"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_serialIntBuffer.h" line="38" column="1" bodyfile="dag_serialIntBuffer.h" bodystart="39" bodyend="66"/>
+    <listofallmembers>
+      <member refid="structserial__buffer_1_1SerialBufferCounter_1a40924e2191a0593c2bdf34431e23dde1" prot="protected" virt="non-virtual"><scope>serial_buffer::SerialBufferCounter</scope><name>count</name></member>
+      <member refid="structserial__buffer_1_1SerialBufferCounter_1abb2fe14469c3bcaa5a82ca3e035dc982" prot="public" virt="non-virtual"><scope>serial_buffer::SerialBufferCounter</scope><name>get</name></member>
+      <member refid="structserial__buffer_1_1SerialBufferCounter_1ab45e61be10b1504ec70653b8e3d5e2d1" prot="public" virt="non-virtual"><scope>serial_buffer::SerialBufferCounter</scope><name>init</name></member>
+      <member refid="structserial__buffer_1_1SerialBufferCounter_1a90512420010dcc5f1bec9d8eb28f3e4f" prot="public" virt="non-virtual"><scope>serial_buffer::SerialBufferCounter</scope><name>operator=</name></member>
+      <member refid="structserial__buffer_1_1SerialBufferCounter_1ab5be0db885efba6b24469f95b1702bdd" prot="public" virt="non-virtual"><scope>serial_buffer::SerialBufferCounter</scope><name>SerialBufferCounter</name></member>
+      <member refid="structserial__buffer_1_1SerialBufferCounter_1a9795210d6be8c753d82facb5a80472cd" prot="public" virt="non-virtual"><scope>serial_buffer::SerialBufferCounter</scope><name>SerialBufferCounter</name></member>
+      <member refid="structserial__buffer_1_1SerialBufferCounter_1a5d4b2d393393d9c244f037e8683dfc9e" prot="public" virt="non-virtual"><scope>serial_buffer::SerialBufferCounter</scope><name>SerialBufferCounter</name></member>
+      <member refid="structserial__buffer_1_1SerialBufferCounter_1ad03435e65f91dc26d3cc1049671ed67d" prot="public" virt="non-virtual"><scope>serial_buffer::SerialBufferCounter</scope><name>~SerialBufferCounter</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

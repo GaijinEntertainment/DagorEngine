@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structWspLibData" kind="struct" language="C++" prot="public">
+    <compoundname>WspLibData</compoundname>
+    <includes refid="ec__workspace_8h" local="no">ec_workspace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structWspLibData_1aecd59edbb60f3abdd712e689180bbd01" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String WspLibData::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>WspLibData::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="11" column="10" bodyfile="ec_workspace.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structWspLibData_1a92f60614648531a8d58fc1cc9595dc52" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String WspLibData::fname</definition>
+        <argsstring></argsstring>
+        <name>fname</name>
+        <qualifiedname>WspLibData::fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_workspace.h" line="12" column="10" bodyfile="ec_workspace.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_workspace.h" line="9" column="1" bodyfile="ec_workspace.h" bodystart="10" bodyend="13"/>
+    <listofallmembers>
+      <member refid="structWspLibData_1a92f60614648531a8d58fc1cc9595dc52" prot="public" virt="non-virtual"><scope>WspLibData</scope><name>fname</name></member>
+      <member refid="structWspLibData_1aecd59edbb60f3abdd712e689180bbd01" prot="public" virt="non-virtual"><scope>WspLibData</scope><name>name</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

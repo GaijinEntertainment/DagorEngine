@@ -1,0 +1,135 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classprofiler__tracker_1_1Timer" kind="class" language="C++" prot="public">
+    <compoundname>profiler_tracker::Timer</compoundname>
+    <includes refid="dag__profilerTracker_8h" local="no">dag_profilerTracker.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classprofiler__tracker_1_1Timer_1a7799c391623065cf2faaec65e83736b8" prot="private" static="no" mutable="no">
+        <type>int64_t</type>
+        <definition>int64_t profiler_tracker::Timer::stamp</definition>
+        <argsstring></argsstring>
+        <name>stamp</name>
+        <qualifiedname>profiler_tracker::Timer::stamp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="29" column="11" bodyfile="dag_profilerTracker.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classprofiler__tracker_1_1Timer_1a9736ba0d30c6de4e0af6146fed8d5a4b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>profiler_tracker::Timer::Timer</definition>
+        <argsstring>()</argsstring>
+        <name>Timer</name>
+        <qualifiedname>profiler_tracker::Timer::Timer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="32" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classprofiler__tracker_1_1Timer_1ab616696a9fa5f0e77187a4aaf781e6c2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>profiler_tracker::Timer::Timer</definition>
+        <argsstring>(const Timer &amp;)=delete</argsstring>
+        <name>Timer</name>
+        <qualifiedname>profiler_tracker::Timer::Timer</qualifiedname>
+        <param>
+          <type>const <ref refid="classprofiler__tracker_1_1Timer" kindref="compound">Timer</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="33" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classprofiler__tracker_1_1Timer_1abdb56d3c16f7a1603b62233efe96f5d0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classprofiler__tracker_1_1Timer" kindref="compound">Timer</ref> &amp;</type>
+        <definition>Timer &amp; profiler_tracker::Timer::operator=</definition>
+        <argsstring>(const Timer &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>profiler_tracker::Timer::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classprofiler__tracker_1_1Timer" kindref="compound">Timer</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="34" column="9"/>
+      </memberdef>
+      <memberdef kind="function" id="classprofiler__tracker_1_1Timer_1a75f788a901d88899b6391dea666d9861" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>profiler_tracker::Timer::Timer</definition>
+        <argsstring>(Timer &amp;&amp;)=default</argsstring>
+        <name>Timer</name>
+        <qualifiedname>profiler_tracker::Timer::Timer</qualifiedname>
+        <param>
+          <type><ref refid="classprofiler__tracker_1_1Timer" kindref="compound">Timer</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="35" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classprofiler__tracker_1_1Timer_1a711dca31063f2f0212b5ff61496b05b1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classprofiler__tracker_1_1Timer" kindref="compound">Timer</ref> &amp;</type>
+        <definition>Timer &amp; profiler_tracker::Timer::operator=</definition>
+        <argsstring>(Timer &amp;&amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>profiler_tracker::Timer::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classprofiler__tracker_1_1Timer" kindref="compound">Timer</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="36" column="9"/>
+      </memberdef>
+      <memberdef kind="function" id="classprofiler__tracker_1_1Timer_1ae1167d3d357b4d1bcfd5eccf4046d886" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int profiler_tracker::Timer::timeUSec</definition>
+        <argsstring>() const</argsstring>
+        <name>timeUSec</name>
+        <qualifiedname>profiler_tracker::Timer::timeUSec</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="38" column="7"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_profilerTracker.h" line="27" column="1" bodyfile="dag_profilerTracker.h" bodystart="28" bodyend="39"/>
+    <listofallmembers>
+      <member refid="classprofiler__tracker_1_1Timer_1abdb56d3c16f7a1603b62233efe96f5d0" prot="public" virt="non-virtual"><scope>profiler_tracker::Timer</scope><name>operator=</name></member>
+      <member refid="classprofiler__tracker_1_1Timer_1a711dca31063f2f0212b5ff61496b05b1" prot="public" virt="non-virtual"><scope>profiler_tracker::Timer</scope><name>operator=</name></member>
+      <member refid="classprofiler__tracker_1_1Timer_1a7799c391623065cf2faaec65e83736b8" prot="private" virt="non-virtual"><scope>profiler_tracker::Timer</scope><name>stamp</name></member>
+      <member refid="classprofiler__tracker_1_1Timer_1a9736ba0d30c6de4e0af6146fed8d5a4b" prot="public" virt="non-virtual"><scope>profiler_tracker::Timer</scope><name>Timer</name></member>
+      <member refid="classprofiler__tracker_1_1Timer_1ab616696a9fa5f0e77187a4aaf781e6c2" prot="public" virt="non-virtual"><scope>profiler_tracker::Timer</scope><name>Timer</name></member>
+      <member refid="classprofiler__tracker_1_1Timer_1a75f788a901d88899b6391dea666d9861" prot="public" virt="non-virtual"><scope>profiler_tracker::Timer</scope><name>Timer</name></member>
+      <member refid="classprofiler__tracker_1_1Timer_1ae1167d3d357b4d1bcfd5eccf4046d886" prot="public" virt="non-virtual"><scope>profiler_tracker::Timer</scope><name>timeUSec</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

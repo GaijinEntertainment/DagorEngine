@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderMacro_1_1TokenData" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderMacro::TokenData</compoundname>
+    <includes refid="shMacro_8h" local="no">shMacro.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderMacro_1_1TokenData_1a9d10067a2654abba99257f9620a38ca2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderMacro::TokenData::paramIndex</definition>
+        <argsstring></argsstring>
+        <name>paramIndex</name>
+        <qualifiedname>ShaderMacro::TokenData::paramIndex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="50" column="9" bodyfile="shMacro.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMacro_1_1TokenData_1a7a4ec21b3913cb75abc904d6cb134ff3" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderParser_1_1TokenInfo" kindref="compound">ShaderParser::TokenInfo</ref></type>
+        <definition>ShaderParser::TokenInfo ShaderMacro::TokenData::info</definition>
+        <argsstring></argsstring>
+        <name>info</name>
+        <qualifiedname>ShaderMacro::TokenData::info</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="51" column="29" bodyfile="shMacro.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderMacro_1_1TokenData_1a35e2a2197b6630374618db9f399d09cf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderMacro::TokenData::TokenData</definition>
+        <argsstring>(int param_index=-1)</argsstring>
+        <name>TokenData</name>
+        <qualifiedname>ShaderMacro::TokenData::TokenData</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_index</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="53" column="12" bodyfile="shMacro.h" bodystart="53" bodyend="53"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>ShaderMacro::TokenData</label>
+        <link refid="structShaderMacro_1_1TokenData"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>info</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderParser::TokenInfo</label>
+        <link refid="structShaderParser_1_1TokenInfo"/>
+      </node>
+    </collaborationgraph>
+    <location file="shMacro.h" line="48" column="3" bodyfile="shMacro.h" bodystart="49" bodyend="54"/>
+    <listofallmembers>
+      <member refid="structShaderMacro_1_1TokenData_1a7a4ec21b3913cb75abc904d6cb134ff3" prot="public" virt="non-virtual"><scope>ShaderMacro::TokenData</scope><name>info</name></member>
+      <member refid="structShaderMacro_1_1TokenData_1a9d10067a2654abba99257f9620a38ca2" prot="public" virt="non-virtual"><scope>ShaderMacro::TokenData</scope><name>paramIndex</name></member>
+      <member refid="structShaderMacro_1_1TokenData_1a35e2a2197b6630374618db9f399d09cf" prot="public" virt="non-virtual"><scope>ShaderMacro::TokenData</scope><name>TokenData</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,709 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTestRuntime" kind="class" language="C++" prot="public">
+    <compoundname>TestRuntime</compoundname>
+    <includes refid="ec__testSystem_8h" local="no">ec_testSystem.h</includes>
+    <innerclass refid="structTestRuntime_1_1TestInfo" prot="public">TestRuntime::TestInfo</innerclass>
+    <innerclass refid="classTestRuntime_1_1TestThread" prot="private">TestRuntime::TestThread</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classTestRuntime_1abe5e03b3ee6ffde93745047d22c86dc4" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TestRuntime::failOnInvalidInputQuery</definition>
+        <argsstring></argsstring>
+        <name>failOnInvalidInputQuery</name>
+        <qualifiedname>TestRuntime::failOnInvalidInputQuery</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="182" column="8" bodyfile="ec_testSystem.h" bodystart="182" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classTestRuntime_1a9a6fda19a1ebe8c3cfc6b8a5dfaeea58" prot="private" static="no" mutable="no">
+        <type>TestThread</type>
+        <definition>TestThread TestRuntime::thread</definition>
+        <argsstring></argsstring>
+        <name>thread</name>
+        <qualifiedname>TestRuntime::thread</qualifiedname>
+        <initializer>{*this}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="209" column="14" bodyfile="ec_testSystem.h" bodystart="209" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1a1242cdbc2e092c3992ad0f4321a6c557" prot="private" static="no" mutable="no">
+        <type>Tab&lt; eastl::unique_ptr&lt; <ref refid="classTestCase" kindref="compound">TestCase</ref> &gt; &gt;</type>
+        <definition>Tab&lt;eastl::unique_ptr&lt;TestCase&gt; &gt; TestRuntime::registry</definition>
+        <argsstring></argsstring>
+        <name>registry</name>
+        <qualifiedname>TestRuntime::registry</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="212" column="7" bodyfile="ec_testSystem.h" bodystart="212" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1a68d24f3cf676899328c57d23174599ab" prot="private" static="no" mutable="no">
+        <type>WinCritSec</type>
+        <definition>WinCritSec TestRuntime::queueMutex</definition>
+        <argsstring></argsstring>
+        <name>queueMutex</name>
+        <qualifiedname>TestRuntime::queueMutex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="214" column="14" bodyfile="ec_testSystem.h" bodystart="214" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1a91462f36505a6cdedc0950e15c9b3120" prot="private" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="classTestCase" kindref="compound">TestCase</ref> * &gt;</type>
+        <definition>Tab&lt;TestCase *&gt; TestRuntime::testQueue</definition>
+        <argsstring></argsstring>
+        <name>testQueue</name>
+        <qualifiedname>TestRuntime::testQueue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="215" column="7" bodyfile="ec_testSystem.h" bodystart="215" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1aaf6807c823208a235ebd5f21f121f3fb" prot="private" static="no" mutable="no">
+        <type>WinCritSec</type>
+        <definition>WinCritSec TestRuntime::frameMutex</definition>
+        <argsstring></argsstring>
+        <name>frameMutex</name>
+        <qualifiedname>TestRuntime::frameMutex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="217" column="14" bodyfile="ec_testSystem.h" bodystart="217" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1a6c217c28708e403c9749799a5a5458ac" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TestRuntime::frameCount</definition>
+        <argsstring></argsstring>
+        <name>frameCount</name>
+        <qualifiedname>TestRuntime::frameCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="218" column="7" bodyfile="ec_testSystem.h" bodystart="218" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1aef57aae4e09c1122eb4e14a688ba622a" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TestRuntime::frameInProgress</definition>
+        <argsstring></argsstring>
+        <name>frameInProgress</name>
+        <qualifiedname>TestRuntime::frameInProgress</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="219" column="8" bodyfile="ec_testSystem.h" bodystart="219" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1a9ada865ef79000f5172f9bf57bb6c1cd" prot="private" static="no" mutable="no">
+        <type>float</type>
+        <definition>float TestRuntime::frameDeltaSeconds</definition>
+        <argsstring></argsstring>
+        <name>frameDeltaSeconds</name>
+        <qualifiedname>TestRuntime::frameDeltaSeconds</qualifiedname>
+        <initializer>= 0.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="220" column="9" bodyfile="ec_testSystem.h" bodystart="220" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1ad9f017c3ff2ce8f4241645885e67232e" prot="private" static="no" mutable="no">
+        <type>volatile bool</type>
+        <definition>volatile bool TestRuntime::running</definition>
+        <argsstring></argsstring>
+        <name>running</name>
+        <qualifiedname>TestRuntime::running</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="222" column="17" bodyfile="ec_testSystem.h" bodystart="222" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1a7c82a49dfd33e7690fdd9a8ba4f7382a" prot="private" static="no" mutable="no">
+        <type>volatile bool</type>
+        <definition>volatile bool TestRuntime::anyTestRunning</definition>
+        <argsstring></argsstring>
+        <name>anyTestRunning</name>
+        <qualifiedname>TestRuntime::anyTestRunning</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="224" column="17" bodyfile="ec_testSystem.h" bodystart="224" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1ad1c82df9d187e3b81eb41f0356e5abe8" prot="private" static="no" mutable="no">
+        <type><ref refid="classTestCase" kindref="compound">TestCase</ref> *volatile</type>
+        <definition>TestCase* volatile TestRuntime::runningTest</definition>
+        <argsstring></argsstring>
+        <name>runningTest</name>
+        <qualifiedname>TestRuntime::runningTest</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="225" column="21" bodyfile="ec_testSystem.h" bodystart="225" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1a1402ab1c8b0ab776fdf6e073c0d3f718" prot="private" static="no" mutable="no">
+        <type>ImGuiTestRuntimeOptions</type>
+        <definition>ImGuiTestRuntimeOptions TestRuntime::debugOptions</definition>
+        <argsstring></argsstring>
+        <name>debugOptions</name>
+        <qualifiedname>TestRuntime::debugOptions</qualifiedname>
+        <initializer>{this, false, 0, false}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="227" column="27" bodyfile="ec_testSystem.h" bodystart="227" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1a7b9fbdce9b4ea674577ebb589fc6c819" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TestRuntime::drawFakeMousePointer</definition>
+        <argsstring></argsstring>
+        <name>drawFakeMousePointer</name>
+        <qualifiedname>TestRuntime::drawFakeMousePointer</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="228" column="8" bodyfile="ec_testSystem.h" bodystart="228" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1a90c93b13f4822a8756c8230a29ed505d" prot="private" static="no" mutable="no">
+        <type><ref refid="classTestInput" kindref="compound">TestInput</ref></type>
+        <definition>TestInput TestRuntime::inputSystem</definition>
+        <argsstring></argsstring>
+        <name>inputSystem</name>
+        <qualifiedname>TestRuntime::inputSystem</qualifiedname>
+        <initializer>{*this}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="230" column="13" bodyfile="ec_testSystem.h" bodystart="230" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1a487ae08c439a42e2858bf17bb664924f" prot="private" static="no" mutable="no">
+        <type><ref refid="classTestWindow" kindref="compound">TestWindow</ref></type>
+        <definition>TestWindow TestRuntime::debugWindow</definition>
+        <argsstring></argsstring>
+        <name>debugWindow</name>
+        <qualifiedname>TestRuntime::debugWindow</qualifiedname>
+        <initializer>{*this}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="233" column="14" bodyfile="ec_testSystem.h" bodystart="233" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestRuntime_1aa089abdb45f18a636233b6a49942e935" prot="private" static="no" mutable="no">
+        <type><ref refid="classTestScriptModule" kindref="compound">TestScriptModule</ref></type>
+        <definition>TestScriptModule TestRuntime::scriptModule</definition>
+        <argsstring></argsstring>
+        <name>scriptModule</name>
+        <qualifiedname>TestRuntime::scriptModule</qualifiedname>
+        <initializer>{*this}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="235" column="20" bodyfile="ec_testSystem.h" bodystart="235" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTestRuntime_1a56fe5e7420ef0fe11ea940d8723b3500" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TestRuntime::TestRuntime</definition>
+        <argsstring>()=default</argsstring>
+        <name>TestRuntime</name>
+        <qualifiedname>TestRuntime::TestRuntime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="151" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a8bcd9755b86882ecf9c8290455a44d24" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TestRuntime::~TestRuntime</definition>
+        <argsstring>()</argsstring>
+        <name>~TestRuntime</name>
+        <qualifiedname>TestRuntime::~TestRuntime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="152" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a79a12c7e25721fd611aa19e776484a3c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestRuntime::start</definition>
+        <argsstring>()</argsstring>
+        <name>start</name>
+        <qualifiedname>TestRuntime::start</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="154" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a81ed900013b078123623d7bc9742db04" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestRuntime::stop</definition>
+        <argsstring>()</argsstring>
+        <name>stop</name>
+        <qualifiedname>TestRuntime::stop</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="155" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a77e0161c9b36a6d47aef5f8cf3485530" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TestRuntime::isRunning</definition>
+        <argsstring>() const</argsstring>
+        <name>isRunning</name>
+        <qualifiedname>TestRuntime::isRunning</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="156" column="8" bodyfile="ec_testSystem.h" bodystart="156" bodyend="156"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a6487fdaae6aac152f1c17b51e3db2f3f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classTestCase" kindref="compound">TestCase</ref> &amp;</type>
+        <definition>TestCase &amp; TestRuntime::registerTest</definition>
+        <argsstring>(const char *name, TestCallback::TestFunc test_func)</argsstring>
+        <name>registerTest</name>
+        <qualifiedname>TestRuntime::registerTest</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="classTestCallback_1af190a8321e22c186d3333d6c3dac8a27" kindref="member">TestCallback::TestFunc</ref></type>
+          <declname>test_func</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="158" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a0b122ec9e8144ae9675a756691ee6f20" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classTestCase" kindref="compound">TestCase</ref> &amp;</type>
+        <definition>TestCase &amp; TestRuntime::registerTestEx</definition>
+        <argsstring>(const char *name, const eastl::shared_ptr&lt; TestCallback &gt; &amp;test_callback)</argsstring>
+        <name>registerTestEx</name>
+        <qualifiedname>TestRuntime::registerTestEx</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const eastl::shared_ptr&lt; <ref refid="classTestCallback" kindref="compound">TestCallback</ref> &gt; &amp;</type>
+          <declname>test_callback</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="159" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a4e690f2eebbe33ca07839c8574b0b0d5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TestRuntime::enqueue</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>enqueue</name>
+        <qualifiedname>TestRuntime::enqueue</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="161" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1ae2fe6ca30b8f401bdaa6885e494f1584" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestRuntime::enqueueAll</definition>
+        <argsstring>(TestFilter state, const char *name)</argsstring>
+        <name>enqueueAll</name>
+        <qualifiedname>TestRuntime::enqueueAll</qualifiedname>
+        <param>
+          <type><ref refid="ec__testSystem_8h_1af512c4e954ce432df4eced92186df827" kindref="member">TestFilter</ref></type>
+          <declname>state</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="162" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a2f0591046445d0ce033290791b558266" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>Tab&lt; <ref refid="structTestRuntime_1_1TestInfo" kindref="compound">TestInfo</ref> &gt;</type>
+        <definition>Tab&lt; TestInfo &gt; TestRuntime::testInfos</definition>
+        <argsstring>() const</argsstring>
+        <name>testInfos</name>
+        <qualifiedname>TestRuntime::testInfos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="165" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a149e8797602b5edfbbe9ce011fa90e2e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classTestInput" kindref="compound">TestInput</ref> &amp;</type>
+        <definition>TestInput &amp; TestRuntime::input</definition>
+        <argsstring>()</argsstring>
+        <name>input</name>
+        <qualifiedname>TestRuntime::input</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="167" column="13" bodyfile="ec_testSystem.h" bodystart="167" bodyend="167"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a49e76405c4be1b2dbceca88672001e54" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestRuntime::frameBegin</definition>
+        <argsstring>(float dt)</argsstring>
+        <name>frameBegin</name>
+        <qualifiedname>TestRuntime::frameBegin</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>dt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="170" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1ac413583544fa17c7e70d15e35fa6d67e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestRuntime::frameEnd</definition>
+        <argsstring>()</argsstring>
+        <name>frameEnd</name>
+        <qualifiedname>TestRuntime::frameEnd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="171" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1ac35f95d8496d2e5a6d5bd10ce6631c57" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestRuntime::yieldFrame</definition>
+        <argsstring>()</argsstring>
+        <name>yieldFrame</name>
+        <qualifiedname>TestRuntime::yieldFrame</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="174" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a73508679be2819c4ff2ff23a61bc2b78" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestRuntime::yieldTime</definition>
+        <argsstring>(float seconds)</argsstring>
+        <name>yieldTime</name>
+        <qualifiedname>TestRuntime::yieldTime</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>seconds</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="175" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a4ba6add5f0d4690bbcb97c80e75e4244" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float TestRuntime::lastFrameDelta</definition>
+        <argsstring>() const</argsstring>
+        <name>lastFrameDelta</name>
+        <qualifiedname>TestRuntime::lastFrameDelta</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="177" column="9" bodyfile="ec_testSystem.h" bodystart="177" bodyend="177"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1aedc064ce6448805a21eb8a4aff13c770" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestRuntime::markFailed</definition>
+        <argsstring>()</argsstring>
+        <name>markFailed</name>
+        <qualifiedname>TestRuntime::markFailed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="180" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a5aab65e5be1bc4762fd3315cbb3c0e4d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TestRuntime::testsRunning</definition>
+        <argsstring>() const</argsstring>
+        <name>testsRunning</name>
+        <qualifiedname>TestRuntime::testsRunning</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="184" column="8" bodyfile="ec_testSystem.h" bodystart="184" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a651686940fb960a3951885c8ff95d381" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classTestCase" kindref="compound">TestCase</ref> *</type>
+        <definition>TestCase * TestRuntime::currentlyRunningTest</definition>
+        <argsstring>()</argsstring>
+        <name>currentlyRunningTest</name>
+        <qualifiedname>TestRuntime::currentlyRunningTest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="185" column="12" bodyfile="ec_testSystem.h" bodystart="185" bodyend="185"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1aacbc79ae13f0afe43f7f0226198560af" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ImGuiTestRuntimeOptions &amp;</type>
+        <definition>ImGuiTestRuntimeOptions &amp; TestRuntime::options</definition>
+        <argsstring>()</argsstring>
+        <name>options</name>
+        <qualifiedname>TestRuntime::options</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="187" column="27" bodyfile="ec_testSystem.h" bodystart="187" bodyend="187"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a845361b6a1de752fe504937b895806fd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classTestScriptModule" kindref="compound">TestScriptModule</ref> &amp;</type>
+        <definition>TestScriptModule &amp; TestRuntime::testScripts</definition>
+        <argsstring>()</argsstring>
+        <name>testScripts</name>
+        <qualifiedname>TestRuntime::testScripts</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="189" column="20" bodyfile="ec_testSystem.h" bodystart="189" bodyend="189"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a44ca18b67bd16f6404e3499f9984edbd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classTestWindow" kindref="compound">TestWindow</ref> &amp;</type>
+        <definition>TestWindow &amp; TestRuntime::window</definition>
+        <argsstring>()</argsstring>
+        <name>window</name>
+        <qualifiedname>TestRuntime::window</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="191" column="14" bodyfile="ec_testSystem.h" bodystart="191" bodyend="191"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classTestRuntime_1ad36f54deb03f3a3abb5925f9963cd211" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void TestRuntime::register_script_class</definition>
+        <argsstring>(HSQUIRRELVM vm)</argsstring>
+        <name>register_script_class</name>
+        <qualifiedname>TestRuntime::register_script_class</qualifiedname>
+        <param>
+          <type><ref refid="ec__testSystem_8h_1a9118df9c000fff034a7b410b6de3443c" kindref="member">HSQUIRRELVM</ref></type>
+          <declname>vm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="193" column="15"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classTestRuntime_1a8eb0b18818cf273de4a4439edd7b49d9" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestRuntime::threadLoop</definition>
+        <argsstring>()</argsstring>
+        <name>threadLoop</name>
+        <qualifiedname>TestRuntime::threadLoop</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="196" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1a228f36fecd77721f73661ca18a92f3dc" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classTestInput" kindref="compound">TestInput</ref> *</type>
+        <definition>TestInput * TestRuntime::inputPtr</definition>
+        <argsstring>()</argsstring>
+        <name>inputPtr</name>
+        <qualifiedname>TestRuntime::inputPtr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="231" column="13" bodyfile="ec_testSystem.h" bodystart="231" bodyend="231"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_testSystem.h" line="142" column="1" bodyfile="ec_testSystem.h" bodystart="143" bodyend="236"/>
+    <listofallmembers>
+      <member refid="classTestRuntime_1a7c82a49dfd33e7690fdd9a8ba4f7382a" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>anyTestRunning</name></member>
+      <member refid="classTestRuntime_1a651686940fb960a3951885c8ff95d381" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>currentlyRunningTest</name></member>
+      <member refid="classTestRuntime_1a1402ab1c8b0ab776fdf6e073c0d3f718" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>debugOptions</name></member>
+      <member refid="classTestRuntime_1a487ae08c439a42e2858bf17bb664924f" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>debugWindow</name></member>
+      <member refid="classTestRuntime_1a7b9fbdce9b4ea674577ebb589fc6c819" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>drawFakeMousePointer</name></member>
+      <member refid="classTestRuntime_1a4e690f2eebbe33ca07839c8574b0b0d5" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>enqueue</name></member>
+      <member refid="classTestRuntime_1ae2fe6ca30b8f401bdaa6885e494f1584" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>enqueueAll</name></member>
+      <member refid="classTestRuntime_1abe5e03b3ee6ffde93745047d22c86dc4" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>failOnInvalidInputQuery</name></member>
+      <member refid="classTestRuntime_1a49e76405c4be1b2dbceca88672001e54" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>frameBegin</name></member>
+      <member refid="classTestRuntime_1a6c217c28708e403c9749799a5a5458ac" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>frameCount</name></member>
+      <member refid="classTestRuntime_1a9ada865ef79000f5172f9bf57bb6c1cd" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>frameDeltaSeconds</name></member>
+      <member refid="classTestRuntime_1ac413583544fa17c7e70d15e35fa6d67e" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>frameEnd</name></member>
+      <member refid="classTestRuntime_1aef57aae4e09c1122eb4e14a688ba622a" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>frameInProgress</name></member>
+      <member refid="classTestRuntime_1aaf6807c823208a235ebd5f21f121f3fb" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>frameMutex</name></member>
+      <member refid="classTestRuntime_1a149e8797602b5edfbbe9ce011fa90e2e" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>input</name></member>
+      <member refid="classTestRuntime_1a228f36fecd77721f73661ca18a92f3dc" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>inputPtr</name></member>
+      <member refid="classTestRuntime_1a90c93b13f4822a8756c8230a29ed505d" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>inputSystem</name></member>
+      <member refid="classTestRuntime_1a77e0161c9b36a6d47aef5f8cf3485530" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>isRunning</name></member>
+      <member refid="classTestRuntime_1a4ba6add5f0d4690bbcb97c80e75e4244" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>lastFrameDelta</name></member>
+      <member refid="classTestRuntime_1aedc064ce6448805a21eb8a4aff13c770" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>markFailed</name></member>
+      <member refid="classTestRuntime_1aacbc79ae13f0afe43f7f0226198560af" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>options</name></member>
+      <member refid="classTestRuntime_1a68d24f3cf676899328c57d23174599ab" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>queueMutex</name></member>
+      <member refid="classTestRuntime_1ad36f54deb03f3a3abb5925f9963cd211" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>register_script_class</name></member>
+      <member refid="classTestRuntime_1a6487fdaae6aac152f1c17b51e3db2f3f" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>registerTest</name></member>
+      <member refid="classTestRuntime_1a0b122ec9e8144ae9675a756691ee6f20" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>registerTestEx</name></member>
+      <member refid="classTestRuntime_1a1242cdbc2e092c3992ad0f4321a6c557" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>registry</name></member>
+      <member refid="classTestRuntime_1ad9f017c3ff2ce8f4241645885e67232e" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>running</name></member>
+      <member refid="classTestRuntime_1ad1c82df9d187e3b81eb41f0356e5abe8" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>runningTest</name></member>
+      <member refid="classTestRuntime_1aa089abdb45f18a636233b6a49942e935" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>scriptModule</name></member>
+      <member refid="classTestRuntime_1a79a12c7e25721fd611aa19e776484a3c" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>start</name></member>
+      <member refid="classTestRuntime_1a81ed900013b078123623d7bc9742db04" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>stop</name></member>
+      <member refid="classTestRuntime_1a2f0591046445d0ce033290791b558266" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>testInfos</name></member>
+      <member refid="classTestRuntime_1a91462f36505a6cdedc0950e15c9b3120" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>testQueue</name></member>
+      <member refid="classTestRuntime_1a56fe5e7420ef0fe11ea940d8723b3500" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>TestRuntime</name></member>
+      <member refid="classTestRuntime_1a845361b6a1de752fe504937b895806fd" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>testScripts</name></member>
+      <member refid="classTestRuntime_1a5aab65e5be1bc4762fd3315cbb3c0e4d" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>testsRunning</name></member>
+      <member refid="classTestRuntime_1a9a6fda19a1ebe8c3cfc6b8a5dfaeea58" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>thread</name></member>
+      <member refid="classTestRuntime_1a8eb0b18818cf273de4a4439edd7b49d9" prot="private" virt="non-virtual"><scope>TestRuntime</scope><name>threadLoop</name></member>
+      <member refid="classTestRuntime_1a44ca18b67bd16f6404e3499f9984edbd" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>window</name></member>
+      <member refid="classTestRuntime_1ac35f95d8496d2e5a6d5bd10ce6631c57" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>yieldFrame</name></member>
+      <member refid="classTestRuntime_1a73508679be2819c4ff2ff23a61bc2b78" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>yieldTime</name></member>
+      <member refid="classTestRuntime_1a8bcd9755b86882ecf9c8290455a44d24" prot="public" virt="non-virtual"><scope>TestRuntime</scope><name>~TestRuntime</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,198 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structMtlFxUpscaleParams" kind="struct" language="C++" prot="public">
+    <compoundname>MtlFxUpscaleParams</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structMtlFxUpscaleParams_1a53d5460f92c0256928831ec85c43ebf2" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* MtlFxUpscaleParams::color</definition>
+        <argsstring></argsstring>
+        <name>color</name>
+        <qualifiedname>MtlFxUpscaleParams::color</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="376" column="15" bodyfile="dag_decl.h" bodystart="376" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMtlFxUpscaleParams_1a1c611f40767e4ae32334e35e33af52ff" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* MtlFxUpscaleParams::output</definition>
+        <argsstring></argsstring>
+        <name>output</name>
+        <qualifiedname>MtlFxUpscaleParams::output</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="377" column="15" bodyfile="dag_decl.h" bodystart="377" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMtlFxUpscaleParams_1a7237e34417e4f05590c8d183d1881cd6" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool MtlFxUpscaleParams::temporal</definition>
+        <argsstring></argsstring>
+        <name>temporal</name>
+        <qualifiedname>MtlFxUpscaleParams::temporal</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="378" column="8" bodyfile="dag_decl.h" bodystart="378" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMtlFxUpscaleParams_1ab260e426fb3dcd58cc6e8318c702c69d" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__decl_8h_1a574b224fcdd05e17334327771e343405" kindref="member">MtlfxColorMode</ref></type>
+        <definition>MtlfxColorMode MtlFxUpscaleParams::colorMode</definition>
+        <argsstring></argsstring>
+        <name>colorMode</name>
+        <qualifiedname>MtlFxUpscaleParams::colorMode</qualifiedname>
+        <initializer>= <ref refid="dag__decl_8h_1a574b224fcdd05e17334327771e343405aaac544aacc3615aada24897a215f5046" kindref="member">MtlfxColorMode::LINEAR</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="380" column="18" bodyfile="dag_decl.h" bodystart="380" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMtlFxUpscaleParams_1a6dc8237be51000630f486fdb47c24aa4" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* MtlFxUpscaleParams::motion</definition>
+        <argsstring></argsstring>
+        <name>motion</name>
+        <qualifiedname>MtlFxUpscaleParams::motion</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="382" column="15" bodyfile="dag_decl.h" bodystart="382" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMtlFxUpscaleParams_1acd03b88548bc1bf3c31a7de119b34652" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* MtlFxUpscaleParams::depth</definition>
+        <argsstring></argsstring>
+        <name>depth</name>
+        <qualifiedname>MtlFxUpscaleParams::depth</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="383" column="15" bodyfile="dag_decl.h" bodystart="383" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMtlFxUpscaleParams_1a63e75adff6e6b47a1e7949bebd660638" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float MtlFxUpscaleParams::jitterX</definition>
+        <argsstring></argsstring>
+        <name>jitterX</name>
+        <qualifiedname>MtlFxUpscaleParams::jitterX</qualifiedname>
+        <initializer>= 0.f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="384" column="9" bodyfile="dag_decl.h" bodystart="384" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMtlFxUpscaleParams_1a532399621d42421fc25bf55eba2c51ca" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float MtlFxUpscaleParams::jitterY</definition>
+        <argsstring></argsstring>
+        <name>jitterY</name>
+        <qualifiedname>MtlFxUpscaleParams::jitterY</qualifiedname>
+        <initializer>= 0.f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="384" column="18" bodyfile="dag_decl.h" bodystart="384" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMtlFxUpscaleParams_1a3a09139022c29a06fe56d40728292e52" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float MtlFxUpscaleParams::motionScaleX</definition>
+        <argsstring></argsstring>
+        <name>motionScaleX</name>
+        <qualifiedname>MtlFxUpscaleParams::motionScaleX</qualifiedname>
+        <initializer>= 0.f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="385" column="9" bodyfile="dag_decl.h" bodystart="385" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMtlFxUpscaleParams_1ac61eb4e6c1c2c1f82545f4896793a195" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float MtlFxUpscaleParams::motionScaleY</definition>
+        <argsstring></argsstring>
+        <name>motionScaleY</name>
+        <qualifiedname>MtlFxUpscaleParams::motionScaleY</qualifiedname>
+        <initializer>= 0.f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="385" column="23" bodyfile="dag_decl.h" bodystart="385" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="classBaseTexture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="1">
+        <label>MtlFxUpscaleParams</label>
+        <link refid="structMtlFxUpscaleParams"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>color</edgelabel>
+          <edgelabel>depth</edgelabel>
+          <edgelabel>motion</edgelabel>
+          <edgelabel>output</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_decl.h" line="374" column="1" bodyfile="dag_decl.h" bodystart="375" bodyend="386"/>
+    <listofallmembers>
+      <member refid="structMtlFxUpscaleParams_1a53d5460f92c0256928831ec85c43ebf2" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>color</name></member>
+      <member refid="structMtlFxUpscaleParams_1ab260e426fb3dcd58cc6e8318c702c69d" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>colorMode</name></member>
+      <member refid="structMtlFxUpscaleParams_1acd03b88548bc1bf3c31a7de119b34652" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>depth</name></member>
+      <member refid="structMtlFxUpscaleParams_1a63e75adff6e6b47a1e7949bebd660638" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>jitterX</name></member>
+      <member refid="structMtlFxUpscaleParams_1a532399621d42421fc25bf55eba2c51ca" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>jitterY</name></member>
+      <member refid="structMtlFxUpscaleParams_1a6dc8237be51000630f486fdb47c24aa4" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>motion</name></member>
+      <member refid="structMtlFxUpscaleParams_1a3a09139022c29a06fe56d40728292e52" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>motionScaleX</name></member>
+      <member refid="structMtlFxUpscaleParams_1ac61eb4e6c1c2c1f82545f4896793a195" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>motionScaleY</name></member>
+      <member refid="structMtlFxUpscaleParams_1a1c611f40767e4ae32334e35e33af52ff" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>output</name></member>
+      <member refid="structMtlFxUpscaleParams_1a7237e34417e4f05590c8d183d1881cd6" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>temporal</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

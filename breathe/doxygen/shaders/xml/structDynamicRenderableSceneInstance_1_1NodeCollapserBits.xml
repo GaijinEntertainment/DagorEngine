@@ -1,0 +1,98 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDynamicRenderableSceneInstance_1_1NodeCollapserBits" kind="struct" language="C++" prot="public">
+    <compoundname>DynamicRenderableSceneInstance::NodeCollapserBits</compoundname>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structDynamicRenderableSceneInstance_1_1NodeCollapserBits_1afe653c50a7109262fa379d68f48f7c50" prot="public" static="no">
+        <type>decltype(data)</type>
+        <definition>using DynamicRenderableSceneInstance::NodeCollapserBits::Data =  decltype(data)</definition>
+        <argsstring></argsstring>
+        <name>Data</name>
+        <qualifiedname>DynamicRenderableSceneInstance::NodeCollapserBits::Data</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="481" column="5" bodyfile="dag_dynSceneRes.h" bodystart="481" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDynamicRenderableSceneInstance_1_1NodeCollapserBits_1a2c0af142885a8927ff97c1759838349f" prot="public" static="no" mutable="no">
+        <type>eastl::array&lt; uint32_t, 4 *2 &gt;</type>
+        <definition>eastl::array&lt;uint32_t, 4 * 2&gt; DynamicRenderableSceneInstance::NodeCollapserBits::data</definition>
+        <argsstring></argsstring>
+        <name>data</name>
+        <qualifiedname>DynamicRenderableSceneInstance::NodeCollapserBits::data</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="480" column="18" bodyfile="dag_dynSceneRes.h" bodystart="480" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDynamicRenderableSceneInstance_1_1NodeCollapserBits_1adefd02bad1d94b0069d1bdc846b8991b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::NodeCollapserBits::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>DynamicRenderableSceneInstance::NodeCollapserBits::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="483" column="10" bodyfile="dag_dynSceneRes.h" bodystart="483" bodyend="483"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicRenderableSceneInstance_1_1NodeCollapserBits_1a6f853b60da5b439231aed0f34ee95128" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::NodeCollapserBits::setAll</definition>
+        <argsstring>()</argsstring>
+        <name>setAll</name>
+        <qualifiedname>DynamicRenderableSceneInstance::NodeCollapserBits::setAll</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="485" column="10" bodyfile="dag_dynSceneRes.h" bodystart="485" bodyend="485"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicRenderableSceneInstance_1_1NodeCollapserBits_1aeab4e4f10b497eb6fb803f53eeb56167" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::NodeCollapserBits::markBone</definition>
+        <argsstring>(uint32_t bone_id)</argsstring>
+        <name>markBone</name>
+        <qualifiedname>DynamicRenderableSceneInstance::NodeCollapserBits::markBone</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>bone_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="487" column="10" bodyfile="dag_dynSceneRes.h" bodystart="487" bodyend="491"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynSceneRes.h" line="478" column="3" bodyfile="dag_dynSceneRes.h" bodystart="479" bodyend="492"/>
+    <listofallmembers>
+      <member refid="structDynamicRenderableSceneInstance_1_1NodeCollapserBits_1adefd02bad1d94b0069d1bdc846b8991b" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance::NodeCollapserBits</scope><name>clear</name></member>
+      <member refid="structDynamicRenderableSceneInstance_1_1NodeCollapserBits_1afe653c50a7109262fa379d68f48f7c50" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance::NodeCollapserBits</scope><name>Data</name></member>
+      <member refid="structDynamicRenderableSceneInstance_1_1NodeCollapserBits_1a2c0af142885a8927ff97c1759838349f" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance::NodeCollapserBits</scope><name>data</name></member>
+      <member refid="structDynamicRenderableSceneInstance_1_1NodeCollapserBits_1aeab4e4f10b497eb6fb803f53eeb56167" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance::NodeCollapserBits</scope><name>markBone</name></member>
+      <member refid="structDynamicRenderableSceneInstance_1_1NodeCollapserBits_1a6f853b60da5b439231aed0f34ee95128" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance::NodeCollapserBits</scope><name>setAll</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

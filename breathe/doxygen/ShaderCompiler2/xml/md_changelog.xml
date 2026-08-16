@@ -1,0 +1,87 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="md_changelog" kind="page">
+    <compoundname>md_changelog</compoundname>
+    <title>changelog</title>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><itemizedlist>
+<listitem><para>[Removed] support of <computeroutput>(code)hlsl</computeroutput> syntax. Use <computeroutput>hlsl(code)</computeroutput> instead Change-Id: I6b667f1f4282605b1470ae25c1cca08f9508b731 Change-Id: I0415088e3b2e6bb1ccaa5f94a8a126a955b4043e</para>
+</listitem></itemizedlist>
+</para>
+<para>[Added] support for if-expression in constant binding block <programlisting><codeline><highlight class="normal">(ps)<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>foo@f4<sp/>=<sp/>foo;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>if<sp/>(shader<sp/>==<sp/>some_shader)<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>bar@f4<sp/>=<sp/>bar;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal">}</highlight></codeline>
+</programlisting> Change-Id: I68b1a1ee74ceed5f10d146cc06f4b2fb6dc5e6b8</para>
+<para><itemizedlist>
+<listitem><para>[Added] support for bool variable <programlisting><codeline><highlight class="normal">bool<sp/>use_wsao<sp/>=<sp/>shader<sp/>==<sp/>ssao<sp/>&amp;&amp;<sp/>gi_quality<sp/>==<sp/>only_ao;</highlight></codeline>
+<codeline><highlight class="normal">(ps)<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>if<sp/>(use_wsao)<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>foo@f4<sp/>=<sp/>foo;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal">}</highlight></codeline>
+<codeline><highlight class="normal">hlsl(ps)<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>##if<sp/>use_wsao</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>return<sp/>foo;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>##endif</highlight></codeline>
+<codeline><highlight class="normal">}</highlight></codeline>
+</programlisting> Change-Id: I3d96e4f421888a8fafb9db8a3c0c7f023039ae5b</para>
+</listitem><listitem><para>[Added] <computeroutput>maybe</computeroutput> intrinsic <programlisting><codeline><highlight class="normal">if<sp/>(wsao_tex<sp/>!=<sp/>NULL)<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>if<sp/>(shader<sp/>==<sp/>ssao)<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>bool<sp/>use_wsao<sp/>=<sp/>true;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal">}</highlight></codeline>
+<codeline><highlight class="normal">(ps)<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>if<sp/>(maybe(use_wsao))<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>foo@f4<sp/>=<sp/>foo;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal">}</highlight></codeline>
+</programlisting> Change-Id: I3c193d60f2e92eacf5fae9cb2a47f3223699e61b</para>
+</listitem><listitem><para>[Added] <computeroutput>error</computeroutput> intrinsic <programlisting><codeline><highlight class="normal">if<sp/>(gi_quality<sp/>==<sp/>only_ao)<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>//<sp/>..</highlight></codeline>
+<codeline><highlight class="normal">}<sp/>else<sp/>if<sp/>(gi_quality<sp/>==<sp/>high)<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>//<sp/>..</highlight></codeline>
+<codeline><highlight class="normal">}<sp/>else<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>error(&quot;Unimplemented<sp/>gi<sp/>quality&quot;);</highlight></codeline>
+<codeline><highlight class="normal">}</highlight></codeline>
+</programlisting> Change-Id: I19a1b66b616b574bfd9b654ac0594477b6d16a6a</para>
+</listitem><listitem><para>[Removed] <computeroutput>##aliase</computeroutput>, <computeroutput>##static_ifdef</computeroutput> and <computeroutput>##static_def</computeroutput> Instead of static_ifdef, you can use the usual HLSL #define. Or, if you don&apos;t want to see a false branch, then you can use <computeroutput>bool</computeroutput> variables Change-Id: I3e588fe69764edb5b8fdff5c630ccb5fd74448c9</para>
+</listitem><listitem><para>[Added] support for hardcoded register bindings <programlisting><codeline><highlight class="normal">int<sp/>reg_no<sp/>=<sp/>3;</highlight></codeline>
+<codeline><highlight class="normal">shader<sp/>sh<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>(ps)<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>foo_vec@f4<sp/>:<sp/>register(reg_no);</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>foo_tex@smp2d<sp/>:<sp/>register(reg_no);</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>foo_buf@buf<sp/>:<sp/>register(reg_no)<sp/>hlsl<sp/>{<sp/>StructuredBuffer&lt;uint&gt;<sp/>foo_buf@buf;<sp/>};</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>foo_uav@uav<sp/>:<sp/>register(reg_no)<sp/>hlsl<sp/>{<sp/>RWStructuredBuffer&lt;uint&gt;<sp/>foo_uav@uav;<sp/>};</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal">}</highlight></codeline>
+</programlisting> Change-Id: Id2cc68e2fc2f390ca9417e0f426a605bb98b1956</para>
+</listitem><listitem><para>[Added] support for assert in shaders <programlisting><codeline><highlight class="normal">hlsl(ps)<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>##if<sp/>DEBUG</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>uint2<sp/>dim;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>tex.GetDimensions(dim.x,<sp/>dim.y);</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/>##assert(all(tc<sp/>&lt;<sp/>dim),<sp/>&quot;Out<sp/>of<sp/>bounds&quot;);</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>##endif</highlight></codeline>
+<codeline><highlight class="normal">}</highlight></codeline>
+</programlisting> Change-Id: I7e813bf57ecd95081e73ef13d18937fef9c0708f</para>
+</listitem><listitem><para>[Removed] support &apos;|&apos; and &apos;&amp;&apos; in conditional expressions Change-Id: I008e0650f35417f85173b0c79fb32a44460a7764</para>
+</listitem><listitem><para>[Removed] support of <computeroutput>color4</computeroutput> and <computeroutput>real</computeroutput> types Instead, use <computeroutput>float4</computeroutput> and <computeroutput>float</computeroutput> types Change-Id: Iba88c68c7f1a65b648461fbf9b10326a400f346d</para>
+</listitem><listitem><para>[Removed] <computeroutput>use</computeroutput> support Change-Id: I17cf07f8c8939fa17e44559f322c2e6b768ac253</para>
+</listitem><listitem><para>[Added] direct initialization of static variables <programlisting><codeline><highlight class="normal">shader<sp/>sh<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>float4<sp/>foo<sp/>=<sp/>material.diffuse;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>texture<sp/>bar<sp/>=<sp/>material.texture[1];</highlight></codeline>
+<codeline><highlight class="normal">}</highlight></codeline>
+</programlisting> Change-Id: Ie1c2572c4f58c72588aac081ee94ce7e0e7ddffb</para>
+</listitem><listitem><para>[Removed] <computeroutput>init</computeroutput> statement support Use direct initialization of static variables Change-Id: I678bf454403e05addeb9cbb2fbeb0fd8bf6906b3</para>
+</listitem><listitem><para>[Added] <computeroutput>get_viewport</computeroutput> intrinsic <programlisting><codeline><highlight class="normal">float4(top_left_x,<sp/>top_left_y,<sp/>width,<sp/>height)<sp/>=<sp/>get_viewport();</highlight></codeline>
+</programlisting> Change-Id: I74e2fac08503c9998b37d4cdabe73d3e257a0998 </para>
+</listitem></itemizedlist>
+</para>
+    </detaileddescription>
+    <location file="changelog.md"/>
+  </compounddef>
+</doxygen>

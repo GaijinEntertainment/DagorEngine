@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderParser_1_1ExpressionParser_1_1Context" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderParser::ExpressionParser::Context</compoundname>
+    <includes refid="shExprParser_8h" local="no">shExprParser.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderParser_1_1ExpressionParser_1_1Context_1abf41229ea2ae08fd0ab8cea6882f6ddf" prot="public" static="no" mutable="no">
+        <type>shexpr::ValueType</type>
+        <definition>shexpr::ValueType ShaderParser::ExpressionParser::Context::destValueType</definition>
+        <argsstring></argsstring>
+        <name>destValueType</name>
+        <qualifiedname>ShaderParser::ExpressionParser::Context::destValueType</qualifiedname>
+        <initializer>= shexpr::VT_UNDEFINED</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExprParser.h" line="35" column="23" bodyfile="shExprParser.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1ExpressionParser_1_1Context_1a5c308911175a6b73a5db37a039706c94" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderParser::ExpressionParser::Context::destIsInteger</definition>
+        <argsstring></argsstring>
+        <name>destIsInteger</name>
+        <qualifiedname>ShaderParser::ExpressionParser::Context::destIsInteger</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExprParser.h" line="36" column="10" bodyfile="shExprParser.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1ExpressionParser_1_1Context_1ab2c5f6845a00aec85b444ba87ff8302c" prot="public" static="no" mutable="no">
+        <type>Terminal *</type>
+        <definition>Terminal* ShaderParser::ExpressionParser::Context::destTerm</definition>
+        <argsstring></argsstring>
+        <name>destTerm</name>
+        <qualifiedname>ShaderParser::ExpressionParser::Context::destTerm</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExprParser.h" line="37" column="14" bodyfile="shExprParser.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shExprParser.h" line="33" column="3" bodyfile="shExprParser.h" bodystart="34" bodyend="38"/>
+    <listofallmembers>
+      <member refid="structShaderParser_1_1ExpressionParser_1_1Context_1a5c308911175a6b73a5db37a039706c94" prot="public" virt="non-virtual"><scope>ShaderParser::ExpressionParser::Context</scope><name>destIsInteger</name></member>
+      <member refid="structShaderParser_1_1ExpressionParser_1_1Context_1ab2c5f6845a00aec85b444ba87ff8302c" prot="public" virt="non-virtual"><scope>ShaderParser::ExpressionParser::Context</scope><name>destTerm</name></member>
+      <member refid="structShaderParser_1_1ExpressionParser_1_1Context_1abf41229ea2ae08fd0ab8cea6882f6ddf" prot="public" virt="non-virtual"><scope>ShaderParser::ExpressionParser::Context</scope><name>destValueType</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

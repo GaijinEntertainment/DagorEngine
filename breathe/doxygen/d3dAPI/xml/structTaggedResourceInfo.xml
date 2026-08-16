@@ -1,0 +1,136 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structTaggedResourceInfo" kind="struct" language="C++" prot="public">
+    <compoundname>TaggedResourceInfo</compoundname>
+    <includes refid="dag__resourceTag_8h" local="no">dag_resourceTag.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structTaggedResourceInfo_1a1af64fffc405d087f646b2ac6c27b6e4" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0" kindref="member">TaggedResourceType</ref></type>
+        <definition>TaggedResourceType TaggedResourceInfo::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>TaggedResourceInfo::type</qualifiedname>
+        <initializer>= <ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0aec0fc0100c4fc1ce4eea230c3dc10360" kindref="member">TaggedResourceType::Undefined</ref></initializer>
+        <briefdescription>
+<para>Type of the resource, undefined should be ignored. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="75" column="22" bodyfile="dag_resourceTag.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTaggedResourceInfo_1a50349c25985da08933a5471d29baff53" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* TaggedResourceInfo::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>TaggedResourceInfo::name</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>Resource name, may be null, name string may become invalid after return. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="77" column="14" bodyfile="dag_resourceTag.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTaggedResourceInfo_1a28989e26e0248771e60c1f5388e307be" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__consts_8h_1ad5a9fea10d2996b964488900c2434ff1" kindref="member">ResourceTagType</ref></type>
+        <definition>ResourceTagType TaggedResourceInfo::tag</definition>
+        <argsstring></argsstring>
+        <name>tag</name>
+        <qualifiedname>TaggedResourceInfo::tag</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>The tag, may be null meaning no tag. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="79" column="19" bodyfile="dag_resourceTag.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTaggedResourceInfo_1a2a3acd75759a84e40926ed643f86ac94" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t TaggedResourceInfo::sizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>sizeInBytes</name>
+        <qualifiedname>TaggedResourceInfo::sizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Bytes of memory occupied by the resource. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="81" column="12" bodyfile="dag_resourceTag.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTaggedResourceInfo_1ab4238f64e6a5bf6578b22c85ba07b305" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t TaggedResourceInfo::addressAlignment</definition>
+        <argsstring></argsstring>
+        <name>addressAlignment</name>
+        <qualifiedname>TaggedResourceInfo::addressAlignment</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Some resource types have address alignment restrictions, this is reported here, a value of 0 or 1 indicate not alignment requirement. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="84" column="12" bodyfile="dag_resourceTag.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTaggedResourceInfo_1a4d26cb4f28b3b233f035953729fcf2b0" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TaggedResourceInfo::isSubAllocated</definition>
+        <argsstring></argsstring>
+        <name>isSubAllocated</name>
+        <qualifiedname>TaggedResourceInfo::isSubAllocated</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Indicates if the buffer was internally allocated from a bigger buffer. Will be false for textures and external memory type. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="87" column="8" bodyfile="dag_resourceTag.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTaggedResourceInfo_1a8b672361fc67dbd894a11190ca1fc3f5" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TaggedResourceInfo::isAproximation</definition>
+        <argsstring></argsstring>
+        <name>isAproximation</name>
+        <qualifiedname>TaggedResourceInfo::isAproximation</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+<para>Some APIs do not report exact memory usage values (like DLLSG). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="89" column="8" bodyfile="dag_resourceTag.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Information of a tagged resource. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resourceTag.h" line="72" column="1" bodyfile="dag_resourceTag.h" bodystart="73" bodyend="90"/>
+    <listofallmembers>
+      <member refid="structTaggedResourceInfo_1ab4238f64e6a5bf6578b22c85ba07b305" prot="public" virt="non-virtual"><scope>TaggedResourceInfo</scope><name>addressAlignment</name></member>
+      <member refid="structTaggedResourceInfo_1a8b672361fc67dbd894a11190ca1fc3f5" prot="public" virt="non-virtual"><scope>TaggedResourceInfo</scope><name>isAproximation</name></member>
+      <member refid="structTaggedResourceInfo_1a4d26cb4f28b3b233f035953729fcf2b0" prot="public" virt="non-virtual"><scope>TaggedResourceInfo</scope><name>isSubAllocated</name></member>
+      <member refid="structTaggedResourceInfo_1a50349c25985da08933a5471d29baff53" prot="public" virt="non-virtual"><scope>TaggedResourceInfo</scope><name>name</name></member>
+      <member refid="structTaggedResourceInfo_1a2a3acd75759a84e40926ed643f86ac94" prot="public" virt="non-virtual"><scope>TaggedResourceInfo</scope><name>sizeInBytes</name></member>
+      <member refid="structTaggedResourceInfo_1a28989e26e0248771e60c1f5388e307be" prot="public" virt="non-virtual"><scope>TaggedResourceInfo</scope><name>tag</name></member>
+      <member refid="structTaggedResourceInfo_1a1af64fffc405d087f646b2ac6c27b6e4" prot="public" virt="non-virtual"><scope>TaggedResourceInfo</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

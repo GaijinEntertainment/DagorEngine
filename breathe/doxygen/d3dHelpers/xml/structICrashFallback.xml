@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structICrashFallback" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>ICrashFallback</compoundname>
+    <includes refid="dag__ICrashFallback_8h" local="no">dag_ICrashFallback.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structICrashFallback_1a880d17a4e6e02723d69e88fe0b68695f" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ICrashFallback::previousStartupFailed</definition>
+        <argsstring>()=0</argsstring>
+        <name>previousStartupFailed</name>
+        <qualifiedname>ICrashFallback::previousStartupFailed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ICrashFallback.h" line="30" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structICrashFallback_1a62685e63750f8a831cd652ed2863d524" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ICrashFallback::beforeStartup</definition>
+        <argsstring>()=0</argsstring>
+        <name>beforeStartup</name>
+        <qualifiedname>ICrashFallback::beforeStartup</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ICrashFallback.h" line="31" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structICrashFallback_1a13528ce329351c37a08d0399c00c3e02" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ICrashFallback::successfullyLoaded</definition>
+        <argsstring>()=0</argsstring>
+        <name>successfullyLoaded</name>
+        <qualifiedname>ICrashFallback::successfullyLoaded</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ICrashFallback.h" line="32" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structICrashFallback_1a2741468404c0cb338891abf45e60ef26" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ICrashFallback::setSettingToAuto</definition>
+        <argsstring>()=0</argsstring>
+        <name>setSettingToAuto</name>
+        <qualifiedname>ICrashFallback::setSettingToAuto</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ICrashFallback.h" line="33" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structICrashFallback_1ae3bd9a977e4904508ef222a5b9b582e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual ICrashFallback::~ICrashFallback</definition>
+        <argsstring>()=default</argsstring>
+        <name>~ICrashFallback</name>
+        <qualifiedname>ICrashFallback::~ICrashFallback</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ICrashFallback.h" line="34" column="11"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_ICrashFallback.h" line="28" column="1" bodyfile="dag_ICrashFallback.h" bodystart="29" bodyend="35"/>
+    <listofallmembers>
+      <member refid="structICrashFallback_1a62685e63750f8a831cd652ed2863d524" prot="public" virt="pure-virtual"><scope>ICrashFallback</scope><name>beforeStartup</name></member>
+      <member refid="structICrashFallback_1a880d17a4e6e02723d69e88fe0b68695f" prot="public" virt="pure-virtual"><scope>ICrashFallback</scope><name>previousStartupFailed</name></member>
+      <member refid="structICrashFallback_1a2741468404c0cb338891abf45e60ef26" prot="public" virt="pure-virtual"><scope>ICrashFallback</scope><name>setSettingToAuto</name></member>
+      <member refid="structICrashFallback_1a13528ce329351c37a08d0399c00c3e02" prot="public" virt="pure-virtual"><scope>ICrashFallback</scope><name>successfullyLoaded</name></member>
+      <member refid="structICrashFallback_1ae3bd9a977e4904508ef222a5b9b582e8" prot="public" virt="virtual"><scope>ICrashFallback</scope><name>~ICrashFallback</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,467 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRingCPUBufferLock" kind="class" language="C++" prot="public">
+    <compoundname>RingCPUBufferLock</compoundname>
+    <derivedcompoundref refid="classRingCPUTextureLock" prot="public" virt="non-virtual">RingCPUTextureLock</derivedcompoundref>
+    <includes refid="dag__ringCPUQueryLock_8h" local="no">dag_ringCPUQueryLock.h</includes>
+    <innerclass refid="structRingCPUBufferLock_1_1FencedGPUResource" prot="protected">RingCPUBufferLock::FencedGPUResource</innerclass>
+      <sectiondef kind="protected-type">
+      <memberdef kind="enum" id="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761" prot="protected" static="no" strong="no">
+        <type></type>
+        <name>CurrentState</name>
+        <qualifiedname>RingCPUBufferLock::CurrentState</qualifiedname>
+        <enumvalue id="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761ac0837c8e062890138fb1c1d192990db8" prot="protected">
+          <name>NORMAL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761a1220bde4aa9b79ca68b3718807786b84" prot="protected">
+          <name>LOCKED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761adf7df7bdef67b13bdaab860958b7a1fe" prot="protected">
+          <name>NEWTARGET</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="62" column="3" bodyfile="dag_ringCPUQueryLock.h" bodystart="63" bodyend="67"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classRingCPUBufferLock_1a7b36c2c5ab92266377438423b18241b5" prot="protected" static="no" mutable="no">
+        <type>StaticTab&lt; <ref refid="structRingCPUBufferLock_1_1FencedGPUResource" kindref="compound">FencedGPUResource</ref>, 6 &gt;</type>
+        <definition>StaticTab&lt;FencedGPUResource, 6&gt; RingCPUBufferLock::buffers</definition>
+        <argsstring></argsstring>
+        <name>buffers</name>
+        <qualifiedname>RingCPUBufferLock::buffers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="57" column="13" bodyfile="dag_ringCPUQueryLock.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRingCPUBufferLock_1a468a2c8c6121a62260a2be366218aa73" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RingCPUBufferLock::currentBufferIssued</definition>
+        <argsstring></argsstring>
+        <name>currentBufferIssued</name>
+        <qualifiedname>RingCPUBufferLock::currentBufferIssued</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="61" column="12" bodyfile="dag_ringCPUQueryLock.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRingCPUBufferLock_1aadc5c4fabb807fc0b2dc27bfba2b2923" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RingCPUBufferLock::currentBufferToLock</definition>
+        <argsstring></argsstring>
+        <name>currentBufferToLock</name>
+        <qualifiedname>RingCPUBufferLock::currentBufferToLock</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="61" column="33" bodyfile="dag_ringCPUQueryLock.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRingCPUBufferLock_1af5d405708ba6062e4fcc78dee647dca5" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RingCPUBufferLock::bufferLockCounter</definition>
+        <argsstring></argsstring>
+        <name>bufferLockCounter</name>
+        <qualifiedname>RingCPUBufferLock::bufferLockCounter</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="61" column="54" bodyfile="dag_ringCPUQueryLock.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRingCPUBufferLock_1a4c1399664539954ba87b54304318c6b2" prot="protected" static="no" mutable="no">
+        <type>enum <ref refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761" kindref="member">RingCPUBufferLock::CurrentState</ref></type>
+        <definition>enum RingCPUBufferLock::CurrentState RingCPUBufferLock::state</definition>
+        <argsstring></argsstring>
+        <name>state</name>
+        <qualifiedname>RingCPUBufferLock::state</qualifiedname>
+        <initializer>= <ref refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761ac0837c8e062890138fb1c1d192990db8" kindref="member">NORMAL</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="67" column="10"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRingCPUBufferLock_1ad86b930f1200a3716b25218c58cec88e" prot="protected" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string RingCPUBufferLock::resourceName</definition>
+        <argsstring></argsstring>
+        <name>resourceName</name>
+        <qualifiedname>RingCPUBufferLock::resourceName</qualifiedname>
+        <initializer>= &quot;Not inited buffer&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="68" column="17" bodyfile="dag_ringCPUQueryLock.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRingCPUBufferLock_1a7bd50a59260c24ebe52e14ba5f14f8b0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>D3dResource *</type>
+        <definition>D3dResource * RingCPUBufferLock::getNewTargetAndId</definition>
+        <argsstring>(uint32_t &amp;frame, D3DRESID &amp;id)</argsstring>
+        <name>getNewTargetAndId</name>
+        <qualifiedname>RingCPUBufferLock::getNewTargetAndId</qualifiedname>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>frame</declname>
+        </param>
+        <param>
+          <type>D3DRESID &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="16" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUBufferLock_1af14a76aca9b0751e3e61879bc4311a36" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>D3dResource *</type>
+        <definition>D3dResource * RingCPUBufferLock::getNewTarget</definition>
+        <argsstring>(uint32_t &amp;frame)</argsstring>
+        <name>getNewTarget</name>
+        <qualifiedname>RingCPUBufferLock::getNewTarget</qualifiedname>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>frame</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="17" column="15" bodyfile="dag_ringCPUQueryLock.h" bodystart="17" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUBufferLock_1ab9f59378aa559c76523eabe277f3122f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>D3dResource *</type>
+        <definition>D3dResource * RingCPUBufferLock::getNewTarget</definition>
+        <argsstring>(int &amp;frame)</argsstring>
+        <name>getNewTarget</name>
+        <qualifiedname>RingCPUBufferLock::getNewTarget</qualifiedname>
+        <param>
+          <type>int &amp;</type>
+          <declname>frame</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="22" column="15" bodyfile="dag_ringCPUQueryLock.h" bodystart="22" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUBufferLock_1a1fb24c80f9cc9e69edbb8b3854dd91bd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>D3dResource *</type>
+        <definition>D3dResource * RingCPUBufferLock::getNewTargetAndId</definition>
+        <argsstring>(int &amp;frame, D3DRESID &amp;id)</argsstring>
+        <name>getNewTargetAndId</name>
+        <qualifiedname>RingCPUBufferLock::getNewTargetAndId</qualifiedname>
+        <param>
+          <type>int &amp;</type>
+          <declname>frame</declname>
+        </param>
+        <param>
+          <type>D3DRESID &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="27" column="15" bodyfile="dag_ringCPUQueryLock.h" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUBufferLock_1aa0954f06e0fd0800812bce9d3ba59de1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RingCPUBufferLock::startCPUCopy</definition>
+        <argsstring>()</argsstring>
+        <name>startCPUCopy</name>
+        <qualifiedname>RingCPUBufferLock::startCPUCopy</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="28" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUBufferLock_1aefd14b19112de2c695cc7e0615ad14a9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RingCPUBufferLock::RingCPUBufferLock</definition>
+        <argsstring>()</argsstring>
+        <name>RingCPUBufferLock</name>
+        <qualifiedname>RingCPUBufferLock::RingCPUBufferLock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="30" column="3" bodyfile="dag_ringCPUQueryLock.h" bodystart="30" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUBufferLock_1ab23b6b33b243a924380309d82ab3a32a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RingCPUBufferLock::~RingCPUBufferLock</definition>
+        <argsstring>()</argsstring>
+        <name>~RingCPUBufferLock</name>
+        <qualifiedname>RingCPUBufferLock::~RingCPUBufferLock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="31" column="3" bodyfile="dag_ringCPUQueryLock.h" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUBufferLock_1a13f94e2a68ff262126d3b3e1e8a60c51" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RingCPUBufferLock::init</definition>
+        <argsstring>(uint32_t elem_size, uint32_t elems_count, int max_buffers_count, const char *name, uint32_t flags, uint32_t fmt, bool is_tex)</argsstring>
+        <name>init</name>
+        <qualifiedname>RingCPUBufferLock::init</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>elem_size</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>elems_count</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_buffers_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_tex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="35" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUBufferLock_1ab9f68a3eb040b66c25254dfdaab98586" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RingCPUBufferLock::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>RingCPUBufferLock::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="37" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUBufferLock_1a1e8cd2a898b31919c4883e178225d38e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint8_t *</type>
+        <definition>uint8_t * RingCPUBufferLock::lock</definition>
+        <argsstring>(int &amp;stride, uint32_t &amp;frame, bool get_to_topmost, int max_frames_to_flush=8)</argsstring>
+        <name>lock</name>
+        <qualifiedname>RingCPUBufferLock::lock</qualifiedname>
+        <param>
+          <type>int &amp;</type>
+          <declname>stride</declname>
+        </param>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>frame</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>get_to_topmost</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_frames_to_flush</declname>
+          <defval>8</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="43" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUBufferLock_1ad3dc7431d5870313c30a49215bdf13fa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RingCPUBufferLock::unlock</definition>
+        <argsstring>()</argsstring>
+        <name>unlock</name>
+        <qualifiedname>RingCPUBufferLock::unlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="47" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUBufferLock_1a9fe1cc0e1c3ff3f02eab76322003c31c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RingCPUBufferLock::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>RingCPUBufferLock::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="48" column="8" bodyfile="dag_ringCPUQueryLock.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classRingCPUBufferLock_1a84d3ee8a8db5b3d78d5d9e1d636ad6b6" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void RingCPUBufferLock::unlockData</definition>
+        <argsstring>(int buffer)</argsstring>
+        <name>unlockData</name>
+        <qualifiedname>RingCPUBufferLock::unlockData</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>buffer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="59" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUBufferLock_1a77d6784bc11a7f20cc2910771bf1e74d" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RingCPUBufferLock::lockData</definition>
+        <argsstring>(int buffer, int &amp;stride, uint8_t **pdata, bool wait)</argsstring>
+        <name>lockData</name>
+        <qualifiedname>RingCPUBufferLock::lockData</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>buffer</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>stride</declname>
+        </param>
+        <param>
+          <type>uint8_t **</type>
+          <declname>pdata</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>wait</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUQueryLock.h" line="60" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>RingCPUBufferLock</label>
+        <link refid="classRingCPUBufferLock"/>
+      </node>
+      <node id="2">
+        <label>RingCPUTextureLock</label>
+        <link refid="classRingCPUTextureLock"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="dag_ringCPUQueryLock.h" line="13" column="1" bodyfile="dag_ringCPUQueryLock.h" bodystart="14" bodyend="69"/>
+    <listofallmembers>
+      <member refid="classRingCPUBufferLock_1af5d405708ba6062e4fcc78dee647dca5" prot="protected" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>bufferLockCounter</name></member>
+      <member refid="classRingCPUBufferLock_1a7b36c2c5ab92266377438423b18241b5" prot="protected" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>buffers</name></member>
+      <member refid="classRingCPUBufferLock_1ab9f68a3eb040b66c25254dfdaab98586" prot="public" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>close</name></member>
+      <member refid="classRingCPUBufferLock_1a468a2c8c6121a62260a2be366218aa73" prot="protected" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>currentBufferIssued</name></member>
+      <member refid="classRingCPUBufferLock_1aadc5c4fabb807fc0b2dc27bfba2b2923" prot="protected" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>currentBufferToLock</name></member>
+      <member refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761" prot="protected" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>CurrentState</name></member>
+      <member refid="classRingCPUBufferLock_1af14a76aca9b0751e3e61879bc4311a36" prot="public" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>getNewTarget</name></member>
+      <member refid="classRingCPUBufferLock_1ab9f59378aa559c76523eabe277f3122f" prot="public" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>getNewTarget</name></member>
+      <member refid="classRingCPUBufferLock_1a7bd50a59260c24ebe52e14ba5f14f8b0" prot="public" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>getNewTargetAndId</name></member>
+      <member refid="classRingCPUBufferLock_1a1fb24c80f9cc9e69edbb8b3854dd91bd" prot="public" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>getNewTargetAndId</name></member>
+      <member refid="classRingCPUBufferLock_1a13f94e2a68ff262126d3b3e1e8a60c51" prot="public" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>init</name></member>
+      <member refid="classRingCPUBufferLock_1a1e8cd2a898b31919c4883e178225d38e" prot="public" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>lock</name></member>
+      <member refid="classRingCPUBufferLock_1a77d6784bc11a7f20cc2910771bf1e74d" prot="protected" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>lockData</name></member>
+      <member refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761a1220bde4aa9b79ca68b3718807786b84" prot="protected" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>LOCKED</name></member>
+      <member refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761adf7df7bdef67b13bdaab860958b7a1fe" prot="protected" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>NEWTARGET</name></member>
+      <member refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761ac0837c8e062890138fb1c1d192990db8" prot="protected" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>NORMAL</name></member>
+      <member refid="classRingCPUBufferLock_1a9fe1cc0e1c3ff3f02eab76322003c31c" prot="public" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>reset</name></member>
+      <member refid="classRingCPUBufferLock_1ad86b930f1200a3716b25218c58cec88e" prot="protected" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>resourceName</name></member>
+      <member refid="classRingCPUBufferLock_1aefd14b19112de2c695cc7e0615ad14a9" prot="public" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>RingCPUBufferLock</name></member>
+      <member refid="classRingCPUBufferLock_1aa0954f06e0fd0800812bce9d3ba59de1" prot="public" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>startCPUCopy</name></member>
+      <member refid="classRingCPUBufferLock_1a4c1399664539954ba87b54304318c6b2" prot="protected" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>state</name></member>
+      <member refid="classRingCPUBufferLock_1ad3dc7431d5870313c30a49215bdf13fa" prot="public" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>unlock</name></member>
+      <member refid="classRingCPUBufferLock_1a84d3ee8a8db5b3d78d5d9e1d636ad6b6" prot="protected" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>unlockData</name></member>
+      <member refid="classRingCPUBufferLock_1ab23b6b33b243a924380309d82ab3a32a" prot="public" virt="non-virtual"><scope>RingCPUBufferLock</scope><name>~RingCPUBufferLock</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,137 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdafg_1_1BufferView" kind="class" language="C++" prot="public">
+    <compoundname>dafg::BufferView</compoundname>
+    <includes refid="resourceView_8h" local="no">resourceView.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdafg_1_1BufferView_1ac0ca50e13d03edf6395fc8c9957339a5" prot="private" static="no" mutable="no">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer* dafg::BufferView::buf</definition>
+        <argsstring></argsstring>
+        <name>buf</name>
+        <qualifiedname>dafg::BufferView::buf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceView.h" line="29" column="11" bodyfile="resourceView.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdafg_1_1BufferView_1a76e9c3e891a73991b5cd306413dcfd98" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::BufferView::BufferView</definition>
+        <argsstring>(Sbuffer *b)</argsstring>
+        <name>BufferView</name>
+        <qualifiedname>dafg::BufferView::BufferView</qualifiedname>
+        <param>
+          <type>Sbuffer *</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceView.h" line="32" column="3" bodyfile="resourceView.h" bodystart="32" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1BufferView_1ac0a63f224e30764d84cbba65a13f49e6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::BufferView::BufferView</definition>
+        <argsstring>()</argsstring>
+        <name>BufferView</name>
+        <qualifiedname>dafg::BufferView::BufferView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceView.h" line="33" column="3" bodyfile="resourceView.h" bodystart="33" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1BufferView_1aea3348d01f03b230e5c596e9cd79cc3d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer * dafg::BufferView::operator-&gt;</definition>
+        <argsstring>() const</argsstring>
+        <name>operator-&gt;</name>
+        <qualifiedname>dafg::BufferView::operator-&gt;</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceView.h" line="34" column="11" bodyfile="resourceView.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1BufferView_1a476ee5e40bb07c5a299953f20fa1e863" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer * dafg::BufferView::getBuf</definition>
+        <argsstring>() const</argsstring>
+        <name>getBuf</name>
+        <qualifiedname>dafg::BufferView::getBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceView.h" line="35" column="11" bodyfile="resourceView.h" bodystart="35" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1BufferView_1ab44da802d81777cfc3057de6137a968f" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::BufferView::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <qualifiedname>dafg::BufferView::operator bool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceView.h" line="36" column="12" bodyfile="resourceView.h" bodystart="36" bodyend="36"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdafg_1_1BufferView_1a13aace64fe727e5cb7955f7b0111b442" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator==</definition>
+        <argsstring>(const BufferView &amp;lhs, const BufferView &amp;rhs)</argsstring>
+        <name>operator==</name>
+        <qualifiedname>dafg::BufferView::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="classdafg_1_1BufferView" kindref="compound">BufferView</ref> &amp;</type>
+          <declname>lhs</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classdafg_1_1BufferView" kindref="compound">BufferView</ref> &amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceView.h" line="37" column="15" bodyfile="resourceView.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="resourceView.h" line="26" column="1" bodyfile="resourceView.h" bodystart="27" bodyend="38"/>
+    <listofallmembers>
+      <member refid="classdafg_1_1BufferView_1ac0ca50e13d03edf6395fc8c9957339a5" prot="private" virt="non-virtual"><scope>dafg::BufferView</scope><name>buf</name></member>
+      <member refid="classdafg_1_1BufferView_1a76e9c3e891a73991b5cd306413dcfd98" prot="public" virt="non-virtual"><scope>dafg::BufferView</scope><name>BufferView</name></member>
+      <member refid="classdafg_1_1BufferView_1ac0a63f224e30764d84cbba65a13f49e6" prot="public" virt="non-virtual"><scope>dafg::BufferView</scope><name>BufferView</name></member>
+      <member refid="classdafg_1_1BufferView_1a476ee5e40bb07c5a299953f20fa1e863" prot="public" virt="non-virtual"><scope>dafg::BufferView</scope><name>getBuf</name></member>
+      <member refid="classdafg_1_1BufferView_1ab44da802d81777cfc3057de6137a968f" prot="public" virt="non-virtual"><scope>dafg::BufferView</scope><name>operator bool</name></member>
+      <member refid="classdafg_1_1BufferView_1aea3348d01f03b230e5c596e9cd79cc3d" prot="public" virt="non-virtual"><scope>dafg::BufferView</scope><name>operator-&gt;</name></member>
+      <member refid="classdafg_1_1BufferView_1a13aace64fe727e5cb7955f7b0111b442" prot="public" virt="non-virtual"><scope>dafg::BufferView</scope><name>operator==</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

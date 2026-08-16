@@ -1,0 +1,115 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structAtlasBlockManager_1_1ChunkLocation" kind="struct" language="C++" prot="public">
+    <compoundname>AtlasBlockManager::ChunkLocation</compoundname>
+    <derivedcompoundref refid="structAtlasBlockManager_1_1Chunk" prot="public" virt="non-virtual">AtlasBlockManager::Chunk</derivedcompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structAtlasBlockManager_1_1ChunkLocation_1ac87dc2a9fbc32f88e5b7da8821601d92" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t AtlasBlockManager::ChunkLocation::pool</definition>
+        <argsstring></argsstring>
+        <name>pool</name>
+        <qualifiedname>AtlasBlockManager::ChunkLocation::pool</qualifiedname>
+        <bitfield> POOL_BITS</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="24" column="14" bodyfile="dag_atlasBlockManager.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structAtlasBlockManager_1_1ChunkLocation_1a6325b2ed61ac65ae3cd3ada5ffb58fb4" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t AtlasBlockManager::ChunkLocation::firstBlock</definition>
+        <argsstring></argsstring>
+        <name>firstBlock</name>
+        <qualifiedname>AtlasBlockManager::ChunkLocation::firstBlock</qualifiedname>
+        <bitfield> 32 - POOL_BITS</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="25" column="14" bodyfile="dag_atlasBlockManager.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structAtlasBlockManager_1_1ChunkLocation_1a4c469609327d988e68839ae12f8c8a8d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>AtlasBlockManager::ChunkLocation::ChunkLocation</definition>
+        <argsstring>()</argsstring>
+        <name>ChunkLocation</name>
+        <qualifiedname>AtlasBlockManager::ChunkLocation::ChunkLocation</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="27" column="5" bodyfile="dag_atlasBlockManager.h" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="structAtlasBlockManager_1_1ChunkLocation_1a594b19efd9b8380f44dc0bb45628ef8a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>AtlasBlockManager::ChunkLocation::ChunkLocation</definition>
+        <argsstring>(uint32_t p, uint32_t f)</argsstring>
+        <name>ChunkLocation</name>
+        <qualifiedname>AtlasBlockManager::ChunkLocation::ChunkLocation</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="28" column="5" bodyfile="dag_atlasBlockManager.h" bodystart="28" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="structAtlasBlockManager_1_1ChunkLocation_1a21dbc18687776c27e43ec64d19fef53a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool AtlasBlockManager::ChunkLocation::valid</definition>
+        <argsstring>() const</argsstring>
+        <name>valid</name>
+        <qualifiedname>AtlasBlockManager::ChunkLocation::valid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="29" column="10" bodyfile="dag_atlasBlockManager.h" bodystart="29" bodyend="29"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>AtlasBlockManager::Chunk</label>
+        <link refid="structAtlasBlockManager_1_1Chunk"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>AtlasBlockManager::ChunkLocation</label>
+        <link refid="structAtlasBlockManager_1_1ChunkLocation"/>
+      </node>
+    </inheritancegraph>
+    <location file="dag_atlasBlockManager.h" line="22" column="3" bodyfile="dag_atlasBlockManager.h" bodystart="23" bodyend="30"/>
+    <listofallmembers>
+      <member refid="structAtlasBlockManager_1_1ChunkLocation_1a4c469609327d988e68839ae12f8c8a8d" prot="public" virt="non-virtual"><scope>AtlasBlockManager::ChunkLocation</scope><name>ChunkLocation</name></member>
+      <member refid="structAtlasBlockManager_1_1ChunkLocation_1a594b19efd9b8380f44dc0bb45628ef8a" prot="public" virt="non-virtual"><scope>AtlasBlockManager::ChunkLocation</scope><name>ChunkLocation</name></member>
+      <member refid="structAtlasBlockManager_1_1ChunkLocation_1a6325b2ed61ac65ae3cd3ada5ffb58fb4" prot="public" virt="non-virtual"><scope>AtlasBlockManager::ChunkLocation</scope><name>firstBlock</name></member>
+      <member refid="structAtlasBlockManager_1_1ChunkLocation_1ac87dc2a9fbc32f88e5b7da8821601d92" prot="public" virt="non-virtual"><scope>AtlasBlockManager::ChunkLocation</scope><name>pool</name></member>
+      <member refid="structAtlasBlockManager_1_1ChunkLocation_1a21dbc18687776c27e43ec64d19fef53a" prot="public" virt="non-virtual"><scope>AtlasBlockManager::ChunkLocation</scope><name>valid</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

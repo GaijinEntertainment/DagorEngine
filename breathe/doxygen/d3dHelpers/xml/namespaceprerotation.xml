@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceprerotation" kind="namespace" language="C++">
+    <compoundname>prerotation</compoundname>
+    <innerclass refid="classprerotation_1_1Scope" prot="public">prerotation::Scope</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceprerotation_1ac689a4204d012caf7af3f1d1afd27026" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void prerotation::refresh</definition>
+        <argsstring>()</argsstring>
+        <name>refresh</name>
+        <qualifiedname>prerotation::refresh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_preRotation.h" line="35" column="13" bodyfile="dag_preRotation.h" bodystart="35" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceprerotation_1ac8af18413d756432b881be0637cbf89b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int prerotation::frame_angle</definition>
+        <argsstring>()</argsstring>
+        <name>frame_angle</name>
+        <qualifiedname>prerotation::frame_angle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_preRotation.h" line="37" column="12" bodyfile="dag_preRotation.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceprerotation_1a850a16d626f6647b79cc7e2f59179de9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int prerotation::angle_for_target</definition>
+        <argsstring>(BaseTexture *)</argsstring>
+        <name>angle_for_target</name>
+        <qualifiedname>prerotation::angle_for_target</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_preRotation.h" line="39" column="12" bodyfile="dag_preRotation.h" bodystart="39" bodyend="39"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceprerotation_1a48766e5ce8a1ad7debb6abfe8fd6d753" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void prerotation::set_shader_var</definition>
+        <argsstring>(int)</argsstring>
+        <name>set_shader_var</name>
+        <qualifiedname>prerotation::set_shader_var</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_preRotation.h" line="41" column="13" bodyfile="dag_preRotation.h" bodystart="41" bodyend="41"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceprerotation_1aa2aceae6c82438a5466e2111855bffde" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int prerotation::get_current_angle</definition>
+        <argsstring>()</argsstring>
+        <name>get_current_angle</name>
+        <qualifiedname>prerotation::get_current_angle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_preRotation.h" line="42" column="12" bodyfile="dag_preRotation.h" bodystart="42" bodyend="42"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_preRotation.h" line="9" column="1"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,510 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classFencedRingBuffer" kind="class" language="C++" prot="public">
+    <compoundname>FencedRingBuffer</compoundname>
+    <includes refid="dag__fencedRingBuffer_8h" local="no">dag_fencedRingBuffer.h</includes>
+    <innerclass refid="structFencedRingBuffer_1_1FrameHeadAttribs" prot="public">FencedRingBuffer::FrameHeadAttribs</innerclass>
+    <templateparamlist>
+      <param>
+        <type>class FenceType</type>
+        <defval>D3dEventQuery *</defval>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" prot="public" static="no">
+        <type>size_t</type>
+        <definition>using FencedRingBuffer&lt; FenceType &gt;::offset_type_t =  size_t</definition>
+        <argsstring></argsstring>
+        <name>offset_type_t</name>
+        <qualifiedname>FencedRingBuffer::offset_type_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="16" column="3" bodyfile="dag_fencedRingBuffer.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classFencedRingBuffer_1afd0e4169390a18ab33da33705d9ed6b2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>constexpr offset_type_t FencedRingBuffer&lt; FenceType &gt;::invalid_offset</definition>
+        <argsstring></argsstring>
+        <name>invalid_offset</name>
+        <qualifiedname>FencedRingBuffer::invalid_offset</qualifiedname>
+        <initializer>= <ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref>(~<ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref>(0))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="17" column="34" bodyfile="dag_fencedRingBuffer.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classFencedRingBuffer_1afdc21ee29ad1917da281b21a20fd73dd" prot="private" static="no" mutable="no">
+        <type>eastl::deque&lt; <ref refid="structFencedRingBuffer_1_1FrameHeadAttribs" kindref="compound">FrameHeadAttribs</ref> &gt;</type>
+        <definition>eastl::deque&lt;FrameHeadAttribs&gt; FencedRingBuffer&lt; FenceType &gt;::completedFrameHeads</definition>
+        <argsstring></argsstring>
+        <name>completedFrameHeads</name>
+        <qualifiedname>FencedRingBuffer::completedFrameHeads</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="162" column="16" bodyfile="dag_fencedRingBuffer.h" bodystart="162" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFencedRingBuffer_1a51153b65e81188bdb181726944230b4c" prot="private" static="no" mutable="no">
+        <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t FencedRingBuffer&lt; FenceType &gt;::tail</definition>
+        <argsstring></argsstring>
+        <name>tail</name>
+        <qualifiedname>FencedRingBuffer::tail</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="164" column="17" bodyfile="dag_fencedRingBuffer.h" bodystart="164" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFencedRingBuffer_1a32911dc5bb049abee82e87aaabf0caab" prot="private" static="no" mutable="no">
+        <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t FencedRingBuffer&lt; FenceType &gt;::head</definition>
+        <argsstring></argsstring>
+        <name>head</name>
+        <qualifiedname>FencedRingBuffer::head</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="165" column="17" bodyfile="dag_fencedRingBuffer.h" bodystart="165" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFencedRingBuffer_1aef6e88f1c1b28b551e8ccaccce4e99a3" prot="private" static="no" mutable="no">
+        <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t FencedRingBuffer&lt; FenceType &gt;::maxSize</definition>
+        <argsstring></argsstring>
+        <name>maxSize</name>
+        <qualifiedname>FencedRingBuffer::maxSize</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="166" column="17" bodyfile="dag_fencedRingBuffer.h" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFencedRingBuffer_1abcd664c43b863417dbeee6e5af9db9e8" prot="private" static="no" mutable="no">
+        <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t FencedRingBuffer&lt; FenceType &gt;::usedSize</definition>
+        <argsstring></argsstring>
+        <name>usedSize</name>
+        <qualifiedname>FencedRingBuffer::usedSize</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="167" column="17" bodyfile="dag_fencedRingBuffer.h" bodystart="167" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFencedRingBuffer_1a1f8224c49433144928835b69a1a68362" prot="private" static="no" mutable="no">
+        <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t FencedRingBuffer&lt; FenceType &gt;::currentFrameSize</definition>
+        <argsstring></argsstring>
+        <name>currentFrameSize</name>
+        <qualifiedname>FencedRingBuffer::currentFrameSize</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="168" column="17" bodyfile="dag_fencedRingBuffer.h" bodystart="168" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classFencedRingBuffer_1a332ce2f9890205786f067392eb4b4be6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>FencedRingBuffer&lt; FenceType &gt;::FencedRingBuffer</definition>
+        <argsstring>(offset_type_t sz)</argsstring>
+        <name>FencedRingBuffer</name>
+        <qualifiedname>FencedRingBuffer::FencedRingBuffer</qualifiedname>
+        <param>
+          <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="27" column="3" bodyfile="dag_fencedRingBuffer.h" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1adbda65e8d56decd8a30630106ad94201" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>FencedRingBuffer&lt; FenceType &gt;::FencedRingBuffer</definition>
+        <argsstring>(FencedRingBuffer &amp;&amp;a)</argsstring>
+        <name>FencedRingBuffer</name>
+        <qualifiedname>FencedRingBuffer::FencedRingBuffer</qualifiedname>
+        <param>
+          <type><ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref> &amp;&amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="29" column="3" bodyfile="dag_fencedRingBuffer.h" bodystart="29" bodyend="38"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1aa0ba1fcddc9c307cf333176fee1cc504" prot="public" static="no" const="no" explicit="no" inline="yes" noexcept="yes" virt="non-virtual">
+        <type><ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref> &amp;</type>
+        <definition>FencedRingBuffer &amp; FencedRingBuffer&lt; FenceType &gt;::operator=</definition>
+        <argsstring>(FencedRingBuffer &amp;&amp;a) noexcept</argsstring>
+        <name>operator=</name>
+        <qualifiedname>FencedRingBuffer::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref> &amp;&amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="40" column="20" bodyfile="dag_fencedRingBuffer.h" bodystart="40" bodyend="51"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1aafe88b529433a6f1dde2d604123ed392" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>FencedRingBuffer&lt; FenceType &gt;::FencedRingBuffer</definition>
+        <argsstring>(const FencedRingBuffer &amp;)=delete</argsstring>
+        <name>FencedRingBuffer</name>
+        <qualifiedname>FencedRingBuffer::FencedRingBuffer</qualifiedname>
+        <param>
+          <type>const <ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="53" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1a53759263ac4e3c8648ce4ac2281c17ff" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref> &amp;</type>
+        <definition>FencedRingBuffer &amp; FencedRingBuffer&lt; FenceType &gt;::operator=</definition>
+        <argsstring>(const FencedRingBuffer &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>FencedRingBuffer::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="54" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1ac7b74f9ff83a7541d5723ff14bc1cf76" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>FencedRingBuffer&lt; FenceType &gt;::~FencedRingBuffer</definition>
+        <argsstring>()</argsstring>
+        <name>~FencedRingBuffer</name>
+        <qualifiedname>FencedRingBuffer::~FencedRingBuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="56" column="3" bodyfile="dag_fencedRingBuffer.h" bodystart="56" bodyend="56"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1a881f72d630bd68501d3a9b98988729f2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t FencedRingBuffer&lt; FenceType &gt;::allocateFromHead</definition>
+        <argsstring>(offset_type_t size, offset_type_t alignedHead)</argsstring>
+        <name>allocateFromHead</name>
+        <qualifiedname>FencedRingBuffer::allocateFromHead</qualifiedname>
+        <param>
+          <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+          <declname>alignedHead</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="58" column="17" bodyfile="dag_fencedRingBuffer.h" bodystart="58" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1a4482c78657175f2debc4ba82aca42cb6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t FencedRingBuffer&lt; FenceType &gt;::allocate</definition>
+        <argsstring>(offset_type_t size, offset_type_t alignment)</argsstring>
+        <name>allocate</name>
+        <qualifiedname>FencedRingBuffer::allocate</qualifiedname>
+        <param>
+          <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+          <declname>alignment</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="69" column="17" bodyfile="dag_fencedRingBuffer.h" bodystart="69" bodyend="102"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1aad8c94a97896cf6d3bc08e3104068eab" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void FencedRingBuffer&lt; FenceType &gt;::updateLast</definition>
+        <argsstring>(intptr_t allocated_minus_actual_used)</argsstring>
+        <name>updateLast</name>
+        <qualifiedname>FencedRingBuffer::updateLast</qualifiedname>
+        <param>
+          <type>intptr_t</type>
+          <declname>allocated_minus_actual_used</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="103" column="8" bodyfile="dag_fencedRingBuffer.h" bodystart="103" bodyend="108"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1a5fa4986ea31618b4c7afd12c3aec7756" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void FencedRingBuffer&lt; FenceType &gt;::finishCurrentFrame</definition>
+        <argsstring>(FenceType &amp;&amp;fv)</argsstring>
+        <name>finishCurrentFrame</name>
+        <qualifiedname>FencedRingBuffer::finishCurrentFrame</qualifiedname>
+        <param>
+          <type>FenceType &amp;&amp;</type>
+          <declname>fv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="111" column="8" bodyfile="dag_fencedRingBuffer.h" bodystart="111" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1aef8e555780f82fbc5a8a324ebd3d7239" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class IsFinishedFence</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void FencedRingBuffer&lt; FenceType &gt;::releaseCompletedFrames</definition>
+        <argsstring>(IsFinishedFence finished)</argsstring>
+        <name>releaseCompletedFrames</name>
+        <qualifiedname>FencedRingBuffer::releaseCompletedFrames</qualifiedname>
+        <param>
+          <type>IsFinishedFence</type>
+          <declname>finished</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="124" column="8" bodyfile="dag_fencedRingBuffer.h" bodystart="124" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1ae04b5ec9b92a5cf9b0c78b6560b26f5d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void FencedRingBuffer&lt; FenceType &gt;::forceReset</definition>
+        <argsstring>()</argsstring>
+        <name>forceReset</name>
+        <qualifiedname>FencedRingBuffer::forceReset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="142" column="8" bodyfile="dag_fencedRingBuffer.h" bodystart="142" bodyend="146"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1a4c3c4c8ed07c9f5f7cd2bd8ebf3b766e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void FencedRingBuffer&lt; FenceType &gt;::reset</definition>
+        <argsstring>(offset_type_t sz)</argsstring>
+        <name>reset</name>
+        <qualifiedname>FencedRingBuffer::reset</qualifiedname>
+        <param>
+          <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="147" column="8" bodyfile="dag_fencedRingBuffer.h" bodystart="147" bodyend="151"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1aa1c061599907ba367413c2895984bbf6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t FencedRingBuffer&lt; FenceType &gt;::getMaxSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getMaxSize</name>
+        <qualifiedname>FencedRingBuffer::getMaxSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="153" column="17" bodyfile="dag_fencedRingBuffer.h" bodystart="153" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1a5bb126c79d9a46f0f86785866698cafa" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool FencedRingBuffer&lt; FenceType &gt;::isFull</definition>
+        <argsstring>() const</argsstring>
+        <name>isFull</name>
+        <qualifiedname>FencedRingBuffer::isFull</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="154" column="8" bodyfile="dag_fencedRingBuffer.h" bodystart="154" bodyend="154"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1a322a0d35d4d8c028bb58a5ff444984d2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool FencedRingBuffer&lt; FenceType &gt;::isEmpty</definition>
+        <argsstring>() const</argsstring>
+        <name>isEmpty</name>
+        <qualifiedname>FencedRingBuffer::isEmpty</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="155" column="8" bodyfile="dag_fencedRingBuffer.h" bodystart="155" bodyend="155"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1a40691fcf82c11c20ca9fb26652d34d66" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t FencedRingBuffer&lt; FenceType &gt;::getUsedSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getUsedSize</name>
+        <qualifiedname>FencedRingBuffer::getUsedSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="156" column="17" bodyfile="dag_fencedRingBuffer.h" bodystart="156" bodyend="156"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1a1b4c1b50240eac2d084e973e35c08dbf" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t FencedRingBuffer&lt; FenceType &gt;::getHead</definition>
+        <argsstring>() const</argsstring>
+        <name>getHead</name>
+        <qualifiedname>FencedRingBuffer::getHead</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="157" column="17" bodyfile="dag_fencedRingBuffer.h" bodystart="157" bodyend="157"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1ab235a52ae47c423174aa0b61fabc338b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t FencedRingBuffer&lt; FenceType &gt;::getTail</definition>
+        <argsstring>() const</argsstring>
+        <name>getTail</name>
+        <qualifiedname>FencedRingBuffer::getTail</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="158" column="17" bodyfile="dag_fencedRingBuffer.h" bodystart="158" bodyend="158"/>
+      </memberdef>
+      <memberdef kind="function" id="classFencedRingBuffer_1ad00b953afe172aa2bbcdf7be8be226c0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t FencedRingBuffer&lt; FenceType &gt;::getCurrentFrameSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getCurrentFrameSize</name>
+        <qualifiedname>FencedRingBuffer::getCurrentFrameSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="159" column="17" bodyfile="dag_fencedRingBuffer.h" bodystart="159" bodyend="159"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_fencedRingBuffer.h" line="13" column="1" bodyfile="dag_fencedRingBuffer.h" bodystart="14" bodyend="169"/>
+    <listofallmembers>
+      <member refid="classFencedRingBuffer_1a4482c78657175f2debc4ba82aca42cb6" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>allocate</name></member>
+      <member refid="classFencedRingBuffer_1a881f72d630bd68501d3a9b98988729f2" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>allocateFromHead</name></member>
+      <member refid="classFencedRingBuffer_1afdc21ee29ad1917da281b21a20fd73dd" prot="private" virt="non-virtual"><scope>FencedRingBuffer</scope><name>completedFrameHeads</name></member>
+      <member refid="classFencedRingBuffer_1a1f8224c49433144928835b69a1a68362" prot="private" virt="non-virtual"><scope>FencedRingBuffer</scope><name>currentFrameSize</name></member>
+      <member refid="classFencedRingBuffer_1a332ce2f9890205786f067392eb4b4be6" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>FencedRingBuffer</name></member>
+      <member refid="classFencedRingBuffer_1adbda65e8d56decd8a30630106ad94201" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>FencedRingBuffer</name></member>
+      <member refid="classFencedRingBuffer_1aafe88b529433a6f1dde2d604123ed392" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>FencedRingBuffer</name></member>
+      <member refid="classFencedRingBuffer_1a5fa4986ea31618b4c7afd12c3aec7756" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>finishCurrentFrame</name></member>
+      <member refid="classFencedRingBuffer_1ae04b5ec9b92a5cf9b0c78b6560b26f5d" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>forceReset</name></member>
+      <member refid="classFencedRingBuffer_1ad00b953afe172aa2bbcdf7be8be226c0" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>getCurrentFrameSize</name></member>
+      <member refid="classFencedRingBuffer_1a1b4c1b50240eac2d084e973e35c08dbf" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>getHead</name></member>
+      <member refid="classFencedRingBuffer_1aa1c061599907ba367413c2895984bbf6" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>getMaxSize</name></member>
+      <member refid="classFencedRingBuffer_1ab235a52ae47c423174aa0b61fabc338b" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>getTail</name></member>
+      <member refid="classFencedRingBuffer_1a40691fcf82c11c20ca9fb26652d34d66" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>getUsedSize</name></member>
+      <member refid="classFencedRingBuffer_1a32911dc5bb049abee82e87aaabf0caab" prot="private" virt="non-virtual"><scope>FencedRingBuffer</scope><name>head</name></member>
+      <member refid="classFencedRingBuffer_1afd0e4169390a18ab33da33705d9ed6b2" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>invalid_offset</name></member>
+      <member refid="classFencedRingBuffer_1a322a0d35d4d8c028bb58a5ff444984d2" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>isEmpty</name></member>
+      <member refid="classFencedRingBuffer_1a5bb126c79d9a46f0f86785866698cafa" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>isFull</name></member>
+      <member refid="classFencedRingBuffer_1aef6e88f1c1b28b551e8ccaccce4e99a3" prot="private" virt="non-virtual"><scope>FencedRingBuffer</scope><name>maxSize</name></member>
+      <member refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>offset_type_t</name></member>
+      <member refid="classFencedRingBuffer_1aa0ba1fcddc9c307cf333176fee1cc504" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>operator=</name></member>
+      <member refid="classFencedRingBuffer_1a53759263ac4e3c8648ce4ac2281c17ff" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>operator=</name></member>
+      <member refid="classFencedRingBuffer_1aef8e555780f82fbc5a8a324ebd3d7239" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>releaseCompletedFrames</name></member>
+      <member refid="classFencedRingBuffer_1a4c3c4c8ed07c9f5f7cd2bd8ebf3b766e" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>reset</name></member>
+      <member refid="classFencedRingBuffer_1a51153b65e81188bdb181726944230b4c" prot="private" virt="non-virtual"><scope>FencedRingBuffer</scope><name>tail</name></member>
+      <member refid="classFencedRingBuffer_1aad8c94a97896cf6d3bc08e3104068eab" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>updateLast</name></member>
+      <member refid="classFencedRingBuffer_1abcd664c43b863417dbeee6e5af9db9e8" prot="private" virt="non-virtual"><scope>FencedRingBuffer</scope><name>usedSize</name></member>
+      <member refid="classFencedRingBuffer_1ac7b74f9ff83a7541d5723ff14bc1cf76" prot="public" virt="non-virtual"><scope>FencedRingBuffer</scope><name>~FencedRingBuffer</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,2512 @@
+
+daRG Framework
+==============
+
+Docs for daRG - Dagor Reactive GUI framework, based on Quirrel language and Functional Reactive Programming (FRP).
+
+Overview
+--------
+
+daRG (Dagor Reactive GUI) is a reactive GUI framework integrated into the Dagor
+Engine. It is significantly inspired by React JS and React Native from Facebook,
+as well as frameworks like Flutter.
+
+Documentation and examples are available in the viewer located at:
+
+.. code-block:: shell
+
+   dagor2/tools/dargbox/
+
+You can run the examples using:
+
+.. code-block:: shell
+
+   windows-x86_64\dargbox-dev.exe -config\:script\:t=samples_prog/_basic/layout/basic_layout.ui.nut
+
+Use ``s.bat`` to launch the example browser. The examples themselves are located
+at:
+
+.. code-block:: shell
+
+   prog/tools/dargbox/gamebase
+
+The author and conceptual designer of daRG is Vasiliy Ryabtsev. Current
+maintainers: Alexey Borisov, Alexey Volynskov.
+
+Core Principles
+---------------
+
+* **Reactivity**: Code executes only when changes occur.
+* **Portability**: UI logic and markup are written in the interpreted language
+  Quirrel, ensuring compatibility across multiple platforms (consoles, mobile
+  devices) without requiring code submission. This facilitates easy modding.
+* **Responsiveness and Performance**: Interfaces must quickly and efficiently
+  respond to user interactions.
+* **Native and Simple Animations**: Animations should be straightforward to
+  create and perform efficiently.
+* **Explicit State Management**: The UI explicitly reflects visible state
+  changes, simplifying debugging and reducing state-related errors common in
+  traditional approaches.
+* **VR Support**: Full support for 3D interfaces.
+
+In daRG, all UI elements are created using a single language (Quirrel), unlike
+traditional web stacks (HTML, CSS, JS) or daGUI (blk, css, quirrel).
+
+Separation of Concerns
+----------------------
+
+Traditional technologies (HTML, CSS, JS) do not effectively separate
+responsibilities. In daRG, separation is based on responsibilities rather than
+technologies. Each UI component is self-contained, reusable, and maintained
+independently. Components explicitly state their dependencies, ensuring
+consistency across different interface instances.
+
+Immediate vs Retained Mode
+--------------------------
+
+Working with daRG can feel like using Immediate Mode GUI—code seemingly executes
+each frame. However, in practice, daRG only executes scripts when the relevant
+state changes, thus optimizing performance. You describe UI rendering logic, and
+daRG selectively updates components affected by state changes, providing
+significant performance optimizations.
+
+Explicit State
+--------------
+
+All state in daRG is entirely explicit, eliminating hidden states (e.g.,
+checkbox values). The state is a clearly defined model, changing explicitly and
+triggering UI updates accordingly. This approach simplifies debugging and
+facilitates advanced debugging features like a state history ("time machine"),
+assuming state adheres to certain contracts. The ``persist`` function can save
+the state, allowing restoration upon reload.
+
+Core Concepts
+-------------
+
+**Component**
+A description of UI element in form of a table with properties or a function that generates such a table.
+This description maps a logical state into an interactive representation.
+
+**Element**
+A current interactive piece of an UI scene that may be rendered, may define visual layout, and may process input and other events.
+
+**Behaviors**
+A Behavior is a reusable unit of UI logic implemented in C++ and exposed to Quirrel scripts.
+It encapsulates event handling, state management, and interaction patterns for UI elements.
+A behavior instance is usually attached to a UI element in markup and can react to events such as pointer movement, clicks, keyboard input, or custom signals.
+Behaviors can modify element properties directly, call user-defined callback functions, or update reactive variables to trigger UI updates.
+They provide the equivalent of a "controller" in other UI frameworks and allow complex interactivity to be implemented once and reused across multiple views.
+Common behaviors include: Button, Slider, TextInput, TextArea, Pannable, MoveResize, DragAndDrop and others.
+
+**Render Objects**
+Render objects are the low-level drawing primitives in daRG.
+A render object represents something that can be drawn on screen: an image, a piece of text, a shape, or anything else visual.
+They are implemented in C++ and are processed by the C++ rendering pipeline.
+Common render objects include: ROBJ_SOLID, ROBJ_IMAGE, ROBJ_TEXT, ROBJ_INSCRIPTION, ROBJ_FRAME, ROBJ_BOX, ROBJ_MOVIE and others.
+
+**Watch Fields (FRP Observables)**
+Watch fields are reactive variables that automatically propagate changes to any dependent computations or bound UI properties.
+They implement a form of Functional Reactive Programming (FRP) in which UI state is expressed as a network of dependencies.
+When a watch field changes value, all computations that depend on it are invalidated and recomputed, any dependent UI components are recalculated, and scene elements are rebuild to reflect the changes.
+This eliminates the need for explicit update calls, as the data flow is declarative.
+Watch fields can be combined, transformed, or computed from other watch fields, allowing complex state to be derived without manual synchronization.
+
+**Events and Input Handling**
+The UI layer processes events from multiple sources (mouse, touch, gamepad, keyboard, VR input devices) and routes them to the relevant behaviors of elements.
+Event propagation follows a tree structure matching the UI hierarchy. Behaviors can inform the subsequent behaviors about whether these events were consumed earlier.
+
+**Layout and Composition**
+UI elements in daRG use a flexible layout model inspired by CSS flexbox and flow layouts.
+Elements can size themselves based on content, fill available space, align and flow relative to parent containers, or use fixed positioning.
+Layouts are recomputed automatically when relevant state changes occur.
+
+
+Example
+--------
+
+Here is a sample daRG component (``introduction.nut``):
+
+.. code-block:: quirrel
+
+   return {
+     rendObj = ROBJ_SOLID
+     color = Color(30,40,50)
+     size = flex()
+     gap = sh(2)
+     flow = FLOW_HORIZONTAL
+     halign = ALIGN_CENTER
+     valign = ALIGN_MIDDLE
+     children = [
+       {
+         size = [sh(5), sh(5)]
+         rendObj = ROBJ_IMAGE
+         image= Picture("ui/image.png")
+       },
+       {
+         rendObj = ROBJ_TEXT
+         text = "Hello World!"
+       }
+     ]
+   }
+
+Interoperability with Native Code
+---------------------------------
+
+daRG offers three main methods to interface with native (game) code:
+
+* **ECS**: Quirrel bindings provide access to ECS world data.
+* **Watch/Observables**: Native observables or callback registration from native
+  code.
+* **Behavior.RtPropUpdate**: A method for updating properties every frame if
+  necessary (this won't be fast). It is more performant than frequently updating
+  observable values and is used primarily for animations or real-time UI
+  updates.
+
+Observables (Watched)
+---------------------
+
+The Observable pattern (``Watched``) works as follows:
+
+* ``watched.get()``: Retrieve the object's value.
+* ``watched.set(some_value)`` / ``watched.modify(callback, called with current value, and should return new value)``: Set a new value.
+* ``watched.mutate(callback)``: Modify content within the object (e.g., arrays
+  or tables).
+* ``watched.subscribe(callback)``: Subscribe to object changes, triggering
+  callbacks post-change.
+* ``watched.unsubscribe(callback)``: Unsubscribe callback
+* ``watched.trigger()``: Manually invoke all subscribers of an observable
+  object.
+
+Example counter component (``counter.ui.nut``):
+
+.. code-block:: quirrel
+
+   from "daRg" import *
+   from "frp" import *
+
+   let counter = Watched(0)
+   let increment = @() counter.modify(@(v) v+1)
+   let decrement = @() counter.modify(@(v) v-1)
+
+   return {
+     rendObj = ROBJ_SOLID
+     color = Color(30,40,50)
+     size = flex()
+     gap = sh(5)
+     flow = FLOW_VERTICAL
+     halign = ALIGN_CENTER
+     valign = ALIGN_CENTER
+     children = [
+       button("Increment", increment, "^I"),
+       @() { rendObj = ROBJ_TEXT, text=$"Counter value = {counter.get()}", watch=counter },
+       button("Decrement", decrement, "^D")
+     ]
+   }
+
+This approach emphasizes clarity, explicit state, and high performance.
+
+Component Reference
+-------------------
+
+daRg behaviors
+=================
+
+Button
+------
+Captures press inside hitbox (with configurable touch margin),
+maintains "active" state while pressed, cancels if the element moves due to scrolling,
+issues click or double-click on release within tolerance, optionally focuses the element,
+and fires a touch-hold callback after the hold delay.
+Handles mouse, touch, joystick, and keyboard activation.
+
+**Properties**
+
+- ``onClick([event])`` – function.
+- ``onDoubleClick([event])`` – function.
+- ``eventPassThrough`` – bool. If true, does not raise "consumed" flag on propagation.
+- ``focusOnClick`` – bool. Gives keyboard focus on successful click.
+- ``onTouchHold([event])`` – function. Called after holding for a delay.
+- ``touchHoldTime`` – float (seconds). Delay for ``onTouchHold``.
+
+DragAndDrop
+-----------
+Tracks pointer press; after movement threshold or ``dragStartDelay``, enters drag,
+raises visual "drag" state, floats the element (translation and Z-on-top),
+continuously hunts a valid drop target (``canDrop``), and on release calls that target's ``onDrop``.
+If movement stayed under click threshold, it falls back to click/double-click handling.
+
+**Properties**
+
+- ``dragStartDelay`` – float (seconds). Press-and-hold delay before a drag starts.
+- ``dropData`` – any object/value. Arbitrary payload associated with the dragged element; passed to drop handlers.
+- ``onDrop(drop_data)`` – function. Called on the drop target when a drag is released over it; receives the source's ``dropData``.
+- ``canDrop(drop_data) -> bool`` – function. Optional predicate on potential targets; if false, the element is excluded as a drop target.
+- ``onDragMode(on: bool, drop_data)`` – function. Called on the draggable when drag mode toggles on/off; receives current ``dropData``.
+- ``onClick([event])`` – function. Called on single click if not dragging.
+- ``onDoubleClick([event])`` – function. Called on double click if not dragging.
+
+Pannable
+--------
+Implements scrollable viewport with one or two-finger touch dragging, mouse dragging,
+kinetic scrolling on release, and overscroll feedback. Supports axis locking and scroll velocity filtering.
+
+**Properties**
+
+- ``panMouseButton`` – int. Mouse button to use for panning (-1 for any).
+- ``onTouchBegin()`` – function. Called when touch begins.
+- ``kineticScrollOnTouchEnd(velocity)`` – function. Alternative to built-in kinetic scrolling.
+- ``kineticAxisLockAngle`` – float (degrees). Angle threshold for axis locking kinetic scroll.
+
+Pannable2Touch
+--------------
+Two-finger simultaneous touch panning; requires both fingers to be active for movement.
+
+**Properties**
+
+(None)
+
+Slider
+------
+Provides interactive slider/seekbar control with keyboard navigation, mouse/touch dragging,
+cursor positioning by click, and optional knob element. Supports custom value ranges,
+stepping, and wheel scrolling.
+
+**Properties**
+
+- ``min`` – float. Minimum value (default: 0).
+- ``max`` – float. Maximum value (default: 100).
+- ``fValue`` – float. Current value (default: 0).
+- ``unit`` – float. Step size for keyboard/wheel input (default: 1).
+- ``pageScroll`` – float. Page up/down step size (default: 10).
+- ``orientation`` – enum (horizontal/vertical). Slider orientation.
+- ``knob`` – component constructor. Child element to use as draggable knob.
+- ``onChange(value)`` – function. Called when value changes.
+- ``onSliderMouseMove(value)`` – function. Called during mouse hover with potential value.
+- ``ignoreWheel`` – bool. If true, ignores mouse wheel events.
+
+TextInput
+---------
+Single-line text input with cursor positioning, keyboard editing, clipboard support,
+character masking, IME integration, and validation callbacks.
+
+**Properties**
+
+- ``text`` – string. Current text content.
+- ``cursorPos`` – int. Current cursor position.
+- ``maxChars`` – int. Maximum character limit.
+- ``charMask`` – string. Allowed characters (empty = all allowed).
+- ``password`` – bool. If true, displays as password field.
+- ``onChange(text)`` – function. Called when text changes.
+- ``onReturn()`` – function. Called on Enter key press.
+- ``onEscape()`` – function. Called on Escape key press.
+- ``onWrongInput()`` – function. Called when invalid input is attempted.
+- ``title`` – string. IME dialog title.
+- ``hint`` – string. IME dialog hint text.
+- ``inputType`` – string. IME input type hint.
+- ``imeNoAutoCap`` – bool. Disables IME auto-capitalization.
+- ``imeNoCopy`` – bool. Disables IME copy functionality.
+- ``imeOpenJoyBtn`` – string. Joystick button to open IME.
+
+TextArea
+--------
+Multi-line formatted text rendering with support for color tags, custom fonts,
+text styling, and inline embedded components. Handles text parsing and layout formatting.
+
+**Properties**
+
+- ``text`` – string. Text content (may include formatting tags).
+- ``colorTable`` – table. Map of color name to color value for tag resolution.
+- ``tagsTable`` – table. Map of tag name to formatting attributes (color, font, fontSize).
+- ``embed`` – table. Map of tag name to component description (table or closure). See **Embedded Components** below.
+- ``preformatted`` – bool/int. Controls whitespace handling and formatting flags.
+- ``spacing`` – float. Character spacing.
+- ``lineSpacing`` – float. Additional line spacing.
+- ``parSpacing`` – float. Paragraph spacing.
+- ``indent`` – float. Text indentation.
+- ``hangingIndent`` – float. Hanging indent for continuation lines.
+- ``maxContentWidth`` – float. Maximum text width before wrapping.
+- ``valign`` – enum. Vertical alignment (top/center/bottom).
+- ``monoWidth`` – float/bool. Monospace width override.
+
+**Embedded Components**
+
+Inline UI elements can be placed within text using self-closing tags (``<name/>``).
+Each tag name must correspond to a key in the ``embed`` table.
+
+Components are rendered inline with text and aligned on the text baseline
+(i.e. bottom edge of the component sits on the baseline).
+
+Only absolute size modes are supported: ``pixels`` (e.g. ``hdpx(N)``, ``sh(N)``)
+and ``fontH`` (e.g. ``fontH(150)``).
+Relative sizes (``flex``, ``pw``, ``ph``, etc.) are not allowed.
+If size is not specified, it defaults to the current font height for both axes.
+Unlike layout, fontH is measured by the font ascent.
+Tag names are limited to 16 characters.
+
+Example::
+
+  let textarea = {
+    rendObj = ROBJ_TEXTAREA
+    behavior = Behaviors.TextArea
+    text = "Click <icon/> to continue"
+    embed = {
+      icon = {
+        size = [fontH(100), fontH(100)]
+        rendObj = ROBJ_IMAGE
+        image = Picture("!ui/atlas#arrow_icon")
+      }
+    }
+  }
+
+TextAreaEdit
+------------
+Editable multi-line text area with cursor navigation, text selection, formatting support,
+and IME integration. Extends TextArea with editing capabilities.
+
+**Properties**
+
+- ``editableText`` – EditableText object. Text editing state and content.
+- ``onChange(editableText)`` – function. Called when content changes.
+- ``onReturn()`` – function. When set, it is called on Enter/NumpadEnter instead of inserting a line break.
+- ``onImeFinish(applied)`` – function. Called when IME editing completes.
+- ``title`` – string. IME dialog title.
+- ``hint`` – string. IME dialog hint text.
+- ``inputType`` – string. IME input type.
+- ``maxChars`` – int. Maximum character limit.
+- ``allowTags`` – bool. When true, parse markup/embed tags so links render as atomic inline
+  component chips (like read-only TextArea); the vocabulary comes from the element's
+  ``colorTable`` / ``tagsTable`` / ``embed`` tables. When false (default), tags are literal text.
+  The tag vocabulary is fixed per ``EditableText`` instance: it is reparsed only when the
+  ``EditableText`` object itself is replaced, so changing ``allowTags`` / ``embed`` / ``tagsTable``
+  / ``colorTable`` while reusing the same ``EditableText`` across a rebuild is not supported.
+- ``imeNoAutoCap`` – bool. Disables auto-capitalization.
+- ``imeNoCopy`` – bool. Disables copy functionality.
+
+**EditableText object**
+
+- ``text`` – string property. Get all content, or set it (replaces everything, like a fresh value).
+- ``insertText(text, [pos])`` – insert ``text`` at character position ``pos``, defaulting to the
+  current caret. The caret ends up right after the inserted text. Honors ``maxChars`` (overflow is
+  trimmed) and the element's tag vocabulary. Inserting an empty string is a no-op. Throws if the
+  object is not attached to a TextAreaEdit element.
+
+PieMenu
+-------
+Radial/pie menu control supporting mouse, touch, and gamepad stick input.
+Tracks sector selection and handles click events with sector information.
+
+**Properties**
+
+- ``devId`` – enum (mouse/joystick/vr). Input device type.
+- ``stickNo`` – int. Gamepad stick number (0 or 1).
+- ``sectorsCount`` – int. Number of pie sectors.
+- ``curSector`` – observable. Current selected sector index.
+- ``curAngle`` – observable. Current angle selection.
+- ``onClick([sector])`` – function. Called on activation.
+- ``eventPassThrough`` – bool. Allows event propagation.
+
+ComboPopup
+----------
+A minimal click trigger suitable for combo dropdown popups; consumes the event on touch release.
+
+**Properties**
+
+- ``onClick()`` – function. Fired when popup is pressed (mouse) or released (touch).
+
+EatInput
+--------
+On press inside the element, flags mouse/touch input as stopped so that elements behind will discard it.
+Useful as a shield.
+
+**Properties**
+
+(None)
+
+BoundToArea
+-----------
+Before render, clamps the element's transformed bbox inside the screen's safe area by
+applying a translation so it stays fully visible.
+
+**Properties**
+
+- ``safeAreaMargin`` – offsets object/array (HTML notation: top, right, bottom, left).
+
+Marquee
+-------
+Auto-scrolls content from start to end with initial delay, optional looping, and optional fade-out phase;
+preserves position across recalcs when looping.
+Resets when not hovered if ``scrollOnHover`` is set.
+
+**Properties**
+
+- ``loop`` – bool. If true, continuously loops the scroll.
+- ``threshold`` – float. If overflow is within this threshold, disables marquee.
+- ``orientation`` – enum/int (horizontal or vertical). Axis to scroll.
+- ``speed`` – float. Scroll speed in pixels/sec (can be array for different phases).
+- ``delay`` – float or array. Initial delay and optional fade-out delay.
+- ``scrollOnHover`` – bool. If true, only scrolls while hovered.
+
+MoveResize
+----------
+Detects presses on edges/corners/area using an epsilon around the bbox,
+sets active visual state and cursor, and drives move/resize while the pointer moves.
+Cleans up on release and input deactivation.
+
+**Properties**
+
+- ``moveResizeModes`` – bitmask of handles (edges, corners, area).
+- ``moveResizeCursors`` – map (handle -> cursor object).
+- ``cursor`` – cursor object, used during drag.
+- ``onMoveResizeStarted(x, y, bbox)`` – function. Called when drag starts.
+- ``onMoveResize(dx, dy, dw, dh) -> {pos, size}`` – function. Called during resize/move.
+- ``onMoveResizeFinished()`` – function. Called when drag stops.
+
+MoveToArea
+----------
+Continuously moves the element towards the target rect if present, positions/sizes it inside
+the parent relative to the target; updates each frame with smooth animation.
+Hides the element if the target is empty.
+
+**Properties**
+
+- ``target`` – object with ``targetRect`` property (BBox2).
+- ``speed`` – float. Animation speed in pixels/sec.
+- ``viscosity`` – float. Animation viscosity/damping factor.
+
+InspectPicker
+-------------
+Provides "element picker" UX to inspect what is under the pointer, both on hover and on click.
+Supports modifier keys to include elements without render objects.
+
+**Properties**
+
+- ``onChange(arrayOrNull)`` – function. Called on pointer move; receives array of records (bbox + elem).
+- ``onClick(arrayOrNull)`` – function. Called on click; receives array of element info.
+- On inspected elements: ``skipInspection`` – bool. If true, element is ignored.
+
+RecalcHandler
+-------------
+Calls a handler when layout is recalculated, useful for responding to size changes.
+
+**Properties**
+
+- ``onRecalcLayout([initial[, elemRef]])`` – function. Called on layout recalculation.
+
+RtPropUpdate
+------------
+Real-time property updater that calls ``update()`` on attach and every before-render frame,
+merges returned properties into the component, re-runs setup, and optionally recalculates layout.
+
+**Properties**
+
+- ``update() -> table`` – function. Returns table of script properties to update.
+- ``onlyWhenParentInScreen`` – bool. Updates only if parent is visible on screen.
+- ``rtAlwaysUpdate`` – bool. Writes all returned keys regardless of whether they changed.
+- ``rtRecalcLayout`` – bool. Forces layout recalculation after property update.
+
+BoundProps
+----------
+Push-based property binding: each entry of ``bindProps`` ties a component
+property to a Watched/Computed observable. On change the values are written
+into the component description and the element is re-applied in place --
+no builder call, no children diff, and zero cost while nothing changes.
+Layout-affecting keys (text, size, pos, margins, ...) recalculate layout
+automatically; paint-only keys (color, opacity, ...) skip it.
+The behavior attaches automatically to any component with a non-null
+``bindProps`` key; writing ``behavior = Behaviors.BoundProps`` is not needed.
+
+Structural properties (``children``, ``behavior``, ``watch``, ``rendObj``,
+``key``) cannot be bound. Keys consumed only by full (non-realtime) element
+setup are written to the description but have no effect, silently:
+``animations``, ``transitions``, ``eventHandlers``, ``hotkeys``, ``xmbNode``,
+``scrollHandler``, ``group``. The same holds for properties other behaviors
+read in their own setup, e.g. TextArea text or Slider min/max/knob props.
+Use classic ``watch`` for all of those.
+
+**Properties**
+
+- ``bindProps`` – table. Property name to observable, e.g. ``{ color = myColorObs }``.
+- ``rtRecalcLayout`` – bool. Forces layout recalculation even for paint-only keys.
+
+ImageLoadState
+--------------
+Reports whether the element's ``image`` is still loading, so that script can show a
+placeholder component of its own (a spinner with animations, for example) while it does.
+``fallbackImage`` covers the complementary case, a failed load replaced by another picture.
+
+For a picture in a dynamic atlas the flag stays true until its content actually reaches
+the atlas, not merely until the atlas slot is known: a factory-rendered picture (a 3d
+icon) counts as loading until its render is done, and a picture evicted from a full
+atlas counts as loading again while it is being restored.
+
+The behavior only observes, it never starts a load, and it writes the flag from the act
+stage, so it lags load completion by one act tick. Seed the observable with
+``Picture.prefetch()``, which starts the load and returns whether it is really in flight --
+otherwise a picture that resolves synchronously shows the placeholder for one tick. Use the
+``mkAsyncImage`` helper in ``darg_library.nut``, which does all of this.
+
+**Properties**
+
+- ``image`` – Picture. The picture to observe.
+- ``imageLoading`` – Watched. Set to true while the load is in flight.
+
+ScrollEvent
+-----------
+Detects changes to scroll offset, content size, and element size;
+calls handler and triggers any bound scrollHandler with updated values.
+
+**Properties**
+
+- ``onScroll(elemRef)`` or ``onScroll(scrollX, scrollY, contentW, contentH, elemW, elemH)`` – function. Called when scroll position or dimensions change.
+
+WheelScroll
+-----------
+Handles mouse wheel events to scroll the element content, with configurable step size and orientation.
+
+**Properties**
+
+- ``wheelStep`` – float. Scroll amount per wheel notch (default: 0.2).
+- ``orientation`` – enum (horizontal/vertical). Scroll direction (default: vertical).
+- ``onWheelScroll(delta)`` – function. Called on wheel scroll with delta amount.
+
+Movie
+-----
+Video playback behavior supporting multiple formats (AV1, Ogg) with optional audio track.
+
+**Properties**
+
+- ``movie`` – string. Video file path.
+- ``sound`` – string. Audio file path (defaults to video_file.mp3).
+- ``soundVolume`` – float. Audio volume (0.0-1.0).
+- ``loop`` – bool. Whether to loop playback.
+- ``enableSound`` – bool. Enable audio playback (default: true).
+- ``onStart()`` – function. Called when playback starts.
+- ``onFinish()`` – function. Called when playback ends.
+- ``onError()`` – function. Called on playback error.
+
+OverlayTransparency
+------------------
+Manages element opacity based on overlap with higher-priority elements,
+creating visual layering effects and center-based opacity gradients.
+
+**Properties**
+
+- ``priority`` – float. Element priority for overlay calculations.
+- ``data.priorityOffset`` – float. Additional priority offset.
+- ``data.opacityCenterMinMult`` – float. Minimum opacity multiplier for center-distance fading.
+- ``data.opacityCenterRelativeDist`` – float. Distance threshold for center-based opacity.
+
+Parallax
+--------
+Creates parallax scrolling effect based on mouse position relative to screen center.
+
+**Properties**
+
+- ``parallaxK`` – float. Parallax effect strength multiplier.
+
+SmoothScrollStack
+----------------
+Animates stack children to smoothly flow into position with configurable speed and viscosity.
+
+**Properties**
+
+- ``speed`` – float. Animation speed (default: 10.0).
+- ``viscosity`` – float. Animation viscosity for gap prevention (default: 0.025).
+- ``orientation`` – enum (horizontal/vertical). Stack direction.
+
+TransitionSize
+--------------
+Smoothly animates element size changes with configurable speed and axis control.
+
+**Properties**
+
+- ``orientation`` – enum (horizontal/vertical/both). Which axes to animate.
+- ``speed`` – float. Animation speed in pixels/sec (default: 100.0).
+
+TrackMouse
+----------
+Tracks mouse movement and wheel events, calling handlers for movement and scroll.
+Includes Xbox-specific workarounds for missing mouse move events.
+
+**Properties**
+
+- ``onMouseMove(x, y)`` – function. Called on mouse movement.
+- ``onMouseWheel(delta, x, y)`` – function. Called on mouse wheel events.
+- ``eventPassThrough`` – bool. Allows event propagation.
+
+ProcessPointingInput
+--------------------
+Low-level behavior for custom pointing device input processing, providing direct access
+to press/release/move events with device information and modifier keys.
+
+**Properties**
+
+- ``onPointerPress(event)`` – function. Called on pointer press.
+- ``onPointerRelease(event)`` – function. Called on pointer release.
+- ``onPointerMove(event)`` – function. Called on pointer movement.
+
+ProcessGesture
+--------------
+Gesture recognition behavior supporting pinch, rotate, and drag gestures with configurable
+distance limits and phase callbacks.
+
+**Properties**
+
+- ``onGestureBegin(event)`` – function. Called when gesture starts.
+- ``onGestureActive(event)`` – function. Called during active gesture.
+- ``onGestureEnd(event)`` – function. Called when gesture ends.
+- ``gestureDragDistanceMax`` – float. Maximum distance for drag gestures.
+- ``gesturePinchDistanceMin`` – float. Minimum distance for pinch gestures.
+- ``gestureRotateDistanceMin`` – float. Minimum distance for rotation gestures.
+
+FpsBar
+------
+Real-time FPS and frame time display with color-coded performance indicators.
+Updates text and color each frame based on current performance metrics.
+
+**Properties**
+
+(None readable)
+- ``color`` – color. Display color (auto-updated by the behavior based on performance).
+
+LatencyBar
+----------
+Displays input latency metrics and low-latency rendering information.
+
+**Properties**
+
+(None)
+
+
+daRg Render Objects
+===================
+
+ROBJ_SOLID
+----------
+Renders a solid rectangle of a given color.
+
+Properties:
+
+* ``color`` — Color, fill color (default 0xFFFFFFFF).
+* ``brightness`` — float, brightness modifier (0.0—1.0; default 1.0).
+
+ROBJ_DEBUG
+----------
+Renders a debug rectangle with a 1px frame and diagonal cross-lines.
+
+Properties:
+
+* ``color`` — Color, stroke color (default 0xFFFFFFFF).
+* ``brightness`` — float, brightness modifier (0.0—1.0; default 1.0).
+
+ROBJ_IMAGE
+----------
+Renders a picture.
+
+Properties:
+
+* ``image`` — Picture, main image.
+* ``fallbackImage`` — Picture, used when ``image`` fails/empty. For a placeholder *while*
+  loading, or one that is a component rather than a picture, see the ``ImageLoadState``
+  behavior and the ``mkAsyncImage`` helper.
+* ``color`` — Color, tint (default 0xFFFFFFFF).
+* ``keepAspect`` — bool or enum ``KEEP_ASPECT_*``; default ``KEEP_ASPECT_NONE``.
+* ``imageHalign`` / ``imageValign`` — enum ``ALIGN_*`` (default center).
+* ``flipX`` / ``flipY`` — bool, flip texture coords.
+* ``picSaturate`` — float, saturation factor (0—1; default 1.0).
+* ``imageAffectsLayout`` — bool, if true the element size influences layout.
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+
+ROBJ_VECTOR_CANVAS
+------------------
+Immediate-mode vector drawing; either run a ``draw(api, rect)`` function or execute a ``commands`` array (VECTOR_* opcodes).
+
+Properties:
+
+* ``color`` — Color, stroke color (default 0xFFFFFFFF).
+* ``fillColor`` — Color, fill color (default 0xFFFFFFFF).
+* ``lineWidth`` — float, stroke width (default 2).
+* ``draw`` — function(api, rect), scripted draw.
+* ``commands`` — array of VECTOR_* commands.
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+
+ROBJ_9RECT
+----------
+Nine-slice scalable image renderer.
+
+Properties:
+
+* ``image`` — Picture, required.
+* ``color`` — Color, modulation (default 0xFFFFFFFF).
+* ``texOffs`` — array[4], texture slice offsets [top, right, bottom, left].
+* ``screenOffs`` — array[4], on-screen slice offsets [top, right, bottom, left].
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+
+ROBJ_PROGRESS_LINEAR
+--------------------
+Horizontal progress bar; negative values fill from the right.
+
+Properties:
+
+* ``fValue`` — float, progress (-1.0…1.0).
+* ``bgColor`` — Color, background bar color (default 0x64646464).
+* ``fgColor`` — Color, foreground bar color (default 0xFFFFFFFF).
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+
+ROBJ_PROGRESS_CIRCULAR
+----------------------
+Circular progress indicator with optional radial image overlay.
+
+Properties:
+
+* ``fValue`` — float, magnitude 0.0—1.0 (sign selects direction).
+* ``image`` — Picture, optional mask/overlay.
+* ``fallbackImage`` — Picture, optional fallback if ``image`` invalid.
+* ``bgColor`` — Color, background arc (default 0x64646464).
+* ``fgColor`` — Color, foreground arc (default 0xFFFFFFFF).
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+
+ROBJ_TEXT
+---------
+Renders single-line text. Requires the element's ``text`` value; supports font, effects and overflow controls.
+
+Properties:
+
+* ``font`` — Font id or ``Font.<name>``; defaults to scene default font.
+* ``color`` — Color, text color; defaults to scene default.
+* ``fontFx`` — enum FFT_* (text effect), default ``FFT_NONE``.
+* ``fxColor`` — Color, effect color (default 0x78787878).
+* ``fxFactor`` — int, effect factor (default 48).
+* ``fxOffsX`` / ``fxOffsY`` — int, effect offsets (default 0).
+* ``overflowX`` — enum TOVERFLOW_* (e.g., ``TOVERFLOW_CLIP``).
+* ``ellipsis`` — bool, append ellipsis on overflow (default true).
+* ``spacing`` — int, extra character spacing (default 0).
+* ``monoWidth`` — number, fixed character width.
+* ``password`` — null/bool/char; masks text with given char or "*".
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+* ``fontSize`` — float, font size.
+* ``fontTex`` — Picture, font texture.
+* ``fontTexSu`` / ``fontTexSv`` — int, font texture UV coordinates (default 32).
+* ``fontTexBov`` — int, font texture baseline offset vertical (default 0).
+
+ROBJ_INSCRIPTION
+----------------
+Renders single-line text laid out as a precomputed inscription. Same properties as ``ROBJ_TEXT`` plus:
+
+Properties:
+
+* All properties from ``ROBJ_TEXT``
+* Renders text as inscription in separate texture, providing better font effects but using more memory.
+
+Note: Text rendering differs slightly in size compared to ``ROBJ_TEXT`` for the same fontSize.
+
+ROBJ_TEXTAREA
+-------------
+Multi-line editable text area with scrolling and cursor rendering. Shares the
+``ROBJ_TEXT`` font, color, effect, spacing and ``monoWidth`` properties, but not
+its horizontal-overflow controls: ``overflowX`` and ``ellipsis`` have no effect
+here. The ellipsis is shown by default on vertical overflow and hidden via
+``preformatted = FMT_HIDE_ELLIPSIS``. Additional properties:
+
+* ``overflowY`` — enum TOVERFLOW_* for vertical overflow (default ``TOVERFLOW_CLIP``).
+* ``lowLineCount`` — int, minimum line count for alignment (default 0).
+* ``lowLineCountAlign`` — enum alignment when there are few lines (default ``PLACE_DEFAULT``).
+* ``spacing`` — int, extra character spacing.
+* ``preformatted`` - bool or combination of the following flags:
+
+  * ``FMT_NO_WRAP`` - disable auto wrapping of lines.
+  * ``FMT_KEEP_SPACES`` - don't merge multiple spaces into one.
+  * ``FMT_IGNORE_TAGS`` - keep tags as-is instead of interpreting them.
+  * ``FMT_HIDE_ELLIPSIS`` - do not render ellipsis for overflowed text.
+  * ``FMT_AS_IS`` - all of the above combined (equivalent to ``true``).
+
+ROBJ_BOX
+--------
+Filled rectangle with optional image, border and rounded corners.
+
+Properties:
+
+* ``borderWidth`` — float or array[4] [top, right, bottom, left].
+* ``borderRadius`` — float or array[4] [top-left, top-right, bottom-right, bottom-left].
+* ``borderColor`` — Color, border color.
+* ``fillColor`` — Color, fill (default transparent).
+* ``image`` / ``fallbackImage`` — Picture(s), optional content.
+* ``keepAspect`` — enum/bool; image aspect policy.
+* ``imageHalign`` / ``imageValign`` — enum ``ALIGN_*`` (default center).
+* ``flipX`` / ``flipY`` — bool, flip image.
+* ``picSaturate`` — float, image saturation (0—1; default 1.0).
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+
+ROBJ_FRAME
+----------
+Draws a rectangular frame; optionally fills the interior.
+
+Properties:
+
+* ``color`` — Color, border color.
+* ``fillColor`` — Color, interior fill (default transparent).
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+* ``borderWidth`` — float or array[4] in CSS order [top, right, bottom, left]; negatives clamped to 0.
+
+ROBJ_MASK
+---------
+Applies a clipping mask so children render only through the mask.
+
+Properties:
+
+* ``image`` — Picture used as mask.
+
+ROBJ_MOVIE
+----------
+Renders video frames from a movie player (requires ``behavior = Behaviors.Movie``).
+Aspect handling and saturation similar to images.
+
+Properties:
+
+* ``movie`` — string, path to video file.
+* ``color`` — Color, tint (default 0xFFFFFFFF).
+* ``keepAspect`` — bool or enum ``KEEP_ASPECT_*`` (default ``KEEP_ASPECT_NONE``).
+* ``picSaturate`` — float, 0—1 saturation (default 1.0).
+* ``imageHalign`` / ``imageValign`` — enum ``ALIGN_*`` (default center).
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+* ``loop`` — bool, whether to loop the video.
+* ``enableSound`` — bool, enable sound playback (default true).
+* ``sound`` — string, sound file path (defaults to "<video_file>.mp3").
+* ``soundVolume`` — float, sound volume (default 1.0).
+
+Event Handlers:
+
+* ``onStart`` — called when playback starts.
+* ``onFinish`` — called when playback finishes.
+* ``onError`` — called on playback error.
+
+ROBJ_DAS_CANVAS
+---------------
+Custom drawing canvas implemented in daslang. Property surface is defined by the das script.
+
+Properties:
+
+* ``script`` — DasScript instance.
+* ``drawFunc`` — string, name of draw function in script.
+* ``setupFunc`` — string, name of optional setup function in script (optional).
+
+Function Signatures:
+
+* Draw function: ``(var ctx: GuiContext&; rdata: ElemRenderData& const; rstate: RenderState& const; [data: <user's struct> &])``
+* Setup function: ``(props: Properties&; var storage: <user's struct> &)``
+
+ROBJ_WORLD_BLUR
+---------------
+Blurs the 3D world behind the UI and uses it as the object's image; you can tint it and overlay a fill color.
+
+Properties:
+
+* ``color`` — Color, tint applied to blurred scene (default 0xFFFFFFFF).
+* ``fillColor`` — Color, overlay above blurred scene (default transparent).
+* ``borderWidth`` — not set by default; if absent, border is zeroed.
+* ``borderRadius`` — float or array[4] [top-left, top-right, bottom-right, bottom-left].
+* ``saturateFactor`` — float, saturation factor (0—1; default 1.0).
+
+ROBJ_WORLD_BLUR_PANEL
+---------------------
+Blurs both world and UI content and uses it as the object's image; same color and fill semantics as ``ROBJ_WORLD_BLUR``.
+
+Properties:
+
+* ``color`` — Color, tint applied to blurred content (default 0xFFFFFFFF).
+* ``fillColor`` — Color, overlay above blurred content (default transparent).
+* ``borderWidth`` — border width specification.
+* ``borderRadius`` — float or array[4] [top-left, top-right, bottom-right, bottom-left].
+* ``saturateFactor`` — float, saturation factor (0—1; default 1.0).
+
+
+daRg Animation System
+=====================
+
+Overview
+--------
+
+daRg provides an animation system that enables smooth, declarative
+animations for UI elements. The system supports two primary mechanisms:
+
+* **Animations** - Explicit, trigger-based animations that play on element
+  appearance, disappearance, or custom events
+* **Transitions** - Automatic interpolation when element properties change
+
+Animations are defined declaratively in element descriptions and executed
+by the C++ rendering engine for optimal performance.
+
+
+Animatable properties
+---------------------
+
+The following properties can be animated using the ``AnimProp`` enum:
+
+**Colors**
+
+* ``AnimProp.color`` - Main element color (text, image tint)
+* ``AnimProp.bgColor`` - Background color
+* ``AnimProp.fgColor`` - Foreground color
+* ``AnimProp.fillColor`` - Fill color (for boxes, frames)
+* ``AnimProp.borderColor`` - Border color
+
+Colors are interpolated in Oklch (polar Oklab), so lightness, chroma and hue advance in
+perceptually even steps and hue takes the shorter way around the wheel. An achromatic
+endpoint (white, black, grey) borrows the other endpoint's hue. Alpha is interpolated on
+its own, without premultiplying the color.
+
+**Rendering**
+
+* ``AnimProp.opacity`` - Element opacity (0.0 - 1.0)
+* ``AnimProp.picSaturate`` - Image saturation (0.0 - 1.0)
+* ``AnimProp.brightness`` - Brightness modifier (0.0 - 1.0)
+
+**Transformations**
+
+* ``AnimProp.rotate`` - Rotation angle in degrees
+* ``AnimProp.scale`` - Scale factor as [x, y]
+* ``AnimProp.translate`` - Translation offset as [x, y]
+
+**Other**
+
+* ``AnimProp.fValue`` - Generic float value (used by progress bars, sliders)
+
+.. note::
+
+   Transform animations (``rotate``, ``scale``, ``translate``) require the
+   element to have a ``transform`` property defined, even if empty:
+   ``transform = true`` or ``transform = {}``
+
+
+Animations
+----------
+
+Basic structure
+~~~~~~~~~~~~~~~
+
+Animations are defined as an array of animation descriptors on an element:
+
+.. code-block:: quirrel
+
+   {
+     rendObj = ROBJ_SOLID
+     size = sh(10)
+     color = Color(220, 180, 120)
+     transform = const {}  // Required field for transform animations
+
+     animations = const [
+       { prop=AnimProp.opacity, from=0, to=1, duration=0.3, play=true }
+       { prop=AnimProp.scale, from=[0.8, 0.8], to=[1, 1], duration=0.3, play=true }
+     ]
+   }
+
+
+Animation properties
+~~~~~~~~~~~~~~~~~~~~
+
+**Required**
+
+* ``prop`` - The property to animate (from ``AnimProp`` enum)
+* ``duration`` - Animation duration in seconds
+
+**Value range**
+
+* ``from`` - Starting value (type depends on property)
+* ``to`` - Ending value (type depends on property)
+
+If ``from`` or ``to`` is omitted, the element's own property value is used.
+
+On a ``playFadeOut`` animation an omitted ``from`` is the value the element has when it is
+removed, so an element that is still animating does not jump before fading out.
+``duration`` is not shortened to match the smaller distance.
+
+**Playback control**
+
+* ``play`` - If ``true``, animation plays when element appears
+* ``playFadeOut`` - If ``true``, animation plays when element is removed
+* ``loop`` - If ``true``, animation repeats indefinitely
+* ``delay`` - Delay before animation starts (seconds)
+* ``loopPause`` - Pause between loop iterations (seconds)
+* ``globalTimer`` - If ``true``, synchronizes with global animation clock
+
+**Easing and Timing**
+
+* ``easing`` - Easing function (see `Easing functions`_)
+
+**Triggers and Callbacks**
+
+* ``trigger`` - Named trigger that starts this animation
+* ``onEnter`` - Called when animation starts (or trigger name to start next)
+* ``onStart`` - Called after delay, when animation actually begins playing
+* ``onExit`` - Called when animation ends (or trigger name to start next)
+* ``onFinish`` - Called when animation completes naturally
+* ``onAbort`` - Called when animation is skipped or interrupted
+* ``sound`` - Sound to play: ``{start = "sound_name", stop = "sound_name"}``
+
+
+Appearance and disappearance animations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use ``play`` for entrance animations and ``playFadeOut`` for exit animations:
+
+.. code-block:: quirrel
+
+   {
+     key = "my_panel"
+     transform = true
+     clipChildren = true
+
+     animations = const [
+       // Entrance: fade in and scale up
+       { prop=AnimProp.opacity, from=0, to=1, duration=0.15, play=true, easing=OutCubic }
+       { prop=AnimProp.scale, from=[0.9, 0.9], to=[1, 1], duration=0.15, play=true, easing=OutCubic }
+
+       // Exit: fade out and scale down
+       { prop=AnimProp.opacity, from=1, to=0, duration=0.12, playFadeOut=true, easing=OutCubic }
+       { prop=AnimProp.scale, from=[1, 1], to=[0.9, 0.9], duration=0.12, playFadeOut=true, easing=OutCubic }
+     ]
+   }
+
+.. important::
+
+   When using ``playFadeOut``, add a ``key`` property may be needed to
+   help daRg track elements correctly.
+
+
+Trigger-based animations
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Create complex animation sequences with named triggers:
+
+.. code-block:: quirrel
+
+   let item = {
+     size = sh(15)
+     rendObj = ROBJ_SOLID
+     color = Color(220, 180, 120)
+     transform = const { pivot = [0.5, 0.5] }
+
+     animations = const [
+       // Initial animation plays on appearance
+       { prop=AnimProp.scale, from=[0,0], to=[1,1], duration=0.5, play=true,
+         easing=OutCubic, trigger="initial" }
+
+       // Chain to next animation via onExit
+       { prop=AnimProp.rotate, from=-45, to=0, duration=0.5, play=true,
+         easing=OutCubic, trigger="initial", onExit="pulse" }
+
+       // Triggered by previous animation's onExit
+       { prop=AnimProp.scale, from=[1,1], to=[1.1,1.1], duration=0.3,
+         easing=InOutCubic, trigger="pulse", onExit="pulse_back" }
+
+       { prop=AnimProp.scale, from=[1.1,1.1], to=[1,1], duration=0.3,
+         easing=InOutCubic, trigger="pulse_back", onFinish=@() vlog("Done!") }
+     ]
+   }
+
+
+Controlling animations from script
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use these functions to control animations programmatically:
+
+.. code-block:: quirrel
+
+   // Start an animation by its trigger name
+   anim_start("pulse")
+
+   // Request animation to stop (finishes current iteration)
+   anim_request_stop("pulse")
+
+   // Skip animation immediately (jumps to end state)
+   anim_skip("pulse")
+
+   // Skip only the delay, start animation immediately
+   anim_skip_delay("pulse")
+
+Example with event-driven animation:
+
+.. code-block:: quirrel
+
+   let pulseAnim = {}  // Object reference as trigger
+
+   let animatedButton = {
+     behavior = Behaviors.Button
+     onClick = @() anim_start(pulseAnim)
+
+     transform = true
+     animations = const [
+       { prop=AnimProp.scale, from=[1,1], to=[1.2,1.2], duration=0.15,
+         easing=OutCubic, trigger=pulseAnim, onExit=pulseAnim + "_back" }
+       { prop=AnimProp.scale, from=[1.2,1.2], to=[1,1], duration=0.15,
+         easing=OutCubic, trigger=pulseAnim + "_back" }
+     ]
+   }
+
+
+Looping animations
+~~~~~~~~~~~~~~~~~~
+
+Create continuous animations with the ``loop`` property:
+
+.. code-block:: quirrel
+
+   // Simple continuous rotation
+   { prop=AnimProp.rotate, from=0, to=360, duration=2, play=true, loop=true, easing=Linear }
+
+   // Pulsing with pause between pulses
+   { prop=AnimProp.scale, from=[1,1], to=[1.1,1.1], duration=0.5,
+     play=true, loop=true, loopPause=1.0, easing=InOutSine }
+
+   // Color cycling
+   { prop=AnimProp.color, from=Color(255,255,255), to=Color(255,0,0),
+     duration=1, play=true, loop=true, easing=CosineFull }
+
+
+Global timer synchronization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When multiple elements need synchronized looped animations, use ``globalTimer``:
+
+.. code-block:: quirrel
+
+   // Without globalTimer: each element animates independently
+   // depending on time they were created
+   let block1 = { animations = const [{ prop=AnimProp.opacity, from=0.5, to=1,
+     duration=1, play=true, loop=true, easing=CosineFull }] }
+
+   // With globalTimer: all elements pulse in sync
+   let block2 = { animations = const [{ prop=AnimProp.opacity, from=0.5, to=1,
+     duration=1, play=true, loop=true, easing=CosineFull, globalTimer=true }] }
+
+
+Transitions
+-----------
+
+Transitions automatically animate property changes when element state changes.
+Unlike animations, transitions don't require explicit from/to values - they
+interpolate between the previous and new property values.
+
+
+Basic transitions
+~~~~~~~~~~~~~~~~~
+
+.. code-block:: quirrel
+
+   let stateFlags = Watched(0)
+
+   let button = @() {
+     watch = stateFlags
+     onElemState = @(s) stateFlags.set(s)
+     behavior = Behaviors.Button
+
+     rendObj = ROBJ_BOX
+     fillColor = (stateFlags.get() & S_HOVER) ? Color(100,150,200) : Color(60,60,60)
+     size = const [sh(20), sh(8)]
+
+     // Animate fillColor changes over 0.25 seconds
+     transitions = const [
+       { prop=AnimProp.fillColor, duration=0.25, easing=OutCubic }
+     ]
+   }
+
+
+Multiple transitions
+~~~~~~~~~~~~~~~~~~~~
+
+Animate several properties simultaneously:
+
+.. code-block:: quirrel
+
+   let button = watchElemState(@(sf) {
+     rendObj = ROBJ_BOX
+     fillColor = (sf & S_ACTIVE) ? Color(0,0,0) : Color(200,200,200)
+     opacity = (sf & S_HOVER) ? 1.0 : 0.7
+
+     transform = {
+       scale = (sf & S_HOVER) ? const [1.05, 1.05] : const [1, 1]
+     }
+
+     transitions = const [
+       { prop=AnimProp.fillColor, duration=0.25, easing=OutCubic }
+       { prop=AnimProp.opacity, duration=0.3, easing=OutCubic }
+       { prop=AnimProp.scale, duration=0.2, easing=InOutCubic }
+     ]
+   })
+
+
+Dynamic duration
+~~~~~~~~~~~~~~~~
+
+Transition duration be changed dynamically, it is re-read when component is rebuilt:
+
+.. code-block:: quirrel
+
+   let button = @() {
+     watch = stateFlags
+     let sf = stateFlags.get()
+
+     fillColor = (sf & S_ACTIVE) ? Color(0,0,0) : Color(200,200,200)
+
+     // Slower animation when pressing, faster when releasing
+     transitions = [
+       { prop=AnimProp.fillColor, duration = (sf & S_ACTIVE) ? 0.5 : 0.15 }
+     ]
+   }
+
+
+TransitAll - applying to all properties
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use ``TransitAll`` to apply the same transition configuration to all animatable
+properties of an element at once:
+
+.. code-block:: quirrel
+
+   let button = watchElemState(@(sf) {
+     rendObj = ROBJ_BOX
+     fillColor = (sf & S_ACTIVE) ? Color(0,0,0) : Color(200,200,200)
+     opacity = (sf & S_HOVER) ? 1.0 : 0.7
+
+     // Apply same transition to all supported properties
+     transitions = TransitAll({ duration=0.25, easing=OutCubic })
+   })
+
+``TransitAll`` automatically creates transitions for all properties that the
+element's render object supports (colors, opacity, transforms if ``transform``
+is defined, etc.).
+
+
+Transition callbacks
+~~~~~~~~~~~~~~~~~~~~
+
+Transitions support lifecycle callbacks similar to animations (except ``onStart``):
+
+.. code-block:: quirrel
+
+   transitions = [
+     { prop=AnimProp.fillColor, duration=0.3,
+       onEnter = @() vlog("Transition started"),
+       onFinish = @() vlog("Transition completed"),
+       onAbort = @() vlog("Transition interrupted"),
+       onExit = @() vlog("Transition ended")
+     }
+   ]
+
+
+Easing functions
+----------------
+
+Easing functions control the rate of change during animation. They transform
+a linear progress value (0 to 1) into a curved progression.
+
+
+Standard easing
+~~~~~~~~~~~~~~~
+
+**Linear**
+
+* ``Linear`` - Constant speed, no acceleration
+
+**Quadratic** (power of 2)
+
+* ``InQuad`` - Accelerate from zero
+* ``OutQuad`` - Decelerate to zero
+* ``InOutQuad`` - Accelerate then decelerate
+
+**Cubic** (power of 3)
+
+* ``InCubic`` - Stronger acceleration
+* ``OutCubic`` - Stronger deceleration (recommended for UI)
+* ``InOutCubic`` - Smooth acceleration and deceleration
+
+**Quartic** (power of 4)
+
+* ``InQuart``, ``OutQuart``, ``InOutQuart``
+
+**Quintic** (power of 5)
+
+* ``InQuintic``, ``OutQuintic``, ``InOutQuintic``
+
+**Sinusoidal**
+
+* ``InSine``, ``OutSine``, ``InOutSine`` - Gentle, natural motion
+
+**Circular**
+
+* ``InCirc``, ``OutCirc``, ``InOutCirc`` - Circular arc motion
+
+**Exponential**
+
+* ``InExp``, ``OutExp``, ``InOutExp`` - Dramatic acceleration/deceleration
+
+**Elastic**
+
+* ``InElastic``, ``OutElastic``, ``InOutElastic`` - Damped sine wave oscillation
+
+**Back** (overshoot)
+
+* ``InBack``, ``OutBack``, ``InOutBack`` - Overshoots target then settles
+
+**Bounce**
+
+* ``InBounce``, ``OutBounce``, ``InOutBounce`` - Bouncing ball effect
+
+
+Special easing
+~~~~~~~~~~~~~~
+
+* ``InOutBezier`` - Smoothstep curve (Hermite interpolation)
+* ``CosineFull`` - Full cosine wave (0 to 1 and back, good for looping)
+* ``InStep`` - Stays at 0 until halfway, then jumps to 1
+* ``OutStep`` - Stays at 1 until halfway, then drops to 0
+* ``Discrete8`` - Quantized to 8 steps / positions
+* ``Blink`` - Quick fade in, slow fade out
+* ``DoubleBlink`` - Two pulses per cycle
+* ``BlinkSin``, ``BlinkCos`` - Blinking with oscillation overlay
+* ``Shake4``, ``Shake6`` - Shake/vibrate effects (4 or 6 oscillations)
+
+
+Custom easing functions
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Define custom easing as a function that takes progress (0-1) and returns
+modified progress (0-1):
+
+.. code-block:: quirrel
+
+   // Custom delayed fade-in
+   const function delayedFadeIn(t) {
+     if (t < 0.3)
+       return 0
+     let s = (t - 0.3) / 0.7
+     return s * s  // Quadratic ease after delay
+   }
+
+   animations = const [
+     { prop=AnimProp.opacity, from=0, to=1, duration=1.0,
+       play=true, easing=delayedFadeIn }
+   ]
+
+   // Overshoot bounce-back
+   let overshoot = @(t) t < 0.7
+     ? t / 0.7 * 1.2
+     : 1.2 - (t - 0.7) / 0.3 * 0.2
+
+
+Example patterns
+----------------
+
+Modal window animation
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: quirrel
+
+   function modalWindow(content) {
+     return {
+       key = "modal"
+       size = flex()
+       rendObj = ROBJ_SOLID
+       color = Color(0, 0, 0, 150)
+       halign = ALIGN_CENTER
+       valign = ALIGN_CENTER
+
+       transform = true
+       animations = const [
+         { prop=AnimProp.opacity, from=0, to=1, duration=0.2, play=true, easing=OutCubic }
+         { prop=AnimProp.opacity, from=1, to=0, duration=0.15, playFadeOut=true, easing=OutCubic }
+       ]
+
+       children = {
+         rendObj = ROBJ_BOX
+         fillColor = Color(40, 40, 50)
+         transform = true
+         animations = const [
+           { prop=AnimProp.scale, from=[0.95, 0.95], to=[1, 1], duration=0.2, play=true, easing=OutCubic }
+           { prop=AnimProp.scale, from=[1, 1], to=[0.95, 0.95], duration=0.15, playFadeOut=true, easing=OutCubic }
+         ]
+         children = content
+       }
+     }
+   }
+
+
+Dropdown/popup animation
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: quirrel
+
+   function dropdown(items, dropUp = false) {
+     return {
+       key = "dropdown"
+       flow = FLOW_VERTICAL
+       clipChildren = true
+
+       transform = const {
+         pivot = [0.5, dropUp ? 1 : 0]  // Scale from top or bottom
+       }
+
+       animations = const [
+         { prop=AnimProp.opacity, from=0, to=1, duration=0.12, play=true, easing=OutQuad }
+         { prop=AnimProp.scale, from=[1, 0], to=[1, 1], duration=0.12, play=true, easing=OutQuad }
+         { prop=AnimProp.opacity, from=1, to=0, duration=0.1, playFadeOut=true }
+         { prop=AnimProp.scale, from=[1, 1], to=[1, 0], duration=0.1, playFadeOut=true, easing=OutQuad }
+       ]
+
+       children = items
+     }
+   }
+
+
+Staggered list animation
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: quirrel
+
+   function animatedListItem(item, index) {
+     let staggerDelay = index * 0.05
+
+     return {
+       key = item.id
+       transform = true
+       animations = const [
+         { prop=AnimProp.translate, from=[sh(-5), 0], to=[0, 0],
+           duration=0.3, play=true, delay=staggerDelay, easing=OutCubic }
+         { prop=AnimProp.opacity, from=0, to=1,
+           duration=0.25, play=true, delay=staggerDelay, easing=OutCubic }
+       ]
+       children = itemContent(item)
+     }
+   }
+
+   function animatedList(items) {
+     return {
+       flow = FLOW_VERTICAL
+       children = items.map(@(item, idx) animatedListItem(item, idx))
+     }
+   }
+
+
+Character-by-character text animation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: quirrel
+
+   import "utf8" as utf8
+
+   function animatedText(text) {
+     let ut = utf8(text)
+     let chars = []
+     for (local i = 1; i <= ut.charCount(); i++)
+       chars.append(ut.slice(i - 1, i))
+
+     return {
+       flow = FLOW_HORIZONTAL
+       children = chars.map(@(ch, i) {
+         rendObj = ROBJ_TEXT
+         text = ch
+         key = {}
+         transform = true
+         animations = const [
+           { prop=AnimProp.translate, from=[0, -sh(5)], to=[0, 0],
+             duration=0.2, play=true, delay=i*0.04, easing=OutCubic }
+           { prop=AnimProp.opacity, from=0, to=1,
+             duration=0.15, play=true, delay=i*0.04, easing=OutCubic }
+         ]
+       })
+     }
+   }
+
+
+Hover scale effect with transition
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: quirrel
+
+   let hoverCard = watchElemState(@(sf) {
+     rendObj = ROBJ_BOX
+     fillColor = Color(50, 50, 60)
+     size = [sh(20), sh(15)]
+
+     transform = {
+       scale = (sf & S_HOVER) ? [1.05, 1.05] : [1, 1]
+     }
+
+     transitions = const [
+       { prop=AnimProp.scale, duration=0.2, easing=OutCubic }
+     ]
+
+     children = cardContent
+   })
+
+
+Loading spinner
+~~~~~~~~~~~~~~~
+
+.. code-block:: quirrel
+
+   let spinner = {
+     rendObj = ROBJ_IMAGE
+     size = sh(5)
+     image = Picture("ui/spinner.svg")
+     transform = true
+
+     animations = const [
+       { prop=AnimProp.rotate, from=0, to=360, duration=1,
+         play=true, loop=true, easing=Linear }
+     ]
+   }
+
+
+Pulsing indicator
+~~~~~~~~~~~~~~~~~
+
+.. code-block:: quirrel
+
+   let pulsingDot = {
+     rendObj = ROBJ_SOLID
+     size = sh(2)
+     color = Color(100, 200, 100)
+     transform = true
+
+     animations = const [
+       { prop=AnimProp.scale, from=[1, 1], to=[1.3, 1.3], duration=0.8,
+         play=true, loop=true, easing=CosineFull }
+       { prop=AnimProp.opacity, from=1, to=0.5, duration=0.8,
+         play=true, loop=true, easing=CosineFull }
+     ]
+   }
+
+
+Tips
+----
+
+1. **Prefer transforms over layout-affecting properties** - Animating
+   ``scale``, ``rotate``, ``translate``, and ``opacity`` is more efficient
+   than animating properties that trigger layout recalculation.
+
+2. **Use ``key`` on animated elements** - Keys help daRg track elements
+   correctly, especially for fade-out animations.
+
+
+
+daRg Layout System
+==================
+
+Overview
+--------
+
+daRg uses a flexible layout model inspired by CSS Flexbox. Elements can size
+themselves based on content, fill available space, align relative to parent
+containers, or use fixed positioning.
+
+Every element has a bounding box defined by its position and size. The layout
+system determines these values based on the element's properties and its
+relationship to parent and sibling elements.
+
+
+Size specification
+------------------
+
+The ``size`` property defines an element's dimensions. It accepts various formats:
+
+**Array format** (most common):
+
+.. code-block:: quirrel
+
+   size = [width, height]
+
+**Single value** (applies to both dimensions):
+
+.. code-block:: quirrel
+
+   size = 100        // 100x100 pixels
+   size = sh(10)     // 10% of screen height for both dimensions
+   size = flex()     // fill available space in both dimensions
+   size = SIZE_TO_CONTENT  // fit to children in both dimensions
+
+Note: when using arrays, mark them with ``const`` where possible to avoid dynamically recreating
+these arrays each time.
+
+Size modes
+~~~~~~~~~~
+
+**Pixels** - Fixed size in pixels:
+
+.. code-block:: quirrel
+
+   size = [200, 100]           // 200px wide, 100px tall
+   size = const [200, 100]     // compile-time constant, preferred, more efficient (doesn't recreate the array)
+
+**Screen-relative functions**:
+
+* ``sw(percent)`` - Percentage of screen width
+* ``sh(percent)`` - Percentage of screen height
+* ``hdpx(pixels)`` - DPI-aware pixels scaled to 1080p baseline (float)
+* ``hdpxi(pixels)`` - Same as ``hdpx`` but returns integer
+* ``fsh(percent)`` - Aspect-ratio-safe screen height (uses ``sh`` on wide screens,
+  falls back to ``sw(0.75 * percent)`` on narrow screens to prevent overflow).
+  May be overriden for project-specific needs.
+
+These functions return values recalculated to pixels.
+
+.. code-block:: quirrel
+
+   size = [sw(50), sh(25)]     // 50% screen width, 25% screen height
+   size = hdpx(100)            // 100px at 1080p, scales with resolution
+   size = fsh(10)              // 10% of screen height, safe for narrow displays
+
+**Parent-relative functions** (should not be used unless there are no other options):
+
+* ``pw(percent)`` - Percentage of parent width
+* ``ph(percent)`` - Percentage of parent height
+
+.. code-block:: quirrel
+
+   size = [pw(100), ph(50)]    // full parent width, half parent height
+
+**Content-based**:
+
+* ``SIZE_TO_CONTENT`` - Size to fit children
+
+.. code-block:: quirrel
+
+   size = SIZE_TO_CONTENT              // both dimensions
+   size = [sw(50), SIZE_TO_CONTENT]    // fixed width, height fits content
+
+**Flexible**:
+
+* ``flex([weight])`` - Fill remaining space, optionally weighted
+
+.. code-block:: quirrel
+
+   size = flex()               // fill all available space
+   size = [flex(), sh(10)]     // flexible width, fixed height
+   size = [flex(2), flex(1)]   // 2:1 ratio when multiple flex children
+
+**Font-relative**:
+
+* ``fontH(percent)`` - Size relative to current font height
+
+.. code-block:: quirrel
+
+   size = [sw(50), fontH(200)]   // two lines of text height (200% of font height)
+
+
+Convenience shortcuts
+~~~~~~~~~~~~~~~~~~~~~
+
+The standard library provides shortcuts for common patterns:
+
+.. code-block:: quirrel
+
+   FLEX_H = [flex(), SIZE_TO_CONTENT]  // flexible width, content height
+   FLEX_V = [SIZE_TO_CONTENT, flex()]  // content width, flexible height
+   FLEX = flex()                       // fill both dimensions
+
+   // Functions for weighted flex shortcuts
+   flex_h(weight)  // returns [flex(weight), SIZE_TO_CONTENT]
+   flex_v(weight)  // returns [SIZE_TO_CONTENT, flex(weight)]
+
+.. code-block:: quirrel
+
+   // Using weighted flex shortcuts
+   {
+     flow = FLOW_HORIZONTAL
+     children = [
+       { size = flex_h(2), /* ... */ }  // 2/3 of width, content height
+       { size = flex_h(1), /* ... */ }  // 1/3 of width, content height
+     ]
+   }
+
+
+Flow layout
+-----------
+
+The ``flow`` property controls how children are arranged:
+
+* ``FLOW_PARENT_RELATIVE`` (default) - Children positioned relative to parent
+* ``FLOW_HORIZONTAL`` - Children arranged left-to-right
+* ``FLOW_VERTICAL`` - Children arranged top-to-bottom
+
+.. code-block:: quirrel
+
+   {
+     flow = FLOW_HORIZONTAL
+     children = [child1, child2, child3]  // arranged horizontally
+   }
+
+When ``flow`` is set, children are laid out sequentially. Without flow (or with
+``FLOW_PARENT_RELATIVE``), children are positioned independently and may overlap.
+
+
+Alignment
+---------
+
+Content alignment (halign, valign)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Controls how children are aligned within the parent's content area:
+
+* ``halign`` - Horizontal alignment: ``ALIGN_LEFT``, ``ALIGN_CENTER``, ``ALIGN_RIGHT``
+* ``valign`` - Vertical alignment: ``ALIGN_TOP``, ``ALIGN_CENTER``, ``ALIGN_BOTTOM``
+
+.. code-block:: quirrel
+
+   {
+     size = const [sw(50), sh(50)]
+     halign = ALIGN_CENTER
+     valign = ALIGN_CENTER
+     children = childElement  // centered in parent
+   }
+
+With ``flow`` set, alignment affects the cross-axis and distribution:
+
+.. code-block:: quirrel
+
+   {
+     flow = FLOW_HORIZONTAL
+     halign = ALIGN_CENTER    // centers the row of children horizontally
+     valign = ALIGN_CENTER    // vertically centers each child in the row
+     children = [child1, child2, child3]
+   }
+
+
+Self placement (hplace, vplace)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Controls where an element positions itself within its parent, independent of
+siblings:
+
+* ``hplace`` - Horizontal placement: ``ALIGN_LEFT``, ``ALIGN_CENTER``, ``ALIGN_RIGHT``
+* ``vplace`` - Vertical placement: ``ALIGN_TOP``, ``ALIGN_CENTER``, ``ALIGN_BOTTOM``
+
+.. code-block:: quirrel
+
+   {
+     size = sh(20)
+     hplace = ALIGN_CENTER
+     vplace = ALIGN_BOTTOM
+     // element centered horizontally, at bottom of parent
+   }
+
+Note: ``hplace``/``vplace`` are ignored for children when the parent has
+``flow`` set in that axis direction.
+
+
+Margin and padding
+------------------
+
+Spacing properties accept pixels or screen-relative functions (``sh``, ``sw``,
+``hdpx``, ``fsh``, ``fontH``). Parent-relative functions (``pw``, ``ph``) are
+**not supported** for spacing.
+
+**Padding** - Inner spacing between element border and its children:
+
+.. code-block:: quirrel
+
+   padding = 10                           // all sides (pixels)
+   padding = hdpx(10)                     // DPI-aware pixels
+   padding = [sh(1), sw(2)]               // vertical, horizontal
+   padding = [10, 20, 30, 40]             // top, right, bottom, left (CSS order)
+
+**Margin** - Outer spacing around the element:
+
+.. code-block:: quirrel
+
+   margin = 10                            // all sides
+   margin = [10, 20]                      // vertical, horizontal
+   margin = [10, 20, 30, 40]              // top, right, bottom, left
+
+In flow layouts, adjacent margins collapse - the larger margin wins:
+
+.. code-block:: quirrel
+
+   // First child margin-right: 20, second child margin-left: 30
+   // Actual gap between them: max(20, 30) = 30
+
+Negative margins are supported and can create overlapping effects:
+
+.. code-block:: quirrel
+
+   margin = -10  // element overlaps neighbors by 10px
+
+
+Gap
+---
+
+The ``gap`` property sets spacing between children in flow layouts. Like
+margin/padding, it accepts pixels and screen-relative functions but not
+``pw``/``ph``.
+
+**Numeric gap**:
+
+.. code-block:: quirrel
+
+   {
+     flow = FLOW_HORIZONTAL
+     gap = sh(2)              // 2% screen height between each child
+     children = [child1, child2, child3]
+   }
+
+**Component gap** - A full component can serve as the gap, allowing for
+decorative separators:
+
+.. code-block:: quirrel
+
+   {
+     flow = FLOW_VERTICAL
+     gap = {
+       size = const [flex(), hdpx(1)]
+       rendObj = ROBJ_SOLID
+       color = 0xFF333333
+     }
+     children = [item1, item2, item3]
+   }
+
+**Negative gap** - Creates overlapping children:
+
+.. code-block:: quirrel
+
+   {
+     flow = FLOW_VERTICAL
+     gap = -hdpx(10)          // children overlap by 10px
+     children = [card1, card2, card3]
+   }
+
+Note: ``null`` children in the children array do not create gaps. A component
+affects layout (and creates gaps) if it has any ``rendObj``, explicit ``size``,
+or ``children``.
+
+
+Size constraints
+----------------
+
+Limit element dimensions with min/max constraints:
+
+* ``minWidth``, ``minHeight`` - Minimum dimensions
+* ``maxWidth``, ``maxHeight`` - Maximum dimensions
+
+.. code-block:: quirrel
+
+   {
+     size = flex()
+     minWidth = hdpx(200)
+     maxWidth = hdpx(800)
+     minHeight = SIZE_TO_CONTENT  // at least as tall as content
+   }
+
+Constraints accept the same size specifications as ``size``:
+
+.. code-block:: quirrel
+
+   {
+     size = FLEX_H
+     minWidth = SIZE_TO_CONTENT  // expand to fit content, but can grow
+     maxWidth = sw(50)           // but never more than half screen
+   }
+
+
+Positioning
+-----------
+
+The ``pos`` property sets an element's position offset:
+
+.. code-block:: quirrel
+
+   {
+     pos = [100, 50]           // offset 100px right, 50px down from layout position
+   }
+
+Position accepts the same size specifications:
+
+.. code-block:: quirrel
+
+   pos = [pw(50), ph(50)]      // offset by half parent size
+   pos = [sw(10), sh(5)]       // screen-relative offset
+
+Position is applied after layout calculation, so it shifts the element from
+where it would normally be placed.
+
+
+Children sorting
+----------------
+
+The ``sortChildren`` property reorders children based on their ``sortOrder``
+values during layout:
+
+.. code-block:: quirrel
+
+   {
+     sortChildren = true
+     children = [
+       { sortOrder = 3, /* ... */ }   // laid out and rendered last
+       { sortOrder = 1, /* ... */ }   // laid out and rendered first
+       { sortOrder = 2, /* ... */ }   // laid out and rendered second
+     ]
+   }
+
+Higher ``sortOrder`` values are processed later. This affects both layout order
+(in flow containers) and rendering order. Useful for dynamically reordering
+items while keeping declarations in logical order.
+
+
+Image layout
+------------
+
+Images have special layout considerations:
+
+**keepAspect** - Controls aspect ratio preservation:
+
+* ``KEEP_ASPECT_NONE`` - Stretch to fill (default)
+* ``KEEP_ASPECT_FIT`` - Scale to fit, may have empty space
+* ``KEEP_ASPECT_FILL`` - Scale to fill, may crop
+
+This determines how the image is placed inside the element.
+The element itself is laid out as usual.
+
+.. code-block:: quirrel
+
+   {
+     size = const [hdpx(200), hdpx(100)]
+     rendObj = ROBJ_IMAGE
+     image = Picture("ui/image.png")
+     keepAspect = KEEP_ASPECT_FIT
+     imageHalign = ALIGN_CENTER    // horizontal alignment within bounds
+     imageValign = ALIGN_CENTER    // vertical alignment within bounds
+   }
+
+**imageAffectsLayout** - When true, image dimensions influence element sizing:
+
+.. code-block:: quirrel
+
+   {
+     size = SIZE_TO_CONTENT
+     rendObj = ROBJ_IMAGE
+     image = Picture("ui/icon.png")
+     imageAffectsLayout = true     // element sizes to image
+   }
+
+
+Transform
+---------
+
+The ``transform`` property applies visual transformations that do not affect
+layout calculations. Transforms are applied during rendering only.
+
+.. code-block:: quirrel
+
+   {
+     transform = const {
+       pivot = [0.5, 0.5]      // transform origin (0-1 range, default center)
+       rotate = 45             // rotation in degrees
+       scale = [1.2, 1.2]      // scale factors
+       translate = [10, 20]    // translation offset in pixels
+     }
+     // ...
+   }
+
+Transform properties:
+
+* ``pivot`` - Transform origin as [x, y] in 0-1 range (default [0.5, 0.5] = center)
+* ``rotate`` - Rotation angle in degrees
+* ``scale`` - Scale factors as [x, y] or single value for uniform scale
+* ``translate`` - Translation offset in pixels as [x, y]
+
+All fields are optional. If not specified, default values are used.
+
+Transforms are purely visual - the layout system still uses the untransformed
+bounding box. Use transforms for animations, hover effects, and visual polish.
+
+If default transformation is sufficient, but it needs to be animated,
+a mandatory ``transform`` field is required. In this case it can be initialized
+with ``true`` or ``const {}``. Without it animations has nothing to be applied to.
+
+Z-Order control
+---------------
+
+The ``zOrder`` property controls render ordering independent of tree structure:
+
+.. code-block:: quirrel
+
+   {
+     children = [
+       { zOrder = 1, /* renders behind */ }
+       { zOrder = 10, /* renders on top */ }
+     ]
+   }
+
+Higher ``zOrder`` values render on top. Unlike ``sortChildren``/``sortOrder``,
+``zOrder`` affects only rendering - layout order remains unchanged. Use
+``zOrder`` when elements should visually overlap but maintain their layout
+positions.
+
+
+Scrolling
+---------
+
+Elements can be scrollable containers with content larger than their bounds.
+
+**Basic scroll setup**:
+
+.. code-block:: quirrel
+
+   {
+     size = const [sw(50), sh(50)]
+     clipChildren = true
+     behavior = Behaviors.WheelScroll  // or Behaviors.Pannable
+     children = {
+       size = const [flex(), SIZE_TO_CONTENT]
+       flow = FLOW_VERTICAL
+       children = longContentList
+     }
+   }
+
+**Initial scroll offset**:
+
+.. code-block:: quirrel
+
+   scrollOffsX = 100   // initial horizontal scroll position
+   scrollOffsY = 200   // initial vertical scroll position
+
+**ScrollHandler** - For programmatic scroll control and monitoring:
+
+.. code-block:: quirrel
+
+   let scrollHandler = ScrollHandler()
+
+   {
+     scrollHandler = scrollHandler
+     // ...
+   }
+
+   // Later: scrollHandler.scrollToX(100) or scrollHandler.scrollToChildren(elem)
+
+
+Subpixel positioning
+--------------------
+
+By default, element positions are rounded to whole pixels for crisp rendering.
+Enable ``subPixel`` for smooth animations:
+
+.. code-block:: quirrel
+
+   {
+     subPixel = true    // allow fractional pixel positions
+     // useful for smooth animations, gradual movements
+   }
+
+Subpixel positioning is inherited from parent by default. Use it when element
+positions need to animate smoothly without "snapping" to pixels.
+
+
+Clipping
+--------
+
+The ``clipChildren`` property clips child content to the element bounds:
+
+.. code-block:: quirrel
+
+   {
+     size = const [hdpx(200), hdpx(100)]
+     clipChildren = true
+     children = {
+       size = const [hdpx(300), hdpx(200)]  // larger than parent, will be clipped
+       // ...
+     }
+   }
+
+Essential for scroll containers and overflow handling.
+
+
+Layout calculation order
+------------------------
+
+The layout system processes elements in this order:
+
+1. **Fixed sizes** - Calculate pixel, screen-relative, and parent-relative sizes
+2. **Content sizes** - Calculate SIZE_TO_CONTENT dimensions bottom-up
+3. **Flex distribution** - Distribute remaining space among flex children
+4. **Constraints** - Apply min/max limits
+5. **Alignment** - Position children according to alignment properties
+6. **Screen positions** - Calculate absolute screen coordinates
+
+
+Common patterns
+---------------
+
+**Centered content**:
+
+.. code-block:: quirrel
+
+   {
+     size = flex()
+     halign = ALIGN_CENTER
+     valign = ALIGN_CENTER
+     children = content
+   }
+
+**Header-content-footer layout**:
+
+.. code-block:: quirrel
+
+   {
+     size = flex()
+     flow = FLOW_VERTICAL
+     children = [
+       { size = [flex(), hdpx(60)], /* header */ }
+       { size = flex(), /* content fills remaining space */ }
+       { size = [flex(), hdpx(40)], /* footer */ }
+     ]
+   }
+
+**Equal-width columns**:
+
+.. code-block:: quirrel
+
+   {
+     size = flex()
+     flow = FLOW_HORIZONTAL
+     gap = hdpx(10)
+     children = [
+       { size = flex(), /* column 1 */ }
+       { size = flex(), /* column 2 */ }
+       { size = flex(), /* column 3 */ }
+     ]
+   }
+
+**Weighted columns**:
+
+.. code-block:: quirrel
+
+   {
+     flow = FLOW_HORIZONTAL
+     children = [
+       { size = const [flex(1), flex()], /* 1/3 width */ }
+       { size = const [flex(2), flex()], /* 2/3 width */ }
+     ]
+   }
+
+**Minimum content width with flex**:
+
+.. code-block:: quirrel
+
+   {
+     size = FLEX_H
+     minWidth = SIZE_TO_CONTENT  // won't shrink below content size
+     children = { rendObj = ROBJ_TEXT, text = "Don't shrink me" }
+   }
+
+**Overlay positioning**:
+
+.. code-block:: quirrel
+
+   {
+     size = flex()
+     children = [
+       baseContent
+       {
+         hplace = ALIGN_RIGHT
+         vplace = ALIGN_TOP
+         pos = [-hdpx(10), hdpx(10)]  // inset from corner
+         children = badge
+       }
+     ]
+   }
+
+
+Element identity and keys
+-------------------------
+
+The ``key`` property provides stable element identity across rebuilds:
+
+.. code-block:: quirrel
+
+   {
+     flow = FLOW_VERTICAL
+     children = items.map(@(item) {
+       key = item.id          // stable identity for animations and state
+       // ...
+     })
+   }
+
+Without ``key``, daRg matches elements by position and structure. When list
+items can be reordered, added, or removed, ``key`` ensures animations and
+internal state follow the correct elements.
+
+
+Zero-size positioning anchors
+-----------------------------
+
+Elements with ``size = 0`` can serve as positioning anchors for their children.
+The anchor itself occupies no space in layout but provides a reference point
+for child positioning:
+
+.. code-block:: quirrel
+
+   {
+     size = 0
+     pos = const [sw(50), sh(50)]       // position at screen center
+     halign = ALIGN_CENTER
+     valign = ALIGN_CENTER
+     children = content           // content centered on anchor point
+   }
+
+This pattern is useful for:
+
+* Placing elements at calculated coordinates (e.g., circular layouts)
+* Creating overlay markers at specific positions
+* Positioning tooltips or popups relative to a point
+
+.. code-block:: quirrel
+
+   // Circular layout example
+   let radius = hdpx(100)
+   let angle = PI / 4
+   {
+     size = 0
+     pos = [cos(angle) * radius, sin(angle) * radius]
+     halign = ALIGN_CENTER
+     valign = ALIGN_CENTER
+     children = itemAtAngle
+   }
+
+
+Manually calculating component sizes
+------------------------------------
+
+Use ``calc_comp_size(component)`` to manually calculate component dimensions.
+It returns an array of two numbers: [width, height]
+It is slow (the function creates a separate scene for the given components
+and calculates its layout) and should no be used in real time.
+
+Use ``calc_content_size(component)`` to get the content extent of the same
+component instead of its own size. It also returns [width, height], and it is
+the same value that ``elem_ref.getContentWidth()`` / ``getContentHeight()``
+report for a live element: the extent used by ``SIZE_TO_CONTENT`` and by
+scrolling. The two functions differ only when the component's own size does not
+follow its content, for example a fixed or ``flex()`` size, or a size limited by
+``minWidth`` / ``maxHeight``. Then ``calc_comp_size`` returns the box and
+``calc_content_size`` returns what is inside it, which can be larger.
+
+Use ``calc_str_box()`` function to calculate the size of rendered text string.
+It can take two forms ``calc_str_box(text, [params])`` or ``calc_str_box(params)``.
+``text`` is a string.
+``params`` is a table or a function returning a table (can be a component desciption).
+If ``text`` is not specified it is read from ``params`` table.
+From ``params`` table the following fields are read:
+``fontId``, ``fontSize``, ``fontHt``, ``spacing``, ``monoWidth``, ``padding``
+(all optional).
+
+
+Debugging Tips
+--------------
+
+* Use ``ROBJ_FRAME`` with ``borderWidth`` to visualize element boundaries
+* ``ROBJ_DEBUG`` renders a box with diagonal lines for debugging
+* ``darg.dbgframe <mode>`` console commands sets debug rendering of element frames.
+  ``mode`` values:
+
+   * ``0`` - debug render off
+   * ``1`` or ``create`` - elements are assigned new random color on create
+   * ``2`` or ``update`` - elements are assigned new random color on rebuild
+* Remember that ``SIZE_TO_CONTENT`` requires children to have calculable sizes
+
+
+Stateful Components
+-------------------
+
+Use ``StatefulComp`` when a component needs state of its own: a ``Watched``,
+a ``Computed``, or an FRP subscription that should live as long as that one
+component is on screen.
+
+A normal builder can run again whenever its parent rebuilds.
+State created in that builder is created again too.
+A stateful component has a constructor that daRg runs once when
+the component is mounted to the scene.
+The constructor creates the per-instance state and returns the usual component builder.
+
+Creating a stateful component
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Create the component type once, normally at module scope.
+Calling the type (created by `StatefulComp()`) creates a descriptor;
+it does not call the constructor yet.
+Put that descriptor in ``children``.
+
+.. code-block:: quirrel
+
+   let selectedSquadId = Watched(null)
+
+   let SquadCard = StatefulComp(
+     function(squad) {
+       let isSelected = Computed(@() selectedSquadId.get() == squad.get().id)
+
+       return @() {
+         watch = [squad, isSelected]
+         rendObj = ROBJ_SOLID
+         behavior = Behaviors.Button
+         onClick = @() selectedSquadId.set(squad.get().id)
+         children = {
+           rendObj = ROBJ_TEXT
+           text = isSelected.get() ? $"Selected: {squad.get().name}" : squad.get().name
+         }
+       }
+     },
+     @(squad) squad.id)
+
+   let squadList = @() {
+     watch = squads
+     children = squads.get().map(@(squad) SquadCard(squad))
+   }
+
+``StatefulComp(...)`` returns a component type. Its identity is part of a
+component's identity, so do not create that type inside a builder.
+
+``SquadCard(squad)`` returns a lightweight descriptor.
+It holds the type, the arguments, and the key.
+The key function runs when the descriptor is made, but the constructor does not.
+Keep the key function pure, because it normally runs from a parent builder.
+
+When daRg mounts a descriptor, it runs the constructor once.
+The constructor usually returns a builder closure, as in the example.
+That builder runs again when one of its own ``watch`` values changes or
+whenever daRg needs to do it.
+A constructor can return a table instead, but then the component must be
+completely static: a table cannot be rebuilt from its ``watch`` field or
+from later argument changes.
+
+Keys and matching
+~~~~~~~~~~~~~~~~~
+
+On a parent rebuild, daRg compares each stateful descriptor with the mounted
+children of that parent. A descriptor matches an existing instance when both
+the component type and the key are the same. A match keeps the existing
+instance and updates its arguments. No match creates a new instance.
+
+The key belongs to the component type, not to each call. Use a stable ID from
+the data, such as ``squad.id``. Do not use an array index if the list can be
+reordered.
+
+The key function receives ordinary values. If an argument is an observable,
+the key function receives its current value. It may use any subset of the
+constructor arguments, in any order, but its parameter names must match the
+constructor parameter names:
+
+.. code-block:: quirrel
+
+   let SeatCard = StatefulComp(
+     function(soldier, seat) {
+       return @() {
+         watch = [soldier, seat]
+         rendObj = ROBJ_TEXT
+         text = $"{soldier.get().name}, seat {seat.get()}"
+       }
+     },
+     @(soldier, seat) $"{soldier.guid}:{seat}")
+
+Both the constructor and the key function must have fixed parameters;
+default parameters and varargs are rejected.
+A key must be ``null``, a boolean, a number, or a string.
+Returning ``null`` leaves the component unkeyed.
+
+Keys should be unique among stateful siblings of the same type.
+Unkeyed siblings, and siblings with duplicate keys, are matched in their current order.
+That means their state can move to the wrong item after a reorder.
+
+The key is calculated when the parent creates a descriptor.
+If the next descriptor has a different key, daRg replaces that instance.
+Do not add a ``key`` field to the table returned by a stateful component;
+daRg uses the key from ``StatefulComp`` instead.
+
+If a key depends on an observable, it is recalculated only when the parent
+builds a new descriptor.
+Watch that observable in the parent when a change should remount the component.
+
+Arguments are observables
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Every constructor argument is an observable.
+For a plain value, daRg creates a private ``Watched`` for that instance.
+When the same instance is found on a later parent rebuild, daRg writes
+the new value to that ``Watched``.
+Read it with ``.get()`` and include it, or a value derived from it, in ``watch``.
+
+.. code-block:: quirrel
+
+   // This keeps the first name forever.
+   let Card = StatefulComp(function(item) {
+     let name = item.get().name
+     return @() { rendObj = ROBJ_TEXT, text = name }
+   })
+
+   // This follows later values passed for item.
+   let Card = StatefulComp(function(item) {
+     let name = Computed(@() item.get().name)
+     return @() {
+       watch = name
+       rendObj = ROBJ_TEXT
+       text = name.get()
+     }
+   })
+
+Reading an argument once in the constructor is still useful for deliberate
+mount-time state, such as an animation's starting value.
+Do not use a one-time read for data the component renders.
+In developer builds, daRg reports a changed value argument that has no reactive consumer.
+This catches a common stale-data mistake, but it does not replace a complete ``watch`` list.
+
+You can also pass an observable as an argument.
+The constructor receives that same observable instead of a private one.
+For as long as the instance is kept, later descriptors must pass the same observable again.
+Changing between a value and an observable, or replacing the observable, is an error.
+
+A call must provide exactly the constructor's number of arguments.
+
+Where descriptors are allowed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A descriptor is valid only as a value of ``children``, either by itself or in
+the children array.
+It cannot be a scene or panel root, a builder result, a constructor result, or ``gap``.
+Wrap it in a component description when one of those places needs it:
+
+.. code-block:: quirrel
+
+   // Valid as a root or a gap component.
+   { children = SquadCard(squad) }
+
+Lifetime and cleanup
+~~~~~~~~~~~~~~~~~~~~
+
+FRP state created in the constructor belongs to the mounted instance.
+daRg disposes constructor-created ``Watched`` and ``Computed`` values, along with
+FRP subscriptions created there, when the element is finally deleted.
+The state remains available while a removed element is finishing a fade-out.
+
+This includes a subscription to an observable from outside the component, such
+as a module-scope ``Watched``. daRg removes the callback and keeps the
+observable, so you do not need ``unsubscribe``. Only the constructor works this
+way: a ``subscribe`` call from ``onAttach`` or from an event handler stays on
+the observable after the element is gone.
+
+Timers and other resources outside FRP are not owned by the instance.
+Clear them in the normal lifecycle hooks, such as ``onDetach``.
+
+Keep setup out of the builder
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The constructor is the only place in a stateful component where you can
+create observables or subscribe.
+Creating a ``Watched`` or ``Computed``, or calling ``subscribe``,
+from its returned builder is an error.
+The builder should only read existing state and return a component description.
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+   :glob:
+
+   *
+

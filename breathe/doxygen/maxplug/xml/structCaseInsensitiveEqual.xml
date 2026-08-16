@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCaseInsensitiveEqual" kind="struct" language="C++" prot="public">
+    <compoundname>CaseInsensitiveEqual</compoundname>
+    <includes refid="ci_8h" local="no">ci.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structCaseInsensitiveEqual_1ac49e05da490c720322575d9313cb045f" prot="public" static="no">
+        <type>void</type>
+        <definition>using CaseInsensitiveEqual::is_transparent =  void</definition>
+        <argsstring></argsstring>
+        <name>is_transparent</name>
+        <qualifiedname>CaseInsensitiveEqual::is_transparent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ci.h" line="28" column="3" bodyfile="ci.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structCaseInsensitiveEqual_1a99b7ca2dac1d725528bb220929b596c9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CaseInsensitiveEqual::operator()</definition>
+        <argsstring>(std::string_view left, std::string_view right) const</argsstring>
+        <name>operator()</name>
+        <qualifiedname>CaseInsensitiveEqual::operator()</qualifiedname>
+        <param>
+          <type>std::string_view</type>
+          <declname>left</declname>
+        </param>
+        <param>
+          <type>std::string_view</type>
+          <declname>right</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ci.h" line="30" column="8" bodyfile="ci.h" bodystart="30" bodyend="34"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ci.h" line="26" column="1" bodyfile="ci.h" bodystart="27" bodyend="35"/>
+    <listofallmembers>
+      <member refid="structCaseInsensitiveEqual_1ac49e05da490c720322575d9313cb045f" prot="public" virt="non-virtual"><scope>CaseInsensitiveEqual</scope><name>is_transparent</name></member>
+      <member refid="structCaseInsensitiveEqual_1a99b7ca2dac1d725528bb220929b596c9" prot="public" virt="non-virtual"><scope>CaseInsensitiveEqual</scope><name>operator()</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

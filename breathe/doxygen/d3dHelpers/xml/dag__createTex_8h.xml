@@ -1,0 +1,144 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__createTex_8h" kind="file" language="C++">
+    <compoundname>dag_createTex.h</compoundname>
+    <innerclass refid="classICreateTexFactory" prot="public">ICreateTexFactory</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__createTex_8h_1a6250354c67e3dab50f0015a5e309ec68" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void add_create_tex_factory</definition>
+        <argsstring>(ICreateTexFactory *ctf)</argsstring>
+        <name>add_create_tex_factory</name>
+        <param>
+          <type><ref refid="classICreateTexFactory" kindref="compound">ICreateTexFactory</ref> *</type>
+          <declname>ctf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_createTex.h" line="18" column="6" declfile="dag_createTex.h" declline="18" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__createTex_8h_1abffc13fa9888d35ea5682df5b8b31881" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void del_create_tex_factory</definition>
+        <argsstring>(ICreateTexFactory *ctf)</argsstring>
+        <name>del_create_tex_factory</name>
+        <param>
+          <type><ref refid="classICreateTexFactory" kindref="compound">ICreateTexFactory</ref> *</type>
+          <declname>ctf</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_createTex.h" line="19" column="6" declfile="dag_createTex.h" declline="19" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__createTex_8h_1ac1a9915b6c0b8adacea0c99a1ec2edc7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BaseTexture *</type>
+        <definition>BaseTexture * create_texture</definition>
+        <argsstring>(const char *fn, int flg, int levels, bool fatal_on_err, const char *fnext=NULL)</argsstring>
+        <name>create_texture</name>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>levels</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>fatal_on_err</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fnext</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_createTex.h" line="21" column="13" declfile="dag_createTex.h" declline="21" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__createTex_8h_1ae933c915b8e7f4230c39efc6b65072d8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BaseTexture *</type>
+        <definition>BaseTexture * create_texture_via_factories</definition>
+        <argsstring>(const char *fn, int flg, int levels, const char *fn_ext, const TextureMetaData &amp;tmd, ICreateTexFactory *excl_factory)</argsstring>
+        <name>create_texture_via_factories</name>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>levels</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fn_ext</declname>
+        </param>
+        <param>
+          <type>const TextureMetaData &amp;</type>
+          <declname>tmd</declname>
+        </param>
+        <param>
+          <type><ref refid="classICreateTexFactory" kindref="compound">ICreateTexFactory</ref> *</type>
+          <declname>excl_factory</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_createTex.h" line="22" column="13" declfile="dag_createTex.h" declline="22" declcolumn="13"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>forward<sp/>declarations<sp/>for<sp/>external<sp/>classes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">BaseTexture;</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">TextureMetaData;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="classICreateTexFactory" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classICreateTexFactory" kindref="compound">ICreateTexFactory</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="15" refid="classICreateTexFactory_1af7b1fa72805909e742686981ee4174e1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>BaseTexture<sp/>*<ref refid="classICreateTexFactory_1af7b1fa72805909e742686981ee4174e1" kindref="member">createTex</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fn,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>levels,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fn_ext,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TextureMetaData<sp/>&amp;tmd)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="dag__createTex_8h_1a6250354c67e3dab50f0015a5e309ec68" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__createTex_8h_1a6250354c67e3dab50f0015a5e309ec68" kindref="member">add_create_tex_factory</ref>(<ref refid="classICreateTexFactory" kindref="compound">ICreateTexFactory</ref><sp/>*ctf);</highlight></codeline>
+<codeline lineno="19" refid="dag__createTex_8h_1abffc13fa9888d35ea5682df5b8b31881" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__createTex_8h_1abffc13fa9888d35ea5682df5b8b31881" kindref="member">del_create_tex_factory</ref>(<ref refid="classICreateTexFactory" kindref="compound">ICreateTexFactory</ref><sp/>*ctf);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="dag__createTex_8h_1ac1a9915b6c0b8adacea0c99a1ec2edc7" refkind="member"><highlight class="normal">BaseTexture<sp/>*<ref refid="dag__createTex_8h_1ac1a9915b6c0b8adacea0c99a1ec2edc7" kindref="member">create_texture</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fn,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>levels,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>fatal_on_err,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fnext<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="22" refid="dag__createTex_8h_1ae933c915b8e7f4230c39efc6b65072d8" refkind="member"><highlight class="normal">BaseTexture<sp/>*<ref refid="dag__createTex_8h_1ae933c915b8e7f4230c39efc6b65072d8" kindref="member">create_texture_via_factories</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fn,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>levels,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fn_ext,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TextureMetaData<sp/>&amp;tmd,</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><ref refid="classICreateTexFactory" kindref="compound">ICreateTexFactory</ref><sp/>*excl_factory);</highlight></codeline>
+    </programlisting>
+    <location file="dag_createTex.h"/>
+  </compounddef>
+</doxygen>

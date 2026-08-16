@@ -1,0 +1,250 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structTpsCameraConfig" kind="struct" language="C++" prot="public">
+    <compoundname>TpsCameraConfig</compoundname>
+    <basecompoundref refid="structFpsCameraConfig" prot="public" virt="non-virtual">FpsCameraConfig</basecompoundref>
+    <includes refid="ec__camera__dlg_8h" local="no">ec_camera_dlg.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structTpsCameraConfig_1a2d5bc0e07593e6cfc57653d869b62889" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float TpsCameraConfig::minDist</definition>
+        <argsstring></argsstring>
+        <name>minDist</name>
+        <qualifiedname>TpsCameraConfig::minDist</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="123" column="9" bodyfile="ec_camera_dlg.h" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTpsCameraConfig_1ae827217695d2d1816799f13467ea4d4a" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float TpsCameraConfig::maxMaxDist</definition>
+        <argsstring></argsstring>
+        <name>maxMaxDist</name>
+        <qualifiedname>TpsCameraConfig::maxMaxDist</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="123" column="17" bodyfile="ec_camera_dlg.h" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTpsCameraConfig_1a9ffc0d36f954a421af6f41550d768732" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float TpsCameraConfig::maxOutSpeed</definition>
+        <argsstring></argsstring>
+        <name>maxOutSpeed</name>
+        <qualifiedname>TpsCameraConfig::maxOutSpeed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="123" column="28" bodyfile="ec_camera_dlg.h" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTpsCameraConfig_1a206e5542db6b365e42d8e77bee39c678" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float TpsCameraConfig::minVAng</definition>
+        <argsstring></argsstring>
+        <name>minVAng</name>
+        <qualifiedname>TpsCameraConfig::minVAng</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="124" column="9" bodyfile="ec_camera_dlg.h" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTpsCameraConfig_1a61056ca5a5c66a27c96a991edde93eab" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float TpsCameraConfig::maxVAng</definition>
+        <argsstring></argsstring>
+        <name>maxVAng</name>
+        <qualifiedname>TpsCameraConfig::maxVAng</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="124" column="17" bodyfile="ec_camera_dlg.h" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structTpsCameraConfig_1a053515286914146744a1c36d8b9b6a03" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TpsCameraConfig::TpsCameraConfig</definition>
+        <argsstring>()</argsstring>
+        <name>TpsCameraConfig</name>
+        <qualifiedname>TpsCameraConfig::TpsCameraConfig</qualifiedname>
+        <briefdescription>
+<para>Constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="127" column="3" bodyfile="ec_camera_dlg.h" bodystart="127" bodyend="136"/>
+      </memberdef>
+      <memberdef kind="function" id="structTpsCameraConfig_1ad6149ba9ab4b19bca91380d207340914" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TpsCameraConfig::~TpsCameraConfig</definition>
+        <argsstring>() override</argsstring>
+        <name>~TpsCameraConfig</name>
+        <qualifiedname>TpsCameraConfig::~TpsCameraConfig</qualifiedname>
+        <briefdescription>
+<para>Destructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="138" column="3" bodyfile="ec_camera_dlg.h" bodystart="138" bodyend="138"/>
+      </memberdef>
+      <memberdef kind="function" id="structTpsCameraConfig_1a287950993a12948ef484b8339b1bcda6" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void TpsCameraConfig::load</definition>
+        <argsstring>(const DataBlock &amp;blk) override</argsstring>
+        <name>load</name>
+        <qualifiedname>TpsCameraConfig::load</qualifiedname>
+        <reimplements refid="structFpsCameraConfig_1a5445cb46ae718715ea4a90824210bece">load</reimplements>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Load camera parameters from BLK file. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Data Block that contains data to load (see #DataBlock) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="142" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structTpsCameraConfig_1adb6d56edf8fcdf2cbc7e2028ce2cf231" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void TpsCameraConfig::save</definition>
+        <argsstring>(DataBlock &amp;blk) override</argsstring>
+        <name>save</name>
+        <qualifiedname>TpsCameraConfig::save</qualifiedname>
+        <reimplements refid="structFpsCameraConfig_1acc4a923538646c12ec26d830cde799c4">save</reimplements>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Save camera parameters to BLK file. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- Data Block that contains data to save (see #DataBlock) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="146" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>CameraConfig</label>
+        <link refid="structCameraConfig"/>
+      </node>
+      <node id="2">
+        <label>FpsCameraConfig</label>
+        <link refid="structFpsCameraConfig"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>TpsCameraConfig</label>
+        <link refid="structTpsCameraConfig"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>CameraConfig</label>
+        <link refid="structCameraConfig"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>commonInertia</edgelabel>
+          <edgelabel>hangInertia</edgelabel>
+          <edgelabel>vangInertia</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>FpsCameraConfig</label>
+        <link refid="structFpsCameraConfig"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>Inertia</label>
+        <link refid="structInertia"/>
+      </node>
+      <node id="1">
+        <label>TpsCameraConfig</label>
+        <link refid="structTpsCameraConfig"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_camera_dlg.h" line="121" column="1" bodyfile="ec_camera_dlg.h" bodystart="122" bodyend="147"/>
+    <listofallmembers>
+      <member refid="structCameraConfig_1a03e6228afa19acfc757e310781372b6e" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>CameraConfig</name></member>
+      <member refid="structCameraConfig_1a2ef6e79a8f85139af9e82fd20e39daa4" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>commonInertia</name></member>
+      <member refid="structCameraConfig_1afe04197a7270fc0bcbaf923d68caae08" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>controlMultiplier</name></member>
+      <member refid="structFpsCameraConfig_1a0750dfe3172e125974e87b87ac70aaab" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>FpsCameraConfig</name></member>
+      <member refid="structFpsCameraConfig_1a28fec5ac1583fceac138d45c504c3d17" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>gravity</name></member>
+      <member refid="structFpsCameraConfig_1a62ae8a887b44405cdb2749100973cc0a" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>halfHeight</name></member>
+      <member refid="structCameraConfig_1a026422c7967d2889c442767cfd573716" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>hangInertia</name></member>
+      <member refid="structFpsCameraConfig_1a0fc8735c821609e74d601e2eff555f65" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>height</name></member>
+      <member refid="structFpsCameraConfig_1ad93aaf59f19444a71d843b6bcdb045ea" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>jumpSpeed</name></member>
+      <member refid="structTpsCameraConfig_1a287950993a12948ef484b8339b1bcda6" prot="public" virt="virtual"><scope>TpsCameraConfig</scope><name>load</name></member>
+      <member refid="structTpsCameraConfig_1ae827217695d2d1816799f13467ea4d4a" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>maxMaxDist</name></member>
+      <member refid="structTpsCameraConfig_1a9ffc0d36f954a421af6f41550d768732" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>maxOutSpeed</name></member>
+      <member refid="structTpsCameraConfig_1a61056ca5a5c66a27c96a991edde93eab" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>maxVAng</name></member>
+      <member refid="structTpsCameraConfig_1a2d5bc0e07593e6cfc57653d869b62889" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>minDist</name></member>
+      <member refid="structTpsCameraConfig_1a206e5542db6b365e42d8e77bee39c678" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>minVAng</name></member>
+      <member refid="structCameraConfig_1a45e059755be23ae1a48c7a7edf2ff5fc" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>moveStep</name></member>
+      <member refid="structFpsCameraConfig_1aefab0889ffb691735d97254282846100" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>radius</name></member>
+      <member refid="structCameraConfig_1a21528b862aa626c9487453e990d14c9c" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>rotationStep</name></member>
+      <member refid="structTpsCameraConfig_1adb6d56edf8fcdf2cbc7e2028ce2cf231" prot="public" virt="virtual"><scope>TpsCameraConfig</scope><name>save</name></member>
+      <member refid="structCameraConfig_1aa0e8652e3be842ae4b0f8d8b11007ee3" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>speedChangeMultiplier</name></member>
+      <member refid="structFpsCameraConfig_1a4a6158f4099de0dc3a5a3ad1a47b08f8" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>stepHalfHeight</name></member>
+      <member refid="structFpsCameraConfig_1a00125a2dd02ea47357bb34ae3fdcb626" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>stepHeight</name></member>
+      <member refid="structCameraConfig_1a9d69289b1c797049162140ae8e9dd8ca" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>strifeStep</name></member>
+      <member refid="structTpsCameraConfig_1a053515286914146744a1c36d8b9b6a03" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>TpsCameraConfig</name></member>
+      <member refid="structCameraConfig_1aee3364bf8c8f0d5ae3368fccf8f50834" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>vangInertia</name></member>
+      <member refid="structCameraConfig_1a11277a3ed6e860a07a0941631f295690" prot="public" virt="virtual"><scope>TpsCameraConfig</scope><name>~CameraConfig</name></member>
+      <member refid="structFpsCameraConfig_1aa91120b9c3dbeec53fc8c3fcf5380fca" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>~FpsCameraConfig</name></member>
+      <member refid="structTpsCameraConfig_1ad6149ba9ab4b19bca91380d207340914" prot="public" virt="non-virtual"><scope>TpsCameraConfig</scope><name>~TpsCameraConfig</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

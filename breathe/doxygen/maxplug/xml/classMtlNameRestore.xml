@@ -1,0 +1,186 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMtlNameRestore" kind="class" language="C++" prot="public">
+    <compoundname>MtlNameRestore</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">RestoreObj</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classMtlNameRestore_1a230185f99c1480dfee5f153fce0b9629" prot="public" static="no" mutable="no">
+        <type>Mtl *</type>
+        <definition>Mtl* MtlNameRestore::mtl</definition>
+        <argsstring></argsstring>
+        <name>mtl</name>
+        <qualifiedname>MtlNameRestore::mtl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2424" column="7" bodyfile="util.cpp" bodystart="2424" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMtlNameRestore_1a16e0847697990e5891c2c72adba59f11" prot="public" static="no" mutable="no">
+        <type>MSTR</type>
+        <definition>MSTR MtlNameRestore::undoName</definition>
+        <argsstring></argsstring>
+        <name>undoName</name>
+        <qualifiedname>MtlNameRestore::undoName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2425" column="8" bodyfile="util.cpp" bodystart="2425" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMtlNameRestore_1a06b76ed97cd400ad0efd052c81b108fd" prot="public" static="no" mutable="no">
+        <type>MSTR</type>
+        <definition>MSTR MtlNameRestore::redoName</definition>
+        <argsstring></argsstring>
+        <name>redoName</name>
+        <qualifiedname>MtlNameRestore::redoName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2425" column="17" bodyfile="util.cpp" bodystart="2425" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMtlNameRestore_1a8db5463b8d8506d56a646a0f3de8daf8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>MtlNameRestore::MtlNameRestore</definition>
+        <argsstring>(Mtl *m, const MSTR &amp;new_name)</argsstring>
+        <name>MtlNameRestore</name>
+        <qualifiedname>MtlNameRestore::MtlNameRestore</qualifiedname>
+        <param>
+          <type>Mtl *</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>const MSTR &amp;</type>
+          <declname>new_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2427" column="3" bodyfile="util.cpp" bodystart="2427" bodyend="2427"/>
+      </memberdef>
+      <memberdef kind="function" id="classMtlNameRestore_1a95f6b29c645187554cbc129463023c59" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MtlNameRestore::~MtlNameRestore</definition>
+        <argsstring>() override=default</argsstring>
+        <name>~MtlNameRestore</name>
+        <qualifiedname>MtlNameRestore::~MtlNameRestore</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2428" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classMtlNameRestore_1a748f24946f6c9b2050268de8be4acb8c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MtlNameRestore::Restore</definition>
+        <argsstring>(int) override</argsstring>
+        <name>Restore</name>
+        <qualifiedname>MtlNameRestore::Restore</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2430" column="8" bodyfile="util.cpp" bodystart="2430" bodyend="2430"/>
+      </memberdef>
+      <memberdef kind="function" id="classMtlNameRestore_1ad9a03a61204421c24328911a700c329b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MtlNameRestore::Redo</definition>
+        <argsstring>() override</argsstring>
+        <name>Redo</name>
+        <qualifiedname>MtlNameRestore::Redo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2431" column="8" bodyfile="util.cpp" bodystart="2431" bodyend="2431"/>
+      </memberdef>
+      <memberdef kind="function" id="classMtlNameRestore_1af51dfd510cf33aa0c08b7bf61f5693d8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int MtlNameRestore::Size</definition>
+        <argsstring>() override</argsstring>
+        <name>Size</name>
+        <qualifiedname>MtlNameRestore::Size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2433" column="7" bodyfile="util.cpp" bodystart="2433" bodyend="2433"/>
+      </memberdef>
+      <memberdef kind="function" id="classMtlNameRestore_1ab9cf506e43de98cb46029e8cdbfe267c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>MSTR</type>
+        <definition>MSTR MtlNameRestore::Description</definition>
+        <argsstring>() override</argsstring>
+        <name>Description</name>
+        <qualifiedname>MtlNameRestore::Description</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2434" column="8" bodyfile="util.cpp" bodystart="2434" bodyend="2434"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>MtlNameRestore</label>
+        <link refid="classMtlNameRestore"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RestoreObj</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>MtlNameRestore</label>
+        <link refid="classMtlNameRestore"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RestoreObj</label>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="2421" column="1" bodyfile="util.cpp" bodystart="2422" bodyend="2435"/>
+    <listofallmembers>
+      <member refid="classMtlNameRestore_1ab9cf506e43de98cb46029e8cdbfe267c" prot="public" virt="non-virtual"><scope>MtlNameRestore</scope><name>Description</name></member>
+      <member refid="classMtlNameRestore_1a230185f99c1480dfee5f153fce0b9629" prot="public" virt="non-virtual"><scope>MtlNameRestore</scope><name>mtl</name></member>
+      <member refid="classMtlNameRestore_1a8db5463b8d8506d56a646a0f3de8daf8" prot="public" virt="non-virtual"><scope>MtlNameRestore</scope><name>MtlNameRestore</name></member>
+      <member refid="classMtlNameRestore_1ad9a03a61204421c24328911a700c329b" prot="public" virt="non-virtual"><scope>MtlNameRestore</scope><name>Redo</name></member>
+      <member refid="classMtlNameRestore_1a06b76ed97cd400ad0efd052c81b108fd" prot="public" virt="non-virtual"><scope>MtlNameRestore</scope><name>redoName</name></member>
+      <member refid="classMtlNameRestore_1a748f24946f6c9b2050268de8be4acb8c" prot="public" virt="non-virtual"><scope>MtlNameRestore</scope><name>Restore</name></member>
+      <member refid="classMtlNameRestore_1af51dfd510cf33aa0c08b7bf61f5693d8" prot="public" virt="non-virtual"><scope>MtlNameRestore</scope><name>Size</name></member>
+      <member refid="classMtlNameRestore_1a16e0847697990e5891c2c72adba59f11" prot="public" virt="non-virtual"><scope>MtlNameRestore</scope><name>undoName</name></member>
+      <member refid="classMtlNameRestore_1a95f6b29c645187554cbc129463023c59" prot="public" virt="non-virtual"><scope>MtlNameRestore</scope><name>~MtlNameRestore</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

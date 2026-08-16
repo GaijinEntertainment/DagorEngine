@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structresptr__detail_1_1PrivateDataGetter" kind="struct" language="C++" prot="public">
+    <compoundname>resptr_detail::PrivateDataGetter</compoundname>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structresptr__detail_1_1PrivateDataGetter_1ab7e79701f6088e9c46d3bc7a6023755e" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>T::derived_t::resource_t *</type>
+        <definition>static T::derived_t::resource_t * resptr_detail::PrivateDataGetter::getResource</definition>
+        <argsstring>(const T *that)</argsstring>
+        <name>getResource</name>
+        <qualifiedname>resptr_detail::PrivateDataGetter::getResource</qualifiedname>
+        <param>
+          <type>const T *</type>
+          <declname>that</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="173" column="44" bodyfile="dag_resPtr.h" bodystart="173" bodyend="176"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1PrivateDataGetter_1adb6a9710f527454ecc4e14359792046c" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>T::derived_t::resid_t</type>
+        <definition>static T::derived_t::resid_t resptr_detail::PrivateDataGetter::getResId</definition>
+        <argsstring>(const T *that)</argsstring>
+        <name>getResId</name>
+        <qualifiedname>resptr_detail::PrivateDataGetter::getResId</qualifiedname>
+        <param>
+          <type>const T *</type>
+          <declname>that</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="179" column="41" bodyfile="dag_resPtr.h" bodystart="179" bodyend="182"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resPtr.h" line="170" column="1" bodyfile="dag_resPtr.h" bodystart="171" bodyend="183"/>
+    <listofallmembers>
+      <member refid="structresptr__detail_1_1PrivateDataGetter_1adb6a9710f527454ecc4e14359792046c" prot="public" virt="non-virtual"><scope>resptr_detail::PrivateDataGetter</scope><name>getResId</name></member>
+      <member refid="structresptr__detail_1_1PrivateDataGetter_1ab7e79701f6088e9c46d3bc7a6023755e" prot="public" virt="non-virtual"><scope>resptr_detail::PrivateDataGetter</scope><name>getResource</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

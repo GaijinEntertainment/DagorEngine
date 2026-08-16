@@ -1,0 +1,148 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structproc_1_1internal_1_1ExecutionState" kind="struct" language="C++" prot="public">
+    <compoundname>proc::internal::ExecutionState</compoundname>
+    <includes refid="processes__impl_8h" local="no">processes_impl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ExecutionState_1a9777d85c4cd0eb0a3c0933a69fc7bff8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int proc::internal::ExecutionState::maxProcs</definition>
+        <argsstring></argsstring>
+        <name>maxProcs</name>
+        <qualifiedname>proc::internal::ExecutionState::maxProcs</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="43" column="7" bodyfile="processes_impl.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ExecutionState_1a56dd20117f73dd24ec51dd4bf70b6712" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool proc::internal::ExecutionState::shouldCancelOnProcFail</definition>
+        <argsstring></argsstring>
+        <name>shouldCancelOnProcFail</name>
+        <qualifiedname>proc::internal::ExecutionState::shouldCancelOnProcFail</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="44" column="8" bodyfile="processes_impl.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ExecutionState_1a6f3c972a055e390fad8ac722b67e7057" prot="public" static="no" mutable="no">
+        <type>eastl::deque&lt; <ref refid="structproc_1_1ProcessTask" kindref="compound">ProcessTask</ref> &gt;</type>
+        <definition>eastl::deque&lt;ProcessTask&gt; proc::internal::ExecutionState::tasks</definition>
+        <argsstring></argsstring>
+        <name>tasks</name>
+        <qualifiedname>proc::internal::ExecutionState::tasks</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="46" column="16" bodyfile="processes_impl.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ExecutionState_1a52113053b89b47c590a04aed52d8cbed" prot="public" static="no" mutable="no">
+        <type>eastl::deque&lt; <ref refid="structproc_1_1internal_1_1ProcessHandle" kindref="compound">ProcessHandle</ref> &gt;</type>
+        <definition>eastl::deque&lt;ProcessHandle&gt; proc::internal::ExecutionState::processes</definition>
+        <argsstring></argsstring>
+        <name>processes</name>
+        <qualifiedname>proc::internal::ExecutionState::processes</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="47" column="16" bodyfile="processes_impl.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ExecutionState_1ad43f4f5f407e36f94d02b12a00f7269a" prot="public" static="no" mutable="no">
+        <type>dag::Vector&lt; <ref refid="structproc_1_1internal_1_1OutputSink" kindref="compound">OutputSink</ref> &gt;</type>
+        <definition>dag::Vector&lt;OutputSink&gt; proc::internal::ExecutionState::sinkPool</definition>
+        <argsstring></argsstring>
+        <name>sinkPool</name>
+        <qualifiedname>proc::internal::ExecutionState::sinkPool</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="49" column="15" bodyfile="processes_impl.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ExecutionState_1a06a4a1637108f2cfa9eceacfaf0d5aba" prot="public" static="no" mutable="no">
+        <type>dag::AtomicInteger&lt; bool &gt;</type>
+        <definition>dag::AtomicInteger&lt;bool&gt; proc::internal::ExecutionState::cancelled</definition>
+        <argsstring></argsstring>
+        <name>cancelled</name>
+        <qualifiedname>proc::internal::ExecutionState::cancelled</qualifiedname>
+        <initializer>{false}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="51" column="22" bodyfile="processes_impl.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ExecutionState_1ad0b597eff5c66f6fcce0da301edb874e" prot="public" static="no" mutable="no">
+        <type><ref refid="structproc_1_1internal_1_1ExtraStateData" kindref="compound">ExtraStateData</ref> *</type>
+        <definition>ExtraStateData* proc::internal::ExecutionState::extraData</definition>
+        <argsstring></argsstring>
+        <name>extraData</name>
+        <qualifiedname>proc::internal::ExecutionState::extraData</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="53" column="18" bodyfile="processes_impl.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>proc::internal::ExecutionState</label>
+        <link refid="structproc_1_1internal_1_1ExecutionState"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>extraData</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>proc::internal::ExtraStateData</label>
+        <link refid="structproc_1_1internal_1_1ExtraStateData"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>cancellationPipe</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>proc::internal::Pipe</label>
+        <link refid="unionproc_1_1internal_1_1Pipe"/>
+      </node>
+    </collaborationgraph>
+    <location file="processes_impl.h" line="41" column="1" bodyfile="processes_impl.h" bodystart="42" bodyend="54"/>
+    <listofallmembers>
+      <member refid="structproc_1_1internal_1_1ExecutionState_1a06a4a1637108f2cfa9eceacfaf0d5aba" prot="public" virt="non-virtual"><scope>proc::internal::ExecutionState</scope><name>cancelled</name></member>
+      <member refid="structproc_1_1internal_1_1ExecutionState_1ad0b597eff5c66f6fcce0da301edb874e" prot="public" virt="non-virtual"><scope>proc::internal::ExecutionState</scope><name>extraData</name></member>
+      <member refid="structproc_1_1internal_1_1ExecutionState_1a9777d85c4cd0eb0a3c0933a69fc7bff8" prot="public" virt="non-virtual"><scope>proc::internal::ExecutionState</scope><name>maxProcs</name></member>
+      <member refid="structproc_1_1internal_1_1ExecutionState_1a52113053b89b47c590a04aed52d8cbed" prot="public" virt="non-virtual"><scope>proc::internal::ExecutionState</scope><name>processes</name></member>
+      <member refid="structproc_1_1internal_1_1ExecutionState_1a56dd20117f73dd24ec51dd4bf70b6712" prot="public" virt="non-virtual"><scope>proc::internal::ExecutionState</scope><name>shouldCancelOnProcFail</name></member>
+      <member refid="structproc_1_1internal_1_1ExecutionState_1ad43f4f5f407e36f94d02b12a00f7269a" prot="public" virt="non-virtual"><scope>proc::internal::ExecutionState</scope><name>sinkPool</name></member>
+      <member refid="structproc_1_1internal_1_1ExecutionState_1a6f3c972a055e390fad8ac722b67e7057" prot="public" virt="non-virtual"><scope>proc::internal::ExecutionState</scope><name>tasks</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

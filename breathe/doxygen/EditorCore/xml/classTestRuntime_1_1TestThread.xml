@@ -1,0 +1,87 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTestRuntime_1_1TestThread" kind="class" language="C++" prot="private" final="yes">
+    <compoundname>TestRuntime::TestThread</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">DaThread</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classTestRuntime_1_1TestThread_1aac7bf3324c4462954019dc15093ebcb6" prot="private" static="no" mutable="no">
+        <type><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref> &amp;</type>
+        <definition>TestRuntime&amp; TestRuntime::TestThread::runtime</definition>
+        <argsstring></argsstring>
+        <name>runtime</name>
+        <qualifiedname>TestRuntime::TestThread::runtime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="206" column="17" bodyfile="ec_testSystem.h" bodystart="206" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTestRuntime_1_1TestThread_1a4ee93f85ff8b4c23b5fb425f8afd2e19" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TestRuntime::TestThread::TestThread</definition>
+        <argsstring>(TestRuntime &amp;rt)</argsstring>
+        <name>TestThread</name>
+        <qualifiedname>TestRuntime::TestThread::TestThread</qualifiedname>
+        <param>
+          <type><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref> &amp;</type>
+          <declname>rt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="201" column="5" bodyfile="ec_testSystem.h" bodystart="201" bodyend="201"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestRuntime_1_1TestThread_1a0c043ea9d8707fe92c5a3ee118c8b20a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestRuntime::TestThread::execute</definition>
+        <argsstring>() override</argsstring>
+        <name>execute</name>
+        <qualifiedname>TestRuntime::TestThread::execute</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="203" column="10" bodyfile="ec_testSystem.h" bodystart="203" bodyend="203"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DaThread</label>
+      </node>
+      <node id="1">
+        <label>TestRuntime::TestThread</label>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DaThread</label>
+      </node>
+      <node id="1">
+        <label>TestRuntime::TestThread</label>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_testSystem.h" line="198" column="3" bodyfile="ec_testSystem.h" bodystart="199" bodyend="207"/>
+    <listofallmembers>
+      <member refid="classTestRuntime_1_1TestThread_1a0c043ea9d8707fe92c5a3ee118c8b20a" prot="public" virt="non-virtual"><scope>TestRuntime::TestThread</scope><name>execute</name></member>
+      <member refid="classTestRuntime_1_1TestThread_1aac7bf3324c4462954019dc15093ebcb6" prot="private" virt="non-virtual"><scope>TestRuntime::TestThread</scope><name>runtime</name></member>
+      <member refid="classTestRuntime_1_1TestThread_1a4ee93f85ff8b4c23b5fb425f8afd2e19" prot="public" virt="non-virtual"><scope>TestRuntime::TestThread</scope><name>TestThread</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

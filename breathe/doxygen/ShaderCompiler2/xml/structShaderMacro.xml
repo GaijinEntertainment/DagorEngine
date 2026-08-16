@@ -1,0 +1,141 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderMacro" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderMacro</compoundname>
+    <includes refid="shMacro_8h" local="no">shMacro.h</includes>
+    <innerclass refid="structShaderMacro_1_1TokenData" prot="public">ShaderMacro::TokenData</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structShaderMacro_1a328866b4f9109d27bb1efcf0b5a56992" prot="public" static="no">
+        <type>Tab&lt; <ref refid="structShaderMacro_1_1TokenData" kindref="compound">TokenData</ref> &gt;</type>
+        <definition>typedef Tab&lt;TokenData&gt; ShaderMacro::TokenList</definition>
+        <argsstring></argsstring>
+        <name>TokenList</name>
+        <qualifiedname>ShaderMacro::TokenList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="56" column="15" bodyfile="shMacro.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderMacro_1ac25569b777606c8c07ce1ca05975177a" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String ShaderMacro::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ShaderMacro::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="58" column="10" bodyfile="shMacro.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMacro_1a87993859308d45f8b47786a6d85d1683" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String ShaderMacro::expandStr</definition>
+        <argsstring></argsstring>
+        <name>expandStr</name>
+        <qualifiedname>ShaderMacro::expandStr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="59" column="10" bodyfile="shMacro.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMacro_1acde7bdbdbe11fbedf19685eafb4b8fc6" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderMacro_1a328866b4f9109d27bb1efcf0b5a56992" kindref="member">TokenList</ref></type>
+        <definition>TokenList ShaderMacro::textParts</definition>
+        <argsstring></argsstring>
+        <name>textParts</name>
+        <qualifiedname>ShaderMacro::textParts</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="61" column="13" bodyfile="shMacro.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMacro_1a2e0bb488f52cd60a908e326c4cf353c6" prot="public" static="no" mutable="no">
+        <type>Tab&lt; String &gt;</type>
+        <definition>Tab&lt;String&gt; ShaderMacro::variables</definition>
+        <argsstring></argsstring>
+        <name>variables</name>
+        <qualifiedname>ShaderMacro::variables</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="62" column="7" bodyfile="shMacro.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderMacro_1a140d8a47d8150f13d15cd244a54079cb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderMacro::ShaderMacro</definition>
+        <argsstring>()</argsstring>
+        <name>ShaderMacro</name>
+        <qualifiedname>ShaderMacro::ShaderMacro</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="65" column="3" bodyfile="shMacro.cpp" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMacro_1a3efe165e8a61ecbedbcdda2a73454202" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const String &amp;</type>
+        <definition>const String &amp; ShaderMacro::getName</definition>
+        <argsstring>() const</argsstring>
+        <name>getName</name>
+        <qualifiedname>ShaderMacro::getName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="68" column="23" bodyfile="shMacro.h" bodystart="68" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMacro_1a3558a5778b54e5dbf2865be76c6b3589" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const String &amp;</type>
+        <definition>const String &amp; ShaderMacro::getDesc</definition>
+        <argsstring>() const</argsstring>
+        <name>getDesc</name>
+        <qualifiedname>ShaderMacro::getDesc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="71" column="23" bodyfile="shMacro.h" bodystart="71" bodyend="71"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shMacro.h" line="46" column="1" bodyfile="shMacro.h" bodystart="47" bodyend="72"/>
+    <listofallmembers>
+      <member refid="structShaderMacro_1a87993859308d45f8b47786a6d85d1683" prot="public" virt="non-virtual"><scope>ShaderMacro</scope><name>expandStr</name></member>
+      <member refid="structShaderMacro_1a3558a5778b54e5dbf2865be76c6b3589" prot="public" virt="non-virtual"><scope>ShaderMacro</scope><name>getDesc</name></member>
+      <member refid="structShaderMacro_1a3efe165e8a61ecbedbcdda2a73454202" prot="public" virt="non-virtual"><scope>ShaderMacro</scope><name>getName</name></member>
+      <member refid="structShaderMacro_1ac25569b777606c8c07ce1ca05975177a" prot="public" virt="non-virtual"><scope>ShaderMacro</scope><name>name</name></member>
+      <member refid="structShaderMacro_1a140d8a47d8150f13d15cd244a54079cb" prot="public" virt="non-virtual"><scope>ShaderMacro</scope><name>ShaderMacro</name></member>
+      <member refid="structShaderMacro_1acde7bdbdbe11fbedf19685eafb4b8fc6" prot="public" virt="non-virtual"><scope>ShaderMacro</scope><name>textParts</name></member>
+      <member refid="structShaderMacro_1a328866b4f9109d27bb1efcf0b5a56992" prot="public" virt="non-virtual"><scope>ShaderMacro</scope><name>TokenList</name></member>
+      <member refid="structShaderMacro_1a2e0bb488f52cd60a908e326c4cf353c6" prot="public" virt="non-virtual"><scope>ShaderMacro</scope><name>variables</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

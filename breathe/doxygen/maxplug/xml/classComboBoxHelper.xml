@@ -1,0 +1,89 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classComboBoxHelper" kind="class" language="C++" prot="public">
+    <compoundname>ComboBoxHelper</compoundname>
+    <includes refid="comboBoxHelper_8h" local="no">comboBoxHelper.h</includes>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classComboBoxHelper_1a6b259b765774eb14ac4962573c654e39" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ComboBoxHelper::AddItemWithData</definition>
+        <argsstring>(HWND hwnd, const TCHAR *title, LPARAM data)</argsstring>
+        <name>AddItemWithData</name>
+        <qualifiedname>ComboBoxHelper::AddItemWithData</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hwnd</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>title</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>data</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="comboBoxHelper.h" line="9" column="15" bodyfile="comboBoxHelper.h" bodystart="9" bodyend="13"/>
+      </memberdef>
+      <memberdef kind="function" id="classComboBoxHelper_1a022f1cf616af7f2619d698117866a2d6" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>static int ComboBoxHelper::GetItemIndexByData</definition>
+        <argsstring>(HWND hwnd, LPARAM data)</argsstring>
+        <name>GetItemIndexByData</name>
+        <qualifiedname>ComboBoxHelper::GetItemIndexByData</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hwnd</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>data</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="comboBoxHelper.h" line="15" column="14" bodyfile="comboBoxHelper.h" bodystart="15" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classComboBoxHelper_1ac3847285046379bdc68dd905c89f6dac" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>LPARAM</type>
+        <definition>static LPARAM ComboBoxHelper::GetSelectedItemData</definition>
+        <argsstring>(HWND hwnd, LPARAM default_value)</argsstring>
+        <name>GetSelectedItemData</name>
+        <qualifiedname>ComboBoxHelper::GetSelectedItemData</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hwnd</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>default_value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="comboBoxHelper.h" line="25" column="17" bodyfile="comboBoxHelper.h" bodystart="25" bodyend="29"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="comboBoxHelper.h" line="6" column="1" bodyfile="comboBoxHelper.h" bodystart="7" bodyend="30"/>
+    <listofallmembers>
+      <member refid="classComboBoxHelper_1a6b259b765774eb14ac4962573c654e39" prot="public" virt="non-virtual"><scope>ComboBoxHelper</scope><name>AddItemWithData</name></member>
+      <member refid="classComboBoxHelper_1a022f1cf616af7f2619d698117866a2d6" prot="public" virt="non-virtual"><scope>ComboBoxHelper</scope><name>GetItemIndexByData</name></member>
+      <member refid="classComboBoxHelper_1ac3847285046379bdc68dd905c89f6dac" prot="public" virt="non-virtual"><scope>ComboBoxHelper</scope><name>GetSelectedItemData</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

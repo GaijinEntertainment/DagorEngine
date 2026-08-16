@@ -1,0 +1,143 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCompiledShaderChannelId" kind="struct" language="C++" prot="public">
+    <compoundname>CompiledShaderChannelId</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCompiledShaderChannelId_1aeae6448834e897d20e209b0c6dcc7721" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CompiledShaderChannelId::t</definition>
+        <argsstring></argsstring>
+        <name>t</name>
+        <qualifiedname>CompiledShaderChannelId::t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="67" column="7" bodyfile="dag_shaderCommon.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledShaderChannelId_1a216b5704fe0d5a1646c32125df6041fb" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CompiledShaderChannelId::vbu</definition>
+        <argsstring></argsstring>
+        <name>vbu</name>
+        <qualifiedname>CompiledShaderChannelId::vbu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="68" column="7" bodyfile="dag_shaderCommon.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledShaderChannelId_1a565b1da7935962b3814d09aa546d4075" prot="public" static="no" mutable="no">
+        <type>int16_t</type>
+        <definition>int16_t CompiledShaderChannelId::vbui</definition>
+        <argsstring></argsstring>
+        <name>vbui</name>
+        <qualifiedname>CompiledShaderChannelId::vbui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="69" column="11" bodyfile="dag_shaderCommon.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledShaderChannelId_1a04d92c10f813be7f0d2dde5d04b72bcf" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t CompiledShaderChannelId::streamId</definition>
+        <argsstring></argsstring>
+        <name>streamId</name>
+        <qualifiedname>CompiledShaderChannelId::streamId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="70" column="12" bodyfile="dag_shaderCommon.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structCompiledShaderChannelId_1ae439778f327e4b31deed4a834302a926" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>CompiledShaderChannelId::CompiledShaderChannelId</definition>
+        <argsstring>()</argsstring>
+        <name>CompiledShaderChannelId</name>
+        <qualifiedname>CompiledShaderChannelId::CompiledShaderChannelId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="71" column="3" bodyfile="dag_shaderCommon.h" bodystart="71" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="structCompiledShaderChannelId_1a071663414925f068d9ae02c6933657a3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>CompiledShaderChannelId::CompiledShaderChannelId</definition>
+        <argsstring>(int t_, int vbu_, int16_t vbui_, uint16_t sid=0)</argsstring>
+        <name>CompiledShaderChannelId</name>
+        <qualifiedname>CompiledShaderChannelId::CompiledShaderChannelId</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>t_</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>vbu_</declname>
+        </param>
+        <param>
+          <type>int16_t</type>
+          <declname>vbui_</declname>
+        </param>
+        <param>
+          <type>uint16_t</type>
+          <declname>sid</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="72" column="3" bodyfile="dag_shaderCommon.h" bodystart="72" bodyend="72"/>
+      </memberdef>
+      <memberdef kind="function" id="structCompiledShaderChannelId_1ac4e86f086278f33ae677e8ecc1ce253e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void CompiledShaderChannelId::convertFrom</definition>
+        <argsstring>(const ShaderChannelId &amp;id)</argsstring>
+        <name>convertFrom</name>
+        <qualifiedname>CompiledShaderChannelId::convertFrom</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderChannelId" kindref="compound">ShaderChannelId</ref> &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="74" column="15" bodyfile="dag_shaderCommon.h" bodystart="74" bodyend="80"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderCommon.h" line="65" column="1" bodyfile="dag_shaderCommon.h" bodystart="66" bodyend="81"/>
+    <listofallmembers>
+      <member refid="structCompiledShaderChannelId_1ae439778f327e4b31deed4a834302a926" prot="public" virt="non-virtual"><scope>CompiledShaderChannelId</scope><name>CompiledShaderChannelId</name></member>
+      <member refid="structCompiledShaderChannelId_1a071663414925f068d9ae02c6933657a3" prot="public" virt="non-virtual"><scope>CompiledShaderChannelId</scope><name>CompiledShaderChannelId</name></member>
+      <member refid="structCompiledShaderChannelId_1ac4e86f086278f33ae677e8ecc1ce253e" prot="public" virt="non-virtual"><scope>CompiledShaderChannelId</scope><name>convertFrom</name></member>
+      <member refid="structCompiledShaderChannelId_1a04d92c10f813be7f0d2dde5d04b72bcf" prot="public" virt="non-virtual"><scope>CompiledShaderChannelId</scope><name>streamId</name></member>
+      <member refid="structCompiledShaderChannelId_1aeae6448834e897d20e209b0c6dcc7721" prot="public" virt="non-virtual"><scope>CompiledShaderChannelId</scope><name>t</name></member>
+      <member refid="structCompiledShaderChannelId_1a216b5704fe0d5a1646c32125df6041fb" prot="public" virt="non-virtual"><scope>CompiledShaderChannelId</scope><name>vbu</name></member>
+      <member refid="structCompiledShaderChannelId_1a565b1da7935962b3814d09aa546d4075" prot="public" virt="non-virtual"><scope>CompiledShaderChannelId</scope><name>vbui</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

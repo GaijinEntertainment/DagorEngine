@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="cfg_8h" kind="file" language="C++">
+    <compoundname>cfg.h</compoundname>
+    <includes local="no">string</includes>
+    <includes local="no">vector</includes>
+    <includedby refid="cfg_8cpp" local="yes">cfg.cpp</includedby>
+    <includedby refid="rolluppanel_8cpp" local="yes">rolluppanel.cpp</includedby>
+    <includedby refid="util_8cpp" local="yes">util.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>cfg.h</label>
+        <link refid="cfg_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>string</label>
+      </node>
+      <node id="3">
+        <label>vector</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>cfg.cpp</label>
+        <link refid="cfg_8cpp"/>
+      </node>
+      <node id="1">
+        <label>cfg.h</label>
+        <link refid="cfg_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>rolluppanel.cpp</label>
+        <link refid="rolluppanel_8cpp"/>
+      </node>
+      <node id="4">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classCfgReader" prot="public">CfgReader</innerclass>
+    <innerclass refid="classCfgShader" prot="public">CfgShader</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="cfg_8h_1a7d5889d7f608708468ee44cfb37c87ed" prot="public" static="no">
+        <name>CFG_GLOBAL_NAME</name>
+        <initializer>_T(&quot;_global_params&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="7" column="9" bodyfile="cfg.h" bodystart="7" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="cfg_8h_1a0a8c6d6836bb49bddee5ed0a742b8fd9" prot="public" static="no">
+        <name>CFG_SETTINGS_NAME</name>
+        <initializer>_T(&quot;_settings&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="8" column="9" bodyfile="cfg.h" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="cfg_8h_1a890314935d928239dc1f401700d7c9aa" prot="public" static="no">
+        <type>std::vector&lt; std::wstring &gt;</type>
+        <definition>typedef std::vector&lt;std::wstring&gt; StringVector</definition>
+        <argsstring></argsstring>
+        <name>StringVector</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="10" column="21" bodyfile="cfg.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;vector&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7" refid="cfg_8h_1a7d5889d7f608708468ee44cfb37c87ed" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_GLOBAL_NAME<sp/><sp/><sp/>_T(&quot;_global_params&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="8" refid="cfg_8h_1a0a8c6d6836bb49bddee5ed0a742b8fd9" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CFG_SETTINGS_NAME<sp/>_T(&quot;_settings&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="cfg_8h_1a890314935d928239dc1f401700d7c9aa" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>std::vector&lt;std::wstring&gt;<sp/><ref refid="cfg_8h_1a890314935d928239dc1f401700d7c9aa" kindref="member">StringVector</ref>;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="classCfgReader" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classCfgReader" kindref="compound">CfgReader</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>lists<sp/>to<sp/>keep<sp/>sections<sp/>and<sp/>section<sp/>names</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="classCfgReader_1a70e16c85f1d1c82c5c994d9de5ac90b8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1a890314935d928239dc1f401700d7c9aa" kindref="member">StringVector</ref><sp/><ref refid="classCfgReader_1a70e16c85f1d1c82c5c994d9de5ac90b8" kindref="member">section_names</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>cfg<sp/>file<sp/>name</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="classCfgReader_1a9a044877c7e4058c9f883ba6acb0551d" refkind="member"><highlight class="normal"><sp/><sp/>std::wstring<sp/><ref refid="classCfgReader_1a9a044877c7e4058c9f883ba6acb0551d" kindref="member">filename</ref>;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="classCfgReader_1a38105755747e8437d0aa78f66ee68d91" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classCfgReader_1a38105755747e8437d0aa78f66ee68d91" kindref="member">CfgReader</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><ref refid="classCfgReader_1a38105755747e8437d0aa78f66ee68d91" kindref="member">CfgReader</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::wstring<sp/>&amp;name);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25" refid="classCfgReader_1a95826047dbe42ce30e5289a799b6a335" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classCfgReader_1a95826047dbe42ce30e5289a799b6a335" kindref="member">~CfgReader</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>methods<sp/>to<sp/>return<sp/>the<sp/>lists<sp/>of<sp/>section<sp/>data<sp/>and<sp/>section<sp/>names</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1a890314935d928239dc1f401700d7c9aa" kindref="member">StringVector</ref><sp/>*<ref refid="classCfgReader_1a51b911e3719d0f30b704a0ba76f0e4e3" kindref="member">GetSectionNames</ref>();</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>give<sp/>the<sp/>key<sp/>value<sp/>for<sp/>the<sp/>specified<sp/>key<sp/>of<sp/>a<sp/>section</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>std::wstring<sp/><ref refid="classCfgReader_1a9eb7bbf06c84e5015a979fa03c57e0f8" kindref="member">GetKeyValue</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::wstring<sp/>&amp;key,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::wstring<sp/>&amp;sec);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>set<sp/>the<sp/>key<sp/>value<sp/>for<sp/>the<sp/>specified<sp/>key<sp/>of<sp/>a<sp/>section</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classCfgReader_1a3e95c2b176cca398b6720139a357c086" kindref="member">WriteKeyVal</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::wstring<sp/>&amp;key,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::wstring<sp/>&amp;sec,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*new_val);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="classCfgShader" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classCfgShader" kindref="compound">CfgShader</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classCfgReader" kindref="compound">CfgReader</ref></highlight></codeline>
+<codeline lineno="38"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="40" refid="classCfgShader_1a79f7b001f80f47e919a742c0d5c5737b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1a890314935d928239dc1f401700d7c9aa" kindref="member">StringVector</ref><sp/><ref refid="classCfgShader_1a79f7b001f80f47e919a742c0d5c5737b" kindref="member">shader_names</ref>;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><ref refid="classCfgShader" kindref="compound">CfgShader</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::wstring<sp/>&amp;name);</highlight></codeline>
+<codeline lineno="43" refid="classCfgShader_1a442cada79739eaa9048d8cd349bdc51e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classCfgShader_1a442cada79739eaa9048d8cd349bdc51e" kindref="member">~CfgShader</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal"><sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><ref refid="cfg_8h_1a890314935d928239dc1f401700d7c9aa" kindref="member">StringVector</ref><sp/>*<ref refid="classCfgShader_1aee46d6e5791fe688ce137e41351bc9bf" kindref="member">GetShaderNames</ref>();</highlight></codeline>
+<codeline lineno="46"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="cfg.h"/>
+  </compounddef>
+</doxygen>

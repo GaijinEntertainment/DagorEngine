@@ -1,0 +1,169 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDagMater" kind="struct" language="C++" prot="public">
+    <compoundname>DagMater</compoundname>
+    <includes refid="dagfmt_8h" local="no">dagfmt.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDagMater_1a05b84552c4d9c66cc4261aef9c5a2527" prot="public" static="no" mutable="no">
+        <type><ref refid="structDagColor" kindref="compound">DagColor</ref></type>
+        <definition>DagColor DagMater::amb</definition>
+        <argsstring></argsstring>
+        <name>amb</name>
+        <qualifiedname>DagMater::amb</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="93" column="12" bodyfile="dagfmt.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagMater_1ade0995b87a7c30f2e6f58551a631cd8d" prot="public" static="no" mutable="no">
+        <type><ref refid="structDagColor" kindref="compound">DagColor</ref></type>
+        <definition>DagColor DagMater::diff</definition>
+        <argsstring></argsstring>
+        <name>diff</name>
+        <qualifiedname>DagMater::diff</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="93" column="16" bodyfile="dagfmt.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagMater_1ae4d320fd5dc658247d0392e4b9bb8c0e" prot="public" static="no" mutable="no">
+        <type><ref refid="structDagColor" kindref="compound">DagColor</ref></type>
+        <definition>DagColor DagMater::spec</definition>
+        <argsstring></argsstring>
+        <name>spec</name>
+        <qualifiedname>DagMater::spec</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="93" column="21" bodyfile="dagfmt.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagMater_1a7053dfde42a85aea927cd9a63b6a8f6b" prot="public" static="no" mutable="no">
+        <type><ref refid="structDagColor" kindref="compound">DagColor</ref></type>
+        <definition>DagColor DagMater::emis</definition>
+        <argsstring></argsstring>
+        <name>emis</name>
+        <qualifiedname>DagMater::emis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="93" column="26" bodyfile="dagfmt.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagMater_1aba09a83825d6d2e79bc5107f04735c96" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagMater::power</definition>
+        <argsstring></argsstring>
+        <name>power</name>
+        <qualifiedname>DagMater::power</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="94" column="9" bodyfile="dagfmt.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagMater_1af2c43c9d53a6cf2436ce87d1386ffc14" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DagMater::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>DagMater::flags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="95" column="12" bodyfile="dagfmt.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagMater_1a8a278ea7d627dc6b5f710060e5ce3f52" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short DagMater::texid[DAGTEXNUM]</definition>
+        <argsstring>[DAGTEXNUM]</argsstring>
+        <name>texid</name>
+        <qualifiedname>DagMater::texid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="96" column="18" bodyfile="dagfmt.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagMater_1abd051a7aac53c2ea1385aa99603ee3c4" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short DagMater::_resv[8]</definition>
+        <argsstring>[8]</argsstring>
+        <name>_resv</name>
+        <qualifiedname>DagMater::_resv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="97" column="18" bodyfile="dagfmt.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDagMater_1a468af8619c4417acd907640a6e62f750" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagMater::DagMater</definition>
+        <argsstring>()</argsstring>
+        <name>DagMater</name>
+        <qualifiedname>DagMater::DagMater</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="102" column="3" bodyfile="dagfmt.h" bodystart="102" bodyend="102"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>DagColor</label>
+        <link refid="structDagColor"/>
+      </node>
+      <node id="1">
+        <label>DagMater</label>
+        <link refid="structDagMater"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>amb</edgelabel>
+          <edgelabel>diff</edgelabel>
+          <edgelabel>emis</edgelabel>
+          <edgelabel>spec</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dagfmt.h" line="89" column="1" bodyfile="dagfmt.h" bodystart="90" bodyend="103"/>
+    <listofallmembers>
+      <member refid="structDagMater_1abd051a7aac53c2ea1385aa99603ee3c4" prot="public" virt="non-virtual"><scope>DagMater</scope><name>_resv</name></member>
+      <member refid="structDagMater_1a05b84552c4d9c66cc4261aef9c5a2527" prot="public" virt="non-virtual"><scope>DagMater</scope><name>amb</name></member>
+      <member refid="structDagMater_1a468af8619c4417acd907640a6e62f750" prot="public" virt="non-virtual"><scope>DagMater</scope><name>DagMater</name></member>
+      <member refid="structDagMater_1ade0995b87a7c30f2e6f58551a631cd8d" prot="public" virt="non-virtual"><scope>DagMater</scope><name>diff</name></member>
+      <member refid="structDagMater_1a7053dfde42a85aea927cd9a63b6a8f6b" prot="public" virt="non-virtual"><scope>DagMater</scope><name>emis</name></member>
+      <member refid="structDagMater_1af2c43c9d53a6cf2436ce87d1386ffc14" prot="public" virt="non-virtual"><scope>DagMater</scope><name>flags</name></member>
+      <member refid="structDagMater_1aba09a83825d6d2e79bc5107f04735c96" prot="public" virt="non-virtual"><scope>DagMater</scope><name>power</name></member>
+      <member refid="structDagMater_1ae4d320fd5dc658247d0392e4b9bb8c0e" prot="public" virt="non-virtual"><scope>DagMater</scope><name>spec</name></member>
+      <member refid="structDagMater_1a8a278ea7d627dc6b5f710060e5ce3f52" prot="public" virt="non-virtual"><scope>DagMater</scope><name>texid</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

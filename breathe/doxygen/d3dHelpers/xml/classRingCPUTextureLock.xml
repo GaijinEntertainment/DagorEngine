@@ -1,0 +1,180 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRingCPUTextureLock" kind="class" language="C++" prot="public">
+    <compoundname>RingCPUTextureLock</compoundname>
+    <basecompoundref refid="classRingCPUBufferLock" prot="public" virt="non-virtual">RingCPUBufferLock</basecompoundref>
+    <includes refid="dag__ringCPUTextureLock_8h" local="no">dag_ringCPUTextureLock.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRingCPUTextureLock_1a0bdea5216575aae72b0a0addcd960d74" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="dag__ringCPUTextureLock_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref> *</type>
+        <definition>Texture * RingCPUTextureLock::getNewTarget</definition>
+        <argsstring>(T &amp;frame)</argsstring>
+        <name>getNewTarget</name>
+        <qualifiedname>RingCPUTextureLock::getNewTarget</qualifiedname>
+        <param>
+          <type>T &amp;</type>
+          <declname>frame</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUTextureLock.h" line="16" column="11" bodyfile="dag_ringCPUTextureLock.h" bodystart="16" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUTextureLock_1ab0d8ee42352866c0cbdde7133d6f17ce" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="dag__ringCPUTextureLock_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" kindref="member">Texture</ref> *</type>
+        <definition>Texture * RingCPUTextureLock::getNewTargetAndId</definition>
+        <argsstring>(T &amp;frame, D3DRESID &amp;id)</argsstring>
+        <name>getNewTargetAndId</name>
+        <qualifiedname>RingCPUTextureLock::getNewTargetAndId</qualifiedname>
+        <param>
+          <type>T &amp;</type>
+          <declname>frame</declname>
+        </param>
+        <param>
+          <type>D3DRESID &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUTextureLock.h" line="21" column="11" bodyfile="dag_ringCPUTextureLock.h" bodystart="21" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUTextureLock_1a53a284cfe9cdb8f682d0b19de294b941" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RingCPUTextureLock::init</definition>
+        <argsstring>(uint32_t w, uint32_t h, int max_buffers_count, const char *name, uint32_t fmt)</argsstring>
+        <name>init</name>
+        <qualifiedname>RingCPUTextureLock::init</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_buffers_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>fmt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUTextureLock.h" line="25" column="8" bodyfile="dag_ringCPUTextureLock.h" bodystart="25" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classRingCPUTextureLock_1aef3bf6f823f10f12881461841c9f45ea" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint8_t *</type>
+        <definition>uint8_t * RingCPUTextureLock::lock</definition>
+        <argsstring>(int &amp;stride, uint32_t &amp;frame, int max_frames_to_flush=8)</argsstring>
+        <name>lock</name>
+        <qualifiedname>RingCPUTextureLock::lock</qualifiedname>
+        <param>
+          <type>int &amp;</type>
+          <declname>stride</declname>
+        </param>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>frame</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_frames_to_flush</declname>
+          <defval>8</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_ringCPUTextureLock.h" line="34" column="11" bodyfile="dag_ringCPUTextureLock.h" bodystart="34" bodyend="37"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>RingCPUBufferLock</label>
+        <link refid="classRingCPUBufferLock"/>
+      </node>
+      <node id="1">
+        <label>RingCPUTextureLock</label>
+        <link refid="classRingCPUTextureLock"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>RingCPUBufferLock</label>
+        <link refid="classRingCPUBufferLock"/>
+      </node>
+      <node id="1">
+        <label>RingCPUTextureLock</label>
+        <link refid="classRingCPUTextureLock"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_ringCPUTextureLock.h" line="12" column="1" bodyfile="dag_ringCPUTextureLock.h" bodystart="13" bodyend="38"/>
+    <listofallmembers>
+      <member refid="classRingCPUBufferLock_1af5d405708ba6062e4fcc78dee647dca5" prot="protected" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>bufferLockCounter</name></member>
+      <member refid="classRingCPUBufferLock_1a7b36c2c5ab92266377438423b18241b5" prot="protected" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>buffers</name></member>
+      <member refid="classRingCPUBufferLock_1ab9f68a3eb040b66c25254dfdaab98586" prot="public" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>close</name></member>
+      <member refid="classRingCPUBufferLock_1a468a2c8c6121a62260a2be366218aa73" prot="protected" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>currentBufferIssued</name></member>
+      <member refid="classRingCPUBufferLock_1aadc5c4fabb807fc0b2dc27bfba2b2923" prot="protected" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>currentBufferToLock</name></member>
+      <member refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761" prot="protected" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>CurrentState</name></member>
+      <member refid="classRingCPUTextureLock_1a0bdea5216575aae72b0a0addcd960d74" prot="public" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>getNewTarget</name></member>
+      <member refid="classRingCPUBufferLock_1af14a76aca9b0751e3e61879bc4311a36" prot="public" virt="non-virtual" ambiguityscope="RingCPUBufferLock::"><scope>RingCPUTextureLock</scope><name>getNewTarget</name></member>
+      <member refid="classRingCPUBufferLock_1ab9f59378aa559c76523eabe277f3122f" prot="public" virt="non-virtual" ambiguityscope="RingCPUBufferLock::"><scope>RingCPUTextureLock</scope><name>getNewTarget</name></member>
+      <member refid="classRingCPUTextureLock_1ab0d8ee42352866c0cbdde7133d6f17ce" prot="public" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>getNewTargetAndId</name></member>
+      <member refid="classRingCPUBufferLock_1a7bd50a59260c24ebe52e14ba5f14f8b0" prot="public" virt="non-virtual" ambiguityscope="RingCPUBufferLock::"><scope>RingCPUTextureLock</scope><name>getNewTargetAndId</name></member>
+      <member refid="classRingCPUBufferLock_1a1fb24c80f9cc9e69edbb8b3854dd91bd" prot="public" virt="non-virtual" ambiguityscope="RingCPUBufferLock::"><scope>RingCPUTextureLock</scope><name>getNewTargetAndId</name></member>
+      <member refid="classRingCPUTextureLock_1a53a284cfe9cdb8f682d0b19de294b941" prot="public" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>init</name></member>
+      <member refid="classRingCPUBufferLock_1a13f94e2a68ff262126d3b3e1e8a60c51" prot="public" virt="non-virtual" ambiguityscope="RingCPUBufferLock::"><scope>RingCPUTextureLock</scope><name>init</name></member>
+      <member refid="classRingCPUTextureLock_1aef3bf6f823f10f12881461841c9f45ea" prot="public" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>lock</name></member>
+      <member refid="classRingCPUBufferLock_1a1e8cd2a898b31919c4883e178225d38e" prot="public" virt="non-virtual" ambiguityscope="RingCPUBufferLock::"><scope>RingCPUTextureLock</scope><name>lock</name></member>
+      <member refid="classRingCPUBufferLock_1a77d6784bc11a7f20cc2910771bf1e74d" prot="protected" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>lockData</name></member>
+      <member refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761a1220bde4aa9b79ca68b3718807786b84" prot="protected" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>LOCKED</name></member>
+      <member refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761adf7df7bdef67b13bdaab860958b7a1fe" prot="protected" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>NEWTARGET</name></member>
+      <member refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761ac0837c8e062890138fb1c1d192990db8" prot="protected" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>NORMAL</name></member>
+      <member refid="classRingCPUBufferLock_1a9fe1cc0e1c3ff3f02eab76322003c31c" prot="public" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>reset</name></member>
+      <member refid="classRingCPUBufferLock_1ad86b930f1200a3716b25218c58cec88e" prot="protected" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>resourceName</name></member>
+      <member refid="classRingCPUBufferLock_1aefd14b19112de2c695cc7e0615ad14a9" prot="public" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>RingCPUBufferLock</name></member>
+      <member refid="classRingCPUBufferLock_1aa0954f06e0fd0800812bce9d3ba59de1" prot="public" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>startCPUCopy</name></member>
+      <member refid="classRingCPUBufferLock_1a4c1399664539954ba87b54304318c6b2" prot="protected" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>state</name></member>
+      <member refid="classRingCPUBufferLock_1ad3dc7431d5870313c30a49215bdf13fa" prot="public" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>unlock</name></member>
+      <member refid="classRingCPUBufferLock_1a84d3ee8a8db5b3d78d5d9e1d636ad6b6" prot="protected" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>unlockData</name></member>
+      <member refid="classRingCPUBufferLock_1ab23b6b33b243a924380309d82ab3a32a" prot="public" virt="non-virtual"><scope>RingCPUTextureLock</scope><name>~RingCPUBufferLock</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

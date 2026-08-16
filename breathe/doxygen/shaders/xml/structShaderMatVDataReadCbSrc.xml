@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderMatVDataReadCbSrc" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>ShaderMatVDataReadCbSrc</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderMatVDataReadCbSrc_1a503a427c23ee394f84fc1a9fb634dd54" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int ShaderMatVDataReadCbSrc::getReadSize</definition>
+        <argsstring>()=0</argsstring>
+        <name>getReadSize</name>
+        <qualifiedname>ShaderMatVDataReadCbSrc::getReadSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="66" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMatVDataReadCbSrc_1a00762f99e1cdcb9bbd7dcc8f6af709df" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderMatVDataReadCbSrc::read</definition>
+        <argsstring>(void *data)=0</argsstring>
+        <name>read</name>
+        <qualifiedname>ShaderMatVDataReadCbSrc::read</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>data</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="67" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMatVDataReadCbSrc_1ad00fd3472ee3a0308c84ea8e0ad60d3b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderMatVDataReadCbSrc::readTmp</definition>
+        <argsstring>(dag::FunctionRef&lt; void(dag::ConstSpan&lt; uint8_t &gt;)&gt;)=0</argsstring>
+        <name>readTmp</name>
+        <qualifiedname>ShaderMatVDataReadCbSrc::readTmp</qualifiedname>
+        <param>
+          <type><ref refid="classdag_1_1FunctionRef" kindref="compound">dag::FunctionRef</ref>&lt; void(dag::ConstSpan&lt; uint8_t &gt;)&gt;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="68" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMatVDataReadCbSrc_1a55691427a7abfc3e1e3dc1d298a30354" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderMatVDataReadCbSrc::skip</definition>
+        <argsstring>()=0</argsstring>
+        <name>skip</name>
+        <qualifiedname>ShaderMatVDataReadCbSrc::skip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="69" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderMesh.h" line="64" column="1" bodyfile="dag_shaderMesh.h" bodystart="65" bodyend="70"/>
+    <listofallmembers>
+      <member refid="structShaderMatVDataReadCbSrc_1a503a427c23ee394f84fc1a9fb634dd54" prot="public" virt="pure-virtual"><scope>ShaderMatVDataReadCbSrc</scope><name>getReadSize</name></member>
+      <member refid="structShaderMatVDataReadCbSrc_1a00762f99e1cdcb9bbd7dcc8f6af709df" prot="public" virt="pure-virtual"><scope>ShaderMatVDataReadCbSrc</scope><name>read</name></member>
+      <member refid="structShaderMatVDataReadCbSrc_1ad00fd3472ee3a0308c84ea8e0ad60d3b" prot="public" virt="pure-virtual"><scope>ShaderMatVDataReadCbSrc</scope><name>readTmp</name></member>
+      <member refid="structShaderMatVDataReadCbSrc_1a55691427a7abfc3e1e3dc1d298a30354" prot="public" virt="pure-virtual"><scope>ShaderMatVDataReadCbSrc</scope><name>skip</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

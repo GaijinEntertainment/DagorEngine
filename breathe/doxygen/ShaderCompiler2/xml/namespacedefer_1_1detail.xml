@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacedefer_1_1detail" kind="namespace" language="C++">
+    <compoundname>defer::detail</compoundname>
+    <innerclass refid="classdefer_1_1detail_1_1Defer" prot="public">defer::detail::Defer</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="defer.h" line="8" column="1"/>
+  </compounddef>
+</doxygen>

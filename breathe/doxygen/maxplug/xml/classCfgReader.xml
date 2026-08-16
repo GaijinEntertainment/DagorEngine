@@ -1,0 +1,175 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classCfgReader" kind="class" language="C++" prot="public">
+    <compoundname>CfgReader</compoundname>
+    <derivedcompoundref refid="classCfgShader" prot="public" virt="non-virtual">CfgShader</derivedcompoundref>
+    <includes refid="cfg_8h" local="no">cfg.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classCfgReader_1a70e16c85f1d1c82c5c994d9de5ac90b8" prot="public" static="no" mutable="no">
+        <type><ref refid="cfg_8h_1a890314935d928239dc1f401700d7c9aa" kindref="member">StringVector</ref></type>
+        <definition>StringVector CfgReader::section_names</definition>
+        <argsstring></argsstring>
+        <name>section_names</name>
+        <qualifiedname>CfgReader::section_names</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="16" column="16" bodyfile="cfg.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCfgReader_1a9a044877c7e4058c9f883ba6acb0551d" prot="public" static="no" mutable="no">
+        <type>std::wstring</type>
+        <definition>std::wstring CfgReader::filename</definition>
+        <argsstring></argsstring>
+        <name>filename</name>
+        <qualifiedname>CfgReader::filename</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="19" column="16" bodyfile="cfg.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classCfgReader_1a38105755747e8437d0aa78f66ee68d91" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>CfgReader::CfgReader</definition>
+        <argsstring>()=default</argsstring>
+        <name>CfgReader</name>
+        <qualifiedname>CfgReader::CfgReader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="21" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgReader_1a93fb580123f69962602d7dc55c3a4817" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>CfgReader::CfgReader</definition>
+        <argsstring>(const std::wstring &amp;name)</argsstring>
+        <name>CfgReader</name>
+        <qualifiedname>CfgReader::CfgReader</qualifiedname>
+        <param>
+          <type>const std::wstring &amp;</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="23" column="3" bodyfile="cfg.cpp" bodystart="9" bodyend="9"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgReader_1a95826047dbe42ce30e5289a799b6a335" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual CfgReader::~CfgReader</definition>
+        <argsstring>()=default</argsstring>
+        <name>~CfgReader</name>
+        <qualifiedname>CfgReader::~CfgReader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="25" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgReader_1a51b911e3719d0f30b704a0ba76f0e4e3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="cfg_8h_1a890314935d928239dc1f401700d7c9aa" kindref="member">StringVector</ref> *</type>
+        <definition>StringVector * CfgReader::GetSectionNames</definition>
+        <argsstring>()</argsstring>
+        <name>GetSectionNames</name>
+        <qualifiedname>CfgReader::GetSectionNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="28" column="16" bodyfile="cfg.cpp" bodystart="11" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgReader_1a9eb7bbf06c84e5015a979fa03c57e0f8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring CfgReader::GetKeyValue</definition>
+        <argsstring>(const std::wstring &amp;key, const std::wstring &amp;sec)</argsstring>
+        <name>GetKeyValue</name>
+        <qualifiedname>CfgReader::GetKeyValue</qualifiedname>
+        <param>
+          <type>const std::wstring &amp;</type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type>const std::wstring &amp;</type>
+          <declname>sec</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="31" column="16" bodyfile="cfg.cpp" bodystart="31" bodyend="38"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgReader_1a3e95c2b176cca398b6720139a357c086" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CfgReader::WriteKeyVal</definition>
+        <argsstring>(const std::wstring &amp;key, const std::wstring &amp;sec, const TCHAR *new_val)</argsstring>
+        <name>WriteKeyVal</name>
+        <qualifiedname>CfgReader::WriteKeyVal</qualifiedname>
+        <param>
+          <type>const std::wstring &amp;</type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type>const std::wstring &amp;</type>
+          <declname>sec</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>new_val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="34" column="8" bodyfile="cfg.cpp" bodystart="41" bodyend="45"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>CfgReader</label>
+        <link refid="classCfgReader"/>
+      </node>
+      <node id="2">
+        <label>CfgShader</label>
+        <link refid="classCfgShader"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="cfg.h" line="12" column="1" bodyfile="cfg.h" bodystart="13" bodyend="35"/>
+    <listofallmembers>
+      <member refid="classCfgReader_1a38105755747e8437d0aa78f66ee68d91" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>CfgReader</name></member>
+      <member refid="classCfgReader_1a93fb580123f69962602d7dc55c3a4817" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>CfgReader</name></member>
+      <member refid="classCfgReader_1a9a044877c7e4058c9f883ba6acb0551d" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>filename</name></member>
+      <member refid="classCfgReader_1a9eb7bbf06c84e5015a979fa03c57e0f8" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>GetKeyValue</name></member>
+      <member refid="classCfgReader_1a51b911e3719d0f30b704a0ba76f0e4e3" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>GetSectionNames</name></member>
+      <member refid="classCfgReader_1a70e16c85f1d1c82c5c994d9de5ac90b8" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>section_names</name></member>
+      <member refid="classCfgReader_1a3e95c2b176cca398b6720139a357c086" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>WriteKeyVal</name></member>
+      <member refid="classCfgReader_1a95826047dbe42ce30e5289a799b6a335" prot="public" virt="virtual"><scope>CfgReader</scope><name>~CfgReader</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

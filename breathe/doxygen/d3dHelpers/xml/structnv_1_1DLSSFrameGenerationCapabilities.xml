@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structnv_1_1DLSSFrameGenerationCapabilities" kind="struct" language="C++" prot="public">
+    <compoundname>nv::DLSSFrameGenerationCapabilities</compoundname>
+    <includes refid="dag__nvFeatures_8h" local="no">dag_nvFeatures.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structnv_1_1DLSSFrameGenerationCapabilities_1a1bae45905f08cd4ade8d88eccd2890da" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t nv::DLSSFrameGenerationCapabilities::maximumNumberOfGeneratedFrames</definition>
+        <argsstring></argsstring>
+        <name>maximumNumberOfGeneratedFrames</name>
+        <qualifiedname>nv::DLSSFrameGenerationCapabilities::maximumNumberOfGeneratedFrames</qualifiedname>
+        <bitfield> 30 = 0</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="207" column="12" bodyfile="dag_nvFeatures.h" bodystart="207" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DLSSFrameGenerationCapabilities_1ad6ede337a4ae3dd48a2ebab7fb748d2d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t nv::DLSSFrameGenerationCapabilities::isDynamicMFGSupported</definition>
+        <argsstring></argsstring>
+        <name>isDynamicMFGSupported</name>
+        <qualifiedname>nv::DLSSFrameGenerationCapabilities::isDynamicMFGSupported</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="208" column="12" bodyfile="dag_nvFeatures.h" bodystart="208" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DLSSFrameGenerationCapabilities_1a39d8fc473555232235a0f956a52a3e6e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t nv::DLSSFrameGenerationCapabilities::valid</definition>
+        <argsstring></argsstring>
+        <name>valid</name>
+        <qualifiedname>nv::DLSSFrameGenerationCapabilities::valid</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="209" column="12" bodyfile="dag_nvFeatures.h" bodystart="209" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_nvFeatures.h" line="205" column="1" bodyfile="dag_nvFeatures.h" bodystart="206" bodyend="210"/>
+    <listofallmembers>
+      <member refid="structnv_1_1DLSSFrameGenerationCapabilities_1ad6ede337a4ae3dd48a2ebab7fb748d2d" prot="public" virt="non-virtual"><scope>nv::DLSSFrameGenerationCapabilities</scope><name>isDynamicMFGSupported</name></member>
+      <member refid="structnv_1_1DLSSFrameGenerationCapabilities_1a1bae45905f08cd4ade8d88eccd2890da" prot="public" virt="non-virtual"><scope>nv::DLSSFrameGenerationCapabilities</scope><name>maximumNumberOfGeneratedFrames</name></member>
+      <member refid="structnv_1_1DLSSFrameGenerationCapabilities_1a39d8fc473555232235a0f956a52a3e6e" prot="public" virt="non-virtual"><scope>nv::DLSSFrameGenerationCapabilities</scope><name>valid</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

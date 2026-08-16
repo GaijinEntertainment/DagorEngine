@@ -1,0 +1,186 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDriver3dRenderTarget_1_1RTState" kind="struct" language="C++" prot="public">
+    <compoundname>Driver3dRenderTarget::RTState</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDriver3dRenderTarget_1_1RTState_1aec6319a20cd9cdd55d79ed9e263db819" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* Driver3dRenderTarget::RTState::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>Driver3dRenderTarget::RTState::tex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="83" column="17" bodyfile="dag_decl.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dRenderTarget_1_1RTState_1a786596e5bab2ddd6d85ab36fcf8c260d" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char Driver3dRenderTarget::RTState::level</definition>
+        <argsstring></argsstring>
+        <name>level</name>
+        <qualifiedname>Driver3dRenderTarget::RTState::level</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="84" column="19" bodyfile="dag_decl.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dRenderTarget_1_1RTState_1ab45b40fd9a117fa9a3a2ec3bb52b6300" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short Driver3dRenderTarget::RTState::face</definition>
+        <argsstring></argsstring>
+        <name>face</name>
+        <qualifiedname>Driver3dRenderTarget::RTState::face</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="87" column="22" bodyfile="dag_decl.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dRenderTarget_1_1RTState_1aa7464c9eef25aa4ead35d73073d14947" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short Driver3dRenderTarget::RTState::layer</definition>
+        <argsstring></argsstring>
+        <name>layer</name>
+        <qualifiedname>Driver3dRenderTarget::RTState::layer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="88" column="22" bodyfile="dag_decl.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dRenderTarget_1_1RTState_1aff94e50e65b4e94371f2ebff8fc20b49" prot="public" static="no" mutable="no">
+        <type>union <ref refid="structDriver3dRenderTarget_1_1RTState" kindref="compound">Driver3dRenderTarget::RTState</ref></type>
+        <definition>union Driver3dRenderTarget::RTState Driver3dRenderTarget::RTState</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>Driver3dRenderTarget::RTState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="89" column="5"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDriver3dRenderTarget_1_1RTState_1a5733a1417c2ce8947d6da6e85106d57e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Driver3dRenderTarget::RTState::set</definition>
+        <argsstring>(BaseTexture *t, int lev, int f_l)</argsstring>
+        <name>set</name>
+        <qualifiedname>Driver3dRenderTarget::RTState::set</qualifiedname>
+        <param>
+          <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>lev</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>f_l</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="90" column="10" bodyfile="dag_decl.h" bodystart="90" bodyend="95"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="structDriver3dRenderTarget_1_1RTState_1a311cfbe0461e339899b7062245a8acd5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator==</definition>
+        <argsstring>(const RTState &amp;l, const RTState &amp;r)</argsstring>
+        <name>operator==</name>
+        <qualifiedname>Driver3dRenderTarget::RTState::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structDriver3dRenderTarget_1_1RTState" kindref="compound">RTState</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structDriver3dRenderTarget_1_1RTState" kindref="compound">RTState</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="97" column="17" bodyfile="dag_decl.h" bodystart="97" bodyend="100"/>
+      </memberdef>
+      <memberdef kind="friend" id="structDriver3dRenderTarget_1_1RTState_1acbbb2852d97c7fd3c3f39b6f8bcda2db" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator!=</definition>
+        <argsstring>(const RTState &amp;l, const RTState &amp;r)</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>Driver3dRenderTarget::RTState::operator!=</qualifiedname>
+        <param>
+          <type>const <ref refid="structDriver3dRenderTarget_1_1RTState" kindref="compound">RTState</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structDriver3dRenderTarget_1_1RTState" kindref="compound">RTState</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="101" column="17" bodyfile="dag_decl.h" bodystart="101" bodyend="101"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="classBaseTexture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="1">
+        <label>Driver3dRenderTarget::RTState</label>
+        <link refid="structDriver3dRenderTarget_1_1RTState"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>tex</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_decl.h" line="81" column="3" bodyfile="dag_decl.h" bodystart="82" bodyend="102"/>
+    <listofallmembers>
+      <member refid="structDriver3dRenderTarget_1_1RTState_1ab45b40fd9a117fa9a3a2ec3bb52b6300" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget::RTState</scope><name>face</name></member>
+      <member refid="structDriver3dRenderTarget_1_1RTState_1aa7464c9eef25aa4ead35d73073d14947" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget::RTState</scope><name>layer</name></member>
+      <member refid="structDriver3dRenderTarget_1_1RTState_1a786596e5bab2ddd6d85ab36fcf8c260d" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget::RTState</scope><name>level</name></member>
+      <member refid="structDriver3dRenderTarget_1_1RTState_1acbbb2852d97c7fd3c3f39b6f8bcda2db" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget::RTState</scope><name>operator!=</name></member>
+      <member refid="structDriver3dRenderTarget_1_1RTState_1a311cfbe0461e339899b7062245a8acd5" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget::RTState</scope><name>operator==</name></member>
+      <member refid="structDriver3dRenderTarget_1_1RTState_1a5733a1417c2ce8947d6da6e85106d57e" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget::RTState</scope><name>set</name></member>
+      <member refid="structDriver3dRenderTarget_1_1RTState_1aec6319a20cd9cdd55d79ed9e263db819" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget::RTState</scope><name>tex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

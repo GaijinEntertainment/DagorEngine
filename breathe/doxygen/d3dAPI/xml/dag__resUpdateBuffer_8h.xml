@@ -1,0 +1,86 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__resUpdateBuffer_8h" kind="file" language="C++">
+    <compoundname>dag_resUpdateBuffer.h</compoundname>
+    <includes local="no">util/dag_stdint.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_resUpdateBuffer.h</label>
+        <link refid="dag__resUpdateBuffer_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>util/dag_stdint.h</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref>;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">ResUpdateBuffer;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="namespaced3d_1ab647fe39215166657604226493cd0f64" refkind="member"><highlight class="normal">ResUpdateBuffer<sp/>*<ref refid="namespaced3d_1ab647fe39215166657604226493cd0f64" kindref="member">allocate_update_buffer_for_tex_region</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*dest_base_texture,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>dest_mip,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>dest_slice,</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>offset_x,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>offset_y,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>offset_z,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>width,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>height,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>depth);</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="namespaced3d_1a36dc35e22433bdaa9a465158919d8695" refkind="member"><highlight class="normal">ResUpdateBuffer<sp/>*<ref refid="namespaced3d_1a36dc35e22433bdaa9a465158919d8695" kindref="member">allocate_update_buffer_for_tex</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*dest_tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dest_mip,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dest_slice);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67" refid="namespaced3d_1a2fe916f100929967fa9742c59d975f0c" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a2fe916f100929967fa9742c59d975f0c" kindref="member">release_update_buffer</ref>(ResUpdateBuffer<sp/>*&amp;rub);</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74" refid="namespaced3d_1acf0463c7b4b1da9c91e9b011b312aeb3" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="namespaced3d_1acf0463c7b4b1da9c91e9b011b312aeb3" kindref="member">get_update_buffer_addr_for_write</ref>(ResUpdateBuffer<sp/>*rub);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="namespaced3d_1a5de76a26d3b646de9f97e090cf033cc5" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a5de76a26d3b646de9f97e090cf033cc5" kindref="member">get_update_buffer_size</ref>(ResUpdateBuffer<sp/>*rub);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88" refid="namespaced3d_1a387e756ba0ef9df2928c1c53993ec4a2" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a387e756ba0ef9df2928c1c53993ec4a2" kindref="member">get_update_buffer_pitch</ref>(ResUpdateBuffer<sp/>*rub);</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95" refid="namespaced3d_1a05d01cd9ea1b6f32fd8ee33b218ab107" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a05d01cd9ea1b6f32fd8ee33b218ab107" kindref="member">get_update_buffer_slice_pitch</ref>(ResUpdateBuffer<sp/>*rub);</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102" refid="namespaced3d_1a0a4242326b70e499628e3600f1505630" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a0a4242326b70e499628e3600f1505630" kindref="member">update_texture_and_release_update_buffer</ref>(ResUpdateBuffer<sp/>*&amp;src_rub);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__interface__table_8h" kindref="compound">drv/3d/dag_interface_table.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="109"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>ResUpdateBuffer<sp/>*<ref refid="namespaced3d_1ab647fe39215166657604226493cd0f64" kindref="member">allocate_update_buffer_for_tex_region</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*dest_base_texture,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>dest_mip,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>dest_slice,</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>offset_x,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>offset_y,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>offset_z,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>width,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>height,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>depth)</highlight></codeline>
+<codeline lineno="112"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1afe01468b3878bf5e954d4730f7244c77" kindref="member">allocate_update_buffer_for_tex_region</ref>(dest_base_texture,<sp/>dest_mip,<sp/>dest_slice,<sp/>offset_x,<sp/>offset_y,<sp/>offset_z,<sp/>width,</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/>height,<sp/>depth);</highlight></codeline>
+<codeline lineno="115"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>ResUpdateBuffer<sp/>*<ref refid="namespaced3d_1a36dc35e22433bdaa9a465158919d8695" kindref="member">allocate_update_buffer_for_tex</ref>(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*dest_tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dest_mip,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dest_slice)</highlight></codeline>
+<codeline lineno="118"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ae872bf1427c6035ff6f3854f8bc14d2f" kindref="member">allocate_update_buffer_for_tex</ref>(dest_tex,<sp/>dest_mip,<sp/>dest_slice);</highlight></codeline>
+<codeline lineno="120"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a2fe916f100929967fa9742c59d975f0c" kindref="member">release_update_buffer</ref>(ResUpdateBuffer<sp/>*&amp;rub)<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1af44addd0123f085f92cc00d1656c2fd6" kindref="member">release_update_buffer</ref>(rub);<sp/>}</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="namespaced3d_1acf0463c7b4b1da9c91e9b011b312aeb3" kindref="member">get_update_buffer_addr_for_write</ref>(ResUpdateBuffer<sp/>*rub)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a24b8e31e6b762c8716fcc5f492498ff2" kindref="member">get_update_buffer_addr_for_write</ref>(rub);<sp/>}</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a5de76a26d3b646de9f97e090cf033cc5" kindref="member">get_update_buffer_size</ref>(ResUpdateBuffer<sp/>*rub)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a7a0fc1c03bf71a0d671f89354edea7f5" kindref="member">get_update_buffer_size</ref>(rub);<sp/>}</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a387e756ba0ef9df2928c1c53993ec4a2" kindref="member">get_update_buffer_pitch</ref>(ResUpdateBuffer<sp/>*rub)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ab9c6b95a68aed41c17a145f0d03986fa" kindref="member">get_update_buffer_pitch</ref>(rub);<sp/>}</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a05d01cd9ea1b6f32fd8ee33b218ab107" kindref="member">get_update_buffer_slice_pitch</ref>(ResUpdateBuffer<sp/>*rub)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1aaa7df6f61eb583a83648179b0156b368" kindref="member">get_update_buffer_slice_pitch</ref>(rub);<sp/>}</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a0a4242326b70e499628e3600f1505630" kindref="member">update_texture_and_release_update_buffer</ref>(ResUpdateBuffer<sp/>*&amp;src_rub)</highlight></codeline>
+<codeline lineno="127"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a90f269c4b4cb61023a4c70b4177636e7" kindref="member">update_texture_and_release_update_buffer</ref>(src_rub);</highlight></codeline>
+<codeline lineno="129"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="130"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="dag_resUpdateBuffer.h"/>
+  </compounddef>
+</doxygen>

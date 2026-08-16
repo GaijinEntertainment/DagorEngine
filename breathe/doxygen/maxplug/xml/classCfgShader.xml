@@ -1,0 +1,115 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classCfgShader" kind="class" language="C++" prot="public">
+    <compoundname>CfgShader</compoundname>
+    <basecompoundref refid="classCfgReader" prot="public" virt="non-virtual">CfgReader</basecompoundref>
+    <includes refid="cfg_8h" local="no">cfg.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classCfgShader_1a79f7b001f80f47e919a742c0d5c5737b" prot="public" static="no" mutable="no">
+        <type><ref refid="cfg_8h_1a890314935d928239dc1f401700d7c9aa" kindref="member">StringVector</ref></type>
+        <definition>StringVector CfgShader::shader_names</definition>
+        <argsstring></argsstring>
+        <name>shader_names</name>
+        <qualifiedname>CfgShader::shader_names</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="40" column="16" bodyfile="cfg.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classCfgShader_1a50aec52d50cc2f1983e2c5521371afa4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>CfgShader::CfgShader</definition>
+        <argsstring>(const std::wstring &amp;name)</argsstring>
+        <name>CfgShader</name>
+        <qualifiedname>CfgShader::CfgShader</qualifiedname>
+        <param>
+          <type>const std::wstring &amp;</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="42" column="3" bodyfile="cfg.cpp" bodystart="48" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgShader_1a442cada79739eaa9048d8cd349bdc51e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>CfgShader::~CfgShader</definition>
+        <argsstring>() override=default</argsstring>
+        <name>~CfgShader</name>
+        <qualifiedname>CfgShader::~CfgShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="43" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgShader_1aee46d6e5791fe688ce137e41351bc9bf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="cfg_8h_1a890314935d928239dc1f401700d7c9aa" kindref="member">StringVector</ref> *</type>
+        <definition>StringVector * CfgShader::GetShaderNames</definition>
+        <argsstring>()</argsstring>
+        <name>GetShaderNames</name>
+        <qualifiedname>CfgShader::GetShaderNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="45" column="16" bodyfile="cfg.cpp" bodystart="50" bodyend="64"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>CfgReader</label>
+        <link refid="classCfgReader"/>
+      </node>
+      <node id="1">
+        <label>CfgShader</label>
+        <link refid="classCfgShader"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>CfgReader</label>
+        <link refid="classCfgReader"/>
+      </node>
+      <node id="1">
+        <label>CfgShader</label>
+        <link refid="classCfgShader"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="cfg.h" line="37" column="1" bodyfile="cfg.h" bodystart="38" bodyend="46"/>
+    <listofallmembers>
+      <member refid="classCfgReader_1a38105755747e8437d0aa78f66ee68d91" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>CfgReader</name></member>
+      <member refid="classCfgReader_1a93fb580123f69962602d7dc55c3a4817" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>CfgReader</name></member>
+      <member refid="classCfgShader_1a50aec52d50cc2f1983e2c5521371afa4" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>CfgShader</name></member>
+      <member refid="classCfgReader_1a9a044877c7e4058c9f883ba6acb0551d" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>filename</name></member>
+      <member refid="classCfgReader_1a9eb7bbf06c84e5015a979fa03c57e0f8" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetKeyValue</name></member>
+      <member refid="classCfgReader_1a51b911e3719d0f30b704a0ba76f0e4e3" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetSectionNames</name></member>
+      <member refid="classCfgShader_1aee46d6e5791fe688ce137e41351bc9bf" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>GetShaderNames</name></member>
+      <member refid="classCfgReader_1a70e16c85f1d1c82c5c994d9de5ac90b8" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>section_names</name></member>
+      <member refid="classCfgShader_1a79f7b001f80f47e919a742c0d5c5737b" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>shader_names</name></member>
+      <member refid="classCfgReader_1a3e95c2b176cca398b6720139a357c086" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>WriteKeyVal</name></member>
+      <member refid="classCfgReader_1a95826047dbe42ce30e5289a799b6a335" prot="public" virt="virtual"><scope>CfgShader</scope><name>~CfgReader</name></member>
+      <member refid="classCfgShader_1a442cada79739eaa9048d8cd349bdc51e" prot="public" virt="non-virtual"><scope>CfgShader</scope><name>~CfgShader</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

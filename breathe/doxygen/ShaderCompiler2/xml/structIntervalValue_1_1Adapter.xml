@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structIntervalValue_1_1Adapter" kind="struct" language="C++" prot="public">
+    <compoundname>IntervalValue::Adapter</compoundname>
+    <includes refid="intervals_8h" local="no">intervals.h</includes>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structIntervalValue_1_1Adapter_1acbecfd698a1ddd7c4a41cc2bf4bbf2bd" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * IntervalValue::Adapter::getName</definition>
+        <argsstring>(int id)</argsstring>
+        <name>getName</name>
+        <qualifiedname>IntervalValue::Adapter::getName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="41" column="23" bodyfile="intervals.cpp" bodystart="17" bodyend="17"/>
+      </memberdef>
+      <memberdef kind="function" id="structIntervalValue_1_1Adapter_1a79304a766a1395cb96fe792507fd1317" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int IntervalValue::Adapter::addName</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>addName</name>
+        <qualifiedname>IntervalValue::Adapter::addName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="intervals.h" line="42" column="16" bodyfile="intervals.cpp" bodystart="18" bodyend="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="intervals.h" line="39" column="3" bodyfile="intervals.h" bodystart="40" bodyend="43"/>
+    <listofallmembers>
+      <member refid="structIntervalValue_1_1Adapter_1a79304a766a1395cb96fe792507fd1317" prot="public" virt="non-virtual"><scope>IntervalValue::Adapter</scope><name>addName</name></member>
+      <member refid="structIntervalValue_1_1Adapter_1acbecfd698a1ddd7c4a41cc2bf4bbf2bd" prot="public" virt="non-virtual"><scope>IntervalValue::Adapter</scope><name>getName</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

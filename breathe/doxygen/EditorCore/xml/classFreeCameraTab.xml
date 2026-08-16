@@ -1,0 +1,146 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classFreeCameraTab" kind="class" language="C++" prot="public">
+    <compoundname>FreeCameraTab</compoundname>
+    <derivedcompoundref refid="classFPSCameraTab" prot="public" virt="non-virtual">FPSCameraTab</derivedcompoundref>
+    <includes refid="ec__camera__dlg_8h" local="no">ec_camera_dlg.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classFreeCameraTab_1aa9a434f6ca18689801e5690fde0247c7" prot="protected" static="no" mutable="no">
+        <type>PropPanel::ContainerPropertyControl *</type>
+        <definition>PropPanel::ContainerPropertyControl* FreeCameraTab::mTabPage</definition>
+        <argsstring></argsstring>
+        <name>mTabPage</name>
+        <qualifiedname>FreeCameraTab::mTabPage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="158" column="39" bodyfile="ec_camera_dlg.h" bodystart="158" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFreeCameraTab_1a4bd9621cdf5d7f234d16cdadfc707e5e" prot="protected" static="no" mutable="no">
+        <type><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref> *</type>
+        <definition>CameraConfig* FreeCameraTab::mConfig</definition>
+        <argsstring></argsstring>
+        <name>mConfig</name>
+        <qualifiedname>FreeCameraTab::mConfig</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="159" column="16" bodyfile="ec_camera_dlg.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classFreeCameraTab_1a3ea91745ced807affda0abe13d576023" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>FreeCameraTab::FreeCameraTab</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl *tab_page, CameraConfig *options)</argsstring>
+        <name>FreeCameraTab</name>
+        <qualifiedname>FreeCameraTab::FreeCameraTab</qualifiedname>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>tab_page</declname>
+        </param>
+        <param>
+          <type><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref> *</type>
+          <declname>options</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="153" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classFreeCameraTab_1ae01d2e820a9846a17b1f31dfbca1653b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void FreeCameraTab::fill</definition>
+        <argsstring>()</argsstring>
+        <name>fill</name>
+        <qualifiedname>FreeCameraTab::fill</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="154" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classFreeCameraTab_1a0d21ef5d3e69b33d86c2c28602bc0703" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void FreeCameraTab::updateConfigFromUserInterface</definition>
+        <argsstring>(int pcb_id)</argsstring>
+        <name>updateConfigFromUserInterface</name>
+        <qualifiedname>FreeCameraTab::updateConfigFromUserInterface</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="155" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>FPSCameraTab</label>
+        <link refid="classFPSCameraTab"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>FreeCameraTab</label>
+        <link refid="classFreeCameraTab"/>
+      </node>
+      <node id="3">
+        <label>TPSCameraTab</label>
+        <link refid="classTPSCameraTab"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>CameraConfig</label>
+        <link refid="structCameraConfig"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>commonInertia</edgelabel>
+          <edgelabel>hangInertia</edgelabel>
+          <edgelabel>vangInertia</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>FreeCameraTab</label>
+        <link refid="classFreeCameraTab"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>mConfig</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>Inertia</label>
+        <link refid="structInertia"/>
+      </node>
+    </collaborationgraph>
+    <location file="ec_camera_dlg.h" line="150" column="1" bodyfile="ec_camera_dlg.h" bodystart="151" bodyend="160"/>
+    <listofallmembers>
+      <member refid="classFreeCameraTab_1ae01d2e820a9846a17b1f31dfbca1653b" prot="public" virt="non-virtual"><scope>FreeCameraTab</scope><name>fill</name></member>
+      <member refid="classFreeCameraTab_1a3ea91745ced807affda0abe13d576023" prot="public" virt="non-virtual"><scope>FreeCameraTab</scope><name>FreeCameraTab</name></member>
+      <member refid="classFreeCameraTab_1a4bd9621cdf5d7f234d16cdadfc707e5e" prot="protected" virt="non-virtual"><scope>FreeCameraTab</scope><name>mConfig</name></member>
+      <member refid="classFreeCameraTab_1aa9a434f6ca18689801e5690fde0247c7" prot="protected" virt="non-virtual"><scope>FreeCameraTab</scope><name>mTabPage</name></member>
+      <member refid="classFreeCameraTab_1a0d21ef5d3e69b33d86c2c28602bc0703" prot="public" virt="non-virtual"><scope>FreeCameraTab</scope><name>updateConfigFromUserInterface</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

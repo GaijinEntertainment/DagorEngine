@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDagRotKey" kind="struct" language="C++" prot="public">
+    <compoundname>DagRotKey</compoundname>
+    <includes refid="dagfmt_8h" local="no">dagfmt.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDagRotKey_1a836b45de95003c2c3c432248e7d677f6" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DagRotKey::t</definition>
+        <argsstring></argsstring>
+        <name>t</name>
+        <qualifiedname>DagRotKey::t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="158" column="7" bodyfile="dagfmt.h" bodystart="158" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagRotKey_1aa8b06ee2591c10dfcd0907d3f50310a8" prot="public" static="no" mutable="no">
+        <type>Quat</type>
+        <definition>Quat DagRotKey::p</definition>
+        <argsstring></argsstring>
+        <name>p</name>
+        <qualifiedname>DagRotKey::p</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="159" column="8" bodyfile="dagfmt.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagRotKey_1a63686c785e26af838fc04f150cd36ac7" prot="public" static="no" mutable="no">
+        <type>Quat</type>
+        <definition>Quat DagRotKey::i</definition>
+        <argsstring></argsstring>
+        <name>i</name>
+        <qualifiedname>DagRotKey::i</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="159" column="10" bodyfile="dagfmt.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagRotKey_1a9d3235752cd134a39be076c4feb30824" prot="public" static="no" mutable="no">
+        <type>Quat</type>
+        <definition>Quat DagRotKey::o</definition>
+        <argsstring></argsstring>
+        <name>o</name>
+        <qualifiedname>DagRotKey::o</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="159" column="12" bodyfile="dagfmt.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDagRotKey_1a65a0fdd449d9d006e35321ad10578abe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagRotKey::DagRotKey</definition>
+        <argsstring>()</argsstring>
+        <name>DagRotKey</name>
+        <qualifiedname>DagRotKey::DagRotKey</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="160" column="3" bodyfile="dagfmt.h" bodystart="160" bodyend="160"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagfmt.h" line="156" column="1" bodyfile="dagfmt.h" bodystart="157" bodyend="161"/>
+    <listofallmembers>
+      <member refid="structDagRotKey_1a65a0fdd449d9d006e35321ad10578abe" prot="public" virt="non-virtual"><scope>DagRotKey</scope><name>DagRotKey</name></member>
+      <member refid="structDagRotKey_1a63686c785e26af838fc04f150cd36ac7" prot="public" virt="non-virtual"><scope>DagRotKey</scope><name>i</name></member>
+      <member refid="structDagRotKey_1a9d3235752cd134a39be076c4feb30824" prot="public" virt="non-virtual"><scope>DagRotKey</scope><name>o</name></member>
+      <member refid="structDagRotKey_1aa8b06ee2591c10dfcd0907d3f50310a8" prot="public" virt="non-virtual"><scope>DagRotKey</scope><name>p</name></member>
+      <member refid="structDagRotKey_1a836b45de95003c2c3c432248e7d677f6" prot="public" virt="non-virtual"><scope>DagRotKey</scope><name>t</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

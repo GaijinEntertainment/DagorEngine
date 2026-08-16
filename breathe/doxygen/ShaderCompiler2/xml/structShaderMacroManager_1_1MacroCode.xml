@@ -1,0 +1,148 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderMacroManager_1_1MacroCode" kind="struct" language="C++" prot="private">
+    <compoundname>ShaderMacroManager::MacroCode</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderMacroManager_1_1MacroCode_1ab8a92be834a4a92463eb3daadc54cae0" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderMacro" kindref="compound">ShaderMacro</ref> *</type>
+        <definition>ShaderMacro* ShaderMacroManager::MacroCode::macro</definition>
+        <argsstring></argsstring>
+        <name>macro</name>
+        <qualifiedname>ShaderMacroManager::MacroCode::macro</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="87" column="17" bodyfile="shMacro.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMacroManager_1_1MacroCode_1a7c6987691fba56d9465c57c43c5cdddd" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderMacro_1a328866b4f9109d27bb1efcf0b5a56992" kindref="member">ShaderMacro::TokenList</ref></type>
+        <definition>ShaderMacro::TokenList ShaderMacroManager::MacroCode::code</definition>
+        <argsstring></argsstring>
+        <name>code</name>
+        <qualifiedname>ShaderMacroManager::MacroCode::code</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="88" column="28" bodyfile="shMacro.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMacroManager_1_1MacroCode_1af7105276028cd81bdeffd9e76239437d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderMacroManager::MacroCode::curToken</definition>
+        <argsstring></argsstring>
+        <name>curToken</name>
+        <qualifiedname>ShaderMacroManager::MacroCode::curToken</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="89" column="9" bodyfile="shMacro.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMacroManager_1_1MacroCode_1a1b9ee7ad891e54e60d71514676f75dd2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderMacroManager::MacroCode::caller_file</definition>
+        <argsstring></argsstring>
+        <name>caller_file</name>
+        <qualifiedname>ShaderMacroManager::MacroCode::caller_file</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="90" column="9" bodyfile="shMacro.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMacroManager_1_1MacroCode_1a499745f9a01311a5ab7939835f3b48a7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderMacroManager::MacroCode::caller_line</definition>
+        <argsstring></argsstring>
+        <name>caller_line</name>
+        <qualifiedname>ShaderMacroManager::MacroCode::caller_line</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="91" column="9" bodyfile="shMacro.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderMacroManager_1_1MacroCode_1a38223bbaef727f35806382394880ec25" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderMacroManager::MacroCode::MacroCode</definition>
+        <argsstring>(ShaderMacro *m, ShaderMacro::TokenList &amp;init_code)</argsstring>
+        <name>MacroCode</name>
+        <qualifiedname>ShaderMacroManager::MacroCode::MacroCode</qualifiedname>
+        <param>
+          <type><ref refid="structShaderMacro" kindref="compound">ShaderMacro</ref> *</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type><ref refid="structShaderMacro_1a328866b4f9109d27bb1efcf0b5a56992" kindref="member">ShaderMacro::TokenList</ref> &amp;</type>
+          <declname>init_code</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="93" column="5" bodyfile="shMacro.cpp" bodystart="587" bodyend="588"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderMacroManager_1_1MacroCode_1ab928687da5931b4b1bdf2a5764834ad8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderMacroManager::MacroCode::getToken</definition>
+        <argsstring>(ShaderParser::TokenInfo &amp;out_info)</argsstring>
+        <name>getToken</name>
+        <qualifiedname>ShaderMacroManager::MacroCode::getToken</qualifiedname>
+        <param>
+          <type><ref refid="structShaderParser_1_1TokenInfo" kindref="compound">ShaderParser::TokenInfo</ref> &amp;</type>
+          <declname>out_info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shMacro.h" line="96" column="10" bodyfile="shMacro.cpp" bodystart="591" bodyend="599"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>ShaderMacro</label>
+        <link refid="structShaderMacro"/>
+      </node>
+      <node id="1">
+        <label>ShaderMacroManager::MacroCode</label>
+        <childnode refid="2" relation="usage">
+          <edgelabel>macro</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shMacro.h" line="85" column="3" bodyfile="shMacro.h" bodystart="86" bodyend="97"/>
+    <listofallmembers>
+      <member refid="structShaderMacroManager_1_1MacroCode_1a1b9ee7ad891e54e60d71514676f75dd2" prot="public" virt="non-virtual"><scope>ShaderMacroManager::MacroCode</scope><name>caller_file</name></member>
+      <member refid="structShaderMacroManager_1_1MacroCode_1a499745f9a01311a5ab7939835f3b48a7" prot="public" virt="non-virtual"><scope>ShaderMacroManager::MacroCode</scope><name>caller_line</name></member>
+      <member refid="structShaderMacroManager_1_1MacroCode_1a7c6987691fba56d9465c57c43c5cdddd" prot="public" virt="non-virtual"><scope>ShaderMacroManager::MacroCode</scope><name>code</name></member>
+      <member refid="structShaderMacroManager_1_1MacroCode_1af7105276028cd81bdeffd9e76239437d" prot="public" virt="non-virtual"><scope>ShaderMacroManager::MacroCode</scope><name>curToken</name></member>
+      <member refid="structShaderMacroManager_1_1MacroCode_1ab928687da5931b4b1bdf2a5764834ad8" prot="public" virt="non-virtual"><scope>ShaderMacroManager::MacroCode</scope><name>getToken</name></member>
+      <member refid="structShaderMacroManager_1_1MacroCode_1ab8a92be834a4a92463eb3daadc54cae0" prot="public" virt="non-virtual"><scope>ShaderMacroManager::MacroCode</scope><name>macro</name></member>
+      <member refid="structShaderMacroManager_1_1MacroCode_1a38223bbaef727f35806382394880ec25" prot="public" virt="non-virtual"><scope>ShaderMacroManager::MacroCode</scope><name>MacroCode</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

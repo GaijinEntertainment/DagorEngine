@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__res_8h" kind="file" language="C++">
+    <compoundname>dag_res.h</compoundname>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="8"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="10" refid="namespaced3d_1ae7c485b1584e68f0ac6c50c14144bd31" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ae7c485b1584e68f0ac6c50c14144bd31" kindref="member">reserve_res_entries</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>strict_max,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_vs,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_ps,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_vdecl,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_vb,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_ib,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_stblk);</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="namespaced3d_1a79955d52d0a863771894649c5e72708a" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a79955d52d0a863771894649c5e72708a" kindref="member">get_max_used_res_entries</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_vs,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_ps,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_vdecl,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_vb,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_ib,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_stblk);</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="namespaced3d_1aa9be1f8e4dcf3ef97b8c282336f67ee8" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1aa9be1f8e4dcf3ef97b8c282336f67ee8" kindref="member">get_cur_used_res_entries</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_vs,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_ps,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_vdecl,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_vb,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_ib,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;max_stblk);</highlight></codeline>
+<codeline lineno="17"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_res.h"/>
+  </compounddef>
+</doxygen>

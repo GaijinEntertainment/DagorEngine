@@ -1,0 +1,395 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderParser_1_1ConstColor4Value" kind="class" language="C++" prot="public">
+    <compoundname>ShaderParser::ConstColor4Value</compoundname>
+    <basecompoundref refid="classShaderParser_1_1Expression" prot="public" virt="non-virtual">ShaderParser::Expression</basecompoundref>
+    <includes refid="shExpr_8h" local="no">shExpr.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderParser_1_1ConstColor4Value_1a37b69203d8184b10f15798e35046cd75" prot="private" static="no" mutable="no">
+        <type>Color4</type>
+        <definition>Color4 ShaderParser::ConstColor4Value::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::value</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="441" column="10" bodyfile="shExpr.h" bodystart="441" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1a0f60a5644e99904605140d33e3fd1238" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ConstColor4Value::ConstColor4Value</definition>
+        <argsstring>(Terminal *s, const Color4 &amp;v=Color4(0, 0, 0, 0))</argsstring>
+        <name>ConstColor4Value</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::ConstColor4Value</qualifiedname>
+        <param>
+          <type>Terminal *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>const Color4 &amp;</type>
+          <declname>v</declname>
+          <defval>Color4(0, 0, 0, 0)</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="397" column="3" bodyfile="shExpr.cpp" bodystart="975" bodyend="975"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1a569fc50df0b0b6856519cdeeda1e32fa" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>shexpr::Type</type>
+        <definition>shexpr::Type ShaderParser::ConstColor4Value::getType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getType</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::getType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ab8876717d35f647420a5c3bfd7c1c50c">getType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="400" column="23" bodyfile="shExpr.h" bodystart="400" bodyend="400"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1a8d1678e9360104a5fb81aa79ad3d8233" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>shexpr::ValueType</type>
+        <definition>shexpr::ValueType ShaderParser::ConstColor4Value::getValueType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getValueType</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::getValueType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1acc2906c41ab9f1277d513f3c2c97096d">getValueType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="403" column="28" bodyfile="shExpr.h" bodystart="403" bodyend="403"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1aa1746206ae1903934192be0dd811d25b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ConstColor4Value::assembleBytecode</definition>
+        <argsstring>(CodeTable &amp;code, Register &amp;dest_reg, StcodeVMRegisterAllocator &amp;reg_allocator, bool is_integer) const override</argsstring>
+        <name>assembleBytecode</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::assembleBytecode</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1adf4dc5757229bb9e7a7d50d3cc6d82f0">assembleBytecode</reimplements>
+        <param>
+          <type><ref refid="namespaceShaderParser_1a732af6cbcecefe1051d9165d3718d702" kindref="member">CodeTable</ref> &amp;</type>
+          <declname>code</declname>
+        </param>
+        <param>
+          <type><ref refid="classRegister" kindref="compound">Register</ref> &amp;</type>
+          <declname>dest_reg</declname>
+        </param>
+        <param>
+          <type><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref> &amp;</type>
+          <declname>reg_allocator</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="406" column="8" bodyfile="shExpr.cpp" bodystart="979" bodyend="982"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1ab941266415cc8ebe95c805425d8262d9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ConstColor4Value::assembleCpp</definition>
+        <argsstring>(StcodeExpression &amp;cpp_expr, bool is_integer) const override</argsstring>
+        <name>assembleCpp</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::assembleCpp</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a9487371df0a50670438cc4343d06cdb2">assembleCpp</reimplements>
+        <param>
+          <type><ref refid="structStcodeExpression" kindref="compound">StcodeExpression</ref> &amp;</type>
+          <declname>cpp_expr</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="407" column="8" bodyfile="shExpr.cpp" bodystart="984" bodyend="987"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1a548447c0524e5854161f600fa3e14d14" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ConstColor4Value::setValue</definition>
+        <argsstring>(const Color4 &amp;v)</argsstring>
+        <name>setValue</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::setValue</qualifiedname>
+        <param>
+          <type>const Color4 &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="410" column="8" bodyfile="shExpr.cpp" bodystart="991" bodyend="991"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1abbdcfa7d83f2d7ec9eb029d7116953bf" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const Color4 &amp;</type>
+        <definition>const Color4 &amp; ConstColor4Value::getConvertedColor</definition>
+        <argsstring>() const</argsstring>
+        <name>getConvertedColor</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::getConvertedColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="413" column="16" bodyfile="shExpr.cpp" bodystart="995" bodyend="995"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1a7be9949a391b4b3710837b281021b393" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const real</type>
+        <definition>const real ConstColor4Value::getConvertedReal</definition>
+        <argsstring>() const</argsstring>
+        <name>getConvertedReal</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::getConvertedReal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="414" column="14" bodyfile="shExpr.cpp" bodystart="998" bodyend="998"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1ad662d7b82b67f428e26c1879978f780f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::ConstColor4Value::isConst</definition>
+        <argsstring>() const override</argsstring>
+        <name>isConst</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::isConst</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a5cd845a298cd30bc29c1d6176d90d7a5">isConst</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="417" column="8" bodyfile="shExpr.h" bodystart="417" bodyend="417"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1ab3f40506560a5c0ea91be98462bf3cec" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::ConstColor4Value::isDynamic</definition>
+        <argsstring>() const override</argsstring>
+        <name>isDynamic</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::isDynamic</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a6670e4cb77f145766d8e787075ed7da9">isDynamic</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="420" column="8" bodyfile="shExpr.h" bodystart="420" bodyend="420"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1a5a1a2a084c350273d596e0dbcdf6c277" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool ConstColor4Value::evaluate</definition>
+        <argsstring>(real &amp;out_value, Parser &amp;parser) override</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::evaluate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a8941f97eca15c43e1ecd37d5c7dc3caf">evaluate</reimplements>
+        <param>
+          <type>real &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="423" column="8" bodyfile="shExpr.cpp" bodystart="1002" bodyend="1016"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1a465f9a198c6263d0827edf1775480cc9" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool ConstColor4Value::evaluate</definition>
+        <argsstring>(Color4 &amp;out_value, Parser &amp;parser) override</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::evaluate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1af8c5f003ef7d6a21c423c741f3587a1f">evaluate</reimplements>
+        <param>
+          <type>Color4 &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="426" column="8" bodyfile="shExpr.cpp" bodystart="1019" bodyend="1035"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1a4424c3463ff19f3824387a0d8e418c7b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>Terminal *</type>
+        <definition>Terminal * ShaderParser::ConstColor4Value::getTerminal</definition>
+        <argsstring>() const override</argsstring>
+        <name>getTerminal</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::getTerminal</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a63e9f75ae1b742c5ffcbd7aa65b1963a">getTerminal</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="429" column="12" bodyfile="shExpr.h" bodystart="429" bodyend="429"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1a860ded90ad774d5bf101b78b9c734b8e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int ShaderParser::ConstColor4Value::getChannels</definition>
+        <argsstring>() const override</argsstring>
+        <name>getChannels</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::getChannels</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a624688ee88ace66f0cafa9481d4e4536">getChannels</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="431" column="7" bodyfile="shExpr.h" bodystart="431" bodyend="431"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1af5e400c34c53b4eb8b2812a20e856127" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::ConstColor4Value::collapseNumbers</definition>
+        <argsstring>(Parser &amp;parser) override</argsstring>
+        <name>collapseNumbers</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::collapseNumbers</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a6504a6f642f08f1cf420bebda197efaf">collapseNumbers</reimplements>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="434" column="8" bodyfile="shExpr.h" bodystart="434" bodyend="434"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classShaderParser_1_1ConstColor4Value_1afd93fe82e75d74af73dfdf205129567e" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ConstColor4Value::dump_internal</definition>
+        <argsstring>(int level, const char *tabs) const override</argsstring>
+        <name>dump_internal</name>
+        <qualifiedname>ShaderParser::ConstColor4Value::dump_internal</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ae3261bc8b45356c6090bd84db2508fcb">dump_internal</reimplements>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tabs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="438" column="8" bodyfile="shExpr.cpp" bodystart="1039" bodyend="1047"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ShaderParser::ConstColor4Value</label>
+        <link refid="classShaderParser_1_1ConstColor4Value"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ShaderParser::ConstColor4Value</label>
+        <link refid="classShaderParser_1_1ConstColor4Value"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+    </collaborationgraph>
+    <location file="shExpr.h" line="393" column="1" bodyfile="shExpr.h" bodystart="394" bodyend="442"/>
+    <listofallmembers>
+      <member refid="classShaderParser_1_1Expression_1a68e771cf9c1584e59c0f5c5e298d3eea" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1aaec5897d85a74cfadd26bf18752a23f1" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1a633bdaee53233d1474dacd39ab7e2d89" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1a77ed6f7aab61c1f6367d6c1f5fcfdbb1" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>allocateRegForResult</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1aa1746206ae1903934192be0dd811d25b" prot="public" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>assembleBytecode</name></member>
+      <member refid="classShaderParser_1_1Expression_1a7cc153456d29d1e3e52ec2d20563b5d1" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1ac03d00732e3242385f7c5efca77f5d3f" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1ab941266415cc8ebe95c805425d8262d9" prot="public" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>assembleCpp</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4037bf3eee8071bba8ab6886455769e1" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1a56f313f3547738e55c1aada81a1dca07" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1ac19dd34018b4470ad166a8ab244f981d" prot="public" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>canConvert</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1af5e400c34c53b4eb8b2812a20e856127" prot="public" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>collapseNumbers</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1a0f60a5644e99904605140d33e3fd1238" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>ConstColor4Value</name></member>
+      <member refid="classShaderParser_1_1Expression_1a08d3c7f008450499ebf2ce26a8f346d5" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>dump</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1afd93fe82e75d74af73dfdf205129567e" prot="protected" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>dump_internal</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1a5a1a2a084c350273d596e0dbcdf6c277" prot="public" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1a465f9a198c6263d0827edf1775480cc9" prot="public" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4aeeda4b23b0d2b14c2ad2caab0390c5" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>Expression</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1a860ded90ad774d5bf101b78b9c734b8e" prot="public" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>getChannels</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1abbdcfa7d83f2d7ec9eb029d7116953bf" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>getConvertedColor</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1a7be9949a391b4b3710837b281021b393" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>getConvertedReal</name></member>
+      <member refid="classShaderParser_1_1Expression_1a21b42b73baa2d365e975d950b60a613d" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>getParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a066eed5146bd48cfcc3acb30a50e9068" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>getParserSymbol</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1a4424c3463ff19f3824387a0d8e418c7b" prot="public" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>getTerminal</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1a569fc50df0b0b6856519cdeeda1e32fa" prot="public" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>getType</name></member>
+      <member refid="classShaderParser_1_1Expression_1a1ab07814f1b27a6786d043da4e080c44" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>getUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1a8d1678e9360104a5fb81aa79ad3d8233" prot="public" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>getValueType</name></member>
+      <member refid="classShaderParser_1_1Expression_1a20844e4f958c20d70cc4824650652f67" prot="public" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>hasDynamicAndMaterialTermsAt</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1ad662d7b82b67f428e26c1879978f780f" prot="public" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>isConst</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1ab3f40506560a5c0ea91be98462bf3cec" prot="public" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>isDynamic</name></member>
+      <member refid="classShaderParser_1_1Expression_1a85fe9b97eae19d91e0affe293d3eefdf" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>SetParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a6438a4e71937292586b86d9e3e1202f9" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>setUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1a548447c0524e5854161f600fa3e14d14" prot="public" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>setValue</name></member>
+      <member refid="classShaderParser_1_1ConstColor4Value_1a37b69203d8184b10f15798e35046cd75" prot="private" virt="non-virtual"><scope>ShaderParser::ConstColor4Value</scope><name>value</name></member>
+      <member refid="classShaderParser_1_1Expression_1a9e01aa5ac9dd2e26fa87d4cdd7a042ca" prot="public" virt="virtual"><scope>ShaderParser::ConstColor4Value</scope><name>~Expression</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

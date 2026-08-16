@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structoverloaded" kind="struct" language="C++" prot="public">
+    <compoundname>overloaded</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">Ts</basecompoundref>
+    <templateparamlist>
+      <param>
+        <type>class...</type>
+        <declname>Ts</declname>
+        <defname>Ts</defname>
+      </param>
+    </templateparamlist>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>Ts</label>
+      </node>
+      <node id="1">
+        <label>overloaded&lt; Ts &gt;</label>
+        <link refid="structoverloaded"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>Ts</label>
+      </node>
+      <node id="1">
+        <label>overloaded&lt; Ts &gt;</label>
+        <link refid="structoverloaded"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rolluppanel.cpp" line="1410" column="1" bodyfile="rolluppanel.cpp" bodystart="1411" bodyend="1413"/>
+    <listofallmembers>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

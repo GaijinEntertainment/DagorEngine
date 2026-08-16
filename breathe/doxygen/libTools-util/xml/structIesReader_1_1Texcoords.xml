@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structIesReader_1_1Texcoords" kind="struct" language="C++" prot="public">
+    <compoundname>IesReader::Texcoords</compoundname>
+    <includes refid="iesReader_8h" local="no">iesReader.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structIesReader_1_1Texcoords_1a04b3d66c25362c02e36bb3b4b4d40dd4" prot="public" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::Texcoords::x</definition>
+        <argsstring></argsstring>
+        <name>x</name>
+        <qualifiedname>IesReader::Texcoords::x</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="78" column="10" bodyfile="iesReader.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structIesReader_1_1Texcoords_1ac13c312c81712a29620b8556bba12610" prot="public" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::Texcoords::y</definition>
+        <argsstring></argsstring>
+        <name>y</name>
+        <qualifiedname>IesReader::Texcoords::y</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="79" column="10" bodyfile="iesReader.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="iesReader.h" line="76" column="3" bodyfile="iesReader.h" bodystart="77" bodyend="80"/>
+    <listofallmembers>
+      <member refid="structIesReader_1_1Texcoords_1a04b3d66c25362c02e36bb3b4b4d40dd4" prot="public" virt="non-virtual"><scope>IesReader::Texcoords</scope><name>x</name></member>
+      <member refid="structIesReader_1_1Texcoords_1ac13c312c81712a29620b8556bba12610" prot="public" virt="non-virtual"><scope>IesReader::Texcoords</scope><name>y</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

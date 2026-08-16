@@ -1,0 +1,97 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIModelessWindowController" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IModelessWindowController</compoundname>
+    <derivedcompoundref refid="classModelessDialogWindowController" prot="public" virt="non-virtual">ModelessDialogWindowController&lt; DialogType &gt;</derivedcompoundref>
+    <includes refid="ec__modelessWindowController_8h" local="no">ec_modelessWindowController.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIModelessWindowController_1a4e46b284404fcd1bfc0046949321c809" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * IModelessWindowController::getWindowId</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getWindowId</name>
+        <qualifiedname>IModelessWindowController::getWindowId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_modelessWindowController.h" line="8" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIModelessWindowController_1a2f64f99c58949d3328966d1f6c24c656" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IModelessWindowController::releaseWindow</definition>
+        <argsstring>()=0</argsstring>
+        <name>releaseWindow</name>
+        <qualifiedname>IModelessWindowController::releaseWindow</qualifiedname>
+        <reimplementedby refid="classModelessDialogWindowController_1a8bd4b1822036f291f3abd6e38c20ab0d">releaseWindow</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_modelessWindowController.h" line="11" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIModelessWindowController_1a5e9f4aa2c0662c13c78d1d5a2f848858" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IModelessWindowController::showWindow</definition>
+        <argsstring>(bool show=true)=0</argsstring>
+        <name>showWindow</name>
+        <qualifiedname>IModelessWindowController::showWindow</qualifiedname>
+        <reimplementedby refid="classModelessDialogWindowController_1a4c2050ffaff98ea626aae01e188ae287">showWindow</reimplementedby>
+        <param>
+          <type>bool</type>
+          <declname>show</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_modelessWindowController.h" line="15" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIModelessWindowController_1abbea131727462873649da63d6ab90384" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IModelessWindowController::isWindowShown</definition>
+        <argsstring>() const =0</argsstring>
+        <name>isWindowShown</name>
+        <qualifiedname>IModelessWindowController::isWindowShown</qualifiedname>
+        <reimplementedby refid="classModelessDialogWindowController_1ab51e93d6f504174d1dff2c44071978df">isWindowShown</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_modelessWindowController.h" line="18" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>IModelessWindowController</label>
+        <link refid="classIModelessWindowController"/>
+      </node>
+      <node id="2">
+        <label>ModelessDialogWindowController&lt; DialogType &gt;</label>
+        <link refid="classModelessDialogWindowController"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="ec_modelessWindowController.h" line="4" column="1" bodyfile="ec_modelessWindowController.h" bodystart="5" bodyend="19"/>
+    <listofallmembers>
+      <member refid="classIModelessWindowController_1a4e46b284404fcd1bfc0046949321c809" prot="public" virt="pure-virtual"><scope>IModelessWindowController</scope><name>getWindowId</name></member>
+      <member refid="classIModelessWindowController_1abbea131727462873649da63d6ab90384" prot="public" virt="pure-virtual"><scope>IModelessWindowController</scope><name>isWindowShown</name></member>
+      <member refid="classIModelessWindowController_1a2f64f99c58949d3328966d1f6c24c656" prot="public" virt="pure-virtual"><scope>IModelessWindowController</scope><name>releaseWindow</name></member>
+      <member refid="classIModelessWindowController_1a5e9f4aa2c0662c13c78d1d5a2f848858" prot="public" virt="pure-virtual"><scope>IModelessWindowController</scope><name>showWindow</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

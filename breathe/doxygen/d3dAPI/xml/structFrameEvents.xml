@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structFrameEvents" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>FrameEvents</compoundname>
+    <includes refid="dag__commands_8h" local="no">dag_commands.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structFrameEvents_1ac6f10abc84bee3679bb4601a9f8bec03" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual FrameEvents::~FrameEvents</definition>
+        <argsstring>()=default</argsstring>
+        <name>~FrameEvents</name>
+        <qualifiedname>FrameEvents::~FrameEvents</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="11" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="structFrameEvents_1a6dd845e4632067c2646dd265143bb612" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void FrameEvents::beginFrameEvent</definition>
+        <argsstring>()=0</argsstring>
+        <name>beginFrameEvent</name>
+        <qualifiedname>FrameEvents::beginFrameEvent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="13" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structFrameEvents_1ae8dab585659d9fbbb33efcf14742375b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void FrameEvents::endFrameEvent</definition>
+        <argsstring>()=0</argsstring>
+        <name>endFrameEvent</name>
+        <qualifiedname>FrameEvents::endFrameEvent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_commands.h" line="14" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_commands.h" line="9" column="1" bodyfile="dag_commands.h" bodystart="10" bodyend="15"/>
+    <listofallmembers>
+      <member refid="structFrameEvents_1a6dd845e4632067c2646dd265143bb612" prot="public" virt="pure-virtual"><scope>FrameEvents</scope><name>beginFrameEvent</name></member>
+      <member refid="structFrameEvents_1ae8dab585659d9fbbb33efcf14742375b" prot="public" virt="pure-virtual"><scope>FrameEvents</scope><name>endFrameEvent</name></member>
+      <member refid="structFrameEvents_1ac6f10abc84bee3679bb4601a9f8bec03" prot="public" virt="virtual"><scope>FrameEvents</scope><name>~FrameEvents</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

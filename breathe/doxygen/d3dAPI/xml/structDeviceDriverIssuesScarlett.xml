@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDeviceDriverIssuesScarlett" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverIssuesScarlett</compoundname>
+    <basecompoundref refid="structDeviceDriverIssuesNoIssues" prot="public" virt="non-virtual">DeviceDriverIssuesNoIssues</basecompoundref>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structDeviceDriverIssuesScarlett_1ad2ea565c24f831aeaeaf3851424d178b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesScarlett::hasBrokenAmplificationShaderDrawID</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenAmplificationShaderDrawID</name>
+        <qualifiedname>DeviceDriverIssuesScarlett::hasBrokenAmplificationShaderDrawID</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+<para>Is constant true on \scarlett \baseissue{<ref refid="structDeviceDriverIssuesBase_1af90681785c1beecf85a59aabb5ac1e6b" kindref="member">DeviceDriverIssuesBase::hasBrokenAmplificationShaderDrawID</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2494" column="25" bodyfile="dag_driverDesc.inl" bodystart="2494" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Issues structure specific for \scarlett. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="4">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="structDeviceDriverIssuesBase"/>
+      </node>
+      <node id="2">
+        <label>DeviceDriverIssuesNoIssues</label>
+        <link refid="structDeviceDriverIssuesNoIssues"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>DeviceDriverIssuesScarlett</label>
+        <link refid="structDeviceDriverIssuesScarlett"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>DeviceDriverIssuesWindows</label>
+        <link refid="structDeviceDriverIssuesWindows"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="4">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="structDeviceDriverIssuesBase"/>
+      </node>
+      <node id="2">
+        <label>DeviceDriverIssuesNoIssues</label>
+        <link refid="structDeviceDriverIssuesNoIssues"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>DeviceDriverIssuesScarlett</label>
+        <link refid="structDeviceDriverIssuesScarlett"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>DeviceDriverIssuesWindows</label>
+        <link refid="structDeviceDriverIssuesWindows"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_driverDesc.inl" line="2488" column="1" bodyfile="dag_driverDesc.inl" bodystart="2489" bodyend="2495"/>
+    <listofallmembers>
+      <member refid="structDeviceDriverIssuesScarlett_1ad2ea565c24f831aeaeaf3851424d178b" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasBrokenAmplificationShaderDrawID</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1adbb38d638939b34369011531f90db4cd" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasBrokenBaseInstanceID</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a82744eb54cb5d8c9091b6ac9f307525e" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasBrokenComputeFormattedOutput</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a7c86f663f3515d34984a1111fc02cbe6" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasBrokenMultisampledInputAttachment</name></member>
+      <member refid="structDeviceDriverIssuesNoIssues_1af4f0ecb0fe846b0f2b90317e51809586" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasBrokenNvApiGetSleepStatus</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a45d5da1195b56bef856caa956cdb57bf" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasBrokenShadersAfterAppSwitch</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a2adac45a7a9bdc89a35c0b530ce57394" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasBrokenSRGBConverionWithMRT</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a4ca55d40f72067cbb2ce131392668734" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasBrokenSubpasses</name></member>
+      <member refid="structDeviceDriverIssuesNoIssues_1a9a1161a02d8b485f1f8b2277909e8991" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasBrokenUAVOnlyPasses</name></member>
+      <member refid="structDeviceDriverIssuesNoIssues_1ae21c8e87db19278f3b2495e77ea2c5cf" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasClearColorBug</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1ab5aa96f7f5d277f6fa56b1725ad8462f" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasComputeCanNotWrite3DTex</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a77b5663e41d0ed65bf6a9e376ee2887b" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasComputeTimeLimited</name></member>
+      <member refid="structDeviceDriverIssuesNoIssues_1ac2c26ecb0e3bda37e49fc2d9225ee71a" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasDepthCopyResourceBug</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a02543ce4dbc30b7294b2c56c3f294baa" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasFloatClearBug</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a5fd58c496f3e3ab14bee81f6706c8e6e" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasIgnoreDeviceLost</name></member>
+      <member refid="structDeviceDriverIssuesNoIssues_1ae8e753c122edc6fa61612324d50a6397" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasMultipleCopySubresourceBug</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a0f840fd3bb556a80255bd93d40eb6ca8" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasMultisampledAndInstancingHang</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1aa4653a5626968b0f7a5bdc2c2af4308b" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasPollDeviceFences</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a96154bd3a47a7d8215b1d5243bf7b4a9" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasRenderPassClearDataRace</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1a7c29cc363de311f175457b7caa82214b" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasSmallSampledBuffers</name></member>
+      <member refid="structDeviceDriverIssuesWindows_1adc7226aacd4fa977e70a39eb0813f698" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesScarlett</scope><name>hasStrictRenderPassesOnly</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

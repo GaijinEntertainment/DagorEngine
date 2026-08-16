@@ -1,0 +1,149 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTestScriptModule" kind="class" language="C++" prot="public">
+    <compoundname>TestScriptModule</compoundname>
+    <includes refid="ec__testSystem_8h" local="no">ec_testSystem.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classTestScriptModule_1a40436049db3166741bb3661436f81a4e" prot="private" static="no" mutable="no">
+        <type><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref> &amp;</type>
+        <definition>TestRuntime&amp; TestScriptModule::runtime</definition>
+        <argsstring></argsstring>
+        <name>runtime</name>
+        <qualifiedname>TestScriptModule::runtime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="104" column="15" bodyfile="ec_testSystem.h" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestScriptModule_1afa0418a4b1745090f689809b2998a7f2" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String TestScriptModule::scriptFilename</definition>
+        <argsstring></argsstring>
+        <name>scriptFilename</name>
+        <qualifiedname>TestScriptModule::scriptFilename</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="108" column="10" bodyfile="ec_testSystem.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestScriptModule_1a1029a919a3b67309ef89c9b4ccf5f94a" prot="private" static="no" mutable="no">
+        <type>SqModules *</type>
+        <definition>SqModules* TestScriptModule::moduleMgr</definition>
+        <argsstring></argsstring>
+        <name>moduleMgr</name>
+        <qualifiedname>TestScriptModule::moduleMgr</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="109" column="13" bodyfile="ec_testSystem.h" bodystart="109" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTestScriptModule_1aaef02ffabfdd0b91eb507775ea13a74c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TestScriptModule::TestScriptModule</definition>
+        <argsstring>(TestRuntime &amp;rt)</argsstring>
+        <name>TestScriptModule</name>
+        <qualifiedname>TestScriptModule::TestScriptModule</qualifiedname>
+        <param>
+          <type><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref> &amp;</type>
+          <declname>rt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="96" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestScriptModule_1a769cca65ff1a646c6f56384818ad51b6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TestScriptModule::~TestScriptModule</definition>
+        <argsstring>()</argsstring>
+        <name>~TestScriptModule</name>
+        <qualifiedname>TestScriptModule::~TestScriptModule</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="97" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestScriptModule_1ab6de748f9fb21aa1f0e3d236866b415d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TestScriptModule::bindScript</definition>
+        <argsstring>(const char *script_filename)</argsstring>
+        <name>bindScript</name>
+        <qualifiedname>TestScriptModule::bindScript</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>script_filename</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="99" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestScriptModule_1a6ed81944aae88673285ea8d47b412969" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const String &amp;</type>
+        <definition>const String &amp; TestScriptModule::getScriptFilename</definition>
+        <argsstring>() const</argsstring>
+        <name>getScriptFilename</name>
+        <qualifiedname>TestScriptModule::getScriptFilename</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="101" column="16" bodyfile="ec_testSystem.h" bodystart="101" bodyend="101"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classTestScriptModule_1aee6dd3c6aff0a1c8ad1cf29619ef11ac" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestScriptModule::init</definition>
+        <argsstring>()</argsstring>
+        <name>init</name>
+        <qualifiedname>TestScriptModule::init</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="106" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_testSystem.h" line="93" column="1" bodyfile="ec_testSystem.h" bodystart="94" bodyend="110"/>
+    <listofallmembers>
+      <member refid="classTestScriptModule_1ab6de748f9fb21aa1f0e3d236866b415d" prot="public" virt="non-virtual"><scope>TestScriptModule</scope><name>bindScript</name></member>
+      <member refid="classTestScriptModule_1a6ed81944aae88673285ea8d47b412969" prot="public" virt="non-virtual"><scope>TestScriptModule</scope><name>getScriptFilename</name></member>
+      <member refid="classTestScriptModule_1aee6dd3c6aff0a1c8ad1cf29619ef11ac" prot="private" virt="non-virtual"><scope>TestScriptModule</scope><name>init</name></member>
+      <member refid="classTestScriptModule_1a1029a919a3b67309ef89c9b4ccf5f94a" prot="private" virt="non-virtual"><scope>TestScriptModule</scope><name>moduleMgr</name></member>
+      <member refid="classTestScriptModule_1a40436049db3166741bb3661436f81a4e" prot="private" virt="non-virtual"><scope>TestScriptModule</scope><name>runtime</name></member>
+      <member refid="classTestScriptModule_1afa0418a4b1745090f689809b2998a7f2" prot="private" virt="non-virtual"><scope>TestScriptModule</scope><name>scriptFilename</name></member>
+      <member refid="classTestScriptModule_1aaef02ffabfdd0b91eb507775ea13a74c" prot="public" virt="non-virtual"><scope>TestScriptModule</scope><name>TestScriptModule</name></member>
+      <member refid="classTestScriptModule_1a769cca65ff1a646c6f56384818ad51b6" prot="public" virt="non-virtual"><scope>TestScriptModule</scope><name>~TestScriptModule</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

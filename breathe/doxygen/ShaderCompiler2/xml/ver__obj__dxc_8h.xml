@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ver__obj__dxc_8h" kind="file" language="C++">
+    <compoundname>ver_obj_dxc.h</compoundname>
+    <includedby refid="ver__obj__dxc_8cpp" local="yes">ver_obj_dxc.cpp</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>ver_obj_dxc.cpp</label>
+        <link refid="ver__obj__dxc_8cpp"/>
+      </node>
+      <node id="1">
+        <label>ver_obj_dxc.h</label>
+        <link refid="ver__obj__dxc_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="ver__obj__dxc_8h_1a8c0b4a780d076e0b5c21a721f00c3ac5" prot="public" static="no" mutable="no">
+        <type>const int</type>
+        <definition>const int VER_OBJ_DXC_VAL</definition>
+        <argsstring></argsstring>
+        <name>VER_OBJ_DXC_VAL</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ver_obj_dxc.h" line="4" column="18" declfile="ver_obj_dxc.h" declline="4" declcolumn="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="ver__obj__dxc_8h_1a8c0b4a780d076e0b5c21a721f00c3ac5" kindref="member">VER_OBJ_DXC_VAL</ref>;</highlight></codeline>
+    </programlisting>
+    <location file="ver_obj_dxc.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,150 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__fsr_8h" kind="file" language="C++">
+    <compoundname>dag_fsr.h</compoundname>
+    <includes local="no">EASTL/type_traits.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_fsr.h</label>
+        <link refid="dag__fsr_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>EASTL/type_traits.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__fsr_8h_1a8bc5646268480130304397e6fa5759a5" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>Eye</name>
+        <enumvalue id="dag__fsr_8h_1a8bc5646268480130304397e6fa5759a5a945d5e233cf7d6240f6b783b36a374ff" prot="public">
+          <name>Left</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__fsr_8h_1a8bc5646268480130304397e6fa5759a5a92b09c7c48c520c3c55e497875da437c" prot="public">
+          <name>Right</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__fsr_8h_1a8bc5646268480130304397e6fa5759a5ae93f994f01c537c4e2f7d8528c3eb5e9" prot="public">
+          <name>Count</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fsr.h" line="9" column="1" bodyfile="dag_fsr.h" bodystart="10" bodyend="14"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__fsr_8h_1abca5b96c6b2150ac27a0faaed6da7c55" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>FsrLutType</name>
+        <enumvalue id="dag__fsr_8h_1abca5b96c6b2150ac27a0faaed6da7c55a05d26e7d7c53744b903ae1f6f8a8c7ed" prot="public">
+          <name>Resolve</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__fsr_8h_1abca5b96c6b2150ac27a0faaed6da7c55ad3682f9ce9248e18f2d1cecf9f8fa049" prot="public">
+          <name>Distortion</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__fsr_8h_1abca5b96c6b2150ac27a0faaed6da7c55ae93f994f01c537c4e2f7d8528c3eb5e9" prot="public">
+          <name>Count</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fsr.h" line="17" column="1" bodyfile="dag_fsr.h" bodystart="18" bodyend="22"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__fsr_8h_1a8903fca916c48a78b535b579cec425f6" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" noexcept="yes" virt="non-virtual">
+        <type>constexpr auto</type>
+        <definition>constexpr auto operator*</definition>
+        <argsstring>(Eye eye) noexcept</argsstring>
+        <name>operator*</name>
+        <param>
+          <type><ref refid="dag__fsr_8h_1a8bc5646268480130304397e6fa5759a5" kindref="member">Eye</ref></type>
+          <declname>eye</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fsr.h" line="15" column="16" bodyfile="dag_fsr.h" bodystart="15" bodyend="15"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__fsr_8h_1a898b3cd1fab694b1c632624b30fe07e7" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" noexcept="yes" virt="non-virtual">
+        <type>constexpr auto</type>
+        <definition>constexpr auto operator*</definition>
+        <argsstring>(FsrLutType lutType) noexcept</argsstring>
+        <name>operator*</name>
+        <param>
+          <type><ref refid="dag__fsr_8h_1abca5b96c6b2150ac27a0faaed6da7c55" kindref="member">FsrLutType</ref></type>
+          <declname>lutType</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fsr.h" line="23" column="16" bodyfile="dag_fsr.h" bodystart="23" bodyend="23"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/type_traits.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="dag__fsr_8h_1a8bc5646268480130304397e6fa5759a5" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__fsr_8h_1a8bc5646268480130304397e6fa5759a5" kindref="member">Eye</ref><sp/>:<sp/>uint32_t</highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/><ref refid="dag__fsr_8h_1a8bc5646268480130304397e6fa5759a5a945d5e233cf7d6240f6b783b36a374ff" kindref="member">Left</ref>,</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/><ref refid="dag__fsr_8h_1a8bc5646268480130304397e6fa5759a5a92b09c7c48c520c3c55e497875da437c" kindref="member">Right</ref>,</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><ref refid="dag__fsr_8h_1a8bc5646268480130304397e6fa5759a5ae93f994f01c537c4e2f7d8528c3eb5e9" kindref="member">Count</ref>,</highlight></codeline>
+<codeline lineno="14"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="15" refid="dag__fsr_8h_1a8903fca916c48a78b535b579cec425f6" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/><ref refid="dag__fsr_8h_1a8903fca916c48a78b535b579cec425f6" kindref="member">operator*</ref>(<ref refid="dag__fsr_8h_1a8bc5646268480130304397e6fa5759a5" kindref="member">Eye</ref><sp/>eye)<sp/></highlight><highlight class="keyword">noexcept</highlight><highlight class="normal"><sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal">eastl::underlying_type_t&lt;Eye&gt;</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(eye);<sp/>}</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="dag__fsr_8h_1abca5b96c6b2150ac27a0faaed6da7c55" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__fsr_8h_1abca5b96c6b2150ac27a0faaed6da7c55" kindref="member">FsrLutType</ref><sp/>:<sp/>uint32_t</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><ref refid="dag__fsr_8h_1abca5b96c6b2150ac27a0faaed6da7c55a05d26e7d7c53744b903ae1f6f8a8c7ed" kindref="member">Resolve</ref>,</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><ref refid="dag__fsr_8h_1abca5b96c6b2150ac27a0faaed6da7c55ad3682f9ce9248e18f2d1cecf9f8fa049" kindref="member">Distortion</ref>,</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><ref refid="dag__fsr_8h_1a8bc5646268480130304397e6fa5759a5ae93f994f01c537c4e2f7d8528c3eb5e9" kindref="member">Count</ref>,</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="23" refid="dag__fsr_8h_1a898b3cd1fab694b1c632624b30fe07e7" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/><ref refid="dag__fsr_8h_1a8903fca916c48a78b535b579cec425f6" kindref="member">operator*</ref>(<ref refid="dag__fsr_8h_1abca5b96c6b2150ac27a0faaed6da7c55" kindref="member">FsrLutType</ref><sp/>lutType)<sp/></highlight><highlight class="keyword">noexcept</highlight><highlight class="normal"><sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal">eastl::underlying_type_t&lt;FsrLutType&gt;</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(lutType);<sp/>}</highlight></codeline>
+    </programlisting>
+    <location file="dag_fsr.h"/>
+  </compounddef>
+</doxygen>

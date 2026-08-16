@@ -1,0 +1,190 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classConsoleLogWriter" kind="class" language="C++" prot="public">
+    <compoundname>ConsoleLogWriter</compoundname>
+    <basecompoundref refid="classILogWriter" prot="public" virt="non-virtual">ILogWriter</basecompoundref>
+    <includes refid="conLogWriter_8h" local="no">conLogWriter.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classConsoleLogWriter_1a888e883e8026212bbc737d8b8274f623" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ConsoleLogWriter::err</definition>
+        <argsstring></argsstring>
+        <name>err</name>
+        <qualifiedname>ConsoleLogWriter::err</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conLogWriter.h" line="12" column="8" bodyfile="conLogWriter.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classConsoleLogWriter_1a556e2aefabf63ac89a2a2989996a7ac7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ConsoleLogWriter::ConsoleLogWriter</definition>
+        <argsstring>()</argsstring>
+        <name>ConsoleLogWriter</name>
+        <qualifiedname>ConsoleLogWriter::ConsoleLogWriter</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conLogWriter.h" line="15" column="3" bodyfile="conLogWriter.h" bodystart="15" bodyend="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classConsoleLogWriter_1a399f8255f36fb39d16447b2062edbaf3" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ConsoleLogWriter::addMessageFmt</definition>
+        <argsstring>(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum) override</argsstring>
+        <name>addMessageFmt</name>
+        <qualifiedname>ConsoleLogWriter::addMessageFmt</qualifiedname>
+        <reimplements refid="classILogWriter_1a80768c18cfed7409e639f2167e78f799">addMessageFmt</reimplements>
+        <param>
+          <type><ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40c" kindref="member">MessageType</ref></type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>const DagorSafeArg *</type>
+          <declname>arg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>anum</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Add formatted message to log. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">fmt</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- printf-like format string (dagor format extension) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- message type (see enum MessageType) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">arg</parametername>
+<parametername direction="in">anum</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- type-safe parameters to be used by format </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conLogWriter.h" line="17" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classConsoleLogWriter_1ac3143442f55f66001a44f6bfe1d4d8a0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ConsoleLogWriter::hasErrors</definition>
+        <argsstring>() const override</argsstring>
+        <name>hasErrors</name>
+        <qualifiedname>ConsoleLogWriter::hasErrors</qualifiedname>
+        <reimplements refid="classILogWriter_1a7741a6fa40073605a2e147c3d6343463">hasErrors</reimplements>
+        <briefdescription>
+<para>returns true when log contains ERROR/FATAL messages </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conLogWriter.h" line="18" column="8" bodyfile="conLogWriter.h" bodystart="18" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classConsoleLogWriter_1a1442ba3491c98fd4ac257c50e2189d1e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ConsoleLogWriter::startLog</definition>
+        <argsstring>() override</argsstring>
+        <name>startLog</name>
+        <qualifiedname>ConsoleLogWriter::startLog</qualifiedname>
+        <reimplements refid="classILogWriter_1aa6fe6e79751839ef761bdb6bef385be9">startLog</reimplements>
+        <briefdescription>
+<para>starts log messages counting </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conLogWriter.h" line="20" column="8" bodyfile="conLogWriter.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classConsoleLogWriter_1acad2bb6ae11480725a59938f27b6abca" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void ConsoleLogWriter::endLog</definition>
+        <argsstring>() override</argsstring>
+        <name>endLog</name>
+        <qualifiedname>ConsoleLogWriter::endLog</qualifiedname>
+        <reimplements refid="classILogWriter_1a2775a6fcde87e5cb6ed3baa3f87b1062">endLog</reimplements>
+        <briefdescription>
+<para>finishes log messages counting </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conLogWriter.h" line="21" column="8" bodyfile="conLogWriter.h" bodystart="21" bodyend="21"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ConsoleLogWriter</label>
+        <link refid="classConsoleLogWriter"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ILogWriter</label>
+        <link refid="classILogWriter"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ConsoleLogWriter</label>
+        <link refid="classConsoleLogWriter"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ILogWriter</label>
+        <link refid="classILogWriter"/>
+      </node>
+    </collaborationgraph>
+    <location file="conLogWriter.h" line="10" column="1" bodyfile="conLogWriter.h" bodystart="11" bodyend="22"/>
+    <listofallmembers>
+      <member refid="classConsoleLogWriter_1a399f8255f36fb39d16447b2062edbaf3" prot="public" virt="virtual"><scope>ConsoleLogWriter</scope><name>addMessageFmt</name></member>
+      <member refid="classConsoleLogWriter_1a556e2aefabf63ac89a2a2989996a7ac7" prot="public" virt="non-virtual"><scope>ConsoleLogWriter</scope><name>ConsoleLogWriter</name></member>
+      <member refid="classILogWriter_1a6f376edfaedd194fa2ce0c81e675ac43" prot="public" virt="non-virtual"><scope>ConsoleLogWriter</scope><name>DECLARE_DSA_OVERLOADS_FAMILY_LT</name></member>
+      <member refid="classConsoleLogWriter_1acad2bb6ae11480725a59938f27b6abca" prot="public" virt="virtual"><scope>ConsoleLogWriter</scope><name>endLog</name></member>
+      <member refid="classConsoleLogWriter_1a888e883e8026212bbc737d8b8274f623" prot="private" virt="non-virtual"><scope>ConsoleLogWriter</scope><name>err</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca1570996a0642f28b06b331c1c2921179" prot="public" virt="non-virtual"><scope>ConsoleLogWriter</scope><name>ERROR</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca8dfca79f44e456b8d8a29daf286f21fb" prot="public" virt="non-virtual"><scope>ConsoleLogWriter</scope><name>FATAL</name></member>
+      <member refid="classConsoleLogWriter_1ac3143442f55f66001a44f6bfe1d4d8a0" prot="public" virt="virtual"><scope>ConsoleLogWriter</scope><name>hasErrors</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40c" prot="public" virt="non-virtual"><scope>ConsoleLogWriter</scope><name>MessageType</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40cafb236d27a41cd9214a5925219b3baf42" prot="public" virt="non-virtual"><scope>ConsoleLogWriter</scope><name>NOTE</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca15621ed2c8316c8cebdb5c9ef93cb8f7" prot="public" virt="non-virtual"><scope>ConsoleLogWriter</scope><name>REMARK</name></member>
+      <member refid="classConsoleLogWriter_1a1442ba3491c98fd4ac257c50e2189d1e" prot="public" virt="virtual"><scope>ConsoleLogWriter</scope><name>startLog</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca4bd38cd4423708118f22a18366767cb0" prot="public" virt="non-virtual"><scope>ConsoleLogWriter</scope><name>WARNING</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

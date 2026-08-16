@@ -1,0 +1,341 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderVariant_1_1VariantSrc" kind="class" language="C++" prot="public">
+    <compoundname>ShaderVariant::VariantSrc</compoundname>
+    <basecompoundref refid="classShaderVariant_1_1SearchInfo" prot="public" virt="non-virtual">ShaderVariant::SearchInfo</basecompoundref>
+    <basecompoundref refid="classIVariantInfoProvider" prot="public" virt="non-virtual">IVariantInfoProvider</basecompoundref>
+    <includes refid="shaderVariantSrc_8h" local="no">shaderVariantSrc.h</includes>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classShaderVariant_1_1VariantSrc_1a57f0987e778d4bb6ce915dd99327d26b" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct</type>
+        <definition>friend struct Variant</definition>
+        <argsstring></argsstring>
+        <name>Variant</name>
+        <qualifiedname>ShaderVariant::VariantSrc::Variant</qualifiedname>
+        <param>
+          <type><ref refid="structShaderVariant_1_1Variant" kindref="compound">Variant</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="24" column="17" bodyfile="shaderVariantSrc.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classShaderVariant_1_1VariantSrc_1afb146220c509e03384b1ef1ab0579fbb" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderVariant::VariantSrc::codeId</definition>
+        <argsstring></argsstring>
+        <name>codeId</name>
+        <qualifiedname>ShaderVariant::VariantSrc::codeId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="38" column="7" bodyfile="shaderVariantSrc.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classShaderVariant_1_1VariantSrc_1affd917db7e885cf32c7255d769800ed6" prot="public" static="yes" mutable="no">
+        <type><ref refid="classShaderVariant_1_1TypeTable" kindref="compound">TypeTable</ref> *</type>
+        <definition>TypeTable * ShaderVariant::VariantSrc::defCtorTypeTable</definition>
+        <argsstring></argsstring>
+        <name>defCtorTypeTable</name>
+        <qualifiedname>ShaderVariant::VariantSrc::defCtorTypeTable</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="83" column="20" bodyfile="shaderVariantSrc.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classShaderVariant_1_1VariantSrc_1acc2fb80716e06749676eddb65ae57746" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariant::VariantSrc::operator==</definition>
+        <argsstring>(const VariantSrc &amp;v) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>ShaderVariant::VariantSrc::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="26" column="15" bodyfile="shaderVariantSrc.h" bodystart="26" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1VariantSrc_1a6a92f036d3cb4eda9daa2c042f199ace" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariant::VariantSrc::operator!=</definition>
+        <argsstring>(const VariantSrc &amp;v) const</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>ShaderVariant::VariantSrc::operator!=</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="31" column="15" bodyfile="shaderVariantSrc.h" bodystart="31" bodyend="35"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderVariant_1_1VariantSrc_1a8ba74918ab9c6b5b7661fef997e8bf9b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::VariantSrc::VariantSrc</definition>
+        <argsstring>(const TypeTable &amp;t)</argsstring>
+        <name>VariantSrc</name>
+        <qualifiedname>ShaderVariant::VariantSrc::VariantSrc</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1TypeTable" kindref="compound">TypeTable</ref> &amp;</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="40" column="10" bodyfile="shaderVariantSrc.h" bodystart="40" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1VariantSrc_1a129c03ac1778442381dcfd1fd35df551" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::VariantSrc::VariantSrc</definition>
+        <argsstring>()</argsstring>
+        <name>VariantSrc</name>
+        <qualifiedname>ShaderVariant::VariantSrc::VariantSrc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="41" column="10" bodyfile="shaderVariantSrc.h" bodystart="41" bodyend="41"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1VariantSrc_1a0cf59f6375d270b60d064382c67f0cfb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::VariantSrc::~VariantSrc</definition>
+        <argsstring>() override</argsstring>
+        <name>~VariantSrc</name>
+        <qualifiedname>ShaderVariant::VariantSrc::~VariantSrc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="43" column="3" bodyfile="shaderVariantSrc.h" bodystart="43" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1VariantSrc_1a55c9835dc8b8c0ea8bae63347f1ee165" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::VariantSrc::fillVariant</definition>
+        <argsstring>(Variant &amp;v) const</argsstring>
+        <name>fillVariant</name>
+        <qualifiedname>ShaderVariant::VariantSrc::fillVariant</qualifiedname>
+        <param>
+          <type><ref refid="structShaderVariant_1_1Variant" kindref="compound">Variant</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="45" column="15" bodyfile="shaderVariantSrc.h" bodystart="45" bodyend="51"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1VariantSrc_1ab5252d9e228b277885946bc1f726f4c9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::VariantSrc::VariantSrc</definition>
+        <argsstring>(const VariantSrc &amp;other)</argsstring>
+        <name>VariantSrc</name>
+        <qualifiedname>ShaderVariant::VariantSrc::VariantSrc</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="53" column="10" bodyfile="shaderVariantSrc.h" bodystart="53" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1VariantSrc_1a842e7a7926fc6938f5da6a19df9c3b95" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref> &amp;</type>
+        <definition>VariantSrc &amp; ShaderVariant::VariantSrc::operator=</definition>
+        <argsstring>(const VariantSrc &amp;other)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>ShaderVariant::VariantSrc::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="55" column="21" bodyfile="shaderVariantSrc.h" bodystart="55" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1VariantSrc_1ab717a6c7ab6bad3ebd8cfa01f10a7bd2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ValueType</ref></type>
+        <definition>ValueType ShaderVariant::VariantSrc::getValue</definition>
+        <argsstring>(BaseType init_type, ExtType init_exttype, bool can_fail) const</argsstring>
+        <name>getValue</name>
+        <qualifiedname>ShaderVariant::VariantSrc::getValue</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref></type>
+          <declname>init_type</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref></type>
+          <declname>init_exttype</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>can_fail</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="64" column="20" bodyfile="shaderVariantSrc.h" bodystart="64" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1VariantSrc_1a97cf2c45263c5412cbba109df65f61a4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classIntervalList" kindref="compound">IntervalList</ref> &amp;</type>
+        <definition>const IntervalList &amp; ShaderVariant::VariantSrc::getIntervalList</definition>
+        <argsstring>() const</argsstring>
+        <name>getIntervalList</name>
+        <qualifiedname>ShaderVariant::VariantSrc::getIntervalList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="73" column="29" bodyfile="shaderVariantSrc.h" bodystart="73" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1VariantSrc_1a1f4c0b4fc92f64bbd7171502d9fa0467" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>String</type>
+        <definition>String ShaderVariant::VariantSrc::getVarStringInfo</definition>
+        <argsstring>() const override</argsstring>
+        <name>getVarStringInfo</name>
+        <qualifiedname>ShaderVariant::VariantSrc::getVarStringInfo</qualifiedname>
+        <reimplements refid="classIVariantInfoProvider_1a0c653de85fffc902eaa038f7a4bb561d">getVarStringInfo</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="80" column="10" bodyfile="shaderVariantSrc.cpp" bodystart="22" bodyend="34"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>IVariantInfoProvider</label>
+        <link refid="classIVariantInfoProvider"/>
+      </node>
+      <node id="2">
+        <label>ShaderVariant::SearchInfo</label>
+        <link refid="classShaderVariant_1_1SearchInfo"/>
+      </node>
+      <node id="1">
+        <label>ShaderVariant::VariantSrc</label>
+        <link refid="classShaderVariant_1_1VariantSrc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="5">
+        <label>IVariantInfoProvider</label>
+        <link refid="classIVariantInfoProvider"/>
+      </node>
+      <node id="4">
+        <label>ShaderVariant::CombinedValues</label>
+        <link refid="classShaderVariant_1_1CombinedValues"/>
+      </node>
+      <node id="2">
+        <label>ShaderVariant::SearchInfo</label>
+        <link refid="classShaderVariant_1_1SearchInfo"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>types</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>combinedValues</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ShaderVariant::TypeTable</label>
+        <link refid="classShaderVariant_1_1TypeTable"/>
+      </node>
+      <node id="1">
+        <label>ShaderVariant::VariantSrc</label>
+        <link refid="classShaderVariant_1_1VariantSrc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>defCtorTypeTable</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shaderVariantSrc.h" line="21" column="1" bodyfile="shaderVariantSrc.h" bodystart="22" bodyend="84"/>
+    <listofallmembers>
+      <member refid="classShaderVariant_1_1VariantSrc_1afb146220c509e03384b1ef1ab0579fbb" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>codeId</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1aaff088ece9ed5833a9eb71fde3e785bc" prot="protected" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>combinedValues</name></member>
+      <member refid="classShaderVariant_1_1VariantSrc_1affd917db7e885cf32c7255d769800ed6" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>defCtorTypeTable</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1a273e68e2af38ad4c334f9d535dcec05b" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>fillFromPartialSearchInfo</name></member>
+      <member refid="classShaderVariant_1_1VariantSrc_1a55c9835dc8b8c0ea8bae63347f1ee165" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>fillVariant</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1a18a2096d70f943893587586a094b0a4f" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>getCount</name></member>
+      <member refid="classShaderVariant_1_1VariantSrc_1a97cf2c45263c5412cbba109df65f61a4" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>getIntervalList</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1aa1f92a9c7c4f6e24c9be422636519e8d" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>getNormalizedValue</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1ae7ab7b41c1350b7d0cc422832d4481c6" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>getTypes</name></member>
+      <member refid="classShaderVariant_1_1VariantSrc_1ab717a6c7ab6bad3ebd8cfa01f10a7bd2" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>getValue</name></member>
+      <member refid="classShaderVariant_1_1VariantSrc_1a1f4c0b4fc92f64bbd7171502d9fa0467" prot="public" virt="virtual"><scope>ShaderVariant::VariantSrc</scope><name>getVarStringInfo</name></member>
+      <member refid="classIVariantInfoProvider_1a40b0ddaebccbe7371dc979943bf40734" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>IVariantInfoProvider</name></member>
+      <member refid="classShaderVariant_1_1VariantSrc_1a6a92f036d3cb4eda9daa2c042f199ace" prot="protected" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>operator!=</name></member>
+      <member refid="classShaderVariant_1_1VariantSrc_1a842e7a7926fc6938f5da6a19df9c3b95" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>operator=</name></member>
+      <member refid="classShaderVariant_1_1VariantSrc_1acc2fb80716e06749676eddb65ae57746" prot="protected" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>operator==</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1a74fded6982c9b01470a775642a502423" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>SearchInfo</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1ac1b8d90bbe108bb9214482ad837ae1ec" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>setNormalizedValue</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1a39e202d7e744d0e82dde65086973e31e" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>setValue</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1aacbe131c0c89648298bcff4f3b864b21" prot="protected" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>types</name></member>
+      <member refid="classShaderVariant_1_1VariantSrc_1a57f0987e778d4bb6ce915dd99327d26b" prot="protected" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>Variant</name></member>
+      <member refid="classShaderVariant_1_1VariantSrc_1a8ba74918ab9c6b5b7661fef997e8bf9b" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>VariantSrc</name></member>
+      <member refid="classShaderVariant_1_1VariantSrc_1a129c03ac1778442381dcfd1fd35df551" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>VariantSrc</name></member>
+      <member refid="classShaderVariant_1_1VariantSrc_1ab5252d9e228b277885946bc1f726f4c9" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>VariantSrc</name></member>
+      <member refid="classIVariantInfoProvider_1a07b64136e4db6c08ed6d93cc27db357f" prot="public" virt="virtual"><scope>ShaderVariant::VariantSrc</scope><name>~IVariantInfoProvider</name></member>
+      <member refid="classShaderVariant_1_1VariantSrc_1a0cf59f6375d270b60d064382c67f0cfb" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantSrc</scope><name>~VariantSrc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

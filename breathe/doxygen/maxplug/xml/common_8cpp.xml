@@ -1,0 +1,988 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="common_8cpp" kind="file" language="C++">
+    <compoundname>common.cpp</compoundname>
+    <includes local="no">algorithm</includes>
+    <includes local="no">sstream</includes>
+    <includes local="no">iomanip</includes>
+    <includes local="no">cstdarg</includes>
+    <includes refid="common_8h" local="yes">common.h</includes>
+    <includes refid="dagor_8h" local="yes">dagor.h</includes>
+    <includes refid="layout_8h" local="yes">layout.h</includes>
+    <includes refid="resource_8h" local="yes">resource.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>common.cpp</label>
+        <link refid="common_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>common.h</label>
+        <link refid="common_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>dagor.h</label>
+        <link refid="dagor_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>layout.h</label>
+        <link refid="layout_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>resource.h</label>
+        <link refid="resource_8h"/>
+      </node>
+      <node id="2">
+        <label>algorithm</label>
+      </node>
+      <node id="5">
+        <label>cstdarg</label>
+      </node>
+      <node id="9">
+        <label>filesystem</label>
+      </node>
+      <node id="4">
+        <label>iomanip</label>
+      </node>
+      <node id="12">
+        <label>math.h</label>
+      </node>
+      <node id="10">
+        <label>max.h</label>
+      </node>
+      <node id="3">
+        <label>sstream</label>
+      </node>
+      <node id="8">
+        <label>string_view</label>
+      </node>
+      <node id="7">
+        <label>vector</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="common_8cpp_1ab84324e6a3ef91427b0e8a5b101a4b98" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>HWND</type>
+        <definition>HWND add_rollup_page</definition>
+        <argsstring>(Interface *ip, int resource_id, DLGPROC proc, const TCHAR *title, LPARAM param, DWORD flags)</argsstring>
+        <name>add_rollup_page</name>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>resource_id</declname>
+        </param>
+        <param>
+          <type>DLGPROC</type>
+          <declname>proc</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>title</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>param</declname>
+        </param>
+        <param>
+          <type>DWORD</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="15" column="6" bodyfile="common.cpp" bodystart="15" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1ac9901f1c91ba6fca4d76e222820f8b52" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void delete_rollup_page</definition>
+        <argsstring>(Interface *ip, HWND *hw)</argsstring>
+        <name>delete_rollup_page</name>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>HWND *</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="22" column="6" bodyfile="common.cpp" bodystart="22" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1ab3996dd0d94c2f2ea13b532cd01a3acf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float get_master_scale</definition>
+        <argsstring>()</argsstring>
+        <name>get_master_scale</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="33" column="7" bodyfile="common.cpp" bodystart="33" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1aa7adca0cacc27a0a2fe5115cd4fb120e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_dag_file</definition>
+        <argsstring>(const fs::path &amp;filename)</argsstring>
+        <name>is_dag_file</name>
+        <param>
+          <type>const fs::path &amp;</type>
+          <declname>filename</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="40" column="6" bodyfile="common.cpp" bodystart="40" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a246a01bb40f695a929a813a4099db64d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::vector&lt; fs::path &gt;</type>
+        <definition>std::vector&lt; fs::path &gt; glob</definition>
+        <argsstring>(const fs::path &amp;dir, bool recursive)</argsstring>
+        <name>glob</name>
+        <param>
+          <type>const fs::path &amp;</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>recursive</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="42" column="13" bodyfile="common.cpp" bodystart="42" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1aa7a04a6b3e85348d94e1fd9b47f02bbc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring strToWide</definition>
+        <argsstring>(const char *sz)</argsstring>
+        <name>strToWide</name>
+        <param>
+          <type>const char *</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="69" column="14" bodyfile="common.cpp" bodystart="69" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a7d903fa919ea26cd19f8a6191f5daeff" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::string</type>
+        <definition>std::string wideToStr</definition>
+        <argsstring>(const wchar_t *sw)</argsstring>
+        <name>wideToStr</name>
+        <param>
+          <type>const wchar_t *</type>
+          <declname>sw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="80" column="13" bodyfile="common.cpp" bodystart="80" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a1b90dd0c9131602460c362eb6e5fa374" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring strToWide</definition>
+        <argsstring>(std::string_view sv)</argsstring>
+        <name>strToWide</name>
+        <param>
+          <type>std::string_view</type>
+          <declname>sv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="91" column="14" bodyfile="common.cpp" bodystart="91" bodyend="101"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1aba8c8e3e10186d34909fc7ffd0e09368" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::string</type>
+        <definition>std::string wideToStr</definition>
+        <argsstring>(std::wstring_view sv)</argsstring>
+        <name>wideToStr</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>sv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="104" column="13" bodyfile="common.cpp" bodystart="104" bodyend="114"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a63dd291296aec8cece097cf49ee4ce02" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring format_str</definition>
+        <argsstring>(const TCHAR *fmt,...)</argsstring>
+        <name>format_str</name>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>...</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="117" column="14" bodyfile="common.cpp" bodystart="117" bodyend="125"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1ab276a8d21d187650668e7730011e4761" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring drop_quotation_marks</definition>
+        <argsstring>(std::wstring_view s)</argsstring>
+        <name>drop_quotation_marks</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="128" column="14" bodyfile="common.cpp" bodystart="128" bodyend="134"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a25724cf03a0df69a784f23dbdbe404f4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring get_window_text</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>get_window_text</name>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="137" column="14" bodyfile="common.cpp" bodystart="137" bodyend="147"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a1f8e225ae2a364fc799a1fbb30495219" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void update_path_edit_control</definition>
+        <argsstring>(HWND hw, int id, const fs::path &amp;path)</argsstring>
+        <name>update_path_edit_control</name>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>const fs::path &amp;</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="150" column="6" bodyfile="common.cpp" bodystart="150" bodyend="154"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1ab5bf28896d004a3ab6d2fe2497afdd3d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int get_save_filename</definition>
+        <argsstring>(HWND owner, const TCHAR *title, FilterList &amp;filter, const TCHAR *def_ext, fs::path &amp;exp_fname, bool init_with_previous)</argsstring>
+        <name>get_save_filename</name>
+        <param>
+          <type>HWND</type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>title</declname>
+        </param>
+        <param>
+          <type>FilterList &amp;</type>
+          <declname>filter</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>def_ext</declname>
+        </param>
+        <param>
+          <type>fs::path &amp;</type>
+          <declname>exp_fname</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>init_with_previous</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="157" column="5" bodyfile="common.cpp" bodystart="157" bodyend="197"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1af0a042f71f33984cf054cce2f89c9bbe" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool get_open_filename</definition>
+        <argsstring>(HWND owner, const TCHAR *title, FilterList &amp;filter, const TCHAR *def_ext, fs::path &amp;imp_fname)</argsstring>
+        <name>get_open_filename</name>
+        <param>
+          <type>HWND</type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>title</declname>
+        </param>
+        <param>
+          <type>FilterList &amp;</type>
+          <declname>filter</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>def_ext</declname>
+        </param>
+        <param>
+          <type>fs::path &amp;</type>
+          <declname>imp_fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="200" column="6" bodyfile="common.cpp" bodystart="200" bodyend="224"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1ab0a65174df11f0fc4f32bc73a680c6aa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool get_open_filename</definition>
+        <argsstring>(HWND owner, fs::path &amp;imp_fname)</argsstring>
+        <name>get_open_filename</name>
+        <param>
+          <type>HWND</type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type>fs::path &amp;</type>
+          <declname>imp_fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="226" column="6" bodyfile="common.cpp" bodystart="226" bodyend="232"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1ae8f0fb0063377e36aecc6396618cdaf9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>fs::path</type>
+        <definition>fs::path get_cfg_filename</definition>
+        <argsstring>(const TCHAR *cfg)</argsstring>
+        <name>get_cfg_filename</name>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="234" column="10" bodyfile="common.cpp" bodystart="234" bodyend="245"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1ae3e2966e56b8f353e13736457b880db9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::vector&lt; std::wstring &gt;</type>
+        <definition>std::vector&lt; std::wstring &gt; split</definition>
+        <argsstring>(std::wstring_view text, const wchar_t delim)</argsstring>
+        <name>split</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>text</declname>
+        </param>
+        <param>
+          <type>const wchar_t</type>
+          <declname>delim</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="248" column="13" bodyfile="common.cpp" bodystart="248" bodyend="264"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a7339fce64bf5ea3fe5389d9995060427" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring replace_all</definition>
+        <argsstring>(std::wstring str, std::wstring_view from, std::wstring_view to)</argsstring>
+        <name>replace_all</name>
+        <param>
+          <type>std::wstring</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>to</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="266" column="14" bodyfile="common.cpp" bodystart="266" bodyend="273"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1aea05e92fdb89f4b185b78f2e875e2858" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring collapse_repeats</definition>
+        <argsstring>(std::wstring str, std::wstring_view seq)</argsstring>
+        <name>collapse_repeats</name>
+        <param>
+          <type>std::wstring</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>seq</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="275" column="14" bodyfile="common.cpp" bodystart="275" bodyend="287"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a4d0e1f9176d5eb904c3692f341e184eb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void trim</definition>
+        <argsstring>(std::wstring &amp;str)</argsstring>
+        <name>trim</name>
+        <param>
+          <type>std::wstring &amp;</type>
+          <declname>str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="289" column="6" bodyfile="common.cpp" bodystart="289" bodyend="293"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1a8dae99a68045154d9d919ef6d35c639d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool isProxymatName</definition>
+        <argsstring>(std::wstring_view mat_name)</argsstring>
+        <name>isProxymatName</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>mat_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="295" column="6" bodyfile="common.cpp" bodystart="295" bodyend="295"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1af5660b9cebec447a7ba75dec1034e635" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring simplifyRN</definition>
+        <argsstring>(std::wstring_view from)</argsstring>
+        <name>simplifyRN</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>from</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="297" column="14" bodyfile="common.cpp" bodystart="297" bodyend="304"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1aa6a4a08c0122deead6e5eb6a53156598" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring trim_params</definition>
+        <argsstring>(std::wstring_view from)</argsstring>
+        <name>trim_params</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>from</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="306" column="14" bodyfile="common.cpp" bodystart="306" bodyend="338"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8cpp_1acdaf4722278ac63dd78bc7b4b951d465" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::string</type>
+        <definition>std::string escape_string</definition>
+        <argsstring>(std::string_view input)</argsstring>
+        <name>escape_string</name>
+        <param>
+          <type>std::string_view</type>
+          <declname>input</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.cpp" line="340" column="13" bodyfile="common.cpp" bodystart="340" bodyend="366"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;algorithm&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;sstream&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;iomanip&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdarg&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="common_8h" kindref="compound">common.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dagor_8h" kindref="compound">dagor.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="layout_8h" kindref="compound">layout.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="resource_8h" kindref="compound">resource.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">fs<sp/>=<sp/>std::filesystem;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">HWND<sp/><ref refid="common_8cpp_1ab84324e6a3ef91427b0e8a5b101a4b98" kindref="member">add_rollup_page</ref>(Interface<sp/>*ip,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>resource_id,<sp/>DLGPROC<sp/>proc,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*title,<sp/>LPARAM<sp/>param,<sp/>DWORD<sp/>flags)</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>WCHAR<sp/>*tpl<sp/>=<sp/>MAKEINTRESOURCE(resource_id);</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/>HWND<sp/>hw<sp/>=<sp/>ip-&gt;AddRollupPage(<ref refid="dagor_8h_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>,<sp/>tpl,<sp/>proc,<sp/>title,<sp/>0,<sp/>flags);</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hw;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1ac9901f1c91ba6fca4d76e222820f8b52" kindref="member">delete_rollup_page</ref>(Interface<sp/>*ip,<sp/>HWND<sp/>*hw)</highlight></codeline>
+<codeline lineno="23"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>assert(hw);</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!*hw)</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>ip-&gt;DeleteRollupPage(*hw);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>*hw<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1ab3996dd0d94c2f2ea13b532cd01a3acf" kindref="member">get_master_scale</ref>()</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>k<sp/>=<sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="keywordtype">float</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(GetSystemUnitScale(UNITS_METERS));</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>k<sp/>?<sp/>(1.f<sp/>/<sp/>k)<sp/>:<sp/>1.f;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1aa7adca0cacc27a0a2fe5115cd4fb120e" kindref="member">is_dag_file</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>fs::path<sp/>&amp;filename)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8h_1ac6178c4290bfecf81e9e8b823e00abde" kindref="member">iequal</ref>(filename.extension().native(),<sp/>L</highlight><highlight class="stringliteral">&quot;.dag&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal">std::vector&lt;fs::path&gt;<sp/><ref refid="common_8cpp_1a246a01bb40f695a929a813a4099db64d" kindref="member">glob</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>fs::path<sp/>&amp;dir,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>recursive)</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>std::vector&lt;fs::path&gt;<sp/>files;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>files.reserve(32);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>std::error_code<sp/>ec;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>collect<sp/>=<sp/>[&amp;](</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>fs::directory_entry<sp/>&amp;entry)<sp/>{</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(entry.is_regular_file(ec)<sp/>&amp;&amp;<sp/><ref refid="common_8cpp_1aa7adca0cacc27a0a2fe5115cd4fb120e" kindref="member">is_dag_file</ref>(entry.path().filename()))</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>files.push_back(entry.path());</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(recursive)</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;entry<sp/>:<sp/>fs::recursive_directory_iterator(dir,</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>fs::directory_options::skip_permission_denied<sp/>|<sp/>fs::directory_options::follow_directory_symlink,<sp/>ec))</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>collect(entry);</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;entry<sp/>:<sp/>fs::directory_iterator(dir,<sp/>fs::directory_options::skip_permission_denied,<sp/>ec))</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>collect(entry);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>files;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal">std::wstring<sp/><ref refid="common_8cpp_1aa7a04a6b3e85348d94e1fd9b47f02bbc" kindref="member">strToWide</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*sz)</highlight></codeline>
+<codeline lineno="70"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>len<sp/>=<sp/>MultiByteToWideChar(CP_UTF8,<sp/>0,<sp/>sz,<sp/>-1,<sp/>NULL,<sp/>0);</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(len<sp/>&lt;=<sp/>0)</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>std::wstring();</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/>std::wstring<sp/>res(len<sp/>-<sp/>1,<sp/>0);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/>MultiByteToWideChar(CP_UTF8,<sp/>0,<sp/>sz,<sp/>-1,<sp/>&amp;res[0],<sp/>len);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>res;</highlight></codeline>
+<codeline lineno="77"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal">std::string<sp/><ref refid="common_8cpp_1a7d903fa919ea26cd19f8a6191f5daeff" kindref="member">wideToStr</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>*sw)</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>len<sp/>=<sp/>WideCharToMultiByte(CP_UTF8,<sp/>0,<sp/>sw,<sp/>-1,<sp/>NULL,<sp/>0,<sp/>NULL,<sp/>NULL);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(len<sp/>&lt;=<sp/>0)</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>std::string();</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>std::string<sp/>res(len<sp/>-<sp/>1,<sp/>0);</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>WideCharToMultiByte(CP_UTF8,<sp/>0,<sp/>sw,<sp/>-1,<sp/>&amp;res[0],<sp/>len,<sp/>NULL,<sp/>NULL);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>res;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal">std::wstring<sp/><ref refid="common_8cpp_1aa7a04a6b3e85348d94e1fd9b47f02bbc" kindref="member">strToWide</ref>(std::string_view<sp/>sv)</highlight></codeline>
+<codeline lineno="92"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sv.empty())</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>std::wstring();</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>len<sp/>=<sp/>MultiByteToWideChar(CP_UTF8,<sp/>0,<sp/>sv.data(),<sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)sv.size(),<sp/>NULL,<sp/>0);</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(len<sp/>&lt;=<sp/>0)</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>std::wstring();</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>std::wstring<sp/>res(len,<sp/>0);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>MultiByteToWideChar(CP_UTF8,<sp/>0,<sp/>sv.data(),<sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)sv.size(),<sp/>&amp;res[0],<sp/>len);</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>res;</highlight></codeline>
+<codeline lineno="101"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal">std::string<sp/><ref refid="common_8cpp_1a7d903fa919ea26cd19f8a6191f5daeff" kindref="member">wideToStr</ref>(std::wstring_view<sp/>sv)</highlight></codeline>
+<codeline lineno="105"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sv.empty())</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>std::string();</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>len<sp/>=<sp/>WideCharToMultiByte(CP_UTF8,<sp/>0,<sp/>sv.data(),<sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)sv.size(),<sp/>NULL,<sp/>0,<sp/>NULL,<sp/>NULL);</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(len<sp/>&lt;=<sp/>0)</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>std::string();</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/>std::string<sp/>res(len,<sp/>0);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/>WideCharToMultiByte(CP_UTF8,<sp/>0,<sp/>sv.data(),<sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)sv.size(),<sp/>&amp;res[0],<sp/>len,<sp/>NULL,<sp/>NULL);</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>res;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal">std::wstring<sp/><ref refid="common_8cpp_1a63dd291296aec8cece097cf49ee4ce02" kindref="member">format_str</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*fmt,<sp/>...)</highlight></codeline>
+<codeline lineno="118"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/>va_list<sp/>args;</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/>va_start(args,<sp/>fmt);</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/>TSTR<sp/>res;</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/>res.vprintf(fmt,<sp/>args);</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/>va_end(args);</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>std::wstring(res.data());</highlight></codeline>
+<codeline lineno="125"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal">std::wstring<sp/><ref refid="common_8cpp_1ab276a8d21d187650668e7730011e4761" kindref="member">drop_quotation_marks</ref>(std::wstring_view<sp/>s)</highlight></codeline>
+<codeline lineno="129"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(s.length()<sp/>&gt;=<sp/>2<sp/>&amp;&amp;<sp/>s.front()<sp/>==<sp/>L</highlight><highlight class="charliteral">&apos;&quot;&apos;</highlight><highlight class="normal"><sp/>&amp;&amp;<sp/>s.back()<sp/>==<sp/>L</highlight><highlight class="charliteral">&apos;&quot;&apos;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>std::wstring(s.substr(1,<sp/>s.length()<sp/>-<sp/>2));</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>std::wstring(s);</highlight></codeline>
+<codeline lineno="134"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal">std::wstring<sp/><ref refid="common_8cpp_1a25724cf03a0df69a784f23dbdbe404f4" kindref="member">get_window_text</ref>(HWND<sp/>hw)</highlight></codeline>
+<codeline lineno="138"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="group__common_1ga7cc318051e7972d9ebeac88389fa21bd" kindref="member">length</ref><sp/>=<sp/>GetWindowTextLength(hw);</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="group__common_1ga7cc318051e7972d9ebeac88389fa21bd" kindref="member">length</ref><sp/>&lt;=<sp/>0)</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>std::wstring();</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/>std::wstring<sp/>text(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal">(<ref refid="group__common_1ga7cc318051e7972d9ebeac88389fa21bd" kindref="member">length</ref>)<sp/>+<sp/>1,<sp/>L</highlight><highlight class="charliteral">&apos;\0&apos;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>copied<sp/>=<sp/>GetWindowText(hw,<sp/>text.data(),<sp/><ref refid="group__common_1ga7cc318051e7972d9ebeac88389fa21bd" kindref="member">length</ref><sp/>+<sp/>1);</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/>text.resize(copied);</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>text;</highlight></codeline>
+<codeline lineno="147"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1a1f8e225ae2a364fc799a1fbb30495219" kindref="member">update_path_edit_control</ref>(HWND<sp/>hw,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>fs::path<sp/>&amp;path)</highlight></codeline>
+<codeline lineno="151"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/>SetDlgItemText(hw,<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>path.c_str());</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/>SendMessage(GetDlgItem(hw,<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">),<sp/>EM_SETSEL,<sp/>(WPARAM)path.native().length(),<sp/>(LPARAM)path.native().length());</highlight></codeline>
+<codeline lineno="154"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1ab5bf28896d004a3ab6d2fe2497afdd3d" kindref="member">get_save_filename</ref>(HWND<sp/>owner,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*title,<sp/>FilterList<sp/>&amp;filter,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*def_ext,<sp/>fs::path<sp/>&amp;exp_fname,</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>init_with_previous)</highlight></codeline>
+<codeline lineno="159"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/>TCHAR<sp/>fname[MAX_PATH]<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(init_with_previous)</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/>_tcsncpy_s(fname,<sp/>_countof(fname),<sp/>exp_fname.c_str(),<sp/>_TRUNCATE);</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/>OPENFILENAME<sp/>ofn;</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/>memset(&amp;ofn,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(ofn));</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/>ofn.lStructSize<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(OPENFILENAME);</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/>ofn.hwndOwner<sp/>=<sp/>owner;</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/>ofn.lpstrFilter<sp/>=<sp/>filter;</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/>ofn.lpstrFile<sp/>=<sp/>fname;</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/>ofn.nMaxFile<sp/>=<sp/>MAX_PATH;</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/>ofn.lpstrInitialDir<sp/>=<sp/>_T(</highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/>ofn.Flags<sp/>=<sp/>OFN_HIDEREADONLY<sp/>|<sp/>OFN_PATHMUSTEXIST;</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/>ofn.lpstrDefExt<sp/>=<sp/>def_ext;</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/>ofn.lpstrTitle<sp/>=<sp/>title;</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal">tryAgain:</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!init_with_previous)</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/>memset(fname,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(fname));</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(GetSaveFileName(&amp;ofn))</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(DoesFileExist(fname))</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>TSTR<sp/>buf;</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>buf.printf(<ref refid="dagor_8h_1a13c6e41cfa286e2457b6663546c64199" kindref="member">GetString</ref>(<ref refid="resource_8h_1a191bf3b75fc50fe081f5c069f34e3fe6" kindref="member">IDS_FILE_EXISTS</ref>),<sp/>fname);</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(IDYES<sp/>!=<sp/>MessageBox(owner,<sp/>buf,<sp/>title,<sp/>MB_YESNO<sp/>|<sp/>MB_ICONQUESTION))</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/>tryAgain;</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(exp_fname<sp/>!=<sp/>fname)</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>exp_fname<sp/>=<sp/>fname;</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SetSaveRequiredFlag();</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="197"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"></highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight></codeline>
+<codeline lineno="200"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1af0a042f71f33984cf054cce2f89c9bbe" kindref="member">get_open_filename</ref>(HWND<sp/>owner,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*title,<sp/>FilterList<sp/>&amp;filter,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*def_ext,<sp/>fs::path<sp/>&amp;imp_fname)</highlight></codeline>
+<codeline lineno="201"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/>TCHAR<sp/>path[MAX_PATH]<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/>_tcsncpy_s(path,<sp/>_countof(path),<sp/>imp_fname.c_str(),<sp/>_TRUNCATE);</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/>OPENFILENAME<sp/>ofn;</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/>memset(&amp;ofn,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(ofn));</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"></highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/>ofn.lStructSize<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(OPENFILENAME);</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/>ofn.hwndOwner<sp/>=<sp/>owner;</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/>ofn.lpstrFilter<sp/>=<sp/>filter;</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/>ofn.lpstrFile<sp/>=<sp/>path;</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/>ofn.nMaxFile<sp/>=<sp/>MAX_PATH;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/>ofn.lpstrInitialDir<sp/>=<sp/>_T(</highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/>ofn.Flags<sp/>=<sp/>OFN_HIDEREADONLY<sp/>|<sp/>OFN_FILEMUSTEXIST<sp/>|<sp/>OFN_PATHMUSTEXIST;</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/>ofn.lpstrDefExt<sp/>=<sp/>def_ext;</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/>ofn.lpstrTitle<sp/>=<sp/>title;</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"></highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>result<sp/>=<sp/>GetOpenFileName(&amp;ofn);</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(result)</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/>imp_fname<sp/>=<sp/>path;</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"></highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>result;</highlight></codeline>
+<codeline lineno="224"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"></highlight></codeline>
+<codeline lineno="226"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1af0a042f71f33984cf054cce2f89c9bbe" kindref="member">get_open_filename</ref>(HWND<sp/>owner,<sp/>fs::path<sp/>&amp;imp_fname)</highlight></codeline>
+<codeline lineno="227"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/>FilterList<sp/>fl;</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/>fl.Append(<ref refid="dagor_8h_1a13c6e41cfa286e2457b6663546c64199" kindref="member">GetString</ref>(<ref refid="resource_8h_1ab4da16aba837425eea10a78744f0ae9e" kindref="member">IDS_SCENE_FILES</ref>));</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/>fl.Append(L</highlight><highlight class="stringliteral">&quot;*.dag&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1af0a042f71f33984cf054cce2f89c9bbe" kindref="member">get_open_filename</ref>(owner,<sp/><ref refid="dagor_8h_1a13c6e41cfa286e2457b6663546c64199" kindref="member">GetString</ref>(<ref refid="resource_8h_1a6c4adee4ed2e62b03d28dc9aca054760" kindref="member">IDS_OPEN_SCENE_TITLE</ref>),<sp/>fl,<sp/>L</highlight><highlight class="stringliteral">&quot;dag&quot;</highlight><highlight class="normal">,<sp/>imp_fname);</highlight></codeline>
+<codeline lineno="232"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"></highlight></codeline>
+<codeline lineno="234"><highlight class="normal">fs::path<sp/><ref refid="common_8cpp_1ae8f0fb0063377e36aecc6396618cdaf9" kindref="member">get_cfg_filename</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*cfg)</highlight></codeline>
+<codeline lineno="235"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/>TCHAR<sp/>modulePath[MAX_PATH];</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/>GetModuleFileName(<ref refid="dagor_8h_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>,<sp/>modulePath,<sp/>MAX_PATH);</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/>fs::path<sp/>moduleDir<sp/>=<sp/>fs::path(modulePath).parent_path();</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"></highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/>fs::path<sp/>cfgPath<sp/>=<sp/>moduleDir<sp/>/<sp/>L</highlight><highlight class="stringliteral">&quot;..&quot;</highlight><highlight class="normal"><sp/>/<sp/>cfg;<sp/></highlight><highlight class="comment">//<sp/>search<sp/>one<sp/>dir<sp/>up<sp/>first</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!fs::exists(cfgPath))</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/>cfgPath<sp/>=<sp/>moduleDir<sp/>/<sp/>cfg;<sp/></highlight><highlight class="comment">//<sp/>if<sp/>not<sp/>found<sp/>then<sp/>get<sp/>in<sp/>module<sp/>dir</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="243"><highlight class="normal"></highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>cfgPath;</highlight></codeline>
+<codeline lineno="245"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"></highlight></codeline>
+<codeline lineno="247"><highlight class="normal"></highlight></codeline>
+<codeline lineno="248"><highlight class="normal">std::vector&lt;std::wstring&gt;<sp/><ref refid="common_8cpp_1ae3e2966e56b8f353e13736457b880db9" kindref="member">split</ref>(std::wstring_view<sp/>text,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>delim)</highlight></codeline>
+<codeline lineno="249"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/>std::vector&lt;std::wstring&gt;<sp/>tokens;</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/>tokens.reserve(std::count(text.begin(),<sp/>text.end(),<sp/>delim)<sp/>+<sp/>1);</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"></highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>pos<sp/>=<sp/>0;;)</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>end<sp/>=<sp/>text.find(delim,<sp/>pos);</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(end<sp/>==<sp/>std::wstring_view::npos)</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>tokens.emplace_back(text.substr(pos));</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>tokens;</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/><sp/><sp/>tokens.emplace_back(text.substr(pos,<sp/>end<sp/>-<sp/>pos));</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/>pos<sp/>=<sp/>end<sp/>+<sp/>1;</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="264"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"></highlight></codeline>
+<codeline lineno="266"><highlight class="normal">std::wstring<sp/><ref refid="common_8cpp_1a7339fce64bf5ea3fe5389d9995060427" kindref="member">replace_all</ref>(std::wstring<sp/>str,<sp/>std::wstring_view<sp/>from,<sp/>std::wstring_view<sp/>to)</highlight></codeline>
+<codeline lineno="267"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(from.empty())</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>str;</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>pos<sp/>=<sp/>0;<sp/>(pos<sp/>=<sp/>str.find(from,<sp/>pos))<sp/>!=<sp/>std::wstring::npos;<sp/>pos<sp/>+=<sp/>to.size())</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/>str.replace(pos,<sp/>from.size(),<sp/>to);</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>str;</highlight></codeline>
+<codeline lineno="273"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"></highlight></codeline>
+<codeline lineno="275"><highlight class="normal">std::wstring<sp/><ref refid="common_8cpp_1aea05e92fdb89f4b185b78f2e875e2858" kindref="member">collapse_repeats</ref>(std::wstring<sp/>str,<sp/>std::wstring_view<sp/>seq)</highlight></codeline>
+<codeline lineno="276"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(seq.empty())</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>str;</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>pos<sp/>=<sp/>0;<sp/>(pos<sp/>=<sp/>str.find(seq,<sp/>pos))<sp/>!=<sp/>std::wstring::npos;<sp/>pos<sp/>+=<sp/>seq.size())</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>run_end<sp/>=<sp/>pos<sp/>+<sp/>seq.size();</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(str.find(seq,<sp/>run_end)<sp/>==<sp/>run_end)</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>run_end<sp/>+=<sp/>seq.size();</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/><sp/><sp/>str.erase(pos<sp/>+<sp/>seq.size(),<sp/>run_end<sp/>-<sp/>pos<sp/>-<sp/>seq.size());</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>str;</highlight></codeline>
+<codeline lineno="287"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"></highlight></codeline>
+<codeline lineno="289"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1a4d0e1f9176d5eb904c3692f341e184eb" kindref="member">trim</ref>(std::wstring<sp/>&amp;str)</highlight></codeline>
+<codeline lineno="290"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/>str.erase(str.find_last_not_of(L</highlight><highlight class="charliteral">&apos;<sp/>&apos;</highlight><highlight class="normal">)<sp/>+<sp/>1);</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/>str.erase(0,<sp/>str.find_first_not_of(L</highlight><highlight class="charliteral">&apos;<sp/>&apos;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="293"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"></highlight></codeline>
+<codeline lineno="295"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8cpp_1a8dae99a68045154d9d919ef6d35c639d" kindref="member">isProxymatName</ref>(std::wstring_view<sp/>mat_name)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>mat_name.ends_with(L</highlight><highlight class="stringliteral">&quot;:proxymat&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"></highlight></codeline>
+<codeline lineno="297"><highlight class="normal">std::wstring<sp/><ref refid="common_8cpp_1af5660b9cebec447a7ba75dec1034e635" kindref="member">simplifyRN</ref>(std::wstring_view<sp/>from)</highlight></codeline>
+<codeline lineno="298"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/>std::wstring<sp/>s(from);</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>pos<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>((pos<sp/>=<sp/>s.find(_T(</highlight><highlight class="stringliteral">&quot;\r\n&quot;</highlight><highlight class="normal">),<sp/>pos))<sp/>!=<sp/>std::wstring::npos)</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/>s.replace(pos,<sp/>2,<sp/>_T(</highlight><highlight class="stringliteral">&quot;\n&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>s;</highlight></codeline>
+<codeline lineno="304"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"></highlight></codeline>
+<codeline lineno="306"><highlight class="normal">std::wstring<sp/><ref refid="common_8cpp_1aa6a4a08c0122deead6e5eb6a53156598" kindref="member">trim_params</ref>(std::wstring_view<sp/>from)</highlight></codeline>
+<codeline lineno="307"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/>std::wstring<sp/>s;</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"><sp/><sp/>std::vector&lt;std::wstring&gt;<sp/>lines<sp/>=<sp/><ref refid="common_8cpp_1ae3e2966e56b8f353e13736457b880db9" kindref="member">split</ref>(<ref refid="common_8cpp_1af5660b9cebec447a7ba75dec1034e635" kindref="member">simplifyRN</ref>(from),<sp/>L</highlight><highlight class="charliteral">&apos;\n&apos;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"></highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::wstring<sp/>&amp;line<sp/>:<sp/>lines)</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>eq<sp/>=<sp/>line.find(L</highlight><highlight class="charliteral">&apos;=&apos;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"></highlight></codeline>
+<codeline lineno="315"><highlight class="normal"><sp/><sp/><sp/><sp/>std::wstring<sp/>name<sp/>=<sp/>line.substr(0,<sp/>eq);</highlight></codeline>
+<codeline lineno="316"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="common_8cpp_1a4d0e1f9176d5eb904c3692f341e184eb" kindref="member">trim</ref>(name);</highlight></codeline>
+<codeline lineno="317"><highlight class="normal"></highlight></codeline>
+<codeline lineno="318"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(eq<sp/>==<sp/>std::wstring::npos)</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="320"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(name.empty())</highlight></codeline>
+<codeline lineno="321"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">continue</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"></highlight></codeline>
+<codeline lineno="323"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>s<sp/>+=<sp/>name;</highlight></codeline>
+<codeline lineno="324"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>s<sp/>+=<sp/>L</highlight><highlight class="stringliteral">&quot;\r\n&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="325"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">continue</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="326"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="327"><highlight class="normal"></highlight></codeline>
+<codeline lineno="328"><highlight class="normal"><sp/><sp/><sp/><sp/>std::wstring<sp/>value<sp/>=<sp/>line.substr(eq<sp/>+<sp/>1);</highlight></codeline>
+<codeline lineno="329"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="common_8cpp_1a4d0e1f9176d5eb904c3692f341e184eb" kindref="member">trim</ref>(value);</highlight></codeline>
+<codeline lineno="330"><highlight class="normal"></highlight></codeline>
+<codeline lineno="331"><highlight class="normal"><sp/><sp/><sp/><sp/>s<sp/>+=<sp/>name;</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"><sp/><sp/><sp/><sp/>s<sp/>+=<sp/>L</highlight><highlight class="charliteral">&apos;=&apos;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/><sp/><sp/>s<sp/>+=<sp/>value;</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/><sp/><sp/>s<sp/>+=<sp/>L</highlight><highlight class="stringliteral">&quot;\r\n&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"></highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>s;</highlight></codeline>
+<codeline lineno="338"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"></highlight></codeline>
+<codeline lineno="340"><highlight class="normal">std::string<sp/><ref refid="common_8cpp_1acdaf4722278ac63dd78bc7b4b951d465" kindref="member">escape_string</ref>(std::string_view<sp/>input)</highlight></codeline>
+<codeline lineno="341"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/>std::ostringstream<sp/>escaped;</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>ch<sp/>:<sp/>input)</highlight></codeline>
+<codeline lineno="344"><highlight class="normal"><sp/><sp/><sp/><sp/>switch<sp/>(ch)</highlight></codeline>
+<codeline lineno="345"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="346"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/></highlight><highlight class="charliteral">&apos;\\&apos;</highlight><highlight class="normal">:<sp/>escaped<sp/>&lt;&lt;<sp/></highlight><highlight class="stringliteral">&quot;\\\\&quot;</highlight><highlight class="normal">;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="347"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/></highlight><highlight class="charliteral">&apos;\&quot;&apos;</highlight><highlight class="normal">:<sp/>escaped<sp/>&lt;&lt;<sp/></highlight><highlight class="stringliteral">&quot;\\\&quot;&quot;</highlight><highlight class="normal">;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="348"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/></highlight><highlight class="charliteral">&apos;\&apos;&apos;</highlight><highlight class="normal">:<sp/>escaped<sp/>&lt;&lt;<sp/></highlight><highlight class="stringliteral">&quot;\\\&apos;&quot;</highlight><highlight class="normal">;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="349"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/></highlight><highlight class="charliteral">&apos;\n&apos;</highlight><highlight class="normal">:<sp/>escaped<sp/>&lt;&lt;<sp/></highlight><highlight class="stringliteral">&quot;\\n&quot;</highlight><highlight class="normal">;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="350"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/></highlight><highlight class="charliteral">&apos;\r&apos;</highlight><highlight class="normal">:<sp/>escaped<sp/>&lt;&lt;<sp/></highlight><highlight class="stringliteral">&quot;\\r&quot;</highlight><highlight class="normal">;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="351"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/></highlight><highlight class="charliteral">&apos;\t&apos;</highlight><highlight class="normal">:<sp/>escaped<sp/>&lt;&lt;<sp/></highlight><highlight class="stringliteral">&quot;\\t&quot;</highlight><highlight class="normal">;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="352"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/></highlight><highlight class="charliteral">&apos;\b&apos;</highlight><highlight class="normal">:<sp/>escaped<sp/>&lt;&lt;<sp/></highlight><highlight class="stringliteral">&quot;\\b&quot;</highlight><highlight class="normal">;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="353"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/></highlight><highlight class="charliteral">&apos;\f&apos;</highlight><highlight class="normal">:<sp/>escaped<sp/>&lt;&lt;<sp/></highlight><highlight class="stringliteral">&quot;\\f&quot;</highlight><highlight class="normal">;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/></highlight><highlight class="charliteral">&apos;\v&apos;</highlight><highlight class="normal">:<sp/>escaped<sp/>&lt;&lt;<sp/></highlight><highlight class="stringliteral">&quot;\\v&quot;</highlight><highlight class="normal">;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="355"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/></highlight><highlight class="charliteral">&apos;\a&apos;</highlight><highlight class="normal">:<sp/>escaped<sp/>&lt;&lt;<sp/></highlight><highlight class="stringliteral">&quot;\\a&quot;</highlight><highlight class="normal">;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="356"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/></highlight><highlight class="charliteral">&apos;\?&apos;</highlight><highlight class="normal">:<sp/>escaped<sp/>&lt;&lt;<sp/></highlight><highlight class="stringliteral">&quot;\\?&quot;</highlight><highlight class="normal">;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="357"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="358"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Handle<sp/>non-printable<sp/>characters<sp/>using<sp/>hex<sp/>codes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="359"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(ch<sp/>&lt;<sp/>32<sp/>||<sp/>ch<sp/>&gt;<sp/>126)</highlight></codeline>
+<codeline lineno="360"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>escaped<sp/>&lt;&lt;<sp/></highlight><highlight class="stringliteral">&quot;\\x&quot;</highlight><highlight class="normal"><sp/>&lt;&lt;<sp/>std::hex<sp/>&lt;&lt;<sp/>std::setw(2)<sp/>&lt;&lt;<sp/>std::setfill(</highlight><highlight class="charliteral">&apos;0&apos;</highlight><highlight class="normal">)<sp/>&lt;&lt;<sp/>(int)ch;</highlight></codeline>
+<codeline lineno="361"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="362"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>escaped<sp/>&lt;&lt;<sp/>ch;</highlight></codeline>
+<codeline lineno="363"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="364"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="365"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>escaped.str();</highlight></codeline>
+<codeline lineno="366"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="common.cpp"/>
+  </compounddef>
+</doxygen>

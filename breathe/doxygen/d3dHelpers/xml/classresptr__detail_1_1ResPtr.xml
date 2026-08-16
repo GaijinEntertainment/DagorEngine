@@ -1,0 +1,312 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1ResPtr" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::ResPtr</compoundname>
+    <basecompoundref refid="classresptr__detail_1_1MoveAssignable" prot="public" virt="non-virtual">resptr_detail::MoveAssignable</basecompoundref>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename ResType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classresptr__detail_1_1ResPtr_1a7056fafa5958ee6eee062b91c3232a8e" prot="private" static="no" mutable="no">
+        <type>ResType *</type>
+        <definition>ResType* resptr_detail::ResPtr&lt; ResType &gt;::mResource</definition>
+        <argsstring></argsstring>
+        <name>mResource</name>
+        <qualifiedname>resptr_detail::ResPtr::mResource</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="293" column="11" bodyfile="dag_resPtr.h" bodystart="293" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classresptr__detail_1_1ResPtr_1a1fded17264df405d7df206b7643ec851" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::ResPtr&lt; ResType &gt;::swap</definition>
+        <argsstring>(ResPtr &amp;other)</argsstring>
+        <name>swap</name>
+        <qualifiedname>resptr_detail::ResPtr::swap</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="295" column="8" bodyfile="dag_resPtr.h" bodystart="295" bodyend="295"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ResPtr_1ad941a319e1a53411c529f8ae3c90eb61" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ResPtr&lt; ResType &gt;::ResPtr</definition>
+        <argsstring>(ResType *res)</argsstring>
+        <name>ResPtr</name>
+        <qualifiedname>resptr_detail::ResPtr::ResPtr</qualifiedname>
+        <param>
+          <type>ResType *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="297" column="3" bodyfile="dag_resPtr.h" bodystart="297" bodyend="297"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classresptr__detail_1_1ResPtr_1ad72cc568c84f13d6eb1bc7c207ab3204" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename Type</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref>&lt; Type &gt;</type>
+        <definition>ResPtr&lt; Type &gt; ResPtrFactory</definition>
+        <argsstring>(Type *res)</argsstring>
+        <name>ResPtrFactory</name>
+        <qualifiedname>resptr_detail::ResPtr::ResPtrFactory</qualifiedname>
+        <param>
+          <type>Type *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="300" column="17"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classresptr__detail_1_1ResPtr_1ac06a278928dabfa117bd0b0a3977ecac" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ResPtr&lt; ResType &gt;::ResPtr</definition>
+        <argsstring>()=default</argsstring>
+        <name>ResPtr</name>
+        <qualifiedname>resptr_detail::ResPtr::ResPtr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="303" column="4"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ResPtr_1a8c2fef9bd85cf1c2c91a7b20b225f4a9" prot="public" static="no" const="no" explicit="no" inline="yes" noexcept="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ResPtr&lt; ResType &gt;::ResPtr</definition>
+        <argsstring>(ResPtr &amp;&amp;other) noexcept</argsstring>
+        <name>ResPtr</name>
+        <qualifiedname>resptr_detail::ResPtr::ResPtr</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="303" column="25" bodyfile="dag_resPtr.h" bodystart="303" bodyend="303"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ResPtr_1a130103ed6f25c21a7e98d253da8d0e37" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref> &amp;</type>
+        <definition>ResPtr &amp; resptr_detail::ResPtr&lt; ResType &gt;::operator=</definition>
+        <argsstring>(ResPtr &amp;&amp;other)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>resptr_detail::ResPtr::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="303" column="77" bodyfile="dag_resPtr.h" bodystart="303" bodyend="303"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ResPtr_1a59f3af4b3bf01172fa7f76430867927d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::ResPtr&lt; ResType &gt;::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>resptr_detail::ResPtr::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="303" column="228" bodyfile="dag_resPtr.h" bodystart="303" bodyend="303"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ResPtr_1a065e4e8c6f006e9899553757c43cafb8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ResPtr&lt; ResType &gt;::ResPtr</definition>
+        <argsstring>(ResFactory&lt; ResType &gt; &amp;&amp;res)</argsstring>
+        <name>ResPtr</name>
+        <qualifiedname>resptr_detail::ResPtr::ResPtr</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResFactory" kindref="compound">ResFactory</ref>&lt; ResType &gt; &amp;&amp;</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="305" column="3" bodyfile="dag_resPtr.h" bodystart="305" bodyend="305"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ResPtr_1a2911694709546b21a7524e17ece5cad4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classresptr__detail_1_1ResPtr" kindref="compound">ResPtr</ref> &amp;</type>
+        <definition>ResPtr &amp; resptr_detail::ResPtr&lt; ResType &gt;::operator=</definition>
+        <argsstring>(ResFactory&lt; ResType &gt; &amp;&amp;res)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>resptr_detail::ResPtr::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResFactory" kindref="compound">ResFactory</ref>&lt; ResType &gt; &amp;&amp;</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="307" column="10" bodyfile="dag_resPtr.h" bodystart="307" bodyend="315"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ResPtr_1af19aff4b835792f9a8d17d93ca4a3ef8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ResPtr&lt; ResType &gt;::~ResPtr</definition>
+        <argsstring>()</argsstring>
+        <name>~ResPtr</name>
+        <qualifiedname>resptr_detail::ResPtr::~ResPtr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="317" column="3" bodyfile="dag_resPtr.h" bodystart="317" bodyend="321"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ResPtr_1a9b5f0048967d93d8cc71ec449d1306e7" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type>ResType *</type>
+        <definition>ResType * resptr_detail::ResPtr&lt; ResType &gt;::release</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>release</name>
+        <qualifiedname>resptr_detail::ResPtr::release</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="323" column="11" bodyfile="dag_resPtr.h" bodystart="323" bodyend="328"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ResPtr_1ad70de7e1f15f0fac0e4aa43cb92e327d" prot="public" static="no" const="yes" explicit="no" inline="yes" refqual="lvalue" virt="non-virtual">
+        <type>ResType *</type>
+        <definition>ResType * resptr_detail::ResPtr&lt; ResType &gt;::get</definition>
+        <argsstring>() const &amp;</argsstring>
+        <name>get</name>
+        <qualifiedname>resptr_detail::ResPtr::get</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="330" column="11" bodyfile="dag_resPtr.h" bodystart="330" bodyend="330"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ResPtr_1a2d478df53df70928c26143ea24f78b20" prot="public" static="no" const="yes" explicit="no" inline="yes" refqual="lvalue" virt="non-virtual">
+        <type>ResType *</type>
+        <definition>ResType * resptr_detail::ResPtr&lt; ResType &gt;::operator-&gt;</definition>
+        <argsstring>() const &amp;</argsstring>
+        <name>operator-&gt;</name>
+        <qualifiedname>resptr_detail::ResPtr::operator-&gt;</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="331" column="11" bodyfile="dag_resPtr.h" bodystart="331" bodyend="331"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ResPtr_1a9d8b6722d6deaa78c0683fa6cb86147e" prot="public" static="no" const="yes" explicit="yes" inline="yes" refqual="lvalue" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ResPtr&lt; ResType &gt;::operator bool</definition>
+        <argsstring>() const &amp;</argsstring>
+        <name>operator bool</name>
+        <qualifiedname>resptr_detail::ResPtr::operator bool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="332" column="12" bodyfile="dag_resPtr.h" bodystart="332" bodyend="332"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>resptr_detail::MoveAssignable</label>
+        <link refid="classresptr__detail_1_1MoveAssignable"/>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ResPtr&lt; ResType &gt;</label>
+        <link refid="classresptr__detail_1_1ResPtr"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>resptr_detail::MoveAssignable</label>
+        <link refid="classresptr__detail_1_1MoveAssignable"/>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ResPtr&lt; ResType &gt;</label>
+        <link refid="classresptr__detail_1_1ResPtr"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resPtr.h" line="291" column="1" bodyfile="dag_resPtr.h" bodystart="292" bodyend="333"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1ResPtr_1a59f3af4b3bf01172fa7f76430867927d" prot="public" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>close</name></member>
+      <member refid="classresptr__detail_1_1ResPtr_1ad70de7e1f15f0fac0e4aa43cb92e327d" prot="public" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>get</name></member>
+      <member refid="classresptr__detail_1_1MoveAssignable_1adc2200080aa2d0473c528d9f96f9fa6c" prot="protected" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>isValidForMoveAssignment</name></member>
+      <member refid="classresptr__detail_1_1ResPtr_1a7056fafa5958ee6eee062b91c3232a8e" prot="private" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>mResource</name></member>
+      <member refid="classresptr__detail_1_1ResPtr_1a9d8b6722d6deaa78c0683fa6cb86147e" prot="public" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>operator bool</name></member>
+      <member refid="classresptr__detail_1_1ResPtr_1a2d478df53df70928c26143ea24f78b20" prot="public" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>operator-&gt;</name></member>
+      <member refid="classresptr__detail_1_1ResPtr_1a130103ed6f25c21a7e98d253da8d0e37" prot="public" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>operator=</name></member>
+      <member refid="classresptr__detail_1_1ResPtr_1a2911694709546b21a7524e17ece5cad4" prot="public" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>operator=</name></member>
+      <member refid="classresptr__detail_1_1ResPtr_1a9b5f0048967d93d8cc71ec449d1306e7" prot="public" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>release</name></member>
+      <member refid="classresptr__detail_1_1ResPtr_1ad941a319e1a53411c529f8ae3c90eb61" prot="private" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>ResPtr</name></member>
+      <member refid="classresptr__detail_1_1ResPtr_1ac06a278928dabfa117bd0b0a3977ecac" prot="public" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>ResPtr</name></member>
+      <member refid="classresptr__detail_1_1ResPtr_1a8c2fef9bd85cf1c2c91a7b20b225f4a9" prot="public" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>ResPtr</name></member>
+      <member refid="classresptr__detail_1_1ResPtr_1a065e4e8c6f006e9899553757c43cafb8" prot="public" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>ResPtr</name></member>
+      <member refid="classresptr__detail_1_1ResPtr_1ad72cc568c84f13d6eb1bc7c207ab3204" prot="private" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>ResPtrFactory</name></member>
+      <member refid="classresptr__detail_1_1ResPtr_1a1fded17264df405d7df206b7643ec851" prot="private" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>swap</name></member>
+      <member refid="classresptr__detail_1_1ResPtr_1af19aff4b835792f9a8d17d93ca4a3ef8" prot="public" virt="non-virtual"><scope>resptr_detail::ResPtr</scope><name>~ResPtr</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

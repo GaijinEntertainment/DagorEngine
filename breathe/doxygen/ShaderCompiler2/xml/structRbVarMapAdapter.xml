@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRbVarMapAdapter" kind="struct" language="C++" prot="public">
+    <compoundname>RbVarMapAdapter</compoundname>
+    <includes refid="shaderSave_8h" local="no">shaderSave.h</includes>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structRbVarMapAdapter_1a56214ea25b7bff1bda99e84afb30422c" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * RbVarMapAdapter::getName</definition>
+        <argsstring>(int id)</argsstring>
+        <name>getName</name>
+        <qualifiedname>RbVarMapAdapter::getName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="21" column="21" bodyfile="shaderSave.cpp" bodystart="9" bodyend="9"/>
+      </memberdef>
+      <memberdef kind="function" id="structRbVarMapAdapter_1a3683a4070b161858c5831e032851a774" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int RbVarMapAdapter::addName</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>addName</name>
+        <qualifiedname>RbVarMapAdapter::addName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="22" column="14" bodyfile="shaderSave.cpp" bodystart="10" bodyend="10"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shaderSave.h" line="19" column="1" bodyfile="shaderSave.h" bodystart="20" bodyend="23"/>
+    <listofallmembers>
+      <member refid="structRbVarMapAdapter_1a3683a4070b161858c5831e032851a774" prot="public" virt="non-virtual"><scope>RbVarMapAdapter</scope><name>addName</name></member>
+      <member refid="structRbVarMapAdapter_1a56214ea25b7bff1bda99e84afb30422c" prot="public" virt="non-virtual"><scope>RbVarMapAdapter</scope><name>getName</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

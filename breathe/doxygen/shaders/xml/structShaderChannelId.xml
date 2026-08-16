@@ -1,0 +1,236 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderChannelId" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderChannelId</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderChannelId_1a8e43240fd5b00f2519ed0c1b56922ac2" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t ShaderChannelId::u</definition>
+        <argsstring></argsstring>
+        <name>u</name>
+        <qualifiedname>ShaderChannelId::u</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="50" column="12" bodyfile="dag_shaderCommon.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderChannelId_1af7c1a1138cb41fa4dee87eb329035a72" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t ShaderChannelId::streamId</definition>
+        <argsstring></argsstring>
+        <name>streamId</name>
+        <qualifiedname>ShaderChannelId::streamId</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="50" column="15" bodyfile="dag_shaderCommon.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderChannelId_1a01747d816ab407526683a75404f66c84" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t ShaderChannelId::ui</definition>
+        <argsstring></argsstring>
+        <name>ui</name>
+        <qualifiedname>ShaderChannelId::ui</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="50" column="25" bodyfile="dag_shaderCommon.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderChannelId_1a9d25ea976b2e181168aa8aa88ded9bfb" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t ShaderChannelId::resv</definition>
+        <argsstring></argsstring>
+        <name>resv</name>
+        <qualifiedname>ShaderChannelId::resv</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="50" column="29" bodyfile="dag_shaderCommon.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderChannelId_1a179171354a57ab2b56b2aac9b599f4c6" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderChannelId::t</definition>
+        <argsstring></argsstring>
+        <name>t</name>
+        <qualifiedname>ShaderChannelId::t</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="51" column="7" bodyfile="dag_shaderCommon.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderChannelId_1ab58079ee7949deb3e056798c3c869c75" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderChannelId::vbu</definition>
+        <argsstring></argsstring>
+        <name>vbu</name>
+        <qualifiedname>ShaderChannelId::vbu</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="52" column="7" bodyfile="dag_shaderCommon.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderChannelId_1aaf9c5529c6110117dc6bc8fdac8db81c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderChannelId::vbui</definition>
+        <argsstring></argsstring>
+        <name>vbui</name>
+        <qualifiedname>ShaderChannelId::vbui</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="52" column="12" bodyfile="dag_shaderCommon.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderChannelId_1a5215d144611aa4f379fa542da1b3ce1a" prot="public" static="no" mutable="no">
+        <type>ChannelModifier</type>
+        <definition>ChannelModifier ShaderChannelId::mod</definition>
+        <argsstring></argsstring>
+        <name>mod</name>
+        <qualifiedname>ShaderChannelId::mod</qualifiedname>
+        <initializer>= CMOD_NONE</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="54" column="19" bodyfile="dag_shaderCommon.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structShaderChannelId_1a22f1b7e883b36bc41d85897a98693f19" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderChannelId::setPosBounding</definition>
+        <argsstring>(const Point3 &amp;offset, const Point3 &amp;mul)</argsstring>
+        <name>setPosBounding</name>
+        <qualifiedname>ShaderChannelId::setPosBounding</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>offset</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>mul</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="57" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderChannelId_1a851b66ef0e8e0193830b6a21f945631c" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderChannelId::getPosBounding</definition>
+        <argsstring>(Point3 &amp;offset, Point3 &amp;mul)</argsstring>
+        <name>getPosBounding</name>
+        <qualifiedname>ShaderChannelId::getPosBounding</qualifiedname>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>offset</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>mul</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="58" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderChannelId_1a4f1da2f2433f688974bdb39e4ebad0be" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderChannelId::setBoundingUsed</definition>
+        <argsstring>()</argsstring>
+        <name>setBoundingUsed</name>
+        <qualifiedname>ShaderChannelId::setBoundingUsed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="59" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderChannelId_1a92ff1f8834665a415c57da514ee45835" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool ShaderChannelId::getBoundingUsed</definition>
+        <argsstring>()</argsstring>
+        <name>getBoundingUsed</name>
+        <qualifiedname>ShaderChannelId::getBoundingUsed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="60" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderChannelId_1ab39c17518b7e98fdd93a3ff74454cd12" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ShaderChannelId::resetBoundingUsed</definition>
+        <argsstring>()</argsstring>
+        <name>resetBoundingUsed</name>
+        <qualifiedname>ShaderChannelId::resetBoundingUsed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="61" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderCommon.h" line="48" column="1" bodyfile="dag_shaderCommon.h" bodystart="49" bodyend="62"/>
+    <listofallmembers>
+      <member refid="structShaderChannelId_1a92ff1f8834665a415c57da514ee45835" prot="public" virt="non-virtual"><scope>ShaderChannelId</scope><name>getBoundingUsed</name></member>
+      <member refid="structShaderChannelId_1a851b66ef0e8e0193830b6a21f945631c" prot="public" virt="non-virtual"><scope>ShaderChannelId</scope><name>getPosBounding</name></member>
+      <member refid="structShaderChannelId_1a5215d144611aa4f379fa542da1b3ce1a" prot="public" virt="non-virtual"><scope>ShaderChannelId</scope><name>mod</name></member>
+      <member refid="structShaderChannelId_1ab39c17518b7e98fdd93a3ff74454cd12" prot="public" virt="non-virtual"><scope>ShaderChannelId</scope><name>resetBoundingUsed</name></member>
+      <member refid="structShaderChannelId_1a9d25ea976b2e181168aa8aa88ded9bfb" prot="public" virt="non-virtual"><scope>ShaderChannelId</scope><name>resv</name></member>
+      <member refid="structShaderChannelId_1a4f1da2f2433f688974bdb39e4ebad0be" prot="public" virt="non-virtual"><scope>ShaderChannelId</scope><name>setBoundingUsed</name></member>
+      <member refid="structShaderChannelId_1a22f1b7e883b36bc41d85897a98693f19" prot="public" virt="non-virtual"><scope>ShaderChannelId</scope><name>setPosBounding</name></member>
+      <member refid="structShaderChannelId_1af7c1a1138cb41fa4dee87eb329035a72" prot="public" virt="non-virtual"><scope>ShaderChannelId</scope><name>streamId</name></member>
+      <member refid="structShaderChannelId_1a179171354a57ab2b56b2aac9b599f4c6" prot="public" virt="non-virtual"><scope>ShaderChannelId</scope><name>t</name></member>
+      <member refid="structShaderChannelId_1a8e43240fd5b00f2519ed0c1b56922ac2" prot="public" virt="non-virtual"><scope>ShaderChannelId</scope><name>u</name></member>
+      <member refid="structShaderChannelId_1a01747d816ab407526683a75404f66c84" prot="public" virt="non-virtual"><scope>ShaderChannelId</scope><name>ui</name></member>
+      <member refid="structShaderChannelId_1ab58079ee7949deb3e056798c3c869c75" prot="public" virt="non-virtual"><scope>ShaderChannelId</scope><name>vbu</name></member>
+      <member refid="structShaderChannelId_1aaf9c5529c6110117dc6bc8fdac8db81c" prot="public" virt="non-virtual"><scope>ShaderChannelId</scope><name>vbui</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

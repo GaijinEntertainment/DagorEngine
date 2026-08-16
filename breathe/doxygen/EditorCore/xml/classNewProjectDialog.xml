@@ -1,0 +1,210 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classNewProjectDialog" kind="class" language="C++" prot="public">
+    <compoundname>NewProjectDialog</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">PropPanel::DialogWindow</basecompoundref>
+    <includes refid="ec__newProjDlg_8h" local="no">ec_newProjDlg.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classNewProjectDialog_1aba9752cefe1b5a3fe1769903214dd75b" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String NewProjectDialog::mName</definition>
+        <argsstring></argsstring>
+        <name>mName</name>
+        <qualifiedname>NewProjectDialog::mName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_newProjDlg.h" line="24" column="10" bodyfile="ec_newProjDlg.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classNewProjectDialog_1a7c9fef8d84254792632f9a75df2ef8cf" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String NewProjectDialog::mLocation</definition>
+        <argsstring></argsstring>
+        <name>mLocation</name>
+        <qualifiedname>NewProjectDialog::mLocation</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_newProjDlg.h" line="24" column="16" bodyfile="ec_newProjDlg.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classNewProjectDialog_1a66a72979a5f5fd608290d456d345d950" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>NewProjectDialog::NewProjectDialog</definition>
+        <argsstring>(void *phandle, const char *caption, const char *name_label=NULL, const char *_note=NULL)</argsstring>
+        <name>NewProjectDialog</name>
+        <qualifiedname>NewProjectDialog::NewProjectDialog</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>phandle</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>caption</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name_label</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>_note</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_newProjDlg.h" line="12" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classNewProjectDialog_1a7b4a2f9fffe6584f32bad52e0807b5c9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * NewProjectDialog::getName</definition>
+        <argsstring>()</argsstring>
+        <name>getName</name>
+        <qualifiedname>NewProjectDialog::getName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_newProjDlg.h" line="14" column="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classNewProjectDialog_1abbf2db01ef41e9c97317879e7c87d558" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * NewProjectDialog::getLocation</definition>
+        <argsstring>()</argsstring>
+        <name>getLocation</name>
+        <qualifiedname>NewProjectDialog::getLocation</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_newProjDlg.h" line="15" column="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classNewProjectDialog_1a7ae81ea69247726a4f54284c61f083a9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void NewProjectDialog::setName</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>setName</name>
+        <qualifiedname>NewProjectDialog::setName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_newProjDlg.h" line="17" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classNewProjectDialog_1ae28c469539e830666544f72bce491315" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void NewProjectDialog::setLocation</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>setLocation</name>
+        <qualifiedname>NewProjectDialog::setLocation</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_newProjDlg.h" line="18" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classNewProjectDialog_1ad3188e412d3b9001dd32a71572e8e8b9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void NewProjectDialog::onChange</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onChange</name>
+        <qualifiedname>NewProjectDialog::onChange</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_newProjDlg.h" line="20" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classNewProjectDialog_1a27964549717724f5a2e246e10388ed36" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool NewProjectDialog::onOk</definition>
+        <argsstring>() override</argsstring>
+        <name>onOk</name>
+        <qualifiedname>NewProjectDialog::onOk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_newProjDlg.h" line="21" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>NewProjectDialog</label>
+        <link refid="classNewProjectDialog"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>NewProjectDialog</label>
+        <link refid="classNewProjectDialog"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+    </collaborationgraph>
+    <location file="ec_newProjDlg.h" line="9" column="1" bodyfile="ec_newProjDlg.h" bodystart="10" bodyend="25"/>
+    <listofallmembers>
+      <member refid="classNewProjectDialog_1abbf2db01ef41e9c97317879e7c87d558" prot="public" virt="non-virtual"><scope>NewProjectDialog</scope><name>getLocation</name></member>
+      <member refid="classNewProjectDialog_1a7b4a2f9fffe6584f32bad52e0807b5c9" prot="public" virt="non-virtual"><scope>NewProjectDialog</scope><name>getName</name></member>
+      <member refid="classNewProjectDialog_1a7c9fef8d84254792632f9a75df2ef8cf" prot="private" virt="non-virtual"><scope>NewProjectDialog</scope><name>mLocation</name></member>
+      <member refid="classNewProjectDialog_1aba9752cefe1b5a3fe1769903214dd75b" prot="private" virt="non-virtual"><scope>NewProjectDialog</scope><name>mName</name></member>
+      <member refid="classNewProjectDialog_1a66a72979a5f5fd608290d456d345d950" prot="public" virt="non-virtual"><scope>NewProjectDialog</scope><name>NewProjectDialog</name></member>
+      <member refid="classNewProjectDialog_1ad3188e412d3b9001dd32a71572e8e8b9" prot="public" virt="non-virtual"><scope>NewProjectDialog</scope><name>onChange</name></member>
+      <member refid="classNewProjectDialog_1a27964549717724f5a2e246e10388ed36" prot="public" virt="non-virtual"><scope>NewProjectDialog</scope><name>onOk</name></member>
+      <member refid="classNewProjectDialog_1ae28c469539e830666544f72bce491315" prot="public" virt="non-virtual"><scope>NewProjectDialog</scope><name>setLocation</name></member>
+      <member refid="classNewProjectDialog_1a7ae81ea69247726a4f54284c61f083a9" prot="public" virt="non-virtual"><scope>NewProjectDialog</scope><name>setName</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

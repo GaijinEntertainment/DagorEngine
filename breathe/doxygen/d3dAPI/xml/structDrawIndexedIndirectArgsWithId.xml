@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDrawIndexedIndirectArgsWithId" kind="struct" language="C++" prot="public">
+    <compoundname>DrawIndexedIndirectArgsWithId</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDrawIndexedIndirectArgsWithId_1a6ae7cceb5d2fc7f5b3c865b402ce443f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndexedIndirectArgsWithId::drawcallId</definition>
+        <argsstring></argsstring>
+        <name>drawcallId</name>
+        <qualifiedname>DrawIndexedIndirectArgsWithId::drawcallId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="258" column="12" bodyfile="dag_decl.h" bodystart="258" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDrawIndexedIndirectArgsWithId_1a77bfce79455620be71ff092fd1b8b411" prot="public" static="no" mutable="no">
+        <type><ref refid="structDrawIndexedIndirectArgs" kindref="compound">DrawIndexedIndirectArgs</ref></type>
+        <definition>DrawIndexedIndirectArgs DrawIndexedIndirectArgsWithId::args</definition>
+        <argsstring></argsstring>
+        <name>args</name>
+        <qualifiedname>DrawIndexedIndirectArgsWithId::args</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="259" column="27" bodyfile="dag_decl.h" bodystart="259" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>DrawIndexedIndirectArgs</label>
+        <link refid="structDrawIndexedIndirectArgs"/>
+      </node>
+      <node id="1">
+        <label>DrawIndexedIndirectArgsWithId</label>
+        <link refid="structDrawIndexedIndirectArgsWithId"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>args</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_decl.h" line="256" column="1" bodyfile="dag_decl.h" bodystart="257" bodyend="260"/>
+    <listofallmembers>
+      <member refid="structDrawIndexedIndirectArgsWithId_1a77bfce79455620be71ff092fd1b8b411" prot="public" virt="non-virtual"><scope>DrawIndexedIndirectArgsWithId</scope><name>args</name></member>
+      <member refid="structDrawIndexedIndirectArgsWithId_1a6ae7cceb5d2fc7f5b3c865b402ce443f" prot="public" virt="non-virtual"><scope>DrawIndexedIndirectArgsWithId</scope><name>drawcallId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

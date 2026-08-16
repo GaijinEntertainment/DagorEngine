@@ -1,0 +1,128 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structBoolExprEvalInstruction" kind="struct" language="C++" prot="public">
+    <compoundname>BoolExprEvalInstruction</compoundname>
+    <includes refid="boolExpr_8h" local="no">boolExpr.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structBoolExprEvalInstruction_1a8643de3db9d285d3daad69860d729b5d" prot="public" static="no" mutable="no">
+        <type><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8" kindref="member">BoolExprEvalInstructionType</ref></type>
+        <definition>BoolExprEvalInstructionType BoolExprEvalInstruction::opcode</definition>
+        <argsstring></argsstring>
+        <name>opcode</name>
+        <qualifiedname>BoolExprEvalInstruction::opcode</qualifiedname>
+        <initializer>= <ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5926576bfb865b35be5782822e7cfbcb" kindref="member">BE_IT_PLACEHOLDER</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="70" column="31" bodyfile="boolExpr.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBoolExprEvalInstruction_1a08f95d16b580637d6718f4b8a518bbfe" prot="public" static="no" mutable="no">
+        <type><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3b" kindref="member">BoolExprEvalLinkType</ref></type>
+        <definition>BoolExprEvalLinkType BoolExprEvalInstruction::link</definition>
+        <argsstring></argsstring>
+        <name>link</name>
+        <qualifiedname>BoolExprEvalInstruction::link</qualifiedname>
+        <bitfield> 4 = BE_ILT_PLACEHOLDER</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="71" column="24" bodyfile="boolExpr.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBoolExprEvalInstruction_1a6e776b5096cce0e87fb89f7bfeffbbd7" prot="public" static="no" mutable="no">
+        <type><ref refid="classInterval_1a62cc94f67e3c53979160b44f53c5cebf" kindref="member">Interval::BooleanExpr</ref></type>
+        <definition>Interval::BooleanExpr BoolExprEvalInstruction::comp</definition>
+        <argsstring></argsstring>
+        <name>comp</name>
+        <qualifiedname>BoolExprEvalInstruction::comp</qualifiedname>
+        <bitfield> 4 = Interval::EXPR_NOTINIT</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="72" column="25" bodyfile="boolExpr.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBoolExprEvalInstruction_1a61cfedb91bd9ea97dd835cd675d7ef38" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t BoolExprEvalInstruction::valueIsNegated</definition>
+        <argsstring></argsstring>
+        <name>valueIsNegated</name>
+        <qualifiedname>BoolExprEvalInstruction::valueIsNegated</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="73" column="12" bodyfile="boolExpr.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBoolExprEvalInstruction_1acbd3d01abf2ea977b1c5f59d7c345ef2" prot="public" static="no" mutable="no">
+        <type><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0" kindref="member">ShortCircuitJumpLabel</ref></type>
+        <definition>ShortCircuitJumpLabel BoolExprEvalInstruction::shortCircuitJump</definition>
+        <argsstring></argsstring>
+        <name>shortCircuitJump</name>
+        <qualifiedname>BoolExprEvalInstruction::shortCircuitJump</qualifiedname>
+        <bitfield> 15 = BE_SCJ_PLACEHOLDER</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="74" column="25" bodyfile="boolExpr.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBoolExprEvalInstruction_1ab2a51d6ac51fcc41cd0bf46a733a2c9c" prot="public" static="no" mutable="no">
+        <type>int16_t</type>
+        <definition>int16_t BoolExprEvalInstruction::argumentId</definition>
+        <argsstring></argsstring>
+        <name>argumentId</name>
+        <qualifiedname>BoolExprEvalInstruction::argumentId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="75" column="11" bodyfile="boolExpr.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBoolExprEvalInstruction_1a397f2df0ea5b634a89d1ff0497889d8c" prot="public" static="no" mutable="no">
+        <type>int16_t</type>
+        <definition>int16_t BoolExprEvalInstruction::valueId</definition>
+        <argsstring></argsstring>
+        <name>valueId</name>
+        <qualifiedname>BoolExprEvalInstruction::valueId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="76" column="11" bodyfile="boolExpr.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="boolExpr.h" line="68" column="1" bodyfile="boolExpr.h" bodystart="69" bodyend="78"/>
+    <listofallmembers>
+      <member refid="structBoolExprEvalInstruction_1ab2a51d6ac51fcc41cd0bf46a733a2c9c" prot="public" virt="non-virtual"><scope>BoolExprEvalInstruction</scope><name>argumentId</name></member>
+      <member refid="structBoolExprEvalInstruction_1a6e776b5096cce0e87fb89f7bfeffbbd7" prot="public" virt="non-virtual"><scope>BoolExprEvalInstruction</scope><name>comp</name></member>
+      <member refid="structBoolExprEvalInstruction_1a08f95d16b580637d6718f4b8a518bbfe" prot="public" virt="non-virtual"><scope>BoolExprEvalInstruction</scope><name>link</name></member>
+      <member refid="structBoolExprEvalInstruction_1a8643de3db9d285d3daad69860d729b5d" prot="public" virt="non-virtual"><scope>BoolExprEvalInstruction</scope><name>opcode</name></member>
+      <member refid="structBoolExprEvalInstruction_1acbd3d01abf2ea977b1c5f59d7c345ef2" prot="public" virt="non-virtual"><scope>BoolExprEvalInstruction</scope><name>shortCircuitJump</name></member>
+      <member refid="structBoolExprEvalInstruction_1a397f2df0ea5b634a89d1ff0497889d8c" prot="public" virt="non-virtual"><scope>BoolExprEvalInstruction</scope><name>valueId</name></member>
+      <member refid="structBoolExprEvalInstruction_1a61cfedb91bd9ea97dd835cd675d7ef38" prot="public" virt="non-virtual"><scope>BoolExprEvalInstruction</scope><name>valueIsNegated</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

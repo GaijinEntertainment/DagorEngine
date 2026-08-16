@@ -1,0 +1,236 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderParser_1_1ColorChannelExpression" kind="class" language="C++" prot="public">
+    <compoundname>ShaderParser::ColorChannelExpression</compoundname>
+    <basecompoundref refid="classShaderParser_1_1Expression" prot="public" virt="non-virtual">ShaderParser::Expression</basecompoundref>
+    <derivedcompoundref refid="classShaderParser_1_1MultiColorChannelExpression" prot="public" virt="non-virtual">ShaderParser::MultiColorChannelExpression</derivedcompoundref>
+    <derivedcompoundref refid="classShaderParser_1_1SingleColorChannelExpression" prot="public" virt="non-virtual">ShaderParser::SingleColorChannelExpression</derivedcompoundref>
+    <includes refid="shExpr_8h" local="no">shExpr.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classShaderParser_1_1ColorChannelExpression_1acb738bdb2f1c713407c2ca75ffa866b4" prot="protected" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; <ref refid="classShaderParser_1_1Expression" kindref="compound">Expression</ref> &gt;</type>
+        <definition>eastl::unique_ptr&lt;Expression&gt; ShaderParser::ColorChannelExpression::child</definition>
+        <argsstring></argsstring>
+        <name>child</name>
+        <qualifiedname>ShaderParser::ColorChannelExpression::child</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="238" column="21" bodyfile="shExpr.h" bodystart="238" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderParser_1_1ColorChannelExpression_1a33663661e4ed05807d7e30e943dd654b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderParser::ColorChannelExpression::ColorChannelExpression</definition>
+        <argsstring>(Terminal *s)</argsstring>
+        <name>ColorChannelExpression</name>
+        <qualifiedname>ShaderParser::ColorChannelExpression::ColorChannelExpression</qualifiedname>
+        <param>
+          <type>Terminal *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="216" column="3" bodyfile="shExpr.h" bodystart="216" bodyend="216"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorChannelExpression_1a283d759ed61f8b58be2792a7da7a1946" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>shexpr::Type</type>
+        <definition>shexpr::Type ShaderParser::ColorChannelExpression::getType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getType</name>
+        <qualifiedname>ShaderParser::ColorChannelExpression::getType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ab8876717d35f647420a5c3bfd7c1c50c">getType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="219" column="23" bodyfile="shExpr.h" bodystart="219" bodyend="219"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorChannelExpression_1a95fe662a6d979b5d4fa93f252c26d456" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::ColorChannelExpression::isConst</definition>
+        <argsstring>() const override</argsstring>
+        <name>isConst</name>
+        <qualifiedname>ShaderParser::ColorChannelExpression::isConst</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a5cd845a298cd30bc29c1d6176d90d7a5">isConst</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="222" column="8" bodyfile="shExpr.h" bodystart="222" bodyend="222"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorChannelExpression_1ac83da685f248d7f6864d62165fc562b5" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::ColorChannelExpression::isDynamic</definition>
+        <argsstring>() const override</argsstring>
+        <name>isDynamic</name>
+        <qualifiedname>ShaderParser::ColorChannelExpression::isDynamic</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a6670e4cb77f145766d8e787075ed7da9">isDynamic</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="225" column="8" bodyfile="shExpr.h" bodystart="225" bodyend="225"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorChannelExpression_1ae5e7fceccb9082feb174a87f747fb170" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderParser_1_1Expression" kindref="compound">Expression</ref> *</type>
+        <definition>Expression * ShaderParser::ColorChannelExpression::getChild</definition>
+        <argsstring>() const</argsstring>
+        <name>getChild</name>
+        <qualifiedname>ShaderParser::ColorChannelExpression::getChild</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="228" column="14" bodyfile="shExpr.h" bodystart="228" bodyend="228"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorChannelExpression_1a9645ea025110cb5b36d73abea81a549a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderParser::ColorChannelExpression::setChild</definition>
+        <argsstring>(Expression *v)</argsstring>
+        <name>setChild</name>
+        <qualifiedname>ShaderParser::ColorChannelExpression::setChild</qualifiedname>
+        <param>
+          <type><ref refid="classShaderParser_1_1Expression" kindref="compound">Expression</ref> *</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="229" column="8" bodyfile="shExpr.h" bodystart="229" bodyend="229"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorChannelExpression_1aa81a68a7672936ba4804ced027623354" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>Terminal *</type>
+        <definition>Terminal * ShaderParser::ColorChannelExpression::getTerminal</definition>
+        <argsstring>() const override</argsstring>
+        <name>getTerminal</name>
+        <qualifiedname>ShaderParser::ColorChannelExpression::getTerminal</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a63e9f75ae1b742c5ffcbd7aa65b1963a">getTerminal</reimplements>
+        <reimplementedby refid="classShaderParser_1_1SingleColorChannelExpression_1a92d6e9e07882447bb2d0a3311db553ec">getTerminal</reimplementedby>
+        <reimplementedby refid="classShaderParser_1_1MultiColorChannelExpression_1ab45d4e0c5c8be65b9dcde932772ed71d">getTerminal</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="232" column="12" bodyfile="shExpr.h" bodystart="232" bodyend="232"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorChannelExpression_1a0155330eb5dae83e0d56d7e526932132" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::ColorChannelExpression::collapseNumbers</definition>
+        <argsstring>(Parser &amp;parser) override</argsstring>
+        <name>collapseNumbers</name>
+        <qualifiedname>ShaderParser::ColorChannelExpression::collapseNumbers</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a6504a6f642f08f1cf420bebda197efaf">collapseNumbers</reimplements>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="235" column="8" bodyfile="shExpr.h" bodystart="235" bodyend="235"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ShaderParser::ColorChannelExpression</label>
+        <link refid="classShaderParser_1_1ColorChannelExpression"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+      <node id="3">
+        <label>ShaderParser::MultiColorChannelExpression</label>
+        <link refid="classShaderParser_1_1MultiColorChannelExpression"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ShaderParser::SingleColorChannelExpression</label>
+        <link refid="classShaderParser_1_1SingleColorChannelExpression"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ShaderParser::ColorChannelExpression</label>
+        <link refid="classShaderParser_1_1ColorChannelExpression"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+    </collaborationgraph>
+    <location file="shExpr.h" line="212" column="1" bodyfile="shExpr.h" bodystart="213" bodyend="239"/>
+    <listofallmembers>
+      <member refid="classShaderParser_1_1Expression_1a68e771cf9c1584e59c0f5c5e298d3eea" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1aaec5897d85a74cfadd26bf18752a23f1" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1a633bdaee53233d1474dacd39ab7e2d89" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1a77ed6f7aab61c1f6367d6c1f5fcfdbb1" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>allocateRegForResult</name></member>
+      <member refid="classShaderParser_1_1Expression_1adf4dc5757229bb9e7a7d50d3cc6d82f0" prot="public" virt="virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>assembleBytecode</name></member>
+      <member refid="classShaderParser_1_1Expression_1a7cc153456d29d1e3e52ec2d20563b5d1" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1ac03d00732e3242385f7c5efca77f5d3f" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1a9487371df0a50670438cc4343d06cdb2" prot="public" virt="virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>assembleCpp</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4037bf3eee8071bba8ab6886455769e1" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1a56f313f3547738e55c1aada81a1dca07" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1ac19dd34018b4470ad166a8ab244f981d" prot="public" virt="virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>canConvert</name></member>
+      <member refid="classShaderParser_1_1ColorChannelExpression_1acb738bdb2f1c713407c2ca75ffa866b4" prot="protected" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>child</name></member>
+      <member refid="classShaderParser_1_1ColorChannelExpression_1a0155330eb5dae83e0d56d7e526932132" prot="public" virt="virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>collapseNumbers</name></member>
+      <member refid="classShaderParser_1_1ColorChannelExpression_1a33663661e4ed05807d7e30e943dd654b" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>ColorChannelExpression</name></member>
+      <member refid="classShaderParser_1_1Expression_1a08d3c7f008450499ebf2ce26a8f346d5" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>dump</name></member>
+      <member refid="classShaderParser_1_1Expression_1ae3261bc8b45356c6090bd84db2508fcb" prot="protected" virt="pure-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>dump_internal</name></member>
+      <member refid="classShaderParser_1_1Expression_1a8941f97eca15c43e1ecd37d5c7dc3caf" prot="public" virt="pure-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1Expression_1af8c5f003ef7d6a21c423c741f3587a1f" prot="public" virt="pure-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4aeeda4b23b0d2b14c2ad2caab0390c5" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>Expression</name></member>
+      <member refid="classShaderParser_1_1Expression_1a624688ee88ace66f0cafa9481d4e4536" prot="public" virt="virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>getChannels</name></member>
+      <member refid="classShaderParser_1_1ColorChannelExpression_1ae5e7fceccb9082feb174a87f747fb170" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>getChild</name></member>
+      <member refid="classShaderParser_1_1Expression_1a21b42b73baa2d365e975d950b60a613d" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>getParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a066eed5146bd48cfcc3acb30a50e9068" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>getParserSymbol</name></member>
+      <member refid="classShaderParser_1_1ColorChannelExpression_1aa81a68a7672936ba4804ced027623354" prot="public" virt="virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>getTerminal</name></member>
+      <member refid="classShaderParser_1_1ColorChannelExpression_1a283d759ed61f8b58be2792a7da7a1946" prot="public" virt="virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>getType</name></member>
+      <member refid="classShaderParser_1_1Expression_1a1ab07814f1b27a6786d043da4e080c44" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>getUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1Expression_1acc2906c41ab9f1277d513f3c2c97096d" prot="public" virt="pure-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>getValueType</name></member>
+      <member refid="classShaderParser_1_1Expression_1a20844e4f958c20d70cc4824650652f67" prot="public" virt="virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>hasDynamicAndMaterialTermsAt</name></member>
+      <member refid="classShaderParser_1_1ColorChannelExpression_1a95fe662a6d979b5d4fa93f252c26d456" prot="public" virt="virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>isConst</name></member>
+      <member refid="classShaderParser_1_1ColorChannelExpression_1ac83da685f248d7f6864d62165fc562b5" prot="public" virt="virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>isDynamic</name></member>
+      <member refid="classShaderParser_1_1ColorChannelExpression_1a9645ea025110cb5b36d73abea81a549a" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>setChild</name></member>
+      <member refid="classShaderParser_1_1Expression_1a85fe9b97eae19d91e0affe293d3eefdf" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>SetParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a6438a4e71937292586b86d9e3e1202f9" prot="public" virt="non-virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>setUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1Expression_1a9e01aa5ac9dd2e26fa87d4cdd7a042ca" prot="public" virt="virtual"><scope>ShaderParser::ColorChannelExpression</scope><name>~Expression</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

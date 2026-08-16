@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIRenderWorld" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IRenderWorld</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIRenderWorld_1a1979de6086e70e8f3fca827bd11a253e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IRenderWorld::render</definition>
+        <argsstring>()=0</argsstring>
+        <name>render</name>
+        <qualifiedname>IRenderWorld::render</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_IRenderWorld.h" line="10" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIRenderWorld_1af3ef5ddc1c7abd226fb5acb052d2f596" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IRenderWorld::renderTrans</definition>
+        <argsstring>()=0</argsstring>
+        <name>renderTrans</name>
+        <qualifiedname>IRenderWorld::renderTrans</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_IRenderWorld.h" line="11" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIRenderWorld_1ac75caf2f3bca7bf652ae50c88626cb12" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IRenderWorld::renderToShadowMap</definition>
+        <argsstring>()=0</argsstring>
+        <name>renderToShadowMap</name>
+        <qualifiedname>IRenderWorld::renderToShadowMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_IRenderWorld.h" line="12" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_IRenderWorld.h" line="7" column="1" bodyfile="dag_IRenderWorld.h" bodystart="8" bodyend="13"/>
+    <listofallmembers>
+      <member refid="classIRenderWorld_1a1979de6086e70e8f3fca827bd11a253e" prot="public" virt="pure-virtual"><scope>IRenderWorld</scope><name>render</name></member>
+      <member refid="classIRenderWorld_1ac75caf2f3bca7bf652ae50c88626cb12" prot="public" virt="pure-virtual"><scope>IRenderWorld</scope><name>renderToShadowMap</name></member>
+      <member refid="classIRenderWorld_1af3ef5ddc1c7abd226fb5acb052d2f596" prot="public" virt="pure-virtual"><scope>IRenderWorld</scope><name>renderTrans</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structproc_1_1internal_1_1OutputSink" kind="struct" language="C++" prot="public">
+    <compoundname>proc::internal::OutputSink</compoundname>
+    <includes refid="processes__impl_8h" local="no">processes_impl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structproc_1_1internal_1_1OutputSink_1a9c99c8a339c38c441fe1aa1baba0acda" prot="public" static="no" mutable="no">
+        <type>Tab&lt; char &gt;</type>
+        <definition>Tab&lt;char&gt; proc::internal::OutputSink::buffer</definition>
+        <argsstring></argsstring>
+        <name>buffer</name>
+        <qualifiedname>proc::internal::OutputSink::buffer</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="21" column="7" bodyfile="processes_impl.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1OutputSink_1a88e9d69a0f203e32fcff858bab3053ce" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int proc::internal::OutputSink::lastTs</definition>
+        <argsstring></argsstring>
+        <name>lastTs</name>
+        <qualifiedname>proc::internal::OutputSink::lastTs</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="22" column="7" bodyfile="processes_impl.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1OutputSink_1a6b21e12821791b460d791c32cae86491" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char proc::internal::OutputSink::messageSep</definition>
+        <argsstring></argsstring>
+        <name>messageSep</name>
+        <qualifiedname>proc::internal::OutputSink::messageSep</qualifiedname>
+        <initializer>= <ref refid="namespaceproc_1a2d59f96d30d2d59f859f636daeeb9948" kindref="member">MANAGED_MESSAGE_SEPARATOR</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="23" column="8" bodyfile="processes_impl.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1OutputSink_1af249c1edcde90402cf129e9d337e077e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool proc::internal::OutputSink::free</definition>
+        <argsstring></argsstring>
+        <name>free</name>
+        <qualifiedname>proc::internal::OutputSink::free</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_impl.h" line="24" column="8" bodyfile="processes_impl.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="processes_impl.h" line="19" column="1" bodyfile="processes_impl.h" bodystart="20" bodyend="25"/>
+    <listofallmembers>
+      <member refid="structproc_1_1internal_1_1OutputSink_1a9c99c8a339c38c441fe1aa1baba0acda" prot="public" virt="non-virtual"><scope>proc::internal::OutputSink</scope><name>buffer</name></member>
+      <member refid="structproc_1_1internal_1_1OutputSink_1af249c1edcde90402cf129e9d337e077e" prot="public" virt="non-virtual"><scope>proc::internal::OutputSink</scope><name>free</name></member>
+      <member refid="structproc_1_1internal_1_1OutputSink_1a88e9d69a0f203e32fcff858bab3053ce" prot="public" virt="non-virtual"><scope>proc::internal::OutputSink</scope><name>lastTs</name></member>
+      <member refid="structproc_1_1internal_1_1OutputSink_1a6b21e12821791b460d791c32cae86491" prot="public" virt="non-virtual"><scope>proc::internal::OutputSink</scope><name>messageSep</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

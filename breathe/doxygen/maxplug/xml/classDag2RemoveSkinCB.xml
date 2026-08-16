@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDag2RemoveSkinCB" kind="class" language="C++" prot="public">
+    <compoundname>Dag2RemoveSkinCB</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classDag2RemoveSkinCB_1a190f26d6e190fa6cb968006b3acbd419" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Dag2RemoveSkinCB::removedNum</definition>
+        <argsstring></argsstring>
+        <name>removedNum</name>
+        <qualifiedname>Dag2RemoveSkinCB::removedNum</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2579" column="7" bodyfile="util.cpp" bodystart="2579" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classDag2RemoveSkinCB_1ad75f3b3c31c8c2d77480e5d9fa292e1d" prot="private" static="no" mutable="no">
+        <type>Interface7 *</type>
+        <definition>Interface7* Dag2RemoveSkinCB::ip7</definition>
+        <argsstring></argsstring>
+        <name>ip7</name>
+        <qualifiedname>Dag2RemoveSkinCB::ip7</qualifiedname>
+        <initializer>= GetCOREInterface7()</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2624" column="14" bodyfile="util.cpp" bodystart="2624" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDag2RemoveSkinCB_1ac2008b1cd6f362c9b85dd84dea4015dc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>Dag2RemoveSkinCB::~Dag2RemoveSkinCB</definition>
+        <argsstring>() override=default</argsstring>
+        <name>~Dag2RemoveSkinCB</name>
+        <qualifiedname>Dag2RemoveSkinCB::~Dag2RemoveSkinCB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2581" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2RemoveSkinCB_1af50a3412e915457903418a9236aa9889" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int Dag2RemoveSkinCB::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>Dag2RemoveSkinCB::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2583" column="7" bodyfile="util.cpp" bodystart="2583" bodyend="2621"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>Dag2RemoveSkinCB</label>
+        <link refid="classDag2RemoveSkinCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>Dag2RemoveSkinCB</label>
+        <link refid="classDag2RemoveSkinCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="2576" column="1" bodyfile="util.cpp" bodystart="2577" bodyend="2625"/>
+    <listofallmembers>
+      <member refid="classDag2RemoveSkinCB_1ad75f3b3c31c8c2d77480e5d9fa292e1d" prot="private" virt="non-virtual"><scope>Dag2RemoveSkinCB</scope><name>ip7</name></member>
+      <member refid="classDag2RemoveSkinCB_1af50a3412e915457903418a9236aa9889" prot="public" virt="virtual"><scope>Dag2RemoveSkinCB</scope><name>proc</name></member>
+      <member refid="classDag2RemoveSkinCB_1a190f26d6e190fa6cb968006b3acbd419" prot="public" virt="non-virtual"><scope>Dag2RemoveSkinCB</scope><name>removedNum</name></member>
+      <member refid="classDag2RemoveSkinCB_1ac2008b1cd6f362c9b85dd84dea4015dc" prot="public" virt="non-virtual"><scope>Dag2RemoveSkinCB</scope><name>~Dag2RemoveSkinCB</name></member>
+      <member refid="classENodeCB_1a0b6202439bd1551412480edbfcd9648c" prot="public" virt="virtual"><scope>Dag2RemoveSkinCB</scope><name>~ENodeCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

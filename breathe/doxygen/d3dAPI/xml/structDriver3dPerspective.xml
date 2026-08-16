@@ -1,0 +1,164 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDriver3dPerspective" kind="struct" language="C++" prot="public">
+    <compoundname>Driver3dPerspective</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDriver3dPerspective_1acf13eff5c76b3187a9e133a010db91a0" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Driver3dPerspective::wk</definition>
+        <argsstring></argsstring>
+        <name>wk</name>
+        <qualifiedname>Driver3dPerspective::wk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="74" column="9" bodyfile="dag_decl.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dPerspective_1ab6c27aba41c2a016bccf058e70da1c5a" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Driver3dPerspective::hk</definition>
+        <argsstring></argsstring>
+        <name>hk</name>
+        <qualifiedname>Driver3dPerspective::hk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="74" column="12" bodyfile="dag_decl.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dPerspective_1abeb71c4928bac5169e5b9b2e1e84bc33" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Driver3dPerspective::zn</definition>
+        <argsstring></argsstring>
+        <name>zn</name>
+        <qualifiedname>Driver3dPerspective::zn</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="75" column="9" bodyfile="dag_decl.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dPerspective_1aa72f6ca073131454a88fead2e95f8634" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Driver3dPerspective::zf</definition>
+        <argsstring></argsstring>
+        <name>zf</name>
+        <qualifiedname>Driver3dPerspective::zf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="75" column="12" bodyfile="dag_decl.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dPerspective_1a955fe0e7ad497155a445745fe4252b92" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Driver3dPerspective::ox</definition>
+        <argsstring></argsstring>
+        <name>ox</name>
+        <qualifiedname>Driver3dPerspective::ox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="76" column="9" bodyfile="dag_decl.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dPerspective_1a01029e267f71658e2707b1ad3a518204" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Driver3dPerspective::oy</definition>
+        <argsstring></argsstring>
+        <name>oy</name>
+        <qualifiedname>Driver3dPerspective::oy</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="76" column="12" bodyfile="dag_decl.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDriver3dPerspective_1a3684a7aeb72573eec77dc3ea9f7d0f75" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Driver3dPerspective::Driver3dPerspective</definition>
+        <argsstring>()</argsstring>
+        <name>Driver3dPerspective</name>
+        <qualifiedname>Driver3dPerspective::Driver3dPerspective</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="68" column="3" bodyfile="dag_decl.h" bodystart="68" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="function" id="structDriver3dPerspective_1a74786f1b34cc6126e08653f2ee3d3ccd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Driver3dPerspective::Driver3dPerspective</definition>
+        <argsstring>(float wk_, float hk_, float zn_, float zf_, float ox_=0.f, float oy_=0.f)</argsstring>
+        <name>Driver3dPerspective</name>
+        <qualifiedname>Driver3dPerspective::Driver3dPerspective</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>wk_</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>hk_</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>zn_</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>zf_</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>ox_</declname>
+          <defval>0.f</defval>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>oy_</declname>
+          <defval>0.f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="70" column="3" bodyfile="dag_decl.h" bodystart="70" bodyend="72"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_decl.h" line="66" column="1" bodyfile="dag_decl.h" bodystart="67" bodyend="77"/>
+    <listofallmembers>
+      <member refid="structDriver3dPerspective_1a3684a7aeb72573eec77dc3ea9f7d0f75" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>Driver3dPerspective</name></member>
+      <member refid="structDriver3dPerspective_1a74786f1b34cc6126e08653f2ee3d3ccd" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>Driver3dPerspective</name></member>
+      <member refid="structDriver3dPerspective_1ab6c27aba41c2a016bccf058e70da1c5a" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>hk</name></member>
+      <member refid="structDriver3dPerspective_1a955fe0e7ad497155a445745fe4252b92" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>ox</name></member>
+      <member refid="structDriver3dPerspective_1a01029e267f71658e2707b1ad3a518204" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>oy</name></member>
+      <member refid="structDriver3dPerspective_1acf13eff5c76b3187a9e133a010db91a0" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>wk</name></member>
+      <member refid="structDriver3dPerspective_1aa72f6ca073131454a88fead2e95f8634" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>zf</name></member>
+      <member refid="structDriver3dPerspective_1abeb71c4928bac5169e5b9b2e1e84bc33" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>zn</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

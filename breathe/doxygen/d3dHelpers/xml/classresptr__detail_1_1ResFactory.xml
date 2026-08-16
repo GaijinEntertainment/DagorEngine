@@ -1,0 +1,125 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1ResFactory" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::ResFactory</compoundname>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename ResType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classresptr__detail_1_1ResFactory_1a11f3779e929e191ebb80c2b4b5d5442a" prot="public" static="no">
+        <type>dag::FixedMoveOnlyFunction&lt; 128, ResType *()&gt;</type>
+        <definition>using resptr_detail::ResFactory&lt; ResType &gt;::CreateFunction =  dag::FixedMoveOnlyFunction&lt;128, ResType *()&gt;</definition>
+        <argsstring></argsstring>
+        <name>CreateFunction</name>
+        <qualifiedname>resptr_detail::ResFactory::CreateFunction</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="277" column="3" bodyfile="dag_resPtr.h" bodystart="277" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classresptr__detail_1_1ResFactory_1aa6d17d055f8d1a276dc9baa5441af406" prot="private" static="no" mutable="no">
+        <type><ref refid="classresptr__detail_1_1ResFactory_1a11f3779e929e191ebb80c2b4b5d5442a" kindref="member">CreateFunction</ref></type>
+        <definition>CreateFunction resptr_detail::ResFactory&lt; ResType &gt;::createCallback</definition>
+        <argsstring></argsstring>
+        <name>createCallback</name>
+        <qualifiedname>resptr_detail::ResFactory::createCallback</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="287" column="18" bodyfile="dag_resPtr.h" bodystart="287" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classresptr__detail_1_1ResFactory_1a8270ecb75c5d88c6f75515167c993690" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ResFactory&lt; ResType &gt;::ResFactory</definition>
+        <argsstring>(CreateFunction &amp;&amp;create_callback)</argsstring>
+        <name>ResFactory</name>
+        <qualifiedname>resptr_detail::ResFactory::ResFactory</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResFactory_1a11f3779e929e191ebb80c2b4b5d5442a" kindref="member">CreateFunction</ref> &amp;&amp;</type>
+          <declname>create_callback</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="279" column="12" bodyfile="dag_resPtr.h" bodystart="279" bodyend="279"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ResFactory_1a3954c28471f15863cb9bd7a1215f8517" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ResFactory&lt; ResType &gt;::ResFactory</definition>
+        <argsstring>(ResFactory &amp;&amp;)=default</argsstring>
+        <name>ResFactory</name>
+        <qualifiedname>resptr_detail::ResFactory::ResFactory</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ResFactory" kindref="compound">ResFactory</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="281" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ResFactory_1a87ed0da9145e0c13606d0d7f4bd65243" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ResFactory&lt; ResType &gt;::ResFactory</definition>
+        <argsstring>(const ResFactory &amp;)=delete</argsstring>
+        <name>ResFactory</name>
+        <qualifiedname>resptr_detail::ResFactory::ResFactory</qualifiedname>
+        <param>
+          <type>const <ref refid="classresptr__detail_1_1ResFactory" kindref="compound">ResFactory</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="282" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ResFactory_1a8988a590fe07bf8873ee30f21b657237" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ResType *</type>
+        <definition>ResType * resptr_detail::ResFactory&lt; ResType &gt;::create</definition>
+        <argsstring>()</argsstring>
+        <name>create</name>
+        <qualifiedname>resptr_detail::ResFactory::create</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="284" column="11" bodyfile="dag_resPtr.h" bodystart="284" bodyend="284"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resPtr.h" line="274" column="1" bodyfile="dag_resPtr.h" bodystart="275" bodyend="288"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1ResFactory_1a8988a590fe07bf8873ee30f21b657237" prot="public" virt="non-virtual"><scope>resptr_detail::ResFactory</scope><name>create</name></member>
+      <member refid="classresptr__detail_1_1ResFactory_1aa6d17d055f8d1a276dc9baa5441af406" prot="private" virt="non-virtual"><scope>resptr_detail::ResFactory</scope><name>createCallback</name></member>
+      <member refid="classresptr__detail_1_1ResFactory_1a11f3779e929e191ebb80c2b4b5d5442a" prot="public" virt="non-virtual"><scope>resptr_detail::ResFactory</scope><name>CreateFunction</name></member>
+      <member refid="classresptr__detail_1_1ResFactory_1a8270ecb75c5d88c6f75515167c993690" prot="public" virt="non-virtual"><scope>resptr_detail::ResFactory</scope><name>ResFactory</name></member>
+      <member refid="classresptr__detail_1_1ResFactory_1a3954c28471f15863cb9bd7a1215f8517" prot="public" virt="non-virtual"><scope>resptr_detail::ResFactory</scope><name>ResFactory</name></member>
+      <member refid="classresptr__detail_1_1ResFactory_1a87ed0da9145e0c13606d0d7f4bd65243" prot="public" virt="non-virtual"><scope>resptr_detail::ResFactory</scope><name>ResFactory</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

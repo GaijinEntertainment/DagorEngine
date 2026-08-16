@@ -1,0 +1,816 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3ds Max Plugins</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="ShaderCompiler2" href="../ShaderCompiler2/ShaderCompiler2.html" />
+    <link rel="prev" title="Util" href="../libTools/util.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../EditorCore/EditorCore.html">EditorCore</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../libTools/index.html">libTools</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">3ds Max Plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv44typeRKN9DataBlock5ParamE"><code class="docutils literal notranslate"><span class="pre">type()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv49DataBlock"><code class="docutils literal notranslate"><span class="pre">DataBlock</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock9ParamTypeE"><code class="docutils literal notranslate"><span class="pre">DataBlock::ParamType</span></code></a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N9DataBlock9ParamType9TYPE_NONEE"><code class="docutils literal notranslate"><span class="pre">DataBlock::ParamType::TYPE_NONE</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N9DataBlock9ParamType11TYPE_STRINGE"><code class="docutils literal notranslate"><span class="pre">DataBlock::ParamType::TYPE_STRING</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N9DataBlock9ParamType8TYPE_INTE"><code class="docutils literal notranslate"><span class="pre">DataBlock::ParamType::TYPE_INT</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N9DataBlock9ParamType9TYPE_REALE"><code class="docutils literal notranslate"><span class="pre">DataBlock::ParamType::TYPE_REAL</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N9DataBlock9ParamType11TYPE_POINT2E"><code class="docutils literal notranslate"><span class="pre">DataBlock::ParamType::TYPE_POINT2</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N9DataBlock9ParamType11TYPE_POINT3E"><code class="docutils literal notranslate"><span class="pre">DataBlock::ParamType::TYPE_POINT3</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N9DataBlock9ParamType11TYPE_POINT4E"><code class="docutils literal notranslate"><span class="pre">DataBlock::ParamType::TYPE_POINT4</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N9DataBlock9ParamType12TYPE_IPOINT2E"><code class="docutils literal notranslate"><span class="pre">DataBlock::ParamType::TYPE_IPOINT2</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N9DataBlock9ParamType12TYPE_IPOINT3E"><code class="docutils literal notranslate"><span class="pre">DataBlock::ParamType::TYPE_IPOINT3</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N9DataBlock9ParamType9TYPE_BOOLE"><code class="docutils literal notranslate"><span class="pre">DataBlock::ParamType::TYPE_BOOL</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N9DataBlock9ParamType13TYPE_E3DCOLORE"><code class="docutils literal notranslate"><span class="pre">DataBlock::ParamType::TYPE_E3DCOLOR</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv4N9DataBlock9ParamType11TYPE_MATRIXE"><code class="docutils literal notranslate"><span class="pre">DataBlock::ParamType::TYPE_MATRIX</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock5ParamE"><code class="docutils literal notranslate"><span class="pre">DataBlock::Param</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock9DataBlockENSt10shared_ptrI7NameMapEE"><code class="docutils literal notranslate"><span class="pre">DataBlock::DataBlock()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlockD0Ev"><code class="docutils literal notranslate"><span class="pre">DataBlock::~DataBlock()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock9DataBlockERK9DataBlock"><code class="docutils literal notranslate"><span class="pre">DataBlock::DataBlock()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlockaSERK9DataBlock"><code class="docutils literal notranslate"><span class="pre">DataBlock::operator=()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock9clearDataEv"><code class="docutils literal notranslate"><span class="pre">DataBlock::clearData()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock5resetEv"><code class="docutils literal notranslate"><span class="pre">DataBlock::reset()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock8loadTextEPKciPKc"><code class="docutils literal notranslate"><span class="pre">DataBlock::loadText()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock8loadTextERNSt6stringEPKc"><code class="docutils literal notranslate"><span class="pre">DataBlock::loadText()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock14loadFromStreamERNSt8ifstreamEPKc"><code class="docutils literal notranslate"><span class="pre">DataBlock::loadFromStream()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock4loadERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">DataBlock::load()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock14saveToTextFileERKNSt10filesystem4pathE"><code class="docutils literal notranslate"><span class="pre">DataBlock::saveToTextFile()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock9getNameIdEPKc"><code class="docutils literal notranslate"><span class="pre">DataBlock::getNameId()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock7getNameEi"><code class="docutils literal notranslate"><span class="pre">DataBlock::getName()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock14getBlockNameIdEv"><code class="docutils literal notranslate"><span class="pre">DataBlock::getBlockNameId()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock12getBlockNameEv"><code class="docutils literal notranslate"><span class="pre">DataBlock::getBlockName()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock10blockCountEv"><code class="docutils literal notranslate"><span class="pre">DataBlock::blockCount()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock8getBlockEi"><code class="docutils literal notranslate"><span class="pre">DataBlock::getBlock()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock14getBlockByNameEii"><code class="docutils literal notranslate"><span class="pre">DataBlock::getBlockByName()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock14getBlockByNameEPKci"><code class="docutils literal notranslate"><span class="pre">DataBlock::getBlockByName()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock10paramCountEv"><code class="docutils literal notranslate"><span class="pre">DataBlock::paramCount()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock12getParamTypeEi"><code class="docutils literal notranslate"><span class="pre">DataBlock::getParamType()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock14getParamNameIdEi"><code class="docutils literal notranslate"><span class="pre">DataBlock::getParamNameId()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock12getParamNameEi"><code class="docutils literal notranslate"><span class="pre">DataBlock::getParamName()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock9findParamEii"><code class="docutils literal notranslate"><span class="pre">DataBlock::findParam()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock9findParamEPKci"><code class="docutils literal notranslate"><span class="pre">DataBlock::findParam()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock11paramExistsEPKci"><code class="docutils literal notranslate"><span class="pre">DataBlock::paramExists()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock8getParamEi"><code class="docutils literal notranslate"><span class="pre">DataBlock::getParam()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock6getStrEiPKc"><code class="docutils literal notranslate"><span class="pre">DataBlock::getStr()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock7getBoolEib"><code class="docutils literal notranslate"><span class="pre">DataBlock::getBool()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock6getIntEii"><code class="docutils literal notranslate"><span class="pre">DataBlock::getInt()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock7getRealEi4real"><code class="docutils literal notranslate"><span class="pre">DataBlock::getReal()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock9getPoint3EiRK6Point3"><code class="docutils literal notranslate"><span class="pre">DataBlock::getPoint3()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock6getStrEPKcPKc"><code class="docutils literal notranslate"><span class="pre">DataBlock::getStr()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock7getBoolEPKcb"><code class="docutils literal notranslate"><span class="pre">DataBlock::getBool()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock6getIntEPKci"><code class="docutils literal notranslate"><span class="pre">DataBlock::getInt()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock7getRealEPKc4real"><code class="docutils literal notranslate"><span class="pre">DataBlock::getReal()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock9getPoint3EPKcRK6Point3"><code class="docutils literal notranslate"><span class="pre">DataBlock::getPoint3()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock6setStrEPKcPKc"><code class="docutils literal notranslate"><span class="pre">DataBlock::setStr()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock7setBoolEPKcb"><code class="docutils literal notranslate"><span class="pre">DataBlock::setBool()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock6setIntEPKci"><code class="docutils literal notranslate"><span class="pre">DataBlock::setInt()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock7setRealEPKc4real"><code class="docutils literal notranslate"><span class="pre">DataBlock::setReal()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock9setPoint3EPKcRK6Point3"><code class="docutils literal notranslate"><span class="pre">DataBlock::setPoint3()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock6addStrEPKcPKc"><code class="docutils literal notranslate"><span class="pre">DataBlock::addStr()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock7addBoolEPKcb"><code class="docutils literal notranslate"><span class="pre">DataBlock::addBool()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock6addIntEPKci"><code class="docutils literal notranslate"><span class="pre">DataBlock::addInt()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock7addRealEPKc4real"><code class="docutils literal notranslate"><span class="pre">DataBlock::addReal()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock9addPoint3EPKcRK6Point3"><code class="docutils literal notranslate"><span class="pre">DataBlock::addPoint3()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock22deserialize_param_typeENSt11string_viewE"><code class="docutils literal notranslate"><span class="pre">DataBlock::deserialize_param_type()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock12setBlockNameEPKc"><code class="docutils literal notranslate"><span class="pre">DataBlock::setBlockName()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock8addBlockENSt10unique_ptrI9DataBlockEE"><code class="docutils literal notranslate"><span class="pre">DataBlock::addBlock()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock8addParamEPKc9ParamTypePKciPKc"><code class="docutils literal notranslate"><span class="pre">DataBlock::addParam()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK9DataBlock8saveTextERNSt8ofstreamEi"><code class="docutils literal notranslate"><span class="pre">DataBlock::saveText()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock7nameMapE"><code class="docutils literal notranslate"><span class="pre">DataBlock::nameMap</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock6nameIdE"><code class="docutils literal notranslate"><span class="pre">DataBlock::nameId</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock6blocksE"><code class="docutils literal notranslate"><span class="pre">DataBlock::blocks</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock6paramsE"><code class="docutils literal notranslate"><span class="pre">DataBlock::params</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N9DataBlock7nameIdsE"><code class="docutils literal notranslate"><span class="pre">DataBlock::nameIds</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv48Matrix33"><code class="docutils literal notranslate"><span class="pre">Matrix33</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv47TMatrix"><code class="docutils literal notranslate"><span class="pre">TMatrix</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv45BBox2"><code class="docutils literal notranslate"><span class="pre">BBox2</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv45BBox3"><code class="docutils literal notranslate"><span class="pre">BBox3</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv419StaticMeshRayTracer"><code class="docutils literal notranslate"><span class="pre">StaticMeshRayTracer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#_CPPv47NameMap"><code class="docutils literal notranslate"><span class="pre">NameMap</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N7NameMap7NameMapEv"><code class="docutils literal notranslate"><span class="pre">NameMap::NameMap()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N7NameMap7NameMapERK7NameMap"><code class="docutils literal notranslate"><span class="pre">NameMap::NameMap()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N7NameMapaSERK7NameMap"><code class="docutils literal notranslate"><span class="pre">NameMap::operator=()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N7NameMap5clearEv"><code class="docutils literal notranslate"><span class="pre">NameMap::clear()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK7NameMap9nameCountEv"><code class="docutils literal notranslate"><span class="pre">NameMap::nameCount()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK7NameMap7getNameEi"><code class="docutils literal notranslate"><span class="pre">NameMap::getName()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4NK7NameMap9getNameIdEPKc"><code class="docutils literal notranslate"><span class="pre">NameMap::getNameId()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N7NameMap9addNameIdEPKc"><code class="docutils literal notranslate"><span class="pre">NameMap::addNameId()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N7NameMap3s2iE"><code class="docutils literal notranslate"><span class="pre">NameMap::s2i</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#_CPPv4N7NameMap5namesE"><code class="docutils literal notranslate"><span class="pre">NameMap::names</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../ShaderCompiler2/ShaderCompiler2.html">ShaderCompiler2</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Tools</a></li>
+      <li class="breadcrumb-item active">3ds Max Plugins</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/api-references/dagor-tools/maxplug/maxplug.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ds-max-plugins">
+<h1>3ds Max Plugins<a class="headerlink" href="#ds-max-plugins" title="Link to this heading"></a></h1>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv44typeRKN9DataBlock5ParamE">
+<span id="_CPPv34typeRKN9DataBlock5ParamE"></span><span id="_CPPv24typeRKN9DataBlock5ParamE"></span><span id="type__DataBlock::ParamCR"></span><span class="target" id="datablk_8h_1a4239073fad32ad26f06c0b999cf37411"></span><a class="reference internal" href="#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N9DataBlock9ParamTypeE" title="DataBlock::ParamType"><span class="n"><span class="pre">ParamType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N9DataBlock5ParamE" title="DataBlock::Param"><span class="n"><span class="pre">Param</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">p</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv44typeRKN9DataBlock5ParamE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv49DataBlock">
+<span id="_CPPv39DataBlock"></span><span id="_CPPv29DataBlock"></span><span id="DataBlock"></span><span class="target" id="classDataBlock"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DataBlock</span></span></span><a class="headerlink" href="#_CPPv49DataBlock" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;datablk.h&gt;</em></div>
+<p><a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a> class for reading and writing hierarchically structured data. </p>
+<p>Class for reading and writing hierarchically structured data.</p>
+<p><a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a> itself is a node of the tree that has a name and hosts typified named parameters and named sub-nodes.</p>
+<p>For clarity, names are restricted to C indentifier rules.</p>
+<p>Actual names are stored in <a class="reference internal" href="#classNameMap"><span class="std std-ref">NameMap</span></a> that is shared by all DataBlocks in the tree. Blocks and parameters use integer ids to address names in the <a class="reference internal" href="#classNameMap"><span class="std std-ref">NameMap</span></a>, so there are methods that take name ids and those that take character strings. You can use name ids when you look for blocks or parameters for performance gain.</p>
+<p><a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a> tree contents can be serialized in text form.</p>
+<p>Text files of this format usually have extension “.blk”. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9ParamTypeE">
+<span id="_CPPv3N9DataBlock9ParamTypeE"></span><span id="_CPPv2N9DataBlock9ParamTypeE"></span><span class="target" id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ParamType</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock9ParamTypeE" title="Link to this definition"></a><br /></dt>
+<dd><p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9ParamType9TYPE_NONEE">
+<span id="_CPPv3N9DataBlock9ParamType9TYPE_NONEE"></span><span id="_CPPv2N9DataBlock9ParamType9TYPE_NONEE"></span><span class="target" id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5abecaf8c11de4bfc13039fdb16e9c4f0a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TYPE_NONE</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock9ParamType9TYPE_NONEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9ParamType11TYPE_STRINGE">
+<span id="_CPPv3N9DataBlock9ParamType11TYPE_STRINGE"></span><span id="_CPPv2N9DataBlock9ParamType11TYPE_STRINGE"></span><span class="target" id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5ac8d746edee2e78b43d0db005850f11f8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TYPE_STRING</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock9ParamType11TYPE_STRINGE" title="Link to this definition"></a><br /></dt>
+<dd><p>Text string. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9ParamType8TYPE_INTE">
+<span id="_CPPv3N9DataBlock9ParamType8TYPE_INTE"></span><span id="_CPPv2N9DataBlock9ParamType8TYPE_INTE"></span><span class="target" id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5ae252dc27408bfae62687f5ba60941b41"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TYPE_INT</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock9ParamType8TYPE_INTE" title="Link to this definition"></a><br /></dt>
+<dd><p>Integer. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9ParamType9TYPE_REALE">
+<span id="_CPPv3N9DataBlock9ParamType9TYPE_REALE"></span><span id="_CPPv2N9DataBlock9ParamType9TYPE_REALE"></span><span class="target" id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5add13fa08630c81fd85ba1ba866f7b8ae"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TYPE_REAL</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock9ParamType9TYPE_REALE" title="Link to this definition"></a><br /></dt>
+<dd><p>real (float). </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9ParamType11TYPE_POINT2E">
+<span id="_CPPv3N9DataBlock9ParamType11TYPE_POINT2E"></span><span id="_CPPv2N9DataBlock9ParamType11TYPE_POINT2E"></span><span class="target" id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a69ddecac75d1f7a35e6c87a5925c6fa4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TYPE_POINT2</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock9ParamType11TYPE_POINT2E" title="Link to this definition"></a><br /></dt>
+<dd><p>Point2. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9ParamType11TYPE_POINT3E">
+<span id="_CPPv3N9DataBlock9ParamType11TYPE_POINT3E"></span><span id="_CPPv2N9DataBlock9ParamType11TYPE_POINT3E"></span><span class="target" id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a2f68656a2fdd3bd7eea727060896906f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TYPE_POINT3</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock9ParamType11TYPE_POINT3E" title="Link to this definition"></a><br /></dt>
+<dd><p>Point3. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9ParamType11TYPE_POINT4E">
+<span id="_CPPv3N9DataBlock9ParamType11TYPE_POINT4E"></span><span id="_CPPv2N9DataBlock9ParamType11TYPE_POINT4E"></span><span class="target" id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5ac7952dff8d714c2e3f5b6420417b5d34"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TYPE_POINT4</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock9ParamType11TYPE_POINT4E" title="Link to this definition"></a><br /></dt>
+<dd><p>Point4. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9ParamType12TYPE_IPOINT2E">
+<span id="_CPPv3N9DataBlock9ParamType12TYPE_IPOINT2E"></span><span id="_CPPv2N9DataBlock9ParamType12TYPE_IPOINT2E"></span><span class="target" id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5acb01cb8b95a17b9d5b5014c819521725"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TYPE_IPOINT2</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock9ParamType12TYPE_IPOINT2E" title="Link to this definition"></a><br /></dt>
+<dd><p>IPoint2. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9ParamType12TYPE_IPOINT3E">
+<span id="_CPPv3N9DataBlock9ParamType12TYPE_IPOINT3E"></span><span id="_CPPv2N9DataBlock9ParamType12TYPE_IPOINT3E"></span><span class="target" id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a83cabcb940595d5dff78dc2715d07cb4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TYPE_IPOINT3</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock9ParamType12TYPE_IPOINT3E" title="Link to this definition"></a><br /></dt>
+<dd><p>IPoint3. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9ParamType9TYPE_BOOLE">
+<span id="_CPPv3N9DataBlock9ParamType9TYPE_BOOLE"></span><span id="_CPPv2N9DataBlock9ParamType9TYPE_BOOLE"></span><span class="target" id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5abcead9cc5cf68325b7ae26c0c5fa3378"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TYPE_BOOL</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock9ParamType9TYPE_BOOLE" title="Link to this definition"></a><br /></dt>
+<dd><p>Boolean. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9ParamType13TYPE_E3DCOLORE">
+<span id="_CPPv3N9DataBlock9ParamType13TYPE_E3DCOLORE"></span><span id="_CPPv2N9DataBlock9ParamType13TYPE_E3DCOLORE"></span><span class="target" id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a0e2f13ecd2882dcdda2560b6dbd3d809"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TYPE_E3DCOLOR</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock9ParamType13TYPE_E3DCOLORE" title="Link to this definition"></a><br /></dt>
+<dd><p>E3DCOLOR. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9ParamType11TYPE_MATRIXE">
+<span id="_CPPv3N9DataBlock9ParamType11TYPE_MATRIXE"></span><span id="_CPPv2N9DataBlock9ParamType11TYPE_MATRIXE"></span><span class="target" id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a7e9ce45ce5045698a60d1b26dda95049"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TYPE_MATRIX</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock9ParamType11TYPE_MATRIXE" title="Link to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#classTMatrix"><span class="std std-ref">TMatrix</span></a>. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock5ParamE">
+<span id="_CPPv3N9DataBlock5ParamE"></span><span id="_CPPv2N9DataBlock5ParamE"></span><span class="target" id="classDataBlock_1ad6eb308b17440f62f90a28c50a2cde71"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Param</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">variant</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">real</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">Point2</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">Point4</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">IPoint2</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">IPoint3</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">E3DCOLOR</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47TMatrix" title="TMatrix"><span class="n"><span class="pre">TMatrix</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N9DataBlock5ParamE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9DataBlockENSt10shared_ptrI7NameMapEE">
+<span id="_CPPv3N9DataBlock9DataBlockENSt10shared_ptrI7NameMapEE"></span><span id="_CPPv2N9DataBlock9DataBlockENSt10shared_ptrI7NameMapEE"></span><span id="DataBlock::DataBlock__std::shared_ptr:NameMap:"></span><span class="target" id="classDataBlock_1a13dc1fd8bcb7f886499e92474b75ae9d"></span><span class="sig-name descname"><span class="n"><span class="pre">DataBlock</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv47NameMap" title="NameMap"><span class="n"><span class="pre">NameMap</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">nameMap</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock9DataBlockENSt10shared_ptrI7NameMapEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlockD0Ev">
+<span id="_CPPv3N9DataBlockD0Ev"></span><span id="_CPPv2N9DataBlockD0Ev"></span><span id="DataBlock::~DataBlock"></span><span class="target" id="classDataBlock_1a9cdad77da5125fb61c3c5c9e99bc03bd"></span><span class="sig-name descname"><span class="n"><span class="pre">~DataBlock</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N9DataBlockD0Ev" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9DataBlockERK9DataBlock">
+<span id="_CPPv3N9DataBlock9DataBlockERK9DataBlock"></span><span id="_CPPv2N9DataBlock9DataBlockERK9DataBlock"></span><span id="DataBlock::DataBlock__DataBlockCR"></span><span class="target" id="classDataBlock_1a195889eddfbe632f026c4d5a3e212520"></span><span class="sig-name descname"><span class="n"><span class="pre">DataBlock</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N9DataBlock9DataBlockERK9DataBlock" title="DataBlock::DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N9DataBlock9DataBlockERK9DataBlock" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlockaSERK9DataBlock">
+<span id="_CPPv3N9DataBlockaSERK9DataBlock"></span><span id="_CPPv2N9DataBlockaSERK9DataBlock"></span><span id="DataBlock::assign-operator__DataBlockCR"></span><span class="target" id="classDataBlock_1acab2dd69d036ad2dd1aa5f60692d60cf"></span><a class="reference internal" href="#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N9DataBlockaSERK9DataBlock" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9clearDataEv">
+<span id="_CPPv3N9DataBlock9clearDataEv"></span><span id="_CPPv2N9DataBlock9clearDataEv"></span><span id="DataBlock::clearData"></span><span class="target" id="classDataBlock_1ad139ce5afee1bb83f1d8369853e4540d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clearData</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock9clearDataEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Delete all sub-blocks. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock5resetEv">
+<span id="_CPPv3N9DataBlock5resetEv"></span><span id="_CPPv2N9DataBlock5resetEv"></span><span id="DataBlock::reset"></span><span class="target" id="classDataBlock_1a7d48c1160c74a539dc0f8e124958dab2"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock5resetEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Reset <a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a> object (clear all data &amp; names). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock8loadTextEPKciPKc">
+<span id="_CPPv3N9DataBlock8loadTextEPKciPKc"></span><span id="_CPPv2N9DataBlock8loadTextEPKciPKc"></span><span id="DataBlock::loadText__cCP.i.cCP"></span><span class="target" id="classDataBlock_1a7a36a936ee7320a3b25d672f208d847d"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">loadText</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">text</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">text_length</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock8loadTextEPKciPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Load <a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a> tree from specified text. Filename is for error output only. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock8loadTextERNSt6stringEPKc">
+<span id="_CPPv3N9DataBlock8loadTextERNSt6stringEPKc"></span><span id="_CPPv2N9DataBlock8loadTextERNSt6stringEPKc"></span><span id="DataBlock::loadText__ssR.cCP"></span><span class="target" id="classDataBlock_1a9cd5f74e7bcb52ef35a7345f5527a9a9"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">loadText</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">text</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock8loadTextERNSt6stringEPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Load <a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a> tree from specified text. Filename is for error output only. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method will modify <strong>text</strong> when including files. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock14loadFromStreamERNSt8ifstreamEPKc">
+<span id="_CPPv3N9DataBlock14loadFromStreamERNSt8ifstreamEPKc"></span><span id="_CPPv2N9DataBlock14loadFromStreamERNSt8ifstreamEPKc"></span><span id="DataBlock::loadFromStream__std::ifstreamR.cCP"></span><span class="target" id="classDataBlock_1aaabf519f7489719bff58ab5d0c354702"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">loadFromStream</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ifstream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">is</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">fname</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">NULL</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock14loadFromStreamERNSt8ifstreamEPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Load <a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a> tree from arbitrary stream Data may be presented like text, binary or stream data created by function beginTaggedBlock(_MAKE4C(‘blk’)) fname uses if loading from text file to right parse include directives </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock4loadERKNSt10filesystem4pathE">
+<span id="_CPPv3N9DataBlock4loadERKNSt10filesystem4pathE"></span><span id="_CPPv2N9DataBlock4loadERKNSt10filesystem4pathE"></span><span id="DataBlock::load__std::filesystem::pathCR"></span><span class="target" id="classDataBlock_1a71f2d0d30acea56da23f6197716136aa"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">load</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">fname</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock4loadERKNSt10filesystem4pathE" title="Link to this definition"></a><br /></dt>
+<dd><p>Load <a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a> tree from a text file. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock14saveToTextFileERKNSt10filesystem4pathE">
+<span id="_CPPv3NK9DataBlock14saveToTextFileERKNSt10filesystem4pathE"></span><span id="_CPPv2NK9DataBlock14saveToTextFileERKNSt10filesystem4pathE"></span><span id="DataBlock::saveToTextFile__std::filesystem::pathCRC"></span><span class="target" id="classDataBlock_1a5b7c8bb0f25d577c3db5e94b4bd18340"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">saveToTextFile</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock14saveToTextFileERKNSt10filesystem4pathE" title="Link to this definition"></a><br /></dt>
+<dd><p>Save this <a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a> (and its sub-tree) to the specified file (text form) </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock9getNameIdEPKc">
+<span id="_CPPv3NK9DataBlock9getNameIdEPKc"></span><span id="_CPPv2NK9DataBlock9getNameIdEPKc"></span><span id="DataBlock::getNameId__cCPC"></span><span class="target" id="classDataBlock_1a7e96e40dcdbcf32e45b3e18eaab53db9"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getNameId</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock9getNameIdEPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns name id from <a class="reference internal" href="#classNameMap"><span class="std std-ref">NameMap</span></a>, or -1 if there’s no such name in the <a class="reference internal" href="#classNameMap"><span class="std std-ref">NameMap</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock7getNameEi">
+<span id="_CPPv3NK9DataBlock7getNameEi"></span><span id="_CPPv2NK9DataBlock7getNameEi"></span><span id="DataBlock::getName__iC"></span><span class="target" id="classDataBlock_1a4393039cb019686357e6f9e7fdffe95b"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getName</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name_id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock7getNameEi" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns name by name id, uses <a class="reference internal" href="#classNameMap"><span class="std std-ref">NameMap</span></a>. Returns NULL if name id is not valid. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock14getBlockNameIdEv">
+<span id="_CPPv3NK9DataBlock14getBlockNameIdEv"></span><span id="_CPPv2NK9DataBlock14getBlockNameIdEv"></span><span id="DataBlock::getBlockNameIdC"></span><span class="target" id="classDataBlock_1a42d44973a12b1089fac54ebfd28c5ed5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getBlockNameId</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock14getBlockNameIdEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns name id of this <a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock12getBlockNameEv">
+<span id="_CPPv3NK9DataBlock12getBlockNameEv"></span><span id="_CPPv2NK9DataBlock12getBlockNameEv"></span><span id="DataBlock::getBlockNameC"></span><span class="target" id="classDataBlock_1a41453fdfa89e8474d97b940908c9ec5b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getBlockName</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock12getBlockNameEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns name of this <a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock10blockCountEv">
+<span id="_CPPv3NK9DataBlock10blockCountEv"></span><span id="_CPPv2NK9DataBlock10blockCountEv"></span><span id="DataBlock::blockCountC"></span><span class="target" id="classDataBlock_1a4a5b83f3d2a45528f849872f1d12b385"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blockCount</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock10blockCountEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns number of sub-blocks in this <a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a>. Use for enumeration. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock8getBlockEi">
+<span id="_CPPv3NK9DataBlock8getBlockEi"></span><span id="_CPPv2NK9DataBlock8getBlockEi"></span><span id="DataBlock::getBlock__iC"></span><span class="target" id="classDataBlock_1ab237db25052efbbde85f4d127127933c"></span><a class="reference internal" href="#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getBlock</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">block_number</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock8getBlockEi" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns pointer to i-th sub-block. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock14getBlockByNameEii">
+<span id="_CPPv3NK9DataBlock14getBlockByNameEii"></span><span id="_CPPv2NK9DataBlock14getBlockByNameEii"></span><span id="DataBlock::getBlockByName__i.iC"></span><span class="target" id="classDataBlock_1ab8c6197cb00448acfd583b864384ff81"></span><a class="reference internal" href="#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getBlockByName</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name_id</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">start_after</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock14getBlockByNameEii" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns pointer to sub-block with specified name id, or NULL if not found. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock14getBlockByNameEPKci">
+<span id="_CPPv3NK9DataBlock14getBlockByNameEPKci"></span><span id="_CPPv2NK9DataBlock14getBlockByNameEPKci"></span><span id="DataBlock::getBlockByName__cCP.iC"></span><span class="target" id="classDataBlock_1ad001b2a6ba7c9c7f893aa768c514905f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getBlockByName</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">start_after</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock14getBlockByNameEPKci" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns pointer to sub-block with specified name, or NULL if not found. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock10paramCountEv">
+<span id="_CPPv3NK9DataBlock10paramCountEv"></span><span id="_CPPv2NK9DataBlock10paramCountEv"></span><span id="DataBlock::paramCountC"></span><span class="target" id="classDataBlock_1ab882fe0d17bf0ae63f49b37c5d654c22"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">paramCount</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock10paramCountEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns number of parameters in this <a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a>. Use for enumeration. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock12getParamTypeEi">
+<span id="_CPPv3NK9DataBlock12getParamTypeEi"></span><span id="_CPPv2NK9DataBlock12getParamTypeEi"></span><span id="DataBlock::getParamType__iC"></span><span class="target" id="classDataBlock_1a365913f705b094c774bd348dc57aa0f4"></span><a class="reference internal" href="#_CPPv4N9DataBlock9ParamTypeE" title="DataBlock::ParamType"><span class="n"><span class="pre">ParamType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getParamType</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">param_number</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock12getParamTypeEi" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns type of i-th parameter. See ParamType enum. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock14getParamNameIdEi">
+<span id="_CPPv3NK9DataBlock14getParamNameIdEi"></span><span id="_CPPv2NK9DataBlock14getParamNameIdEi"></span><span id="DataBlock::getParamNameId__iC"></span><span class="target" id="classDataBlock_1af1bce1997cf5243d69ca01c25f3fecd8"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getParamNameId</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">param_number</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock14getParamNameIdEi" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns i-th parameter name id. See <a class="reference internal" href="#classDataBlock_1a7e96e40dcdbcf32e45b3e18eaab53db9"><span class="std std-ref">getNameId()</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock12getParamNameEi">
+<span id="_CPPv3NK9DataBlock12getParamNameEi"></span><span id="_CPPv2NK9DataBlock12getParamNameEi"></span><span id="DataBlock::getParamName__iC"></span><span class="target" id="classDataBlock_1a34b1bd82fbe6ea83173f6789aece18d6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getParamName</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">param_number</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock12getParamNameEi" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns i-th parameter name. Uses <a class="reference internal" href="#classDataBlock_1a4393039cb019686357e6f9e7fdffe95b"><span class="std std-ref">getName()</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock9findParamEii">
+<span id="_CPPv3NK9DataBlock9findParamEii"></span><span id="_CPPv2NK9DataBlock9findParamEii"></span><span id="DataBlock::findParam__i.iC"></span><span class="target" id="classDataBlock_1a2c08e03e2141ec3ce9c0cc10bb3d1720"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">findParam</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name_id</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">start_after</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock9findParamEii" title="Link to this definition"></a><br /></dt>
+<dd><p>Find parameter by name id. Returns parameter index or -1 if not found. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock9findParamEPKci">
+<span id="_CPPv3NK9DataBlock9findParamEPKci"></span><span id="_CPPv2NK9DataBlock9findParamEPKci"></span><span id="DataBlock::findParam__cCP.iC"></span><span class="target" id="classDataBlock_1a9a8ec0930292edfa9039967cf295e0c4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">findParam</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">start_after</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock9findParamEPKci" title="Link to this definition"></a><br /></dt>
+<dd><p>Find parameter by name. Uses <a class="reference internal" href="#classDataBlock_1a7e96e40dcdbcf32e45b3e18eaab53db9"><span class="std std-ref">getNameId()</span></a>. Returns parameter index or -1 if not found. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock11paramExistsEPKci">
+<span id="_CPPv3NK9DataBlock11paramExistsEPKci"></span><span id="_CPPv2NK9DataBlock11paramExistsEPKci"></span><span id="DataBlock::paramExists__cCP.iC"></span><span class="target" id="classDataBlock_1a522747f7c2a9d313807a95852aa5a2d2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">paramExists</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">start_after</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock11paramExistsEPKci" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns true if there is parameter with specified name in this <a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock8getParamEi">
+<span id="_CPPv3NK9DataBlock8getParamEi"></span><span id="_CPPv2NK9DataBlock8getParamEi"></span><span id="DataBlock::getParam__iC"></span><span class="target" id="classDataBlock_1a77c4e34d316514f67e4a59e5423876a7"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">reference_wrapper</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N9DataBlock5ParamE" title="DataBlock::Param"><span class="n"><span class="pre">Param</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getParam</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">param_number</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock8getParamEi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock6getStrEiPKc">
+<span id="_CPPv3NK9DataBlock6getStrEiPKc"></span><span id="_CPPv2NK9DataBlock6getStrEiPKc"></span><span id="DataBlock::getStr__i.cCPC"></span><span class="target" id="classDataBlock_1a7cbd96fb90e012426bff0f1641a976ca"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getStr</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">param_number</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">def</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock6getStrEiPKc" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock7getBoolEib">
+<span id="_CPPv3NK9DataBlock7getBoolEib"></span><span id="_CPPv2NK9DataBlock7getBoolEib"></span><span id="DataBlock::getBool__i.bC"></span><span class="target" id="classDataBlock_1a3eb1b630a655770215db0973af2438d7"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getBool</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">param_number</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">def</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock7getBoolEib" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock6getIntEii">
+<span id="_CPPv3NK9DataBlock6getIntEii"></span><span id="_CPPv2NK9DataBlock6getIntEii"></span><span id="DataBlock::getInt__i.iC"></span><span class="target" id="classDataBlock_1a2843a09844f8dad1fe75fa78bdb18c30"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getInt</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">param_number</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">def</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock6getIntEii" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock7getRealEi4real">
+<span id="_CPPv3NK9DataBlock7getRealEi4real"></span><span id="_CPPv2NK9DataBlock7getRealEi4real"></span><span id="DataBlock::getReal__i.realC"></span><span class="target" id="classDataBlock_1ac4d46263956fd45cd8462f36cd3d867e"></span><span class="n"><span class="pre">real</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getReal</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">param_number</span></span>, <span class="n"><span class="pre">real</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">def</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.f</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock7getRealEi4real" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock9getPoint3EiRK6Point3">
+<span id="_CPPv3NK9DataBlock9getPoint3EiRK6Point3"></span><span id="_CPPv2NK9DataBlock9getPoint3EiRK6Point3"></span><span id="DataBlock::getPoint3__i.Point3CRC"></span><span class="target" id="classDataBlock_1ab78465c1c2362ffe8fd7e6ade555283a"></span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getPoint3</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">param_number</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">def</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock9getPoint3EiRK6Point3" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock6getStrEPKcPKc">
+<span id="_CPPv3NK9DataBlock6getStrEPKcPKc"></span><span id="_CPPv2NK9DataBlock6getStrEPKcPKc"></span><span id="DataBlock::getStr__cCP.cCPC"></span><span class="target" id="classDataBlock_1af7eda060b05780f9ecf9f06f4b26e680"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getStr</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">def</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock6getStrEPKcPKc" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock7getBoolEPKcb">
+<span id="_CPPv3NK9DataBlock7getBoolEPKcb"></span><span id="_CPPv2NK9DataBlock7getBoolEPKcb"></span><span id="DataBlock::getBool__cCP.bC"></span><span class="target" id="classDataBlock_1a2bab6a8fc0153f45669597ea593de771"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getBool</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">def</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock7getBoolEPKcb" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock6getIntEPKci">
+<span id="_CPPv3NK9DataBlock6getIntEPKci"></span><span id="_CPPv2NK9DataBlock6getIntEPKci"></span><span id="DataBlock::getInt__cCP.iC"></span><span class="target" id="classDataBlock_1ab784a15cdf32962570db4ebfa1fe9fda"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getInt</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">def</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock6getIntEPKci" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock7getRealEPKc4real">
+<span id="_CPPv3NK9DataBlock7getRealEPKc4real"></span><span id="_CPPv2NK9DataBlock7getRealEPKc4real"></span><span id="DataBlock::getReal__cCP.realC"></span><span class="target" id="classDataBlock_1a5ef3b2b19ef6a5a69c426905eee2bf0f"></span><span class="n"><span class="pre">real</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getReal</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">real</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">def</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock7getRealEPKc4real" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock9getPoint3EPKcRK6Point3">
+<span id="_CPPv3NK9DataBlock9getPoint3EPKcRK6Point3"></span><span id="_CPPv2NK9DataBlock9getPoint3EPKcRK6Point3"></span><span id="DataBlock::getPoint3__cCP.Point3CRC"></span><span class="target" id="classDataBlock_1ad7d94599b2d63c18c4d4507137401f5d"></span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getPoint3</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">def</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock9getPoint3EPKcRK6Point3" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock6setStrEPKcPKc">
+<span id="_CPPv3N9DataBlock6setStrEPKcPKc"></span><span id="_CPPv2N9DataBlock6setStrEPKcPKc"></span><span id="DataBlock::setStr__cCP.cCP"></span><span class="target" id="classDataBlock_1aff8bff937bbf6fe493132745d72c4e4c"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setStr</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock6setStrEPKcPKc" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock7setBoolEPKcb">
+<span id="_CPPv3N9DataBlock7setBoolEPKcb"></span><span id="_CPPv2N9DataBlock7setBoolEPKcb"></span><span id="DataBlock::setBool__cCP.b"></span><span class="target" id="classDataBlock_1a08890e7fcf236697e1f0b941caef9039"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setBool</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock7setBoolEPKcb" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock6setIntEPKci">
+<span id="_CPPv3N9DataBlock6setIntEPKci"></span><span id="_CPPv2N9DataBlock6setIntEPKci"></span><span id="DataBlock::setInt__cCP.i"></span><span class="target" id="classDataBlock_1aa6b964399a63be78e809fcab7b58d5e1"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setInt</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock6setIntEPKci" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock7setRealEPKc4real">
+<span id="_CPPv3N9DataBlock7setRealEPKc4real"></span><span id="_CPPv2N9DataBlock7setRealEPKc4real"></span><span id="DataBlock::setReal__cCP.real"></span><span class="target" id="classDataBlock_1ae45f291df8ff1a828cee0d35a6ecfabf"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setReal</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">real</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock7setRealEPKc4real" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9setPoint3EPKcRK6Point3">
+<span id="_CPPv3N9DataBlock9setPoint3EPKcRK6Point3"></span><span id="_CPPv2N9DataBlock9setPoint3EPKcRK6Point3"></span><span id="DataBlock::setPoint3__cCP.Point3CR"></span><span class="target" id="classDataBlock_1a312f232e5689bb3dccb7fb4c5d41416a"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setPoint3</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock9setPoint3EPKcRK6Point3" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock6addStrEPKcPKc">
+<span id="_CPPv3N9DataBlock6addStrEPKcPKc"></span><span id="_CPPv2N9DataBlock6addStrEPKcPKc"></span><span id="DataBlock::addStr__cCP.cCP"></span><span class="target" id="classDataBlock_1a43dca6a549e52e941faa84d6bdfa448b"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addStr</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock6addStrEPKcPKc" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock7addBoolEPKcb">
+<span id="_CPPv3N9DataBlock7addBoolEPKcb"></span><span id="_CPPv2N9DataBlock7addBoolEPKcb"></span><span id="DataBlock::addBool__cCP.b"></span><span class="target" id="classDataBlock_1aaf7bbd214f73de63c1af3fb4f6706b55"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addBool</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock7addBoolEPKcb" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock6addIntEPKci">
+<span id="_CPPv3N9DataBlock6addIntEPKci"></span><span id="_CPPv2N9DataBlock6addIntEPKci"></span><span id="DataBlock::addInt__cCP.i"></span><span class="target" id="classDataBlock_1a286b854d978dd2c20a9a314173469781"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addInt</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock6addIntEPKci" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock7addRealEPKc4real">
+<span id="_CPPv3N9DataBlock7addRealEPKc4real"></span><span id="_CPPv2N9DataBlock7addRealEPKc4real"></span><span id="DataBlock::addReal__cCP.real"></span><span class="target" id="classDataBlock_1a8e07a241ac041b99c432f261ac4160b1"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addReal</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">real</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock7addRealEPKc4real" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock9addPoint3EPKcRK6Point3">
+<span id="_CPPv3N9DataBlock9addPoint3EPKcRK6Point3"></span><span id="_CPPv2N9DataBlock9addPoint3EPKcRK6Point3"></span><span id="DataBlock::addPoint3__cCP.Point3CR"></span><span class="target" id="classDataBlock_1a29acfc707ed15d829343f731c9bfd818"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addPoint3</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Point3</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock9addPoint3EPKcRK6Point3" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock22deserialize_param_typeENSt11string_viewE">
+<span id="_CPPv3N9DataBlock22deserialize_param_typeENSt11string_viewE"></span><span id="_CPPv2N9DataBlock22deserialize_param_typeENSt11string_viewE"></span><span id="DataBlock::deserialize_param_type__std::string_view"></span><span class="target" id="classDataBlock_1af7f21636f945f31d6fb2a4a25ed897e0"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N9DataBlock9ParamTypeE" title="DataBlock::ParamType"><span class="n"><span class="pre">ParamType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deserialize_param_type</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">s</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock22deserialize_param_typeENSt11string_viewE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-protected-functions">Protected Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock12setBlockNameEPKc">
+<span id="_CPPv3N9DataBlock12setBlockNameEPKc"></span><span id="_CPPv2N9DataBlock12setBlockNameEPKc"></span><span id="DataBlock::setBlockName__cCP"></span><span class="target" id="classDataBlock_1aa6bc7c23a718daa3b0666d087f11bcdb"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setBlockName</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock12setBlockNameEPKc" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock8addBlockENSt10unique_ptrI9DataBlockEE">
+<span id="_CPPv3N9DataBlock8addBlockENSt10unique_ptrI9DataBlockEE"></span><span id="_CPPv2N9DataBlock8addBlockENSt10unique_ptrI9DataBlockEE"></span><span id="DataBlock::addBlock__std::unique_ptr:DataBlock:"></span><span class="target" id="classDataBlock_1a6ffe40cc31292dfcfe12a02c237c2d62"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addBlock</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock8addBlockENSt10unique_ptrI9DataBlockEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock8addParamEPKc9ParamTypePKciPKc">
+<span id="_CPPv3N9DataBlock8addParamEPKc9ParamTypePKciPKc"></span><span id="_CPPv2N9DataBlock8addParamEPKc9ParamTypePKciPKc"></span><span id="DataBlock::addParam__cCP.ParamType.cCP.i.cCP"></span><span class="target" id="classDataBlock_1a88bdd2b5090a95a860796c668d89c2ca"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addParam</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span>, <a class="reference internal" href="#_CPPv4N9DataBlock9ParamTypeE" title="DataBlock::ParamType"><span class="n"><span class="pre">ParamType</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">value</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">line</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">filename</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N9DataBlock8addParamEPKc9ParamTypePKciPKc" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK9DataBlock8saveTextERNSt8ofstreamEi">
+<span id="_CPPv3NK9DataBlock8saveTextERNSt8ofstreamEi"></span><span id="_CPPv2NK9DataBlock8saveTextERNSt8ofstreamEi"></span><span id="DataBlock::saveText__std::ofstreamR.iC"></span><span class="target" id="classDataBlock_1a61be5384f8099d664f2fda06376afc42"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">saveText</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ofstream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">os</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK9DataBlock8saveTextERNSt8ofstreamEi" title="Link to this definition"></a><br /></dt>
+<dd><p>Save this <a class="reference internal" href="#classDataBlock"><span class="std std-ref">DataBlock</span></a> (and its sub-tree) in the text form. level is used for text indentation. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-protected-attributes">Protected Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock7nameMapE">
+<span id="_CPPv3N9DataBlock7nameMapE"></span><span id="_CPPv2N9DataBlock7nameMapE"></span><span id="DataBlock::nameMap__std::shared_ptr:NameMap:"></span><span class="target" id="classDataBlock_1a4bb06fa7177d58b0b9713a8bfaa28b6a"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv47NameMap" title="NameMap"><span class="n"><span class="pre">NameMap</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">nameMap</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock7nameMapE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock6nameIdE">
+<span id="_CPPv3N9DataBlock6nameIdE"></span><span id="_CPPv2N9DataBlock6nameIdE"></span><span id="DataBlock::nameId__i"></span><span class="target" id="classDataBlock_1a1dfcb9475f38abc9954b450bbdee78bd"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">nameId</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock6nameIdE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock6blocksE">
+<span id="_CPPv3N9DataBlock6blocksE"></span><span id="_CPPv2N9DataBlock6blocksE"></span><span id="DataBlock::blocks__std::vector:std::unique_ptr:DataBlock::"></span><span class="target" id="classDataBlock_1a10648fa3ae03f695503bdcb2c174bd89"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv49DataBlock" title="DataBlock"><span class="n"><span class="pre">DataBlock</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">blocks</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock6blocksE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock6paramsE">
+<span id="_CPPv3N9DataBlock6paramsE"></span><span id="_CPPv2N9DataBlock6paramsE"></span><span id="DataBlock::params__std::vector:Param:"></span><span class="target" id="classDataBlock_1a810cbd125b0f9cf50f3e9bcb3fb69a77"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N9DataBlock5ParamE" title="DataBlock::Param"><span class="n"><span class="pre">Param</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">params</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock6paramsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N9DataBlock7nameIdsE">
+<span id="_CPPv3N9DataBlock7nameIdsE"></span><span id="_CPPv2N9DataBlock7nameIdsE"></span><span id="DataBlock::nameIds__std::vector:i:"></span><span class="target" id="classDataBlock_1aa1c756bb9722499ede96ccbd06eaaffd"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">nameIds</span></span></span><a class="headerlink" href="#_CPPv4N9DataBlock7nameIdsE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-friends">Friends</p>
+<dl>
+<dt class="sig sig-object cpp">
+<em class="property"><span class="pre">friend</span> <span class="pre">class</span></em> <span class="pre">DataBlockParser</span></dt>
+</dl>
+
+</div>
+</dd></dl>
+
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>doxygenfile: Cannot find file “e3DCOLOR.H </p>
+</div>
+<p>common classes and functions for 2D, 3D and 4D math </p>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv48Matrix33">
+<span id="_CPPv38Matrix33"></span><span id="_CPPv28Matrix33"></span><span id="Matrix33"></span><span class="target" id="classMatrix33"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Matrix33</span></span></span><a class="headerlink" href="#_CPPv48Matrix33" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;math3d.h&gt;</em></div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv47TMatrix">
+<span id="_CPPv37TMatrix"></span><span id="_CPPv27TMatrix"></span><span id="TMatrix"></span><span class="target" id="classTMatrix"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TMatrix</span></span></span><a class="headerlink" href="#_CPPv47TMatrix" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;math3d.h&gt;</em></div>
+<p>4x3 transformation matrix. last column (3rd, counting from zero) is translation <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>Matrix3 TMatrix4 Point3 Point2 Point4 </p>
+</div>
+</p>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv45BBox2">
+<span id="_CPPv35BBox2"></span><span id="_CPPv25BBox2"></span><span id="BBox2"></span><span class="target" id="classBBox2"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BBox2</span></span></span><a class="headerlink" href="#_CPPv45BBox2" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;math3d.h&gt;</em></div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv45BBox3">
+<span id="_CPPv35BBox3"></span><span id="_CPPv25BBox3"></span><span id="BBox3"></span><span class="target" id="classBBox3"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BBox3</span></span></span><a class="headerlink" href="#_CPPv45BBox3" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;math3d.h&gt;</em></div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv419StaticMeshRayTracer">
+<span id="_CPPv319StaticMeshRayTracer"></span><span id="_CPPv219StaticMeshRayTracer"></span><span id="StaticMeshRayTracer"></span><span class="target" id="classStaticMeshRayTracer"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">StaticMeshRayTracer</span></span></span><a class="headerlink" href="#_CPPv419StaticMeshRayTracer" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;math3d.h&gt;</em></div>
+<p>Subclassed by StaticMeshRTracer</p>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv47NameMap">
+<span id="_CPPv37NameMap"></span><span id="_CPPv27NameMap"></span><span id="NameMap"></span><span class="target" id="classNameMap"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NameMap</span></span></span><a class="headerlink" href="#_CPPv47NameMap" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;namemap.h&gt;</em></div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7NameMap7NameMapEv">
+<span id="_CPPv3N7NameMap7NameMapEv"></span><span id="_CPPv2N7NameMap7NameMapEv"></span><span id="NameMap::NameMap"></span><span class="target" id="classNameMap_1a492ef6501ecd607c62172339a80c4964"></span><span class="sig-name descname"><span class="n"><span class="pre">NameMap</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N7NameMap7NameMapEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7NameMap7NameMapERK7NameMap">
+<span id="_CPPv3N7NameMap7NameMapERK7NameMap"></span><span id="_CPPv2N7NameMap7NameMapERK7NameMap"></span><span id="NameMap::NameMap__NameMapCR"></span><span class="target" id="classNameMap_1ac93f89f24d7f6cd4f8be281fd245a8a3"></span><span class="sig-name descname"><span class="n"><span class="pre">NameMap</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N7NameMap7NameMapERK7NameMap" title="NameMap::NameMap"><span class="n"><span class="pre">NameMap</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N7NameMap7NameMapERK7NameMap" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7NameMapaSERK7NameMap">
+<span id="_CPPv3N7NameMapaSERK7NameMap"></span><span id="_CPPv2N7NameMapaSERK7NameMap"></span><span id="NameMap::assign-operator__NameMapCR"></span><span class="target" id="classNameMap_1a8ec0bb627cfdc0a339d2af1ae3ca0966"></span><a class="reference internal" href="#_CPPv47NameMap" title="NameMap"><span class="n"><span class="pre">NameMap</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv47NameMap" title="NameMap"><span class="n"><span class="pre">NameMap</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N7NameMapaSERK7NameMap" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7NameMap5clearEv">
+<span id="_CPPv3N7NameMap5clearEv"></span><span id="_CPPv2N7NameMap5clearEv"></span><span id="NameMap::clear"></span><span class="target" id="classNameMap_1a3fabce90876462c293bb23b1fd7b9f69"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7NameMap5clearEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Clear name list. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK7NameMap9nameCountEv">
+<span id="_CPPv3NK7NameMap9nameCountEv"></span><span id="_CPPv2NK7NameMap9nameCountEv"></span><span id="NameMap::nameCountC"></span><span class="target" id="classNameMap_1a7ac43f20150f9da70b9ef59538653550"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">nameCount</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK7NameMap9nameCountEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Number of names in list. You can get them all by iterating from 0 to <a class="reference internal" href="#classNameMap_1a7ac43f20150f9da70b9ef59538653550"><span class="std std-ref">nameCount()</span></a>-1. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK7NameMap7getNameEi">
+<span id="_CPPv3NK7NameMap7getNameEi"></span><span id="_CPPv2NK7NameMap7getNameEi"></span><span id="NameMap::getName__iC"></span><span class="target" id="classNameMap_1a13654b50dbe12ea647a89665634b9a02"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getName</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">i</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK7NameMap7getNameEi" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns NULL when name_id is invalid. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK7NameMap9getNameIdEPKc">
+<span id="_CPPv3NK7NameMap9getNameIdEPKc"></span><span id="_CPPv2NK7NameMap9getNameIdEPKc"></span><span id="NameMap::getNameId__cCPC"></span><span class="target" id="classNameMap_1a8218bc8a19c32dff3d67a3376abf2d23"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getNameId</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK7NameMap9getNameIdEPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns -1 if not found. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N7NameMap9addNameIdEPKc">
+<span id="_CPPv3N7NameMap9addNameIdEPKc"></span><span id="_CPPv2N7NameMap9addNameIdEPKc"></span><span id="NameMap::addNameId__cCP"></span><span class="target" id="classNameMap_1af81ec08e783e09c8596c8a0ebf2b5328"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">addNameId</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N7NameMap9addNameIdEPKc" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns -1 if NULL. Adds name to the list if not found. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-private-members">Private Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7NameMap3s2iE">
+<span id="_CPPv3N7NameMap3s2iE"></span><span id="_CPPv2N7NameMap3s2iE"></span><span id="NameMap::s2i__std::unordered_map:ss.i.CaseInsensitiveHash.CaseInsensitiveEqual:"></span><span class="target" id="classNameMap_1a0206afc94eed404fffc7a02b39f577e0"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">CaseInsensitiveHash</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">CaseInsensitiveEqual</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">s2i</span></span></span><a class="headerlink" href="#_CPPv4N7NameMap3s2iE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N7NameMap5namesE">
+<span id="_CPPv3N7NameMap5namesE"></span><span id="_CPPv2N7NameMap5namesE"></span><span id="NameMap::names__std::vector:cCP:"></span><span class="target" id="classNameMap_1a2a2ebfbc8397bc6934681a4d8db54217"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">names</span></span></span><a class="headerlink" href="#_CPPv4N7NameMap5namesE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>doxygenfile: Cannot find file “str.H </p>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../libTools/util.html" class="btn btn-neutral float-left" title="Util" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../ShaderCompiler2/ShaderCompiler2.html" class="btn btn-neutral float-right" title="ShaderCompiler2" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2026.
+      <span class="lastupdated">Last updated on Aug 16, 2026.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,166 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classVPzbufa" kind="class" language="C++" prot="public">
+    <compoundname>VPzbufa</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ImageFilter</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classVPzbufa_1abbd05694060e0affffad47ac42b783c8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * VPzbufa::Description</definition>
+        <argsstring>() override</argsstring>
+        <name>Description</name>
+        <qualifiedname>VPzbufa::Description</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="31" column="15" bodyfile="vpconv.cpp" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPzbufa_1a7efba71a5271fdc27b54db0ad1646fcc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * VPzbufa::AuthorName</definition>
+        <argsstring>() override</argsstring>
+        <name>AuthorName</name>
+        <qualifiedname>VPzbufa::AuthorName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="32" column="15" bodyfile="vpconv.cpp" bodystart="32" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPzbufa_1a496cdc9e0ab81643d736abb93038cc19" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * VPzbufa::CopyrightMessage</definition>
+        <argsstring>() override</argsstring>
+        <name>CopyrightMessage</name>
+        <qualifiedname>VPzbufa::CopyrightMessage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="33" column="15" bodyfile="vpconv.cpp" bodystart="33" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPzbufa_1af099964cd96c200ddd26ef0b4f1af7a9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>UINT</type>
+        <definition>UINT VPzbufa::Version</definition>
+        <argsstring>() override</argsstring>
+        <name>Version</name>
+        <qualifiedname>VPzbufa::Version</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="34" column="8" bodyfile="vpconv.cpp" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPzbufa_1a1224bcfca1613348584a93f5db996a98" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>DWORD</type>
+        <definition>DWORD VPzbufa::Capability</definition>
+        <argsstring>() override</argsstring>
+        <name>Capability</name>
+        <qualifiedname>VPzbufa::Capability</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="35" column="9" bodyfile="vpconv.cpp" bodystart="35" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPzbufa_1a819a28cf8fa482a811ca3a57a5995066" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void VPzbufa::ShowAbout</definition>
+        <argsstring>(HWND hw) override</argsstring>
+        <name>ShowAbout</name>
+        <qualifiedname>VPzbufa::ShowAbout</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="36" column="8" bodyfile="vpconv.cpp" bodystart="36" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPzbufa_1a3b97d5d5006f5c6685bb19c36c534e61" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL VPzbufa::Render</definition>
+        <argsstring>(HWND hw) override</argsstring>
+        <name>Render</name>
+        <qualifiedname>VPzbufa::Render</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="43" column="8" bodyfile="vpconv.cpp" bodystart="97" bodyend="129"/>
+      </memberdef>
+      <memberdef kind="function" id="classVPzbufa_1a93ddcef8db8598f81bab3bba94b11663" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>DWORD</type>
+        <definition>DWORD VPzbufa::ChannelsRequired</definition>
+        <argsstring>() override</argsstring>
+        <name>ChannelsRequired</name>
+        <qualifiedname>VPzbufa::ChannelsRequired</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="vpconv.cpp" line="44" column="9" bodyfile="vpconv.cpp" bodystart="44" bodyend="44"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ImageFilter</label>
+      </node>
+      <node id="1">
+        <label>VPzbufa</label>
+        <link refid="classVPzbufa"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ImageFilter</label>
+      </node>
+      <node id="1">
+        <label>VPzbufa</label>
+        <link refid="classVPzbufa"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="vpconv.cpp" line="28" column="1" bodyfile="vpconv.cpp" bodystart="29" bodyend="45"/>
+    <listofallmembers>
+      <member refid="classVPzbufa_1a7efba71a5271fdc27b54db0ad1646fcc" prot="public" virt="non-virtual"><scope>VPzbufa</scope><name>AuthorName</name></member>
+      <member refid="classVPzbufa_1a1224bcfca1613348584a93f5db996a98" prot="public" virt="non-virtual"><scope>VPzbufa</scope><name>Capability</name></member>
+      <member refid="classVPzbufa_1a93ddcef8db8598f81bab3bba94b11663" prot="public" virt="non-virtual"><scope>VPzbufa</scope><name>ChannelsRequired</name></member>
+      <member refid="classVPzbufa_1a496cdc9e0ab81643d736abb93038cc19" prot="public" virt="non-virtual"><scope>VPzbufa</scope><name>CopyrightMessage</name></member>
+      <member refid="classVPzbufa_1abbd05694060e0affffad47ac42b783c8" prot="public" virt="non-virtual"><scope>VPzbufa</scope><name>Description</name></member>
+      <member refid="classVPzbufa_1a3b97d5d5006f5c6685bb19c36c534e61" prot="public" virt="non-virtual"><scope>VPzbufa</scope><name>Render</name></member>
+      <member refid="classVPzbufa_1a819a28cf8fa482a811ca3a57a5995066" prot="public" virt="non-virtual"><scope>VPzbufa</scope><name>ShowAbout</name></member>
+      <member refid="classVPzbufa_1af099964cd96c200ddd26ef0b4f1af7a9" prot="public" virt="non-virtual"><scope>VPzbufa</scope><name>Version</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

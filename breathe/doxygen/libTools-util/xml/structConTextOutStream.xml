@@ -1,0 +1,267 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structConTextOutStream" kind="struct" language="C++" prot="public">
+    <compoundname>ConTextOutStream</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">IGenSave</basecompoundref>
+    <includes refid="conTextOutStream_8h" local="no">conTextOutStream.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structConTextOutStream_1a4245eb6a83f107d39cdfd604eed43a4a" prot="public" static="no" mutable="no">
+        <type><ref refid="classILogWriter" kindref="compound">ILogWriter</ref> &amp;</type>
+        <definition>ILogWriter&amp; ConTextOutStream::log</definition>
+        <argsstring></argsstring>
+        <name>log</name>
+        <qualifiedname>ConTextOutStream::log</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conTextOutStream.h" line="14" column="14" bodyfile="conTextOutStream.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structConTextOutStream_1a58a878d28d54d8654fcfe0def10f72e7" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String ConTextOutStream::ln</definition>
+        <argsstring></argsstring>
+        <name>ln</name>
+        <qualifiedname>ConTextOutStream::ln</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conTextOutStream.h" line="15" column="10" bodyfile="conTextOutStream.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structConTextOutStream_1a5eb5e7bf6303d720032955b8ef11e9fd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ConTextOutStream::ConTextOutStream</definition>
+        <argsstring>(ILogWriter &amp;l)</argsstring>
+        <name>ConTextOutStream</name>
+        <qualifiedname>ConTextOutStream::ConTextOutStream</qualifiedname>
+        <param>
+          <type><ref refid="classILogWriter" kindref="compound">ILogWriter</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conTextOutStream.h" line="17" column="3" bodyfile="conTextOutStream.h" bodystart="17" bodyend="17"/>
+      </memberdef>
+      <memberdef kind="function" id="structConTextOutStream_1af48c403ba0bf00e3cea31f68650b10fd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ConTextOutStream::~ConTextOutStream</definition>
+        <argsstring>() override</argsstring>
+        <name>~ConTextOutStream</name>
+        <qualifiedname>ConTextOutStream::~ConTextOutStream</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conTextOutStream.h" line="18" column="3" bodyfile="conTextOutStream.h" bodystart="18" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="structConTextOutStream_1ac8ac1731dd9d7883456b40801718e1fe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ConTextOutStream::write</definition>
+        <argsstring>(const void *_ptr, int size) override</argsstring>
+        <name>write</name>
+        <qualifiedname>ConTextOutStream::write</qualifiedname>
+        <param>
+          <type>const void *</type>
+          <declname>_ptr</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conTextOutStream.h" line="20" column="8" bodyfile="conTextOutStream.h" bodystart="20" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="structConTextOutStream_1abad1e8d53e46573db9fc9236b1ab70c0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ConTextOutStream::tell</definition>
+        <argsstring>() override</argsstring>
+        <name>tell</name>
+        <qualifiedname>ConTextOutStream::tell</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conTextOutStream.h" line="42" column="7" bodyfile="conTextOutStream.h" bodystart="42" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="structConTextOutStream_1a51a3c282d97639240be45cabb039af1b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ConTextOutStream::seekto</definition>
+        <argsstring>(int) override</argsstring>
+        <name>seekto</name>
+        <qualifiedname>ConTextOutStream::seekto</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conTextOutStream.h" line="43" column="8" bodyfile="conTextOutStream.h" bodystart="43" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="structConTextOutStream_1a8a5e1e31ef84f6d8435b51b489f19761" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ConTextOutStream::seektoend</definition>
+        <argsstring>(int=0) override</argsstring>
+        <name>seektoend</name>
+        <qualifiedname>ConTextOutStream::seektoend</qualifiedname>
+        <param>
+          <type>int</type>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conTextOutStream.h" line="44" column="8" bodyfile="conTextOutStream.h" bodystart="44" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="structConTextOutStream_1a49a59af6c67bd18cb0139b2052bb71c3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ConTextOutStream::getTargetName</definition>
+        <argsstring>() override</argsstring>
+        <name>getTargetName</name>
+        <qualifiedname>ConTextOutStream::getTargetName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conTextOutStream.h" line="46" column="14" bodyfile="conTextOutStream.h" bodystart="46" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="structConTextOutStream_1a01604e56e21b13f179352e11a3541f6c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ConTextOutStream::beginBlock</definition>
+        <argsstring>() override</argsstring>
+        <name>beginBlock</name>
+        <qualifiedname>ConTextOutStream::beginBlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conTextOutStream.h" line="48" column="8" bodyfile="conTextOutStream.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="structConTextOutStream_1a1fe0407104b672e13e02a9d563236a91" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ConTextOutStream::endBlock</definition>
+        <argsstring>(unsigned=0) override</argsstring>
+        <name>endBlock</name>
+        <qualifiedname>ConTextOutStream::endBlock</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conTextOutStream.h" line="49" column="8" bodyfile="conTextOutStream.h" bodystart="49" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="structConTextOutStream_1a9d490d463e278ef1323dc60b7bbb7545" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ConTextOutStream::getBlockLevel</definition>
+        <argsstring>() override</argsstring>
+        <name>getBlockLevel</name>
+        <qualifiedname>ConTextOutStream::getBlockLevel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conTextOutStream.h" line="50" column="7" bodyfile="conTextOutStream.h" bodystart="50" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="structConTextOutStream_1ae0266705f54dc0891940d00c037f9245" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ConTextOutStream::flush</definition>
+        <argsstring>() override</argsstring>
+        <name>flush</name>
+        <qualifiedname>ConTextOutStream::flush</qualifiedname>
+        <briefdescription>
+<para>Flush stream. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="conTextOutStream.h" line="53" column="8" bodyfile="conTextOutStream.h" bodystart="53" bodyend="58"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ConTextOutStream</label>
+        <link refid="structConTextOutStream"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IGenSave</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ConTextOutStream</label>
+        <link refid="structConTextOutStream"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>log</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IGenSave</label>
+      </node>
+      <node id="3">
+        <label>ILogWriter</label>
+        <link refid="classILogWriter"/>
+      </node>
+    </collaborationgraph>
+    <location file="conTextOutStream.h" line="12" column="1" bodyfile="conTextOutStream.h" bodystart="13" bodyend="59"/>
+    <listofallmembers>
+      <member refid="structConTextOutStream_1a01604e56e21b13f179352e11a3541f6c" prot="public" virt="non-virtual"><scope>ConTextOutStream</scope><name>beginBlock</name></member>
+      <member refid="structConTextOutStream_1a5eb5e7bf6303d720032955b8ef11e9fd" prot="public" virt="non-virtual"><scope>ConTextOutStream</scope><name>ConTextOutStream</name></member>
+      <member refid="structConTextOutStream_1a1fe0407104b672e13e02a9d563236a91" prot="public" virt="non-virtual"><scope>ConTextOutStream</scope><name>endBlock</name></member>
+      <member refid="structConTextOutStream_1ae0266705f54dc0891940d00c037f9245" prot="public" virt="non-virtual"><scope>ConTextOutStream</scope><name>flush</name></member>
+      <member refid="structConTextOutStream_1a9d490d463e278ef1323dc60b7bbb7545" prot="public" virt="non-virtual"><scope>ConTextOutStream</scope><name>getBlockLevel</name></member>
+      <member refid="structConTextOutStream_1a49a59af6c67bd18cb0139b2052bb71c3" prot="public" virt="non-virtual"><scope>ConTextOutStream</scope><name>getTargetName</name></member>
+      <member refid="structConTextOutStream_1a58a878d28d54d8654fcfe0def10f72e7" prot="public" virt="non-virtual"><scope>ConTextOutStream</scope><name>ln</name></member>
+      <member refid="structConTextOutStream_1a4245eb6a83f107d39cdfd604eed43a4a" prot="public" virt="non-virtual"><scope>ConTextOutStream</scope><name>log</name></member>
+      <member refid="structConTextOutStream_1a51a3c282d97639240be45cabb039af1b" prot="public" virt="non-virtual"><scope>ConTextOutStream</scope><name>seekto</name></member>
+      <member refid="structConTextOutStream_1a8a5e1e31ef84f6d8435b51b489f19761" prot="public" virt="non-virtual"><scope>ConTextOutStream</scope><name>seektoend</name></member>
+      <member refid="structConTextOutStream_1abad1e8d53e46573db9fc9236b1ab70c0" prot="public" virt="non-virtual"><scope>ConTextOutStream</scope><name>tell</name></member>
+      <member refid="structConTextOutStream_1ac8ac1731dd9d7883456b40801718e1fe" prot="public" virt="non-virtual"><scope>ConTextOutStream</scope><name>write</name></member>
+      <member refid="structConTextOutStream_1af48c403ba0bf00e3cea31f68650b10fd" prot="public" virt="non-virtual"><scope>ConTextOutStream</scope><name>~ConTextOutStream</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

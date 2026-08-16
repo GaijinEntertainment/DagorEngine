@@ -1,0 +1,234 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structresptr__detail_1_1Helper" kind="struct" language="C++" prot="public">
+    <compoundname>resptr_detail::Helper</compoundname>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename ResType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structresptr__detail_1_1Helper_1af525791f1802a8ec65f8141af67544a6" prot="public" static="no">
+        <type>D3DRESID</type>
+        <definition>using resptr_detail::Helper&lt; ResType &gt;::resid_t =  D3DRESID</definition>
+        <argsstring></argsstring>
+        <name>resid_t</name>
+        <qualifiedname>resptr_detail::Helper::resid_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="84" column="3" bodyfile="dag_resPtr.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structresptr__detail_1_1Helper_1ad50a6f67486c3c840b2f1d30e188b0ab" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structresptr__detail_1_1Helper_1af525791f1802a8ec65f8141af67544a6" kindref="member">resid_t</ref></type>
+        <definition>constexpr resid_t resptr_detail::Helper&lt; ResType &gt;::BAD_ID</definition>
+        <argsstring></argsstring>
+        <name>BAD_ID</name>
+        <qualifiedname>resptr_detail::Helper::BAD_ID</qualifiedname>
+        <initializer>= D3DRESID(D3DRESID::INVALID_ID)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="85" column="28" bodyfile="dag_resPtr.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_1a47c1969e2c15ae710a68bcf863113a33" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structresptr__detail_1_1Helper_1af525791f1802a8ec65f8141af67544a6" kindref="member">resid_t</ref></type>
+        <definition>static resid_t resptr_detail::Helper&lt; ResType &gt;::registerRes</definition>
+        <argsstring>(const char *name, ResType *res)</argsstring>
+        <name>registerRes</name>
+        <qualifiedname>resptr_detail::Helper::registerRes</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>ResType *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="86" column="18" bodyfile="dag_resPtr.h" bodystart="86" bodyend="86"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_1aa1b3a4dfdd1c6232cdb3892849125941" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ResType *</type>
+        <definition>static ResType * resptr_detail::Helper&lt; ResType &gt;::acquire</definition>
+        <argsstring>(resid_t resId)</argsstring>
+        <name>acquire</name>
+        <qualifiedname>resptr_detail::Helper::acquire</qualifiedname>
+        <param>
+          <type><ref refid="structresptr__detail_1_1Helper_1af525791f1802a8ec65f8141af67544a6" kindref="member">resid_t</ref></type>
+          <declname>resId</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="87" column="18" bodyfile="dag_resPtr.h" bodystart="87" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_1aab06b9e870de7d5829200027fc25a9fc" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void resptr_detail::Helper&lt; ResType &gt;::release</definition>
+        <argsstring>(resid_t &amp;resId, ResType *res)</argsstring>
+        <name>release</name>
+        <qualifiedname>resptr_detail::Helper::release</qualifiedname>
+        <param>
+          <type><ref refid="structresptr__detail_1_1Helper_1af525791f1802a8ec65f8141af67544a6" kindref="member">resid_t</ref> &amp;</type>
+          <declname>resId</declname>
+        </param>
+        <param>
+          <type>ResType *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="88" column="15" bodyfile="dag_resPtr.h" bodystart="88" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_1a622baf98dc34b7c8f50f727a8c3b54fb" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool resptr_detail::Helper&lt; ResType &gt;::isManagedFactorySet</definition>
+        <argsstring>(resid_t)</argsstring>
+        <name>isManagedFactorySet</name>
+        <qualifiedname>resptr_detail::Helper::isManagedFactorySet</qualifiedname>
+        <param>
+          <type><ref refid="structresptr__detail_1_1Helper_1af525791f1802a8ec65f8141af67544a6" kindref="member">resid_t</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="89" column="15" bodyfile="dag_resPtr.h" bodystart="89" bodyend="89"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_1a1e6302014516ebdbf2aa1cb8e74b1414" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>static int resptr_detail::Helper&lt; ResType &gt;::getManagedRefCount</definition>
+        <argsstring>(resid_t resId)</argsstring>
+        <name>getManagedRefCount</name>
+        <qualifiedname>resptr_detail::Helper::getManagedRefCount</qualifiedname>
+        <param>
+          <type><ref refid="structresptr__detail_1_1Helper_1af525791f1802a8ec65f8141af67544a6" kindref="member">resid_t</ref></type>
+          <declname>resId</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="90" column="14" bodyfile="dag_resPtr.h" bodystart="90" bodyend="90"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_1a5a1cedef815e8da840d01fb0f5ff09c9" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>static const char * resptr_detail::Helper&lt; ResType &gt;::getName</definition>
+        <argsstring>(ResType *)</argsstring>
+        <name>getName</name>
+        <qualifiedname>resptr_detail::Helper::getName</qualifiedname>
+        <param>
+          <type>ResType *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="91" column="21" bodyfile="dag_resPtr.h" bodystart="91" bodyend="91"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_1a5329906c772617310ed58e537d68a92e" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>static const char * resptr_detail::Helper&lt; ResType &gt;::getNameById</definition>
+        <argsstring>(resid_t resId)</argsstring>
+        <name>getNameById</name>
+        <qualifiedname>resptr_detail::Helper::getNameById</qualifiedname>
+        <param>
+          <type><ref refid="structresptr__detail_1_1Helper_1af525791f1802a8ec65f8141af67544a6" kindref="member">resid_t</ref></type>
+          <declname>resId</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="92" column="21" bodyfile="dag_resPtr.h" bodystart="92" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_1ad741a272c4be71921e37d697205647cb" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool resptr_detail::Helper&lt; ResType &gt;::setVar</definition>
+        <argsstring>(int, resid_t)</argsstring>
+        <name>setVar</name>
+        <qualifiedname>resptr_detail::Helper::setVar</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type><ref refid="structresptr__detail_1_1Helper_1af525791f1802a8ec65f8141af67544a6" kindref="member">resid_t</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="93" column="15" bodyfile="dag_resPtr.h" bodystart="93" bodyend="93"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_1a4ecfd0b2967326207108721a5061b1c1" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool resptr_detail::Helper&lt; ResType &gt;::can_bind</definition>
+        <argsstring>(ResType *)</argsstring>
+        <name>can_bind</name>
+        <qualifiedname>resptr_detail::Helper::can_bind</qualifiedname>
+        <param>
+          <type>ResType *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="94" column="15" bodyfile="dag_resPtr.h" bodystart="94" bodyend="94"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resPtr.h" line="82" column="1" bodyfile="dag_resPtr.h" bodystart="83" bodyend="95"/>
+    <listofallmembers>
+      <member refid="structresptr__detail_1_1Helper_1aa1b3a4dfdd1c6232cdb3892849125941" prot="public" virt="non-virtual"><scope>resptr_detail::Helper</scope><name>acquire</name></member>
+      <member refid="structresptr__detail_1_1Helper_1ad50a6f67486c3c840b2f1d30e188b0ab" prot="public" virt="non-virtual"><scope>resptr_detail::Helper</scope><name>BAD_ID</name></member>
+      <member refid="structresptr__detail_1_1Helper_1a4ecfd0b2967326207108721a5061b1c1" prot="public" virt="non-virtual"><scope>resptr_detail::Helper</scope><name>can_bind</name></member>
+      <member refid="structresptr__detail_1_1Helper_1a1e6302014516ebdbf2aa1cb8e74b1414" prot="public" virt="non-virtual"><scope>resptr_detail::Helper</scope><name>getManagedRefCount</name></member>
+      <member refid="structresptr__detail_1_1Helper_1a5a1cedef815e8da840d01fb0f5ff09c9" prot="public" virt="non-virtual"><scope>resptr_detail::Helper</scope><name>getName</name></member>
+      <member refid="structresptr__detail_1_1Helper_1a5329906c772617310ed58e537d68a92e" prot="public" virt="non-virtual"><scope>resptr_detail::Helper</scope><name>getNameById</name></member>
+      <member refid="structresptr__detail_1_1Helper_1a622baf98dc34b7c8f50f727a8c3b54fb" prot="public" virt="non-virtual"><scope>resptr_detail::Helper</scope><name>isManagedFactorySet</name></member>
+      <member refid="structresptr__detail_1_1Helper_1a47c1969e2c15ae710a68bcf863113a33" prot="public" virt="non-virtual"><scope>resptr_detail::Helper</scope><name>registerRes</name></member>
+      <member refid="structresptr__detail_1_1Helper_1aab06b9e870de7d5829200027fc25a9fc" prot="public" virt="non-virtual"><scope>resptr_detail::Helper</scope><name>release</name></member>
+      <member refid="structresptr__detail_1_1Helper_1af525791f1802a8ec65f8141af67544a6" prot="public" virt="non-virtual"><scope>resptr_detail::Helper</scope><name>resid_t</name></member>
+      <member refid="structresptr__detail_1_1Helper_1ad741a272c4be71921e37d697205647cb" prot="public" virt="non-virtual"><scope>resptr_detail::Helper</scope><name>setVar</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

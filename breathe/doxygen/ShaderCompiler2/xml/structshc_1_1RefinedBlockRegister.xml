@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshc_1_1RefinedBlockRegister" kind="struct" language="C++" prot="public">
+    <compoundname>shc::RefinedBlockRegister</compoundname>
+    <includes refid="refinedBlockRegisterAllocator_8h" local="no">refinedBlockRegisterAllocator.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshc_1_1RefinedBlockRegister_1a952fd6f1d58a2e46a83cc8dd0ca9d9a8" prot="public" static="no" mutable="no">
+        <type>eastl::optional&lt; eastl::pair&lt; int, int &gt; &gt;</type>
+        <definition>eastl::optional&lt;eastl::pair&lt;int, int&gt; &gt; shc::RefinedBlockRegister::cbufOffsetAndCount</definition>
+        <argsstring></argsstring>
+        <name>cbufOffsetAndCount</name>
+        <qualifiedname>shc::RefinedBlockRegister::cbufOffsetAndCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="16" column="19" bodyfile="refinedBlockRegisterAllocator.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1RefinedBlockRegister_1a67a9bc999b10182a8c8dc214cbce7a9c" prot="public" static="no" mutable="no">
+        <type>eastl::array&lt; eastl::optional&lt; int &gt;, STAGE_MAX &gt;</type>
+        <definition>eastl::array&lt;eastl::optional&lt;int&gt;, STAGE_MAX&gt; shc::RefinedBlockRegister::slot</definition>
+        <argsstring></argsstring>
+        <name>slot</name>
+        <qualifiedname>shc::RefinedBlockRegister::slot</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="17" column="16" bodyfile="refinedBlockRegisterAllocator.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1RefinedBlockRegister_1ab667a9f7ed86171dc1d6b5782a0ca73d" prot="public" static="no" mutable="no">
+        <type>eastl::optional&lt; <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref> &gt;</type>
+        <definition>eastl::optional&lt;HlslRegisterSpace&gt; shc::RefinedBlockRegister::space</definition>
+        <argsstring></argsstring>
+        <name>space</name>
+        <qualifiedname>shc::RefinedBlockRegister::space</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="18" column="19" bodyfile="refinedBlockRegisterAllocator.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="refinedBlockRegisterAllocator.h" line="14" column="1" bodyfile="refinedBlockRegisterAllocator.h" bodystart="15" bodyend="19"/>
+    <listofallmembers>
+      <member refid="structshc_1_1RefinedBlockRegister_1a952fd6f1d58a2e46a83cc8dd0ca9d9a8" prot="public" virt="non-virtual"><scope>shc::RefinedBlockRegister</scope><name>cbufOffsetAndCount</name></member>
+      <member refid="structshc_1_1RefinedBlockRegister_1a67a9bc999b10182a8c8dc214cbce7a9c" prot="public" virt="non-virtual"><scope>shc::RefinedBlockRegister</scope><name>slot</name></member>
+      <member refid="structshc_1_1RefinedBlockRegister_1ab667a9f7ed86171dc1d6b5782a0ca73d" prot="public" virt="non-virtual"><scope>shc::RefinedBlockRegister</scope><name>space</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacebindless" kind="namespace" language="C++">
+    <compoundname>bindless</compoundname>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespacebindless_1a2fde22bb7255fe63d5314803ae2566f2" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t bindless::MAX_SAMPLER_INDEX_BITS</definition>
+        <argsstring></argsstring>
+        <name>MAX_SAMPLER_INDEX_BITS</name>
+        <qualifiedname>bindless::MAX_SAMPLER_INDEX_BITS</qualifiedname>
+        <initializer>= 8u</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>DX12 has a overall limit of 2048 samplers on a single GPU heap, this is the upper limit that is guaranteed available. Those GPU heaps also need to have space for dynamically placed descriptors, for samplers that do not use bindless. So this value should be much less than 2048. Usually there are less than 20 unique samplers used, so this value is kept fairly small at 1u &lt;&lt; 8u and leaves plenty room for other descriptors. With those small limits, values can be bit packed for less indexing storage needed. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindless.h" line="23" column="27" bodyfile="dag_bindless.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacebindless_1a62bae19c414d33293f608f621b806a0b" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t bindless::MAX_SAMPLER_INDEX_COUNT</definition>
+        <argsstring></argsstring>
+        <name>MAX_SAMPLER_INDEX_COUNT</name>
+        <qualifiedname>bindless::MAX_SAMPLER_INDEX_COUNT</qualifiedname>
+        <initializer>= 1u &lt;&lt; <ref refid="namespacebindless_1a2fde22bb7255fe63d5314803ae2566f2" kindref="member">MAX_SAMPLER_INDEX_BITS</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindless.h" line="24" column="27" bodyfile="dag_bindless.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacebindless_1ae20747ea3ce63a021378836c83cfe45b" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t bindless::SAMPLER_INDEX_MASK</definition>
+        <argsstring></argsstring>
+        <name>SAMPLER_INDEX_MASK</name>
+        <qualifiedname>bindless::SAMPLER_INDEX_MASK</qualifiedname>
+        <initializer>= <ref refid="namespacebindless_1a62bae19c414d33293f608f621b806a0b" kindref="member">MAX_SAMPLER_INDEX_COUNT</ref> - 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindless.h" line="25" column="27" bodyfile="dag_bindless.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacebindless_1a75caf9db16efa8e0a355f91750d826f4" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t bindless::MAX_RESOURCE_INDEX_BITS</definition>
+        <argsstring></argsstring>
+        <name>MAX_RESOURCE_INDEX_BITS</name>
+        <qualifiedname>bindless::MAX_RESOURCE_INDEX_BITS</qualifiedname>
+        <initializer>= 16u</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>DX12 has a limit of 1000000 and similarly as with samplers, we need some space for descriptors that are not bindless. Right now the limit is somewhat arbitrary chosen to be 65K, we probably need far less than that, but this gives us lot of bindless room to work with. This limit also allows bit packing to be used, to reduce memory usage. A sampler and texture bindless index can be packed into one 32 bit int with some extra bits for extra info. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindless.h" line="32" column="27" bodyfile="dag_bindless.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacebindless_1a2d4aea66b29f7d412e0a65a2aa78b699" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t bindless::MAX_RESOURCE_INDEX_COUNT</definition>
+        <argsstring></argsstring>
+        <name>MAX_RESOURCE_INDEX_COUNT</name>
+        <qualifiedname>bindless::MAX_RESOURCE_INDEX_COUNT</qualifiedname>
+        <initializer>= 1u &lt;&lt; <ref refid="namespacebindless_1a75caf9db16efa8e0a355f91750d826f4" kindref="member">MAX_RESOURCE_INDEX_BITS</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindless.h" line="33" column="27" bodyfile="dag_bindless.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacebindless_1a7dc70010f1bd258be99e87d536dee074" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t bindless::RESOURCE_INDEX_MASK</definition>
+        <argsstring></argsstring>
+        <name>RESOURCE_INDEX_MASK</name>
+        <qualifiedname>bindless::RESOURCE_INDEX_MASK</qualifiedname>
+        <initializer>= <ref refid="namespacebindless_1a2d4aea66b29f7d412e0a65a2aa78b699" kindref="member">MAX_RESOURCE_INDEX_COUNT</ref> - 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bindless.h" line="34" column="27" bodyfile="dag_bindless.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_bindless.h" line="15" column="1"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classKeyboardShortcutsPanel" kind="class" language="C++" prot="public">
+    <compoundname>KeyboardShortcutsPanel</compoundname>
+    <includes refid="ec__keyboardShortcutsPanel_8h" local="no">ec_keyboardShortcutsPanel.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classKeyboardShortcutsPanel_1a0551b69c6609036c26f6f8f0775f05ff" prot="private" static="no" mutable="no">
+        <type>State *</type>
+        <definition>State* KeyboardShortcutsPanel::state</definition>
+        <argsstring></argsstring>
+        <name>state</name>
+        <qualifiedname>KeyboardShortcutsPanel::state</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_keyboardShortcutsPanel.h" line="14" column="9" bodyfile="ec_keyboardShortcutsPanel.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classKeyboardShortcutsPanel_1a69b7c463e7f52ddc17db73983c67f492" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>KeyboardShortcutsPanel::KeyboardShortcutsPanel</definition>
+        <argsstring>()</argsstring>
+        <name>KeyboardShortcutsPanel</name>
+        <qualifiedname>KeyboardShortcutsPanel::KeyboardShortcutsPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_keyboardShortcutsPanel.h" line="7" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classKeyboardShortcutsPanel_1ae578fa569592ea7a034968eddca3e4d8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>KeyboardShortcutsPanel::~KeyboardShortcutsPanel</definition>
+        <argsstring>()</argsstring>
+        <name>~KeyboardShortcutsPanel</name>
+        <qualifiedname>KeyboardShortcutsPanel::~KeyboardShortcutsPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_keyboardShortcutsPanel.h" line="8" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classKeyboardShortcutsPanel_1a137b4bba0ddf76054ae18bd23e1f8295" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void KeyboardShortcutsPanel::updateImgui</definition>
+        <argsstring>()</argsstring>
+        <name>updateImgui</name>
+        <qualifiedname>KeyboardShortcutsPanel::updateImgui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_keyboardShortcutsPanel.h" line="10" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_keyboardShortcutsPanel.h" line="4" column="1" bodyfile="ec_keyboardShortcutsPanel.h" bodystart="5" bodyend="15"/>
+    <listofallmembers>
+      <member refid="classKeyboardShortcutsPanel_1a69b7c463e7f52ddc17db73983c67f492" prot="public" virt="non-virtual"><scope>KeyboardShortcutsPanel</scope><name>KeyboardShortcutsPanel</name></member>
+      <member refid="classKeyboardShortcutsPanel_1a0551b69c6609036c26f6f8f0775f05ff" prot="private" virt="non-virtual"><scope>KeyboardShortcutsPanel</scope><name>state</name></member>
+      <member refid="classKeyboardShortcutsPanel_1a137b4bba0ddf76054ae18bd23e1f8295" prot="public" virt="non-virtual"><scope>KeyboardShortcutsPanel</scope><name>updateImgui</name></member>
+      <member refid="classKeyboardShortcutsPanel_1ae578fa569592ea7a034968eddca3e4d8" prot="public" virt="non-virtual"><scope>KeyboardShortcutsPanel</scope><name>~KeyboardShortcutsPanel</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,131 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceprofiler__tracker" kind="namespace" language="C++">
+    <compoundname>profiler_tracker</compoundname>
+    <innerclass refid="structprofiler__tracker_1_1ScopeTimeTracker" prot="public">profiler_tracker::ScopeTimeTracker</innerclass>
+    <innerclass refid="classprofiler__tracker_1_1Timer" prot="public">profiler_tracker::Timer</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceprofiler__tracker_1a6acd13e1128ce8a9e7551e2d664594b7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void profiler_tracker::init</definition>
+        <argsstring>()</argsstring>
+        <name>init</name>
+        <qualifiedname>profiler_tracker::init</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="16" column="6" declfile="dag_profilerTracker.h" declline="16" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceprofiler__tracker_1a69fb5b523e67e1dd1f074375a859b49c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void profiler_tracker::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>profiler_tracker::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="17" column="6" declfile="dag_profilerTracker.h" declline="17" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceprofiler__tracker_1afeacbde5e9beb091e84dd0321e533d41" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void profiler_tracker::start_frame</definition>
+        <argsstring>()</argsstring>
+        <name>start_frame</name>
+        <qualifiedname>profiler_tracker::start_frame</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="18" column="6" declfile="dag_profilerTracker.h" declline="18" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceprofiler__tracker_1aee0a7f83162d82319d3a5294c195858a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void profiler_tracker::record_value</definition>
+        <argsstring>(const eastl::string &amp;group, const eastl::string &amp;label, float value, uint32_t frame_offset)</argsstring>
+        <name>record_value</name>
+        <qualifiedname>profiler_tracker::record_value</qualifiedname>
+        <param>
+          <type>const eastl::string &amp;</type>
+          <declname>group</declname>
+        </param>
+        <param>
+          <type>const eastl::string &amp;</type>
+          <declname>label</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>value</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>frame_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="22" column="6" declfile="dag_profilerTracker.h" declline="22" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceprofiler__tracker_1af7fdeb993071b36385b884457239e32d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void profiler_tracker::record_value</definition>
+        <argsstring>(const char *group, const char *label, float value, uint32_t frame_offset)</argsstring>
+        <name>record_value</name>
+        <qualifiedname>profiler_tracker::record_value</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>group</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>label</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>value</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>frame_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="23" column="6" declfile="dag_profilerTracker.h" declline="23" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceprofiler__tracker_1ab8643316d7863b39816175787c29cab4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void profiler_tracker::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>profiler_tracker::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="25" column="6" declfile="dag_profilerTracker.h" declline="25" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_profilerTracker.h" line="14" column="1"/>
+  </compounddef>
+</doxygen>

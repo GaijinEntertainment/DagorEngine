@@ -1,0 +1,603 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBinDumpReader" kind="class" language="C++" prot="public">
+    <compoundname>BinDumpReader</compoundname>
+    <includes refid="binDumpReader_8h" local="no">binDumpReader.h</includes>
+    <innerclass refid="structBinDumpReader_1_1Block" prot="protected">BinDumpReader::Block</innerclass>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classBinDumpReader_1a329341396bacb280674e73255628f680" prot="protected" static="no" mutable="no">
+        <type>IGenLoad *</type>
+        <definition>IGenLoad* BinDumpReader::crd</definition>
+        <argsstring></argsstring>
+        <name>crd</name>
+        <qualifiedname>BinDumpReader::crd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="143" column="12" bodyfile="binDumpReader.h" bodystart="143" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBinDumpReader_1ad66c54818bc1ec70d43d640eb9f05d7b" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool BinDumpReader::READ_BE</definition>
+        <argsstring></argsstring>
+        <name>READ_BE</name>
+        <qualifiedname>BinDumpReader::READ_BE</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="144" column="8" bodyfile="binDumpReader.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBinDumpReader_1a08ee4cf565a5d5d9d49645584dd0c200" prot="protected" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned BinDumpReader::targetCode</definition>
+        <argsstring></argsstring>
+        <name>targetCode</name>
+        <qualifiedname>BinDumpReader::targetCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="145" column="12" bodyfile="binDumpReader.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structBinDumpReader_1_1Block" kindref="compound">Block</ref> &gt;</type>
+        <definition>Tab&lt;Block&gt; BinDumpReader::blocks</definition>
+        <argsstring></argsstring>
+        <name>blocks</name>
+        <qualifiedname>BinDumpReader::blocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="158" column="7" bodyfile="binDumpReader.h" bodystart="158" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classBinDumpReader_1a51d9e992da99048094af738c751ba066" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>BinDumpReader::BinDumpReader</definition>
+        <argsstring>(IGenLoad *_crd, unsigned target, bool big_endian)</argsstring>
+        <name>BinDumpReader</name>
+        <qualifiedname>BinDumpReader::BinDumpReader</qualifiedname>
+        <param>
+          <type>IGenLoad *</type>
+          <declname>_crd</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>target</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>big_endian</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="17" column="3" bodyfile="binDumpReader.h" bodystart="17" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a842bf38669ea487a190281854e65af13" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned BinDumpReader::getTarget</definition>
+        <argsstring>() const</argsstring>
+        <name>getTarget</name>
+        <qualifiedname>BinDumpReader::getTarget</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="20" column="12" bodyfile="binDumpReader.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1af0cb83e07985fabd1bdf1dd1883435cc" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool BinDumpReader::readBE</definition>
+        <argsstring>() const</argsstring>
+        <name>readBE</name>
+        <qualifiedname>BinDumpReader::readBE</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="21" column="8" bodyfile="binDumpReader.h" bodystart="21" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a7333453b543af0b4b6f13d09feb84c1b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BinDumpReader::readFourCC</definition>
+        <argsstring>()</argsstring>
+        <name>readFourCC</name>
+        <qualifiedname>BinDumpReader::readFourCC</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="23" column="7" bodyfile="binDumpReader.h" bodystart="23" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a4b1b15b84396c32d51fcb5891126b55b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BinDumpReader::readInt32e</definition>
+        <argsstring>()</argsstring>
+        <name>readInt32e</name>
+        <qualifiedname>BinDumpReader::readInt32e</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="24" column="7" bodyfile="binDumpReader.h" bodystart="24" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1adf32cbc673fe980d7cf6d6da3248320a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BinDumpReader::read32ex</definition>
+        <argsstring>(void *dest, int len)</argsstring>
+        <name>read32ex</name>
+        <qualifiedname>BinDumpReader::read32ex</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>len</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="30" column="8" bodyfile="binDumpReader.h" bodystart="30" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a73af97091cdd4d625ac44119a89283d3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BinDumpReader::readDwString</definition>
+        <argsstring>(String &amp;s)</argsstring>
+        <name>readDwString</name>
+        <qualifiedname>BinDumpReader::readDwString</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="38" column="8" bodyfile="binDumpReader.h" bodystart="38" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1ac216f71d1ae85df9f8e9632157d4592f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BinDumpReader::tell</definition>
+        <argsstring>()</argsstring>
+        <name>tell</name>
+        <qualifiedname>BinDumpReader::tell</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="48" column="7" bodyfile="binDumpReader.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a910f7709076480c6815b821271e2d676" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BinDumpReader::seekto</definition>
+        <argsstring>(int ofs)</argsstring>
+        <name>seekto</name>
+        <qualifiedname>BinDumpReader::seekto</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="49" column="8" bodyfile="binDumpReader.h" bodystart="49" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a735aca4bdd010f8c4e44236f60b60552" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BinDumpReader::seekrel</definition>
+        <argsstring>(int ofs)</argsstring>
+        <name>seekrel</name>
+        <qualifiedname>BinDumpReader::seekrel</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="50" column="8" bodyfile="binDumpReader.h" bodystart="50" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1ac15b3797fca7a8bbd5484ebe11dda9e1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BinDumpReader::beginBlock</definition>
+        <argsstring>(unsigned *out_block_flags=nullptr)</argsstring>
+        <name>beginBlock</name>
+        <qualifiedname>BinDumpReader::beginBlock</qualifiedname>
+        <param>
+          <type>unsigned *</type>
+          <declname>out_block_flags</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="52" column="7" bodyfile="binDumpReader.h" bodystart="52" bodyend="61"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1aa5f789e9cd089f819ecd9488b1555458" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BinDumpReader::beginTaggedBlock</definition>
+        <argsstring>(unsigned *out_block_flags=nullptr)</argsstring>
+        <name>beginTaggedBlock</name>
+        <qualifiedname>BinDumpReader::beginTaggedBlock</qualifiedname>
+        <param>
+          <type>unsigned *</type>
+          <declname>out_block_flags</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="63" column="7" bodyfile="binDumpReader.h" bodystart="63" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a46e0a380e9f672ddde713c3d8712bd3e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BinDumpReader::endBlock</definition>
+        <argsstring>()</argsstring>
+        <name>endBlock</name>
+        <qualifiedname>BinDumpReader::endBlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="69" column="8" bodyfile="binDumpReader.h" bodystart="69" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a238b88d91d736b37bff4d4c459abf9ba" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BinDumpReader::getBlockLength</definition>
+        <argsstring>()</argsstring>
+        <name>getBlockLength</name>
+        <qualifiedname>BinDumpReader::getBlockLength</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="79" column="7" bodyfile="binDumpReader.h" bodystart="79" bodyend="79"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a5c3ae0a97094a158d70a1194af235e83" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BinDumpReader::getBlockRest</definition>
+        <argsstring>()</argsstring>
+        <name>getBlockRest</name>
+        <qualifiedname>BinDumpReader::getBlockRest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="80" column="7" bodyfile="binDumpReader.h" bodystart="80" bodyend="80"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a97eb12193654af033e568b11914bfaf8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BinDumpReader::getBlockLevel</definition>
+        <argsstring>()</argsstring>
+        <name>getBlockLevel</name>
+        <qualifiedname>BinDumpReader::getBlockLevel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="81" column="7" bodyfile="binDumpReader.h" bodystart="81" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a2832270dbbdd399bc3597dee7610dd86" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>IGenLoad &amp;</type>
+        <definition>IGenLoad &amp; BinDumpReader::getRawReader</definition>
+        <argsstring>()</argsstring>
+        <name>getRawReader</name>
+        <qualifiedname>BinDumpReader::getRawReader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="83" column="12" bodyfile="binDumpReader.h" bodystart="83" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a61729962bf028bfc5d02552a6e98392b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BinDumpReader::convert32</definition>
+        <argsstring>(void *p, int sz)</argsstring>
+        <name>convert32</name>
+        <qualifiedname>BinDumpReader::convert32</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="85" column="8" bodyfile="binDumpReader.h" bodystart="85" bodyend="90"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1ae7637aaae37a01cfda1a98944c2a4c55" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BinDumpReader::convert16</definition>
+        <argsstring>(void *p, int sz)</argsstring>
+        <name>convert16</name>
+        <qualifiedname>BinDumpReader::convert16</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="92" column="8" bodyfile="binDumpReader.h" bodystart="92" bodyend="97"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a11f989bbd1de0a19a048869617a8dc87" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BinDumpReader::convert32</definition>
+        <argsstring>(int v)</argsstring>
+        <name>convert32</name>
+        <qualifiedname>BinDumpReader::convert32</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="99" column="7" bodyfile="binDumpReader.h" bodystart="99" bodyend="99"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a4dca3c2a70018293a02fa390f7311473" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BinDumpReader::convert16</definition>
+        <argsstring>(int v)</argsstring>
+        <name>convert16</name>
+        <qualifiedname>BinDumpReader::convert16</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="100" column="7" bodyfile="binDumpReader.h" bodystart="100" bodyend="100"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a6cce2f7f0a7def1ae046265d051d0a22" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void BinDumpReader::convert32</definition>
+        <argsstring>(dag::Span&lt; T &gt; s)</argsstring>
+        <name>convert32</name>
+        <qualifiedname>BinDumpReader::convert32</qualifiedname>
+        <param>
+          <type>dag::Span&lt; T &gt;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="103" column="8" bodyfile="binDumpReader.h" bodystart="103" bodyend="106"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1aecc607ac15737222e97772166cfea458" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void BinDumpReader::convert16</definition>
+        <argsstring>(dag::Span&lt; T &gt; s)</argsstring>
+        <name>convert16</name>
+        <qualifiedname>BinDumpReader::convert16</qualifiedname>
+        <param>
+          <type>dag::Span&lt; T &gt;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="108" column="8" bodyfile="binDumpReader.h" bodystart="108" bodyend="111"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classBinDumpReader_1a9fac2068667a3f2c2650ea301f91d65e" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>static uint32_t BinDumpReader::le2be32</definition>
+        <argsstring>(uint32_t v)</argsstring>
+        <name>le2be32</name>
+        <qualifiedname>BinDumpReader::le2be32</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+<para>convert integer32 from Little endian to Big endian and vice versa </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="115" column="20" bodyfile="binDumpReader.h" bodystart="115" bodyend="115"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a1a67bc5202a8acce7857ae5b14ecbf64" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint16_t</type>
+        <definition>static uint16_t BinDumpReader::le2be16</definition>
+        <argsstring>(uint16_t v)</argsstring>
+        <name>le2be16</name>
+        <qualifiedname>BinDumpReader::le2be16</qualifiedname>
+        <param>
+          <type>uint16_t</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="116" column="20" bodyfile="binDumpReader.h" bodystart="116" bodyend="116"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1a10b710197cdfa945bbcb1c25a1c4d89d" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void BinDumpReader::le2be32_s</definition>
+        <argsstring>(void *dest, const void *src, int dw_num)</argsstring>
+        <name>le2be32_s</name>
+        <qualifiedname>BinDumpReader::le2be32_s</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dw_num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="117" column="16" bodyfile="binDumpReader.h" bodystart="117" bodyend="128"/>
+      </memberdef>
+      <memberdef kind="function" id="classBinDumpReader_1ae9e412f1e00e8a5bddf656cf97309357" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void BinDumpReader::le2be16_s</definition>
+        <argsstring>(void *dest, const void *src, int w_num)</argsstring>
+        <name>le2be16_s</name>
+        <qualifiedname>BinDumpReader::le2be16_s</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w_num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpReader.h" line="129" column="16" bodyfile="binDumpReader.h" bodystart="129" bodyend="140"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="binDumpReader.h" line="14" column="1" bodyfile="binDumpReader.h" bodystart="15" bodyend="159"/>
+    <listofallmembers>
+      <member refid="classBinDumpReader_1ac15b3797fca7a8bbd5484ebe11dda9e1" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>beginBlock</name></member>
+      <member refid="classBinDumpReader_1aa5f789e9cd089f819ecd9488b1555458" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>beginTaggedBlock</name></member>
+      <member refid="classBinDumpReader_1a51d9e992da99048094af738c751ba066" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>BinDumpReader</name></member>
+      <member refid="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" prot="protected" virt="non-virtual"><scope>BinDumpReader</scope><name>blocks</name></member>
+      <member refid="classBinDumpReader_1ae7637aaae37a01cfda1a98944c2a4c55" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>convert16</name></member>
+      <member refid="classBinDumpReader_1a4dca3c2a70018293a02fa390f7311473" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>convert16</name></member>
+      <member refid="classBinDumpReader_1aecc607ac15737222e97772166cfea458" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>convert16</name></member>
+      <member refid="classBinDumpReader_1a61729962bf028bfc5d02552a6e98392b" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>convert32</name></member>
+      <member refid="classBinDumpReader_1a11f989bbd1de0a19a048869617a8dc87" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>convert32</name></member>
+      <member refid="classBinDumpReader_1a6cce2f7f0a7def1ae046265d051d0a22" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>convert32</name></member>
+      <member refid="classBinDumpReader_1a329341396bacb280674e73255628f680" prot="protected" virt="non-virtual"><scope>BinDumpReader</scope><name>crd</name></member>
+      <member refid="classBinDumpReader_1a46e0a380e9f672ddde713c3d8712bd3e" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>endBlock</name></member>
+      <member refid="classBinDumpReader_1a238b88d91d736b37bff4d4c459abf9ba" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>getBlockLength</name></member>
+      <member refid="classBinDumpReader_1a97eb12193654af033e568b11914bfaf8" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>getBlockLevel</name></member>
+      <member refid="classBinDumpReader_1a5c3ae0a97094a158d70a1194af235e83" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>getBlockRest</name></member>
+      <member refid="classBinDumpReader_1a2832270dbbdd399bc3597dee7610dd86" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>getRawReader</name></member>
+      <member refid="classBinDumpReader_1a842bf38669ea487a190281854e65af13" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>getTarget</name></member>
+      <member refid="classBinDumpReader_1a1a67bc5202a8acce7857ae5b14ecbf64" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>le2be16</name></member>
+      <member refid="classBinDumpReader_1ae9e412f1e00e8a5bddf656cf97309357" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>le2be16_s</name></member>
+      <member refid="classBinDumpReader_1a9fac2068667a3f2c2650ea301f91d65e" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>le2be32</name></member>
+      <member refid="classBinDumpReader_1a10b710197cdfa945bbcb1c25a1c4d89d" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>le2be32_s</name></member>
+      <member refid="classBinDumpReader_1adf32cbc673fe980d7cf6d6da3248320a" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>read32ex</name></member>
+      <member refid="classBinDumpReader_1ad66c54818bc1ec70d43d640eb9f05d7b" prot="protected" virt="non-virtual"><scope>BinDumpReader</scope><name>READ_BE</name></member>
+      <member refid="classBinDumpReader_1af0cb83e07985fabd1bdf1dd1883435cc" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>readBE</name></member>
+      <member refid="classBinDumpReader_1a73af97091cdd4d625ac44119a89283d3" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>readDwString</name></member>
+      <member refid="classBinDumpReader_1a7333453b543af0b4b6f13d09feb84c1b" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>readFourCC</name></member>
+      <member refid="classBinDumpReader_1a4b1b15b84396c32d51fcb5891126b55b" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>readInt32e</name></member>
+      <member refid="classBinDumpReader_1a735aca4bdd010f8c4e44236f60b60552" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>seekrel</name></member>
+      <member refid="classBinDumpReader_1a910f7709076480c6815b821271e2d676" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>seekto</name></member>
+      <member refid="classBinDumpReader_1a08ee4cf565a5d5d9d49645584dd0c200" prot="protected" virt="non-virtual"><scope>BinDumpReader</scope><name>targetCode</name></member>
+      <member refid="classBinDumpReader_1ac216f71d1ae85df9f8e9632157d4592f" prot="public" virt="non-virtual"><scope>BinDumpReader</scope><name>tell</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,113 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structdafg_1_1multiplexing_1_1Extents" kind="struct" language="C++" prot="public">
+    <compoundname>dafg::multiplexing::Extents</compoundname>
+    <includes refid="multiplexing_8h" local="no">multiplexing.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structdafg_1_1multiplexing_1_1Extents_1abde7a9ecf1b8f2189cdf46b6bd8175ac" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dafg::multiplexing::Extents::superSamples</definition>
+        <argsstring></argsstring>
+        <name>superSamples</name>
+        <qualifiedname>dafg::multiplexing::Extents::superSamples</qualifiedname>
+        <initializer>{1}</initializer>
+        <briefdescription>
+<para>Number of super-samples. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="multiplexing.h" line="36" column="12" bodyfile="multiplexing.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdafg_1_1multiplexing_1_1Extents_1a08600a4d4ad8a30c0baf7c419cc8e650" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dafg::multiplexing::Extents::subSamples</definition>
+        <argsstring></argsstring>
+        <name>subSamples</name>
+        <qualifiedname>dafg::multiplexing::Extents::subSamples</qualifiedname>
+        <initializer>{1}</initializer>
+        <briefdescription>
+<para>Number of sub-samples. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="multiplexing.h" line="37" column="12" bodyfile="multiplexing.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdafg_1_1multiplexing_1_1Extents_1a770618ec9efef1abcd9aa483ab6f9897" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dafg::multiplexing::Extents::viewports</definition>
+        <argsstring></argsstring>
+        <name>viewports</name>
+        <qualifiedname>dafg::multiplexing::Extents::viewports</qualifiedname>
+        <initializer>{1}</initializer>
+        <briefdescription>
+<para>Number of viewports. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="multiplexing.h" line="38" column="12" bodyfile="multiplexing.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdafg_1_1multiplexing_1_1Extents_1aa41aa29520a96d36d1d0b4bbc0c09337" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dafg::multiplexing::Extents::subCameras</definition>
+        <argsstring></argsstring>
+        <name>subCameras</name>
+        <qualifiedname>dafg::multiplexing::Extents::subCameras</qualifiedname>
+        <initializer>{1}</initializer>
+        <briefdescription>
+<para>Number of main camera areas. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="multiplexing.h" line="39" column="12" bodyfile="multiplexing.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structdafg_1_1multiplexing_1_1Extents_1a95e2d901a481990a3d3993009c36b2f7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool dafg::multiplexing::Extents::operator==</definition>
+        <argsstring>(const Extents &amp;other) const =default</argsstring>
+        <name>operator==</name>
+        <qualifiedname>dafg::multiplexing::Extents::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structdafg_1_1multiplexing_1_1Extents" kindref="compound">Extents</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+<para>Equality comparison operator. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="multiplexing.h" line="42" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A struct describing the amount of multiplexing that occurs over every dimension. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>The application is free to interpret these dimensions however it pleases, but the intended interpretation is<itemizedlist>
+<listitem><para>superSamples <ndash/> used when rendering the entire scene multiple times to achieve a higher resolution result than the user&apos;s VRAM would allow otherwise, which is useful for screenshots and cinematics;</para>
+</listitem><listitem><para>subSamples <ndash/> used for rendering the entire scene multiple times and then blending the results to achieve SSAA without spending any additional VRAM required;</para>
+</listitem><listitem><para>viewports <ndash/> used for VR/AR. </para>
+</listitem></itemizedlist>
+</para>
+    </detaileddescription>
+    <location file="multiplexing.h" line="34" column="1" bodyfile="multiplexing.h" bodystart="35" bodyend="43"/>
+    <listofallmembers>
+      <member refid="structdafg_1_1multiplexing_1_1Extents_1a95e2d901a481990a3d3993009c36b2f7" prot="public" virt="non-virtual"><scope>dafg::multiplexing::Extents</scope><name>operator==</name></member>
+      <member refid="structdafg_1_1multiplexing_1_1Extents_1aa41aa29520a96d36d1d0b4bbc0c09337" prot="public" virt="non-virtual"><scope>dafg::multiplexing::Extents</scope><name>subCameras</name></member>
+      <member refid="structdafg_1_1multiplexing_1_1Extents_1a08600a4d4ad8a30c0baf7c419cc8e650" prot="public" virt="non-virtual"><scope>dafg::multiplexing::Extents</scope><name>subSamples</name></member>
+      <member refid="structdafg_1_1multiplexing_1_1Extents_1abde7a9ecf1b8f2189cdf46b6bd8175ac" prot="public" virt="non-virtual"><scope>dafg::multiplexing::Extents</scope><name>superSamples</name></member>
+      <member refid="structdafg_1_1multiplexing_1_1Extents_1a770618ec9efef1abcd9aa483ab6f9897" prot="public" virt="non-virtual"><scope>dafg::multiplexing::Extents</scope><name>viewports</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

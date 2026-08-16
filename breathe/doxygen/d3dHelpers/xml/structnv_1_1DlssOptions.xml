@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structnv_1_1DlssOptions" kind="struct" language="C++" prot="public">
+    <compoundname>nv::DlssOptions</compoundname>
+    <includes refid="dag__nvFeatures_8h" local="no">dag_nvFeatures.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structnv_1_1DlssOptions_1a01103b89cc55d3eddc96aa38e7603425" prot="public" static="no" mutable="no">
+        <type><ref refid="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245f" kindref="member">DLSS::Mode</ref></type>
+        <definition>DLSS::Mode nv::DlssOptions::mode</definition>
+        <argsstring></argsstring>
+        <name>mode</name>
+        <qualifiedname>nv::DlssOptions::mode</qualifiedname>
+        <initializer>= <ref refid="structnv_1_1DLSS_1a1ac996badfd03caf2da6bd3d9c07245fad15305d7a4e34e02489c74a5ef542f36" kindref="member">DLSS::Mode::Off</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="199" column="14" bodyfile="dag_nvFeatures.h" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssOptions_1a81adcffe8efe9dccf919dd78cf0f4408" prot="public" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 nv::DlssOptions::outputResolution</definition>
+        <argsstring></argsstring>
+        <name>outputResolution</name>
+        <qualifiedname>nv::DlssOptions::outputResolution</qualifiedname>
+        <initializer>= {0, 0}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="200" column="11" bodyfile="dag_nvFeatures.h" bodystart="200" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssOptions_1aeddbbd1359b9f5216643908262c1e872" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool nv::DlssOptions::useRayReconstruction</definition>
+        <argsstring></argsstring>
+        <name>useRayReconstruction</name>
+        <qualifiedname>nv::DlssOptions::useRayReconstruction</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="201" column="8" bodyfile="dag_nvFeatures.h" bodystart="201" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DlssOptions_1a7d77fbb0e82fedc3f1ca9786156057f6" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool nv::DlssOptions::useLegacyModel</definition>
+        <argsstring></argsstring>
+        <name>useLegacyModel</name>
+        <qualifiedname>nv::DlssOptions::useLegacyModel</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="202" column="8" bodyfile="dag_nvFeatures.h" bodystart="202" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_nvFeatures.h" line="197" column="1" bodyfile="dag_nvFeatures.h" bodystart="198" bodyend="203"/>
+    <listofallmembers>
+      <member refid="structnv_1_1DlssOptions_1a01103b89cc55d3eddc96aa38e7603425" prot="public" virt="non-virtual"><scope>nv::DlssOptions</scope><name>mode</name></member>
+      <member refid="structnv_1_1DlssOptions_1a81adcffe8efe9dccf919dd78cf0f4408" prot="public" virt="non-virtual"><scope>nv::DlssOptions</scope><name>outputResolution</name></member>
+      <member refid="structnv_1_1DlssOptions_1a7d77fbb0e82fedc3f1ca9786156057f6" prot="public" virt="non-virtual"><scope>nv::DlssOptions</scope><name>useLegacyModel</name></member>
+      <member refid="structnv_1_1DlssOptions_1aeddbbd1359b9f5216643908262c1e872" prot="public" virt="non-virtual"><scope>nv::DlssOptions</scope><name>useRayReconstruction</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

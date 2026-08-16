@@ -1,0 +1,195 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTestWindow" kind="class" language="C++" prot="public">
+    <compoundname>TestWindow</compoundname>
+    <includes refid="ec__testSystem_8h" local="no">ec_testSystem.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classTestWindow_1a39dba7254821f310a632e3277430201c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TestWindow::drawFakeMousePointerDuringRun</definition>
+        <argsstring></argsstring>
+        <name>drawFakeMousePointerDuringRun</name>
+        <qualifiedname>TestWindow::drawFakeMousePointerDuringRun</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="127" column="8" bodyfile="ec_testSystem.h" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestWindow_1a4b4cedb2302e86ff283f37c1110b9ef3" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TestWindow::hideDuringRun</definition>
+        <argsstring></argsstring>
+        <name>hideDuringRun</name>
+        <qualifiedname>TestWindow::hideDuringRun</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="128" column="8" bodyfile="ec_testSystem.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classTestWindow_1a35ef017ef6e32f686356e977f5486bfe" prot="private" static="no" mutable="no">
+        <type><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref> &amp;</type>
+        <definition>TestRuntime&amp; TestWindow::runtime</definition>
+        <argsstring></argsstring>
+        <name>runtime</name>
+        <qualifiedname>TestWindow::runtime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="131" column="15" bodyfile="ec_testSystem.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestWindow_1a65daa26bce79a7e5584397d2ef0a6526" prot="private" static="no" mutable="no">
+        <type><ref refid="ec__testSystem_8h_1af512c4e954ce432df4eced92186df827" kindref="member">TestFilter</ref></type>
+        <definition>TestFilter TestWindow::filterSelection</definition>
+        <argsstring></argsstring>
+        <name>filterSelection</name>
+        <qualifiedname>TestWindow::filterSelection</qualifiedname>
+        <initializer>= <ref refid="ec__testSystem_8h_1af512c4e954ce432df4eced92186df827a5fb1f955b45e38e31789286a1790398d" kindref="member">TestFilter::ALL</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="133" column="14" bodyfile="ec_testSystem.h" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestWindow_1a55a7bf62a362cff88929d1ab1c348875" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TestWindow::runOnlyNameFiltered</definition>
+        <argsstring></argsstring>
+        <name>runOnlyNameFiltered</name>
+        <qualifiedname>TestWindow::runOnlyNameFiltered</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="134" column="8" bodyfile="ec_testSystem.h" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestWindow_1a93a97a3cbddb2e9813bad49f46a0ed94" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String TestWindow::filterText</definition>
+        <argsstring></argsstring>
+        <name>filterText</name>
+        <qualifiedname>TestWindow::filterText</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="135" column="10" bodyfile="ec_testSystem.h" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestWindow_1a10551650c1a60d8f5c235a2643103c9c" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TestWindow::textInputFocused</definition>
+        <argsstring></argsstring>
+        <name>textInputFocused</name>
+        <qualifiedname>TestWindow::textInputFocused</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="136" column="8" bodyfile="ec_testSystem.h" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestWindow_1a5d705353c377ba87fb1c6aa863c208cc" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String TestWindow::scriptFilenameText</definition>
+        <argsstring></argsstring>
+        <name>scriptFilenameText</name>
+        <qualifiedname>TestWindow::scriptFilenameText</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="138" column="10" bodyfile="ec_testSystem.h" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestWindow_1a710b919120c00531bbb2ee62bdabaf53" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TestWindow::scriptInputFocused</definition>
+        <argsstring></argsstring>
+        <name>scriptInputFocused</name>
+        <qualifiedname>TestWindow::scriptInputFocused</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="139" column="8" bodyfile="ec_testSystem.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTestWindow_1a149c97326618857762efb8631ff37066" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TestWindow::TestWindow</definition>
+        <argsstring>(TestRuntime &amp;rt)</argsstring>
+        <name>TestWindow</name>
+        <qualifiedname>TestWindow::TestWindow</qualifiedname>
+        <param>
+          <type><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref> &amp;</type>
+          <declname>rt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="123" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestWindow_1a2114d85778a49b4c3514691475d14c9d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestWindow::updateImgui</definition>
+        <argsstring>()</argsstring>
+        <name>updateImgui</name>
+        <qualifiedname>TestWindow::updateImgui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="125" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_testSystem.h" line="120" column="1" bodyfile="ec_testSystem.h" bodystart="121" bodyend="140"/>
+    <listofallmembers>
+      <member refid="classTestWindow_1a39dba7254821f310a632e3277430201c" prot="public" virt="non-virtual"><scope>TestWindow</scope><name>drawFakeMousePointerDuringRun</name></member>
+      <member refid="classTestWindow_1a65daa26bce79a7e5584397d2ef0a6526" prot="private" virt="non-virtual"><scope>TestWindow</scope><name>filterSelection</name></member>
+      <member refid="classTestWindow_1a93a97a3cbddb2e9813bad49f46a0ed94" prot="private" virt="non-virtual"><scope>TestWindow</scope><name>filterText</name></member>
+      <member refid="classTestWindow_1a4b4cedb2302e86ff283f37c1110b9ef3" prot="public" virt="non-virtual"><scope>TestWindow</scope><name>hideDuringRun</name></member>
+      <member refid="classTestWindow_1a55a7bf62a362cff88929d1ab1c348875" prot="private" virt="non-virtual"><scope>TestWindow</scope><name>runOnlyNameFiltered</name></member>
+      <member refid="classTestWindow_1a35ef017ef6e32f686356e977f5486bfe" prot="private" virt="non-virtual"><scope>TestWindow</scope><name>runtime</name></member>
+      <member refid="classTestWindow_1a5d705353c377ba87fb1c6aa863c208cc" prot="private" virt="non-virtual"><scope>TestWindow</scope><name>scriptFilenameText</name></member>
+      <member refid="classTestWindow_1a710b919120c00531bbb2ee62bdabaf53" prot="private" virt="non-virtual"><scope>TestWindow</scope><name>scriptInputFocused</name></member>
+      <member refid="classTestWindow_1a149c97326618857762efb8631ff37066" prot="public" virt="non-virtual"><scope>TestWindow</scope><name>TestWindow</name></member>
+      <member refid="classTestWindow_1a10551650c1a60d8f5c235a2643103c9c" prot="private" virt="non-virtual"><scope>TestWindow</scope><name>textInputFocused</name></member>
+      <member refid="classTestWindow_1a2114d85778a49b4c3514691475d14c9d" prot="public" virt="non-virtual"><scope>TestWindow</scope><name>updateImgui</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

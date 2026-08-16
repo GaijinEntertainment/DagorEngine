@@ -1,0 +1,127 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSyncPanelParams" kind="class" language="C++" prot="public">
+    <compoundname>SyncPanelParams</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classSyncPanelParams_1a6fca61b947aa70160b67e60810b85233" prot="private" static="no" mutable="no">
+        <type><ref refid="classRollupPanel" kindref="compound">RollupPanel</ref> *</type>
+        <definition>RollupPanel* SyncPanelParams::panel</definition>
+        <argsstring></argsstring>
+        <name>panel</name>
+        <qualifiedname>SyncPanelParams::panel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="701" column="15" bodyfile="rolluppanel.cpp" bodystart="701" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSyncPanelParams_1a0459ce735d303a38731026a1ca992a21" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SyncPanelParams::found</definition>
+        <argsstring></argsstring>
+        <name>found</name>
+        <qualifiedname>SyncPanelParams::found</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="702" column="8" bodyfile="rolluppanel.cpp" bodystart="702" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classSyncPanelParams_1aea68c97245737fde705a1b0b6f046cfe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>SyncPanelParams::SyncPanelParams</definition>
+        <argsstring>(RollupPanel *panel_)</argsstring>
+        <name>SyncPanelParams</name>
+        <qualifiedname>SyncPanelParams::SyncPanelParams</qualifiedname>
+        <param>
+          <type><ref refid="classRollupPanel" kindref="compound">RollupPanel</ref> *</type>
+          <declname>panel_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="660" column="3" bodyfile="rolluppanel.cpp" bodystart="660" bodyend="660"/>
+      </memberdef>
+      <memberdef kind="function" id="classSyncPanelParams_1a5f8414b3d8a996c82c93b66be3191471" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>SyncPanelParams::~SyncPanelParams</definition>
+        <argsstring>() override=default</argsstring>
+        <name>~SyncPanelParams</name>
+        <qualifiedname>SyncPanelParams::~SyncPanelParams</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="661" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classSyncPanelParams_1ad77034d89c36259620fc3ac4d4c4aa68" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int SyncPanelParams::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>SyncPanelParams::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="662" column="7" bodyfile="rolluppanel.cpp" bodystart="662" bodyend="698"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>SyncPanelParams</label>
+        <link refid="classSyncPanelParams"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>SyncPanelParams</label>
+        <link refid="classSyncPanelParams"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rolluppanel.cpp" line="657" column="1" bodyfile="rolluppanel.cpp" bodystart="658" bodyend="703"/>
+    <listofallmembers>
+      <member refid="classSyncPanelParams_1a0459ce735d303a38731026a1ca992a21" prot="private" virt="non-virtual"><scope>SyncPanelParams</scope><name>found</name></member>
+      <member refid="classSyncPanelParams_1a6fca61b947aa70160b67e60810b85233" prot="private" virt="non-virtual"><scope>SyncPanelParams</scope><name>panel</name></member>
+      <member refid="classSyncPanelParams_1ad77034d89c36259620fc3ac4d4c4aa68" prot="public" virt="virtual"><scope>SyncPanelParams</scope><name>proc</name></member>
+      <member refid="classSyncPanelParams_1aea68c97245737fde705a1b0b6f046cfe" prot="public" virt="non-virtual"><scope>SyncPanelParams</scope><name>SyncPanelParams</name></member>
+      <member refid="classENodeCB_1a0b6202439bd1551412480edbfcd9648c" prot="public" virt="virtual"><scope>SyncPanelParams</scope><name>~ENodeCB</name></member>
+      <member refid="classSyncPanelParams_1a5f8414b3d8a996c82c93b66be3191471" prot="public" virt="non-virtual"><scope>SyncPanelParams</scope><name>~SyncPanelParams</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

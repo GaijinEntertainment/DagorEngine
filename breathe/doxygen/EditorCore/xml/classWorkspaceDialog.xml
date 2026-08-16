@@ -1,0 +1,278 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classWorkspaceDialog" kind="class" language="C++" prot="public">
+    <compoundname>WorkspaceDialog</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">PropPanel::DialogWindow</basecompoundref>
+    <includes refid="ec__startDlg_8h" local="no">ec_startDlg.h</includes>
+      <sectiondef kind="protected-type">
+      <memberdef kind="enum" id="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6" prot="protected" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>WorkspaceDialog</qualifiedname>
+        <enumvalue id="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6af6313993ab3f7a5399620a0c0181318c" prot="protected">
+          <name>PID_COMMON_PARAMETERS_GRP</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6a3425cee9a85f20430ff486fdd47e1a40" prot="protected">
+          <name>PID_WSP_NAME</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6af314f2e75f223eae075ce98084a1dc32" prot="protected">
+          <name>PID_APP_FOLDER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6ad0a4ab187ca58d72447d23b1f9550a41" prot="protected">
+          <name>PID_NEW_APPLICATION</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6ae194936d49f58e3e35789ad25b4c5189" prot="protected">
+          <name>PID_CUSTOM_PARAMETERS</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="97" column="3" bodyfile="ec_startDlg.h" bodystart="98" bodyend="104"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classWorkspaceDialog_1ade13ffe443a740b59019a954b676db36" prot="protected" static="no" mutable="no">
+        <type><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref> &amp;</type>
+        <definition>EditorWorkspace&amp; WorkspaceDialog::mWsp</definition>
+        <argsstring></argsstring>
+        <name>mWsp</name>
+        <qualifiedname>WorkspaceDialog::mWsp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="106" column="19" bodyfile="ec_startDlg.h" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classWorkspaceDialog_1a81a52495576a0d1eb69d369d14baa567" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool WorkspaceDialog::mEditing</definition>
+        <argsstring></argsstring>
+        <name>mEditing</name>
+        <qualifiedname>WorkspaceDialog::mEditing</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="107" column="8" bodyfile="ec_startDlg.h" bodystart="107" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classWorkspaceDialog_1a989913aaa8bc4e9f3a6c5f14b66a5fee" prot="protected" static="no" mutable="no">
+        <type><ref refid="classEditorStartDialog" kindref="compound">EditorStartDialog</ref> *</type>
+        <definition>EditorStartDialog* WorkspaceDialog::mEsd</definition>
+        <argsstring></argsstring>
+        <name>mEsd</name>
+        <qualifiedname>WorkspaceDialog::mEsd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="108" column="21" bodyfile="ec_startDlg.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classWorkspaceDialog_1a57dd9b0307c801a1d62d2be280e1a4f8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>WorkspaceDialog::WorkspaceDialog</definition>
+        <argsstring>(EditorStartDialog *esd, const char *caption, EditorWorkspace &amp;wsp, bool is_editing)</argsstring>
+        <name>WorkspaceDialog</name>
+        <qualifiedname>WorkspaceDialog::WorkspaceDialog</qualifiedname>
+        <param>
+          <type><ref refid="classEditorStartDialog" kindref="compound">EditorStartDialog</ref> *</type>
+          <declname>esd</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>caption</declname>
+        </param>
+        <param>
+          <type><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref> &amp;</type>
+          <declname>wsp</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_editing</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="84" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classWorkspaceDialog_1ac21db32cb7bdc1fa01854238f286fd00" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool WorkspaceDialog::onOk</definition>
+        <argsstring>() override</argsstring>
+        <name>onOk</name>
+        <qualifiedname>WorkspaceDialog::onOk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="88" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classWorkspaceDialog_1a2a71605eb16aa01f26ff644c43f17601" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool WorkspaceDialog::onCancel</definition>
+        <argsstring>() override</argsstring>
+        <name>onCancel</name>
+        <qualifiedname>WorkspaceDialog::onCancel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="89" column="8" bodyfile="ec_startDlg.h" bodystart="89" bodyend="89"/>
+      </memberdef>
+      <memberdef kind="function" id="classWorkspaceDialog_1a976c45081ddfe71bf88e2c4990e8d482" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void WorkspaceDialog::onChange</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onChange</name>
+        <qualifiedname>WorkspaceDialog::onChange</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="93" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classWorkspaceDialog_1a93e6e73bf96a89a7a338d4bc56308c82" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void WorkspaceDialog::onClick</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onClick</name>
+        <qualifiedname>WorkspaceDialog::onClick</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startDlg.h" line="94" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+      <node id="1">
+        <label>WorkspaceDialog</label>
+        <link refid="classWorkspaceDialog"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="5">
+        <label>EditorStartDialog</label>
+        <link refid="classEditorStartDialog"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>wsp</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EditorWorkspace</label>
+        <link refid="classEditorWorkspace"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>wspData</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>EditorWorkspace::Workspaces</label>
+        <link refid="structEditorWorkspace_1_1Workspaces"/>
+      </node>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+      <node id="6">
+        <label>PropPanel::IDelayedCallbackHandler</label>
+      </node>
+      <node id="1">
+        <label>WorkspaceDialog</label>
+        <link refid="classWorkspaceDialog"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>mWsp</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>mEsd</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_startDlg.h" line="81" column="1" bodyfile="ec_startDlg.h" bodystart="82" bodyend="109"/>
+    <listofallmembers>
+      <member refid="classWorkspaceDialog_1a81a52495576a0d1eb69d369d14baa567" prot="protected" virt="non-virtual"><scope>WorkspaceDialog</scope><name>mEditing</name></member>
+      <member refid="classWorkspaceDialog_1a989913aaa8bc4e9f3a6c5f14b66a5fee" prot="protected" virt="non-virtual"><scope>WorkspaceDialog</scope><name>mEsd</name></member>
+      <member refid="classWorkspaceDialog_1ade13ffe443a740b59019a954b676db36" prot="protected" virt="non-virtual"><scope>WorkspaceDialog</scope><name>mWsp</name></member>
+      <member refid="classWorkspaceDialog_1a2a71605eb16aa01f26ff644c43f17601" prot="public" virt="non-virtual"><scope>WorkspaceDialog</scope><name>onCancel</name></member>
+      <member refid="classWorkspaceDialog_1a976c45081ddfe71bf88e2c4990e8d482" prot="public" virt="non-virtual"><scope>WorkspaceDialog</scope><name>onChange</name></member>
+      <member refid="classWorkspaceDialog_1a93e6e73bf96a89a7a338d4bc56308c82" prot="public" virt="non-virtual"><scope>WorkspaceDialog</scope><name>onClick</name></member>
+      <member refid="classWorkspaceDialog_1ac21db32cb7bdc1fa01854238f286fd00" prot="public" virt="non-virtual"><scope>WorkspaceDialog</scope><name>onOk</name></member>
+      <member refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6af314f2e75f223eae075ce98084a1dc32" prot="protected" virt="non-virtual"><scope>WorkspaceDialog</scope><name>PID_APP_FOLDER</name></member>
+      <member refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6af6313993ab3f7a5399620a0c0181318c" prot="protected" virt="non-virtual"><scope>WorkspaceDialog</scope><name>PID_COMMON_PARAMETERS_GRP</name></member>
+      <member refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6ae194936d49f58e3e35789ad25b4c5189" prot="protected" virt="non-virtual"><scope>WorkspaceDialog</scope><name>PID_CUSTOM_PARAMETERS</name></member>
+      <member refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6ad0a4ab187ca58d72447d23b1f9550a41" prot="protected" virt="non-virtual"><scope>WorkspaceDialog</scope><name>PID_NEW_APPLICATION</name></member>
+      <member refid="classWorkspaceDialog_1a9e41dc79643da56231671517e06406e6a3425cee9a85f20430ff486fdd47e1a40" prot="protected" virt="non-virtual"><scope>WorkspaceDialog</scope><name>PID_WSP_NAME</name></member>
+      <member refid="classWorkspaceDialog_1a57dd9b0307c801a1d62d2be280e1a4f8" prot="public" virt="non-virtual"><scope>WorkspaceDialog</scope><name>WorkspaceDialog</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

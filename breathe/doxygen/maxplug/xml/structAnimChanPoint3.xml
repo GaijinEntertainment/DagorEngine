@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structAnimChanPoint3" kind="struct" language="C++" prot="public">
+    <compoundname>AnimChanPoint3</compoundname>
+    <includes refid="expanim2_8h" local="no">expanim2.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structAnimChanPoint3_1a697a17fad92055c7159a44e146f0bf33" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structPosKey" kindref="compound">PosKey</ref> &gt;</type>
+        <definition>Tab&lt;PosKey&gt; AnimChanPoint3::key</definition>
+        <argsstring></argsstring>
+        <name>key</name>
+        <qualifiedname>AnimChanPoint3::key</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim2.h" line="6" column="7" bodyfile="expanim2.h" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expanim2.h" line="4" column="1" bodyfile="expanim2.h" bodystart="5" bodyend="7"/>
+    <listofallmembers>
+      <member refid="structAnimChanPoint3_1a697a17fad92055c7159a44e146f0bf33" prot="public" virt="non-virtual"><scope>AnimChanPoint3</scope><name>key</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

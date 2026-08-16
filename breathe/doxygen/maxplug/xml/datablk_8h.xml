@@ -1,0 +1,360 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="datablk_8h" kind="file" language="C++">
+    <compoundname>datablk.h</compoundname>
+    <includes local="no">cassert</includes>
+    <includes local="no">filesystem</includes>
+    <includes local="no">string</includes>
+    <includes local="no">string_view</includes>
+    <includes local="no">variant</includes>
+    <includes local="no">vector</includes>
+    <includes local="no">fstream</includes>
+    <includes local="no">memory</includes>
+    <includes local="no">optional</includes>
+    <includes local="no">functional</includes>
+    <includes local="no">max.h</includes>
+    <includes refid="math3d_8h" local="yes">math3d.h</includes>
+    <includes local="yes">e3dcolor.h</includes>
+    <includes refid="namemap_8h" local="yes">namemap.h</includes>
+    <includedby refid="datablk_8cpp" local="yes">datablk.cpp</includedby>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <includedby refid="mater2_8cpp" local="yes">mater2.cpp</includedby>
+    <includedby refid="rolluppanel_8cpp" local="yes">rolluppanel.cpp</includedby>
+    <includedby refid="rolluppanel_8h" local="yes">rolluppanel.h</includedby>
+    <includedby refid="util_8cpp" local="yes">util.cpp</includedby>
+    <incdepgraph>
+      <node id="20">
+        <label>ci.h</label>
+        <link refid="ci_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>datablk.h</label>
+        <link refid="datablk_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>math3d.h</label>
+        <link refid="math3d_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>namemap.h</label>
+        <link refid="namemap_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>algorithm</label>
+      </node>
+      <node id="2">
+        <label>cassert</label>
+      </node>
+      <node id="17">
+        <label>e3dcolor.h</label>
+      </node>
+      <node id="3">
+        <label>filesystem</label>
+      </node>
+      <node id="16">
+        <label>float.h</label>
+      </node>
+      <node id="8">
+        <label>fstream</label>
+      </node>
+      <node id="11">
+        <label>functional</label>
+      </node>
+      <node id="14">
+        <label>math.h</label>
+      </node>
+      <node id="12">
+        <label>max.h</label>
+      </node>
+      <node id="9">
+        <label>memory</label>
+      </node>
+      <node id="10">
+        <label>optional</label>
+      </node>
+      <node id="15">
+        <label>stdlib.h</label>
+      </node>
+      <node id="4">
+        <label>string</label>
+      </node>
+      <node id="5">
+        <label>string_view</label>
+      </node>
+      <node id="19">
+        <label>unordered_map</label>
+      </node>
+      <node id="6">
+        <label>variant</label>
+      </node>
+      <node id="7">
+        <label>vector</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>datablk.cpp</label>
+        <link refid="datablk_8cpp"/>
+      </node>
+      <node id="1">
+        <label>datablk.h</label>
+        <link refid="datablk_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="4">
+        <label>mater2.cpp</label>
+        <link refid="mater2_8cpp"/>
+      </node>
+      <node id="7">
+        <label>objectPropertiesEditor.cpp</label>
+        <link refid="objectPropertiesEditor_8cpp"/>
+      </node>
+      <node id="5">
+        <label>rolluppanel.cpp</label>
+        <link refid="rolluppanel_8cpp"/>
+      </node>
+      <node id="6">
+        <label>rolluppanel.h</label>
+        <link refid="rolluppanel_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classDataBlock" prot="public">DataBlock</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="datablk_8h_1a4239073fad32ad26f06c0b999cf37411" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5" kindref="member">DataBlock::ParamType</ref></type>
+        <definition>DataBlock::ParamType type</definition>
+        <argsstring>(const DataBlock::Param &amp;p)</argsstring>
+        <name>type</name>
+        <param>
+          <type>const <ref refid="classDataBlock_1ad6eb308b17440f62f90a28c50a2cde71" kindref="member">DataBlock::Param</ref> &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="189" column="22" bodyfile="datablk.cpp" bodystart="35" bodyend="60" declfile="datablk.h" declline="189" declcolumn="22"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cassert&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;filesystem&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string_view&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;variant&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;vector&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;fstream&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;memory&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;optional&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;functional&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="math3d_8h" kindref="compound">math3d.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;e3dcolor.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="namemap_8h" kindref="compound">namemap.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"></codeline>
+<codeline lineno="37" refid="classDataBlock" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classDataBlock" kindref="compound">DataBlock</ref></highlight></codeline>
+<codeline lineno="38"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="40" refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5" kindref="member">ParamType</ref></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5abecaf8c11de4bfc13039fdb16e9c4f0a" kindref="member">TYPE_NONE</ref>,</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5ac8d746edee2e78b43d0db005850f11f8" kindref="member">TYPE_STRING</ref>,<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5ae252dc27408bfae62687f5ba60941b41" kindref="member">TYPE_INT</ref>,<sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5add13fa08630c81fd85ba1ba866f7b8ae" kindref="member">TYPE_REAL</ref>,<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a69ddecac75d1f7a35e6c87a5925c6fa4" kindref="member">TYPE_POINT2</ref>,<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a2f68656a2fdd3bd7eea727060896906f" kindref="member">TYPE_POINT3</ref>,<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5ac7952dff8d714c2e3f5b6420417b5d34" kindref="member">TYPE_POINT4</ref>,<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5acb01cb8b95a17b9d5b5014c819521725" kindref="member">TYPE_IPOINT2</ref>,<sp/><sp/></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a83cabcb940595d5dff78dc2715d07cb4" kindref="member">TYPE_IPOINT3</ref>,<sp/><sp/></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5abcead9cc5cf68325b7ae26c0c5fa3378" kindref="member">TYPE_BOOL</ref>,<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a0e2f13ecd2882dcdda2560b6dbd3d809" kindref="member">TYPE_E3DCOLOR</ref>,<sp/></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a7e9ce45ce5045698a60d1b26dda95049" kindref="member">TYPE_MATRIX</ref>,<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="classDataBlock_1ad6eb308b17440f62f90a28c50a2cde71" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classDataBlock_1ad6eb308b17440f62f90a28c50a2cde71" kindref="member">Param</ref><sp/>=<sp/>std::variant&lt;std::string,<sp/>int,<sp/>real,<sp/>Point2,<sp/>Point3,<sp/>Point4,<sp/>IPoint2,<sp/>IPoint3,<sp/>bool,<sp/>E3DCOLOR,<sp/>TMatrix&gt;;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5" kindref="member">ParamType</ref><sp/><ref refid="classDataBlock_1af7f21636f945f31d6fb2a4a25ed897e0" kindref="member">deserialize_param_type</ref>(std::string_view<sp/>s);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><ref refid="classDataBlock" kindref="compound">DataBlock</ref>(std::shared_ptr&lt;NameMap&gt;<sp/><ref refid="classDataBlock_1a4bb06fa7177d58b0b9713a8bfaa28b6a" kindref="member">nameMap</ref>);</highlight></codeline>
+<codeline lineno="61" refid="classDataBlock_1a9cdad77da5125fb61c3c5c9e99bc03bd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classDataBlock_1a9cdad77da5125fb61c3c5c9e99bc03bd" kindref="member">~DataBlock</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="classDataBlock_1a195889eddfbe632f026c4d5a3e212520" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classDataBlock_1a195889eddfbe632f026c4d5a3e212520" kindref="member">DataBlock</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classDataBlock" kindref="compound">DataBlock</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="64" refid="classDataBlock_1acab2dd69d036ad2dd1aa5f60692d60cf" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classDataBlock" kindref="compound">DataBlock</ref><sp/>&amp;<ref refid="classDataBlock_1acab2dd69d036ad2dd1aa5f60692d60cf" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classDataBlock" kindref="compound">DataBlock</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1ad139ce5afee1bb83f1d8369853e4540d" kindref="member">clearData</ref>();</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a7d48c1160c74a539dc0f8e124958dab2" kindref="member">reset</ref>();</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a7a36a936ee7320a3b25d672f208d847d" kindref="member">loadText</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*text,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>text_length,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a7a36a936ee7320a3b25d672f208d847d" kindref="member">loadText</ref>(std::string<sp/>&amp;text,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1aaabf519f7489719bff58ab5d0c354702" kindref="member">loadFromStream</ref>(std::ifstream<sp/>&amp;is,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fname<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a71f2d0d30acea56da23f6197716136aa" kindref="member">load</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::filesystem::path<sp/>&amp;fname);</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a5b7c8bb0f25d577c3db5e94b4bd18340" kindref="member">saveToTextFile</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::filesystem::path<sp/>&amp;filename)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a7e96e40dcdbcf32e45b3e18eaab53db9" kindref="member">getNameId</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classDataBlock_1a4393039cb019686357e6f9e7fdffe95b" kindref="member">getName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101" refid="classDataBlock_1a42d44973a12b1089fac54ebfd28c5ed5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a42d44973a12b1089fac54ebfd28c5ed5" kindref="member">getBlockNameId</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a1dfcb9475f38abc9954b450bbdee78bd" kindref="member">nameId</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104" refid="classDataBlock_1a41453fdfa89e8474d97b940908c9ec5b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classDataBlock_1a41453fdfa89e8474d97b940908c9ec5b" kindref="member">getBlockName</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a4393039cb019686357e6f9e7fdffe95b" kindref="member">getName</ref>(<ref refid="classDataBlock_1a1dfcb9475f38abc9954b450bbdee78bd" kindref="member">nameId</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108" refid="classDataBlock_1a4a5b83f3d2a45528f849872f1d12b385" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a4a5b83f3d2a45528f849872f1d12b385" kindref="member">blockCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>int(<ref refid="classDataBlock_1a10648fa3ae03f695503bdcb2c174bd89" kindref="member">blocks</ref>.size());<sp/>}</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><ref refid="classDataBlock" kindref="compound">DataBlock</ref><sp/>*<ref refid="classDataBlock_1ab237db25052efbbde85f4d127127933c" kindref="member">getBlock</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>block_number)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><ref refid="classDataBlock" kindref="compound">DataBlock</ref><sp/>*<ref refid="classDataBlock_1ab8c6197cb00448acfd583b864384ff81" kindref="member">getBlockByName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>start_after<sp/>=<sp/>-1)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117" refid="classDataBlock_1ad001b2a6ba7c9c7f893aa768c514905f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classDataBlock" kindref="compound">DataBlock</ref><sp/>*<ref refid="classDataBlock_1ad001b2a6ba7c9c7f893aa768c514905f" kindref="member">getBlockByName</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>start_after<sp/>=<sp/>-1)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1ad001b2a6ba7c9c7f893aa768c514905f" kindref="member">getBlockByName</ref>(<ref refid="classDataBlock_1a7e96e40dcdbcf32e45b3e18eaab53db9" kindref="member">getNameId</ref>(name),<sp/>start_after);<sp/>}</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121" refid="classDataBlock_1ab882fe0d17bf0ae63f49b37c5d654c22" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1ab882fe0d17bf0ae63f49b37c5d654c22" kindref="member">paramCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>int(<ref refid="classDataBlock_1a810cbd125b0f9cf50f3e9bcb3fb69a77" kindref="member">params</ref>.size());<sp/>}</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5" kindref="member">ParamType</ref><sp/><ref refid="classDataBlock_1a365913f705b094c774bd348dc57aa0f4" kindref="member">getParamType</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>param_number)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1af1bce1997cf5243d69ca01c25f3fecd8" kindref="member">getParamNameId</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>param_number)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130" refid="classDataBlock_1a34b1bd82fbe6ea83173f6789aece18d6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classDataBlock_1a34b1bd82fbe6ea83173f6789aece18d6" kindref="member">getParamName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>param_number)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a4393039cb019686357e6f9e7fdffe95b" kindref="member">getName</ref>(<ref refid="classDataBlock_1af1bce1997cf5243d69ca01c25f3fecd8" kindref="member">getParamNameId</ref>(param_number));<sp/>}</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a2c08e03e2141ec3ce9c0cc10bb3d1720" kindref="member">findParam</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>start_after<sp/>=<sp/>-1)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138" refid="classDataBlock_1a9a8ec0930292edfa9039967cf295e0c4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a9a8ec0930292edfa9039967cf295e0c4" kindref="member">findParam</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>start_after<sp/>=<sp/>-1)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a9a8ec0930292edfa9039967cf295e0c4" kindref="member">findParam</ref>(<ref refid="classDataBlock_1a7e96e40dcdbcf32e45b3e18eaab53db9" kindref="member">getNameId</ref>(name),<sp/>start_after);<sp/>}</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141" refid="classDataBlock_1a522747f7c2a9d313807a95852aa5a2d2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a522747f7c2a9d313807a95852aa5a2d2" kindref="member">paramExists</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>start_after<sp/>=<sp/>-1)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a2c08e03e2141ec3ce9c0cc10bb3d1720" kindref="member">findParam</ref>(name,<sp/>start_after)<sp/>&gt;=<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/>std::optional&lt;std::reference_wrapper&lt;const<sp/>Param&gt;&gt;<sp/><ref refid="classDataBlock_1a77c4e34d316514f67e4a59e5423876a7" kindref="member">getParam</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>param_number)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classDataBlock_1a7cbd96fb90e012426bff0f1641a976ca" kindref="member">getStr</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>param_number,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*def<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a3eb1b630a655770215db0973af2438d7" kindref="member">getBool</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>param_number,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>def<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a2843a09844f8dad1fe75fa78bdb18c30" kindref="member">getInt</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>param_number,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>def<sp/>=<sp/>0)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/><ref refid="classDataBlock_1ac4d46263956fd45cd8462f36cd3d867e" kindref="member">getReal</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>param_number,<sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>def<sp/>=<sp/>0.f)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="classDataBlock_1ab78465c1c2362ffe8fd7e6ade555283a" kindref="member">getPoint3</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>param_number,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;def<sp/>=<sp/>Point3(0,<sp/>0,<sp/>0))<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classDataBlock_1a7cbd96fb90e012426bff0f1641a976ca" kindref="member">getStr</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*def)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a3eb1b630a655770215db0973af2438d7" kindref="member">getBool</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>def)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a2843a09844f8dad1fe75fa78bdb18c30" kindref="member">getInt</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>def)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/><ref refid="classDataBlock_1ac4d46263956fd45cd8462f36cd3d867e" kindref="member">getReal</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>def)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="classDataBlock_1ab78465c1c2362ffe8fd7e6ade555283a" kindref="member">getPoint3</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;def)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1aff8bff937bbf6fe493132745d72c4e4c" kindref="member">setStr</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*value);</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a08890e7fcf236697e1f0b941caef9039" kindref="member">setBool</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>value);</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1aa6b964399a63be78e809fcab7b58d5e1" kindref="member">setInt</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>value);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1ae45f291df8ff1a828cee0d35a6ecfabf" kindref="member">setReal</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>value);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a312f232e5689bb3dccb7fb4c5d41416a" kindref="member">setPoint3</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;value);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a43dca6a549e52e941faa84d6bdfa448b" kindref="member">addStr</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*value);</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1aaf7bbd214f73de63c1af3fb4f6706b55" kindref="member">addBool</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>value);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a286b854d978dd2c20a9a314173469781" kindref="member">addInt</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>value);</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a8e07a241ac041b99c432f261ac4160b1" kindref="member">addReal</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>value);</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a29acfc707ed15d829343f731c9bfd818" kindref="member">addPoint3</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;value);</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="170" refid="classDataBlock_1ad7d16e478000257b433fa0127b1377da" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classDataBlockParser" kindref="compound">DataBlockParser</ref>;</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1aa6bc7c23a718daa3b0666d087f11bcdb" kindref="member">setBlockName</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a6ffe40cc31292dfcfe12a02c237c2d62" kindref="member">addBlock</ref>(std::unique_ptr&lt;DataBlock&gt;);</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a88bdd2b5090a95a860796c668d89c2ca" kindref="member">addParam</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5" kindref="member">ParamType</ref><sp/><ref refid="datablk_8h_1a4239073fad32ad26f06c0b999cf37411" kindref="member">type</ref>,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*value,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>line,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filename);</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a61be5384f8099d664f2fda06376afc42" kindref="member">saveText</ref>(std::ofstream<sp/>&amp;os,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level<sp/>=<sp/>0)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight></codeline>
+<codeline lineno="182" refid="classDataBlock_1a4bb06fa7177d58b0b9713a8bfaa28b6a" refkind="member"><highlight class="normal"><sp/><sp/>std::shared_ptr&lt;NameMap&gt;<sp/><ref refid="classDataBlock_1a4bb06fa7177d58b0b9713a8bfaa28b6a" kindref="member">nameMap</ref>;</highlight></codeline>
+<codeline lineno="183" refid="classDataBlock_1a1dfcb9475f38abc9954b450bbdee78bd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1a1dfcb9475f38abc9954b450bbdee78bd" kindref="member">nameId</ref>;</highlight></codeline>
+<codeline lineno="184" refid="classDataBlock_1a10648fa3ae03f695503bdcb2c174bd89" refkind="member"><highlight class="normal"><sp/><sp/>std::vector&lt;std::unique_ptr&lt;DataBlock&gt;&gt;<sp/><ref refid="classDataBlock_1a10648fa3ae03f695503bdcb2c174bd89" kindref="member">blocks</ref>;</highlight></codeline>
+<codeline lineno="185" refid="classDataBlock_1a810cbd125b0f9cf50f3e9bcb3fb69a77" refkind="member"><highlight class="normal"><sp/><sp/>std::vector&lt;Param&gt;<sp/><ref refid="classDataBlock_1a810cbd125b0f9cf50f3e9bcb3fb69a77" kindref="member">params</ref>;</highlight></codeline>
+<codeline lineno="186" refid="classDataBlock_1aa1c756bb9722499ede96ccbd06eaaffd" refkind="member"><highlight class="normal"><sp/><sp/>std::vector&lt;int&gt;<sp/><ref refid="classDataBlock_1aa1c756bb9722499ede96ccbd06eaaffd" kindref="member">nameIds</ref>;</highlight></codeline>
+<codeline lineno="187"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5" kindref="member">DataBlock::ParamType</ref><sp/><ref refid="datablk_8h_1a4239073fad32ad26f06c0b999cf37411" kindref="member">type</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classDataBlock_1ad6eb308b17440f62f90a28c50a2cde71" kindref="member">DataBlock::Param</ref><sp/>&amp;<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>);</highlight></codeline>
+    </programlisting>
+    <location file="datablk.h"/>
+  </compounddef>
+</doxygen>

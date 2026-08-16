@@ -1,0 +1,113 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structPolygoneZone" kind="struct" language="C++" prot="public">
+    <compoundname>PolygoneZone</compoundname>
+    <includes refid="ec__ObjectCreator_8h" local="no">ec_ObjectCreator.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structPolygoneZone_1aaaecb72c7687ff99ebd317ed56de4ff4" prot="public" static="no" mutable="no">
+        <type>Tab&lt; Point3 &gt;</type>
+        <definition>Tab&lt;Point3&gt; PolygoneZone::points</definition>
+        <argsstring></argsstring>
+        <name>points</name>
+        <qualifiedname>PolygoneZone::points</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="434" column="7" bodyfile="ec_ObjectCreator.h" bodystart="434" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPolygoneZone_1aaec97969b94259412712f931bec7d489" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real PolygoneZone::topY</definition>
+        <argsstring></argsstring>
+        <name>topY</name>
+        <qualifiedname>PolygoneZone::topY</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="435" column="8" bodyfile="ec_ObjectCreator.h" bodystart="435" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structPolygoneZone_1a3e398c0538932b9f022284fa951985ab" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Tab&lt; Point3 &gt;</type>
+        <definition>Tab&lt; Point3 &gt; PolygoneZone::getRoofPoints</definition>
+        <argsstring>()</argsstring>
+        <name>getRoofPoints</name>
+        <qualifiedname>PolygoneZone::getRoofPoints</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="437" column="7" bodyfile="ec_ObjectCreator.h" bodystart="437" bodyend="447"/>
+      </memberdef>
+      <memberdef kind="function" id="structPolygoneZone_1a4ea10ced171c4a201d729aa4d728c61a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real PolygoneZone::getMaxFloorY</definition>
+        <argsstring>()</argsstring>
+        <name>getMaxFloorY</name>
+        <qualifiedname>PolygoneZone::getMaxFloorY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="449" column="8" bodyfile="ec_ObjectCreator.h" bodystart="449" bodyend="455"/>
+      </memberdef>
+      <memberdef kind="function" id="structPolygoneZone_1a319322474b5a161af89db2dcc73d9cec" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real PolygoneZone::getHeight</definition>
+        <argsstring>()</argsstring>
+        <name>getHeight</name>
+        <qualifiedname>PolygoneZone::getHeight</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="457" column="8" bodyfile="ec_ObjectCreator.h" bodystart="457" bodyend="457"/>
+      </memberdef>
+      <memberdef kind="function" id="structPolygoneZone_1a1a7c39b6f4e5cb894ad7507125ed994d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolygoneZone::setHeight</definition>
+        <argsstring>(real h)</argsstring>
+        <name>setHeight</name>
+        <qualifiedname>PolygoneZone::setHeight</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="459" column="8" bodyfile="ec_ObjectCreator.h" bodystart="459" bodyend="463"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_ObjectCreator.h" line="432" column="1" bodyfile="ec_ObjectCreator.h" bodystart="433" bodyend="464"/>
+    <listofallmembers>
+      <member refid="structPolygoneZone_1a319322474b5a161af89db2dcc73d9cec" prot="public" virt="non-virtual"><scope>PolygoneZone</scope><name>getHeight</name></member>
+      <member refid="structPolygoneZone_1a4ea10ced171c4a201d729aa4d728c61a" prot="public" virt="non-virtual"><scope>PolygoneZone</scope><name>getMaxFloorY</name></member>
+      <member refid="structPolygoneZone_1a3e398c0538932b9f022284fa951985ab" prot="public" virt="non-virtual"><scope>PolygoneZone</scope><name>getRoofPoints</name></member>
+      <member refid="structPolygoneZone_1aaaecb72c7687ff99ebd317ed56de4ff4" prot="public" virt="non-virtual"><scope>PolygoneZone</scope><name>points</name></member>
+      <member refid="structPolygoneZone_1a1a7c39b6f4e5cb894ad7507125ed994d" prot="public" virt="non-virtual"><scope>PolygoneZone</scope><name>setHeight</name></member>
+      <member refid="structPolygoneZone_1aaec97969b94259412712f931bec7d489" prot="public" virt="non-virtual"><scope>PolygoneZone</scope><name>topY</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>
