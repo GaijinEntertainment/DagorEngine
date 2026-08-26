@@ -446,7 +446,7 @@ VECTORCALL VECMATH_FINLINE vec4f v_remove_nan(vec4f a)
 VECTORCALL VECMATH_FINLINE vec4f v_is_nan(vec4f a)
 {
   volatile vec4f v = a;
-#if !defined(_MSC_VER) || defined(__clang__)
+#if (!defined(_MSC_VER) || defined(__clang__)) && !defined(_TARGET_SIMD_SCALAR)
   return v_cmp_neq(a, v);
 #else
   return v_cmp_neq(a, (vec4f &)v);

@@ -233,6 +233,88 @@ VECTORCALL VECMATH_FINLINE vec4d vd_cross3(vec4d a, vec4d b) {
   return vd_from_halves(r_lo, r_hi);
 }
 
+#elif _TARGET_SIMD_SCALAR
+// ------------------------------------------------------------------------------------------------
+// scalar per-lane (see dag_vecMath_scalar.h for the contract this follows)
+// ------------------------------------------------------------------------------------------------
+VECMATH_FINLINE vec4d vd_zero() { vec4d r = {0.0, 0.0, 0.0, 0.0}; return r; }
+VECMATH_FINLINE vec4d vd_splats(double a) { vec4d r = {a, a, a, a}; return r; }
+VECMATH_FINLINE vec4d vd_make_vec4d(double x, double y, double z, double w) { vec4d r = {x, y, z, w}; return r; }
+
+VECMATH_FINLINE double vd_extract_x(vec4d a) { return a.d[0]; }
+VECMATH_FINLINE double vd_extract_y(vec4d a) { return a.d[1]; }
+VECMATH_FINLINE double vd_extract_z(vec4d a) { return a.d[2]; }
+VECMATH_FINLINE double vd_extract_w(vec4d a) { return a.d[3]; }
+
+VECMATH_FINLINE vec4d vd_insert_x(vec4d a, double x) { a.d[0] = x; return a; }
+VECMATH_FINLINE vec4d vd_insert_y(vec4d a, double y) { a.d[1] = y; return a; }
+VECMATH_FINLINE vec4d vd_insert_z(vec4d a, double z) { a.d[2] = z; return a; }
+VECMATH_FINLINE vec4d vd_insert_w(vec4d a, double w) { a.d[3] = w; return a; }
+
+NO_ASAN_INLINE vec4d vd_ld(const double *m) { vec4d r; memcpy(&r, m, 32); return r; }
+NO_ASAN_INLINE vec4d vd_ldu(const double *m) { vec4d r; memcpy(&r, m, 32); return r; }
+VECMATH_FINLINE void vd_st(double *m, vec4d a) { memcpy(m, &a, 32); }
+VECMATH_FINLINE void vd_stu(double *m, vec4d a) { memcpy(m, &a, 32); }
+
+NO_ASAN_INLINE vec4d vd_ldu_p3_safe(const double *m) { vec4d r = {m[0], m[1], m[2], 0.0}; return r; }
+VECMATH_FINLINE void vd_stu_p3(double *p3, vec4d v) { memcpy(p3, &v, 24); }
+
+VECMATH_FINLINE vec4d vd_cvt_from_vec4f(vec4f a)
+{
+  vec4d r; for (int k = 0; k < 4; k++) r.d[k] = (double)a.f[k]; return r;
+}
+VECMATH_FINLINE vec4f vd_cvt_to_vec4f(vec4d a)
+{
+  vec4f r; for (int k = 0; k < 4; k++) r.f[k] = (float)a.d[k]; return r;
+}
+VECMATH_FINLINE vec4d vd_cvt_from_vec4i(vec4i a)
+{
+  vec4d r; for (int k = 0; k < 4; k++) r.d[k] = (double)a.i[k]; return r;
+}
+// out of int32 range yields INT32_MIN - mirrors x86 cvttpd2dq so backends agree
+VECMATH_FINLINE vec4i vd_cvt_to_vec4i(vec4d a)
+{
+  vec4i r;
+  for (int k = 0; k < 4; k++)
+  {
+    double v = a.d[k];
+    r.i[k] = (v >= -2147483648.0 && v < 2147483648.0) ? (int32_t)v : INT32_MIN;
+  }
+  return r;
+}
+
+VECMATH_FINLINE vec4d vd_add(vec4d a, vec4d b) { vec4d r; for (int k = 0; k < 4; k++) r.d[k] = a.d[k] + b.d[k]; return r; }
+VECMATH_FINLINE vec4d vd_sub(vec4d a, vec4d b) { vec4d r; for (int k = 0; k < 4; k++) r.d[k] = a.d[k] - b.d[k]; return r; }
+VECMATH_FINLINE vec4d vd_mul(vec4d a, vec4d b) { vec4d r; for (int k = 0; k < 4; k++) r.d[k] = a.d[k] * b.d[k]; return r; }
+VECMATH_FINLINE vec4d vd_div(vec4d a, vec4d b) { vec4d r; for (int k = 0; k < 4; k++) r.d[k] = a.d[k] / b.d[k]; return r; }
+VECMATH_FINLINE vec4d vd_neg(vec4d a) { vec4d r; for (int k = 0; k < 4; k++) r.d[k] = -a.d[k]; return r; }
+// a < b ? a : b, second operand on NaN and equal incl. +/-0 - same rule as minpd and the float v_min
+VECMATH_FINLINE vec4d vd_min(vec4d a, vec4d b) { vec4d r; for (int k = 0; k < 4; k++) r.d[k] = a.d[k] < b.d[k] ? a.d[k] : b.d[k]; return r; }
+VECMATH_FINLINE vec4d vd_max(vec4d a, vec4d b) { vec4d r; for (int k = 0; k < 4; k++) r.d[k] = a.d[k] > b.d[k] ? a.d[k] : b.d[k]; return r; }
+VECMATH_FINLINE vec4d vd_sqrt(vec4d a) { vec4d r; for (int k = 0; k < 4; k++) r.d[k] = sqrt(a.d[k]); return r; }
+VECMATH_FINLINE vec4d vd_sqrt_x(vec4d a) { a.d[0] = sqrt(a.d[0]); return a; }
+
+// left to right ((x+y)+z)+w - the same association scalar DPoint3 math has
+VECMATH_FINLINE vec4d vd_hadd4_x(vec4d a) { return vd_splats(((a.d[0] + a.d[1]) + a.d[2]) + a.d[3]); }
+VECMATH_FINLINE vec4d vd_hadd4(vec4d a) { return vd_hadd4_x(a); }
+VECMATH_FINLINE vec4d vd_hadd3_x(vec4d a) { return vd_splats((a.d[0] + a.d[1]) + a.d[2]); }
+VECMATH_FINLINE vec4d vd_hadd3(vec4d a) { return vd_hadd3_x(a); }
+
+VECMATH_FINLINE vec4d vd_dot4(vec4d a, vec4d b) { return vd_hadd4(vd_mul(a, b)); }
+VECMATH_FINLINE vec4d vd_dot4_x(vec4d a, vec4d b) { return vd_hadd4_x(vd_mul(a, b)); }
+VECMATH_FINLINE vec4d vd_dot3(vec4d a, vec4d b) { return vd_hadd3(vd_mul(a, b)); }
+VECMATH_FINLINE vec4d vd_dot3_x(vec4d a, vec4d b) { return vd_hadd3_x(vd_mul(a, b)); }
+
+VECMATH_FINLINE vec4d vd_cross3(vec4d a, vec4d b)
+{
+  vec4d r;
+  r.d[0] = a.d[1] * b.d[2] - a.d[2] * b.d[1];
+  r.d[1] = a.d[2] * b.d[0] - a.d[0] * b.d[2];
+  r.d[2] = a.d[0] * b.d[1] - a.d[1] * b.d[0];
+  r.d[3] = 0.0;
+  return r;
+}
+
 #elif _TARGET_SIMD_NEON
 // ------------------------------------------------------------------------------------------------
 // aarch64 NEON (two float64x2_t halves: .xy and .zw)

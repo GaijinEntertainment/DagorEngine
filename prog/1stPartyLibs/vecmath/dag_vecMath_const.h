@@ -14,7 +14,7 @@
 
 #define REPLICATE(v) v, v, v, v
 
-#if _TARGET_SIMD_SSE
+#if _TARGET_SIMD_SSE || _TARGET_SIMD_SCALAR
   DECL_VEC_CONST vec4f_const V_C_HALF = { REPLICATE(0.5f) };
   DECL_VEC_CONST vec4f_const V_C_HALF_MINUS_EPS = { REPLICATE(0.5f - 1.192092896e-07f * 32) };
   DECL_VEC_CONST vec4f_const V_C_ONE = { REPLICATE(1.0f) };

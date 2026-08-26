@@ -520,6 +520,7 @@ VECTORCALL VECMATH_FINLINE vec4i v_cvt_ceili(vec4f a) {return sse2_cvt_ceili(a);
 VECTORCALL VECMATH_FINLINE vec4i v_cvt_trunci(vec4f a) { return v_cvti_vec4i(a); }
 VECTORCALL VECMATH_FINLINE vec4f v_floor(vec4f a) { return sse2_floor(a); }
 VECTORCALL VECMATH_FINLINE vec4f v_ceil(vec4f a) { return sse2_ceil(a); }
+VECTORCALL VECMATH_FINLINE vec4f v_round_ieee(vec4f a) { return sse2_round_ieee(a); }
 VECTORCALL VECMATH_FINLINE vec4f v_trunc(vec4f a) { return v_cvti_vec4f(v_cvti_vec4i(a)); }
 VECTORCALL VECMATH_FINLINE vec4f v_sel(vec4f a, vec4f b, vec4f c)
 {
