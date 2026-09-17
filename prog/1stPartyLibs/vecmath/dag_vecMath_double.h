@@ -332,6 +332,127 @@ VECTORCALL VECMATH_FINLINE vec4d vd_cross3(vec4d a, vec4d b) {
   return vd_from_halves(r_lo, r_hi);
 }
 
+#elif _TARGET_SIMD_WASM
+// ------------------------------------------------------------------------------------------------
+// wasm SIMD128 (two f64x2 halves: .xy and .zw)
+// ------------------------------------------------------------------------------------------------
+VECTORCALL VECMATH_FINLINE vecmath_f64x2 vd_lo(vec4d a) { return a.xy; }
+VECTORCALL VECMATH_FINLINE vecmath_f64x2 vd_hi(vec4d a) { return a.zw; }
+VECTORCALL VECMATH_FINLINE vec4d vd_from_halves(vecmath_f64x2 lo, vecmath_f64x2 hi) { vec4d r; r.xy = lo; r.zw = hi; return r; }
+
+VECTORCALL VECMATH_FINLINE vec4d vd_zero() { vecmath_f64x2 z = VECMATH_WASM_D(wasm_f64x2_const_splat(0.0)); return vd_from_halves(z, z); }
+VECTORCALL VECMATH_FINLINE vec4d vd_splats(double a) { vecmath_f64x2 s = VECMATH_WASM_D(wasm_f64x2_splat(a)); return vd_from_halves(s, s); }
+VECTORCALL VECMATH_FINLINE vec4d vd_make_vec4d(double x, double y, double z, double w)
+{
+  return vd_from_halves(VECMATH_WASM_D(wasm_f64x2_make(x, y)), VECMATH_WASM_D(wasm_f64x2_make(z, w)));
+}
+
+VECTORCALL VECMATH_FINLINE double vd_extract_x(vec4d a) { return wasm_f64x2_extract_lane(VECMATH_WASM_V(a.xy), 0); }
+VECTORCALL VECMATH_FINLINE double vd_extract_y(vec4d a) { return wasm_f64x2_extract_lane(VECMATH_WASM_V(a.xy), 1); }
+VECTORCALL VECMATH_FINLINE double vd_extract_z(vec4d a) { return wasm_f64x2_extract_lane(VECMATH_WASM_V(a.zw), 0); }
+VECTORCALL VECMATH_FINLINE double vd_extract_w(vec4d a) { return wasm_f64x2_extract_lane(VECMATH_WASM_V(a.zw), 1); }
+
+VECTORCALL VECMATH_FINLINE vec4d vd_insert_x(vec4d a, double x) { return vd_from_halves(VECMATH_WASM_D(wasm_f64x2_replace_lane(VECMATH_WASM_V(a.xy), 0, x)), a.zw); }
+VECTORCALL VECMATH_FINLINE vec4d vd_insert_y(vec4d a, double y) { return vd_from_halves(VECMATH_WASM_D(wasm_f64x2_replace_lane(VECMATH_WASM_V(a.xy), 1, y)), a.zw); }
+VECTORCALL VECMATH_FINLINE vec4d vd_insert_z(vec4d a, double z) { return vd_from_halves(a.xy, VECMATH_WASM_D(wasm_f64x2_replace_lane(VECMATH_WASM_V(a.zw), 0, z))); }
+VECTORCALL VECMATH_FINLINE vec4d vd_insert_w(vec4d a, double w) { return vd_from_halves(a.xy, VECMATH_WASM_D(wasm_f64x2_replace_lane(VECMATH_WASM_V(a.zw), 1, w))); }
+
+VECTORCALL VECMATH_FINLINE vec4d vd_ld(const double *m)  { return vd_from_halves(VECMATH_WASM_D(wasm_v128_load(m)), VECMATH_WASM_D(wasm_v128_load(m + 2))); }
+VECTORCALL VECMATH_FINLINE vec4d vd_ldu(const double *m) { return vd_ld(m); }
+VECTORCALL VECMATH_FINLINE void vd_st(double *m, vec4d a)  { wasm_v128_store(m, VECMATH_WASM_V(a.xy)); wasm_v128_store(m + 2, VECMATH_WASM_V(a.zw)); }
+VECTORCALL VECMATH_FINLINE void vd_stu(double *m, vec4d a) { vd_st(m, a); }
+
+// DPoint3 layout: 3 packed doubles. _safe reads exactly 3 (.w = 0); store writes exactly 3.
+VECTORCALL VECMATH_FINLINE vec4d vd_ldu_p3_safe(const double *m)
+{
+  return vd_from_halves(VECMATH_WASM_D(wasm_v128_load(m)), VECMATH_WASM_D(wasm_v128_load64_zero(m + 2)));
+}
+VECTORCALL VECMATH_FINLINE void vd_stu_p3(double *p3, vec4d v) { wasm_v128_store(p3, VECMATH_WASM_V(v.xy)); wasm_v128_store64_lane(p3 + 2, VECMATH_WASM_V(v.zw), 0); }
+
+VECTORCALL VECMATH_FINLINE vec4d vd_cvt_from_vec4f(vec4f a)
+{
+  return vd_from_halves(VECMATH_WASM_D(wasm_f64x2_promote_low_f32x4(VECMATH_WASM_V(a))),
+                        VECMATH_WASM_D(wasm_f64x2_promote_low_f32x4(VECMATH_WASM_V(v_perm_zwzw(a)))));
+}
+// demote_zero leaves (x, y, 0, 0); one shuffle joins the two halves
+VECTORCALL VECMATH_FINLINE vec4f vd_cvt_to_vec4f(vec4d a)
+{
+  vec4f lo = VECMATH_WASM_F(wasm_f32x4_demote_f64x2_zero(VECMATH_WASM_V(a.xy)));
+  vec4f hi = VECMATH_WASM_F(wasm_f32x4_demote_f64x2_zero(VECMATH_WASM_V(a.zw)));
+  return v_perm_xyab(lo, hi);
+}
+VECTORCALL VECMATH_FINLINE vec4d vd_cvt_from_vec4i(vec4i a)
+{
+  return vd_from_halves(VECMATH_WASM_D(wasm_f64x2_convert_low_i32x4(VECMATH_WASM_V(a))),
+                        VECMATH_WASM_D(wasm_f64x2_convert_low_i32x4(VECMATH_WASM_V(v_permi_zwzw(a)))));
+}
+// truncates toward zero, saturating like v_cvt_vec4i on this backend
+VECTORCALL VECMATH_FINLINE vec4i vd_cvt_to_vec4i(vec4d a)
+{
+  vec4i lo = VECMATH_WASM_I(wasm_i32x4_trunc_sat_f64x2_zero(VECMATH_WASM_V(a.xy)));
+  vec4i hi = VECMATH_WASM_I(wasm_i32x4_trunc_sat_f64x2_zero(VECMATH_WASM_V(a.zw)));
+  return v_interleave_lo_i64(lo, hi);
+}
+
+VECTORCALL VECMATH_FINLINE vec4d vd_add(vec4d a, vec4d b) { return vd_from_halves(a.xy + b.xy, a.zw + b.zw); }
+VECTORCALL VECMATH_FINLINE vec4d vd_sub(vec4d a, vec4d b) { return vd_from_halves(a.xy - b.xy, a.zw - b.zw); }
+VECTORCALL VECMATH_FINLINE vec4d vd_mul(vec4d a, vec4d b) { return vd_from_halves(a.xy * b.xy, a.zw * b.zw); }
+VECTORCALL VECMATH_FINLINE vec4d vd_div(vec4d a, vec4d b) { return vd_from_halves(a.xy / b.xy, a.zw / b.zw); }
+VECTORCALL VECMATH_FINLINE vec4d vd_neg(vec4d a) { return vd_from_halves(-a.xy, -a.zw); }
+// pmin/pmax with swapped operands are exactly SSE minpd/maxpd (a < b ? a : b, b wins on NaN
+// and on signed-zero ties), same reason as the float v_min/v_max
+VECTORCALL VECMATH_FINLINE vec4d vd_min(vec4d a, vec4d b)
+{
+  return vd_from_halves(VECMATH_WASM_D(wasm_f64x2_pmin(VECMATH_WASM_V(b.xy), VECMATH_WASM_V(a.xy))),
+                        VECMATH_WASM_D(wasm_f64x2_pmin(VECMATH_WASM_V(b.zw), VECMATH_WASM_V(a.zw))));
+}
+VECTORCALL VECMATH_FINLINE vec4d vd_max(vec4d a, vec4d b)
+{
+  return vd_from_halves(VECMATH_WASM_D(wasm_f64x2_pmax(VECMATH_WASM_V(b.xy), VECMATH_WASM_V(a.xy))),
+                        VECMATH_WASM_D(wasm_f64x2_pmax(VECMATH_WASM_V(b.zw), VECMATH_WASM_V(a.zw))));
+}
+VECTORCALL VECMATH_FINLINE vec4d vd_sqrt(vec4d a)
+{
+  return vd_from_halves(VECMATH_WASM_D(wasm_f64x2_sqrt(VECMATH_WASM_V(a.xy))), VECMATH_WASM_D(wasm_f64x2_sqrt(VECMATH_WASM_V(a.zw))));
+}
+VECTORCALL VECMATH_FINLINE vec4d vd_sqrt_x(vec4d a)
+{
+  vecmath_f64x2 s = VECMATH_WASM_D(wasm_f64x2_sqrt(VECMATH_WASM_V(a.xy)));
+  return vd_from_halves(__builtin_shufflevector(s, a.xy, 0, 3), a.zw); // .y kept, as on SSE
+}
+
+// Left to right ((x+y)+z)+w, matching scalar association; see the x86 note above.
+VECTORCALL VECMATH_FINLINE vec4d vd_hadd4_x(vec4d a)
+{
+  vecmath_f64x2 s = a.xy + __builtin_shufflevector(a.xy, a.xy, 1, 0);   // x+y in both lanes
+  s = s + __builtin_shufflevector(a.zw, a.zw, 0, 0);                   // +z
+  s = s + __builtin_shufflevector(a.zw, a.zw, 1, 1);                   // +w
+  return vd_from_halves(s, s);
+}
+VECTORCALL VECMATH_FINLINE vec4d vd_hadd4(vec4d a) { return vd_hadd4_x(a); }
+VECTORCALL VECMATH_FINLINE vec4d vd_hadd3_x(vec4d a)
+{
+  vecmath_f64x2 s = a.xy + __builtin_shufflevector(a.xy, a.xy, 1, 0);   // x+y in both lanes
+  s = s + __builtin_shufflevector(a.zw, a.zw, 0, 0);                   // +z
+  return vd_from_halves(s, s);
+}
+VECTORCALL VECMATH_FINLINE vec4d vd_hadd3(vec4d a) { return vd_hadd3_x(a); }
+
+VECTORCALL VECMATH_FINLINE vec4d vd_dot4(vec4d a, vec4d b) { return vd_hadd4(vd_mul(a, b)); }
+VECTORCALL VECMATH_FINLINE vec4d vd_dot4_x(vec4d a, vec4d b) { return vd_hadd4_x(vd_mul(a, b)); }
+VECTORCALL VECMATH_FINLINE vec4d vd_dot3(vec4d a, vec4d b) { return vd_hadd3(vd_mul(a, b)); }
+VECTORCALL VECMATH_FINLINE vec4d vd_dot3_x(vec4d a, vec4d b) { return vd_hadd3_x(vd_mul(a, b)); }
+
+// r.x = ay*bz - az*by, r.y = az*bx - ax*bz, r.z = ax*by - ay*bx; .w unspecified
+VECTORCALL VECMATH_FINLINE vec4d vd_cross3(vec4d a, vec4d b)
+{
+  vecmath_f64x2 ayz = __builtin_shufflevector(a.xy, a.zw, 1, 2), azx = __builtin_shufflevector(a.zw, a.xy, 0, 2);
+  vecmath_f64x2 bzx = __builtin_shufflevector(b.zw, b.xy, 0, 2), byz = __builtin_shufflevector(b.xy, b.zw, 1, 2);
+  vecmath_f64x2 r_lo = ayz * bzx - azx * byz;
+  vecmath_f64x2 r_hi = a.xy * __builtin_shufflevector(b.xy, b.xy, 1, 0) - __builtin_shufflevector(a.xy, a.xy, 1, 0) * b.xy;
+  return vd_from_halves(r_lo, r_hi);
+}
+
 #else
  !error! unsupported target
 #endif

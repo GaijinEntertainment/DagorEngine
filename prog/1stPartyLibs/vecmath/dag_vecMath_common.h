@@ -47,7 +47,7 @@ VECTORCALL VECMATH_FINLINE bool v_check_xy_all_true(vec4f a) { return v_extract_
 VECTORCALL VECMATH_FINLINE bool v_check_xy_all_false(vec4f a) { return v_extract_xi64(v_cast_vec4i(a)) == 0; }
 VECTORCALL VECMATH_FINLINE bool v_check_xy_any_true(vec4f a) { return v_extract_xi64(v_cast_vec4i(a)) != 0; }
 
-#if _TARGET_SIMD_SSE
+#if _TARGET_SIMD_SSE || _TARGET_SIMD_WASM
 VECTORCALL VECMATH_FINLINE bool v_check_xz_all_true(vec4f a) { return (v_truemask(a) & 0b101) == 0b101; }
 #else
 VECTORCALL VECMATH_FINLINE bool v_check_xz_all_true(vec4f a) { return v_check_xyzw_all_true(v_perm_xxzz(a)); }

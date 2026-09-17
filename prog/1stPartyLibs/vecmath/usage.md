@@ -1,7 +1,7 @@
 # Using vecmath
 
-Platform-abstracted SIMD vector math. Wraps SSE2/SSSE3/SSE4.1 (x86) and NEON (ARM) behind a
-unified C API. Used pervasively throughout the Dagor Engine for all performance-critical math:
+Platform-abstracted SIMD vector math. Wraps SSE2/SSSE3/SSE4.1 (x86), NEON (ARM) and wasm
+SIMD128 behind a unified C API. Used pervasively throughout the Dagor Engine for all performance-critical math:
 transforms, physics, BVH traversal, culling, animation.
 
 `vecmath/dag_vecMath.h` is the API reference: every `v_`-prefixed function is declared there with
@@ -10,8 +10,8 @@ a comment. Grep it by prefix before writing anything by hand -- what you need pr
 v_triangle*).
 
 ## Key types
-- `vec4f` / `vec3f` -- 128-bit float vector (__m128 on SSE, float32x4_t on NEON)
-- `vec4i` -- 128-bit integer vector (__m128i / int32x4_t)
+- `vec4f` / `vec3f` -- 128-bit float vector (__m128 on SSE, float32x4_t on NEON, a clang typed vector on wasm)
+- `vec4i` -- 128-bit integer vector (__m128i / int32x4_t / an int32 typed vector on wasm)
 - `mat33f` -- 3x3 column-major matrix (3 x vec3f)
 - `mat44f` -- 4x4 column-major matrix (4 x vec4f)
 - `mat43f` -- 4x3 row-major matrix (3 x vec4f, each row is xyzw where w = translation component)

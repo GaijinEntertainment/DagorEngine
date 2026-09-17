@@ -1688,6 +1688,8 @@ VECTORCALL VECMATH_FINLINE vec4d vd_length3_x(vec4d a);
   #include "dag_vecMath_pc_sse.h"
 #elif _TARGET_SIMD_NEON
   #include "dag_vecMath_neon.h"
+#elif _TARGET_SIMD_WASM
+  #include "dag_vecMath_wasm.h"
 #else
  !error! unsupported target
 #endif
