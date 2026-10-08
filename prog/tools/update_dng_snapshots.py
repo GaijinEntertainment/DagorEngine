@@ -31,7 +31,13 @@ def update_and_copy(src, dst, skip_cvs_update=False):
 
 def update_dng_snapshot(project_root, game_folder, vromfs_list, skip_cvs_update=False):
   dst = Path(project_root) / "tools" / "snapshot"
-  shaders = Path(project_root) / game_folder / "compiledShaders" / "game.ps50.shdump.bin"
+  if sys.platform.startswith('darwin'):
+    shaders = "gameMTL.ps50.shdump.bin"
+  elif sys.platform.startswith('linux'):
+    shaders = "gameSpirV.ps50.shdump.bin"
+  else:
+    shaders = "game.ps50.shdump.bin"
+  shaders = Path(project_root) / game_folder / "compiledShaders" / shaders
   tool_scripts_dir = Path(project_root) / "prog" / "tools"
   game_folder_abs = DAGOR_ROOT_FOLDER / project_root / game_folder
 
