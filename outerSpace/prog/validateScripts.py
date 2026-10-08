@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys, os
 
 sys.path.insert(0, os.path.abspath(os.path.relpath("../../prog/utils", os.path.dirname(__file__))))

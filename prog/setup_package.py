@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys, os, math
 import shutil
 import os.path

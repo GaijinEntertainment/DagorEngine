@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys, os, subprocess
 
 dagor_cdk_path = os.path.abspath(os.path.join(__file__, "../../../../tools/dagor_cdk"))
