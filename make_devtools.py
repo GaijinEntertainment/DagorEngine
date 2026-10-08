@@ -537,6 +537,44 @@ def _dump_machine(input_dll, msvc_bin):
       return _MACHINES[code]
   raise RuntimeError("no machine field in {0}".format(input_dll))
 
+def is_valid_zip(zip_path):
+  try:
+    with zipfile.ZipFile(zip_path, 'r') as zip_file:
+      return zip_file.testzip() is None
+  except (zipfile.BadZipFile, OSError):
+    return False
+
+def setup_zip_package(package_path, package_name, url, download_filename=None):
+  package_path = pathlib.Path(package_path)
+
+  if package_path.exists():
+    if is_valid_zip(package_path):
+      print('+++ Existing {0} package is valid, skipping download'.format(package_name))
+      return package_path
+
+    print('+++ Existing {0} package is corrupted, deleting it'.format(package_name))
+    package_path.unlink()
+
+  if download_filename:
+    download_url2(url, download_filename)
+  else:
+    download_url(url)
+
+  if not package_path.exists():
+    raise RuntimeError(
+      '{0} package was not downloaded to {1}'.format(package_name, package_path)
+    )
+
+  if not is_valid_zip(package_path):
+    print('+++ Downloaded {0} package is corrupted'.format(package_name))
+    package_path.unlink()
+
+    raise RuntimeError(
+      '{0} package is corrupted after download'.format(package_name)
+    )
+
+  print('+++ {0} package downloaded and validated'.format(package_name))
+  return package_path
 
 def _build_forwarder(input_dll, ref_dll, output_dll, msvc_bin):
   """Build `output_dll`: a stub forwarding to `ref_dll`.
@@ -669,40 +707,34 @@ else:
 
 # ispc-v1.23.0
 ispc_dest_folder = dest_dir+'/ispc-v1.23.0-windows'
-if pathlib.Path(ispc_dest_folder).exists():
-  print('=== ISPC v1.23.0 {0}, skipping setup'.format(ispc_dest_folder))
-else:
-  download_url('https://github.com/ispc/ispc/releases/download/v1.23.0/ispc-v1.23.0-windows.zip')
-  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/ispc-v1.23.0-windows.zip'), 'r') as zip_file:
-    zip_file.extractall(dest_dir)
-    print('+++ ISPC v1.23.0 installed at {0}'.format(ispc_dest_folder))
+ispc_zip = setup_zip_package(dest_dir+'/.packages/ispc-v1.23.0-windows.zip', 'ISPC v1.23.0', 'https://github.com/ispc/ispc/releases/download/v1.23.0/ispc-v1.23.0-windows.zip')
+
+with zipfile.ZipFile(ispc_zip, 'r') as zip_file:
+  zip_file.extractall(dest_dir)
 
 # FidelityFX-SDK-2.1.1
 fidelityfx_sdk_ver = '2.1.1'
 fidelityfx_sdk_dest_folder = dest_dir+'/FidelityFX-SDK-'+fidelityfx_sdk_ver
-if pathlib.Path(fidelityfx_sdk_dest_folder).exists():
-  print('=== FidelityFX SDK {1} found at {0}, skipping setup'.format(fidelityfx_sdk_dest_folder, fidelityfx_sdk_ver))
-else:
-  fidelityfx_sdk_zip = 'FidelityFX-SDK-'+fidelityfx_sdk_ver+'.zip'
-  download_url2('https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/archive/refs/tags/v'+fidelityfx_sdk_ver+'.zip',
-                fidelityfx_sdk_zip)
-  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/'+fidelityfx_sdk_zip), 'r') as zip_file:
-    zip_file.extractall(dest_dir)
-  print('+++ FidelityFX SDK {1} installed at {0}'.format(fidelityfx_sdk_dest_folder, fidelityfx_sdk_ver))
+fidelityfx_sdk_zip = pathlib.Path(dest_dir + '/.packages/FidelityFX-SDK-' + fidelityfx_sdk_ver + '.zip')
+fidelityfx_zip = setup_zip_package(fidelityfx_sdk_zip, 'FidelityFX SDK ' + fidelityfx_sdk_ver, 
+                                'https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/archive/refs/tags/v' + fidelityfx_sdk_ver + '.zip', fidelityfx_sdk_zip.name)
+with zipfile.ZipFile(fidelityfx_zip, 'r') as zip_file:
+  zip_file.extractall(dest_dir)
 
-# nvapi-R610
 nvapi_dest_folder = dest_dir+'/nvapi-R610'
 if pathlib.Path(nvapi_dest_folder).exists():
-  print('=== nvapi symlink found at {0}, skipping setup'.format(nvapi_dest_folder))
+  print('+++ nvapi symlink found at {0}, skipping setup'.format(nvapi_dest_folder))
 else:
-  download_url2('https://github.com/NVIDIA/nvapi/archive/refs/heads/main.zip', 'nvapi-R610.zip')
-  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/nvapi-R610.zip'), 'r') as zip_file:
+  nvapi_zip = setup_zip_package(dest_dir+'/.packages/nvapi-R610.zip', 'NVAPI R610', 'https://github.com/NVIDIA/nvapi/archive/refs/heads/main.zip', 'nvapi-R610.zip')
+  with zipfile.ZipFile(nvapi_zip, 'r') as zip_file:
     members = [
-        m for m in zip_file.namelist()
-        if not (m.startswith('nvapi-main/docs/') or m.startswith('nvapi-main/Sample_Code/'))
+      m for m in zip_file.namelist()
+      if not (m.startswith('nvapi-main/docs/') or m.startswith('nvapi-main/Sample_Code/'))
     ]
     zip_file.extractall(dest_dir, members)
-  os.rename(os.path.normpath(dest_dir+'/nvapi-main'), os.path.normpath(nvapi_dest_folder));
+
+  os.rename(os.path.normpath(dest_dir+'/nvapi-main'), os.path.normpath(nvapi_dest_folder))
+
   print('+++ nvapi-R610 installed at {0}'.format(nvapi_dest_folder))
 
 # Nsight Aftermath SDK 2025.5.0.25317
@@ -710,48 +742,61 @@ aftermath_dest_folder = dest_dir+'/aftermath-2025.5.0.25317'
 if pathlib.Path(aftermath_dest_folder).exists():
   print('=== Nsight Aftermath SDK symlink found at {0}, skipping setup'.format(aftermath_dest_folder))
 else:
-  download_url2('https://developer.nvidia.com/downloads/assets/tools/secure/nsight-aftermath-sdk/2025_5_0/windows_x64/'
-                'NVIDIA_Nsight_Aftermath_SDK_2025.5.0.25317-windows_x64.zip', 'aftermath-2025.5.0.25317.zip')
-  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/aftermath-2025.5.0.25317.zip'), 'r') as zip_file:
+  aftermath_zip = setup_zip_package(dest_dir+'/.packages/aftermath-2025.5.0.25317.zip', 'Nsight Aftermath SDK 2025.5.0.25317',
+  'https://developer.nvidia.com/downloads/assets/tools/secure/nsight-aftermath-sdk/2025_5_0/windows_x64/' 'NVIDIA_Nsight_Aftermath_SDK_2025.5.0.25317-windows_x64.zip',
+  'aftermath-2025.5.0.25317.zip')
+  with zipfile.ZipFile(aftermath_zip, 'r') as zip_file:
     zip_file.extractall(aftermath_dest_folder)
+
   print('+++ Nsight Aftermath SDK 2025.5.0.25317 installed at {0}'.format(aftermath_dest_folder))
 
-# AGS v6.3.0
 ags_sdk_dest_folder = dest_dir+'/AGS.SDK.6.3.0'
+
 if pathlib.Path(ags_sdk_dest_folder).exists():
   print('=== AGS SDK symlink found at {0}, skipping setup'.format(ags_sdk_dest_folder))
 else:
-  download_url2('https://github.com/GPUOpen-LibrariesAndSDKs/AGS_SDK/archive/refs/tags/v6.3.0.zip', 'AGS.SDK.6.3.0.zip')
-  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/AGS.SDK.6.3.0.zip'), 'r') as zip_file:
+  ags_zip = setup_zip_package(dest_dir+'/.packages/AGS.SDK.6.3.0.zip', 'AGS SDK 6.3.0', 
+                              'https://github.com/GPUOpen-LibrariesAndSDKs/AGS_SDK/archive/refs/tags/v6.3.0.zip', 'AGS.SDK.6.3.0.zip')
+
+  with zipfile.ZipFile(ags_zip, 'r') as zip_file:
     prefix = 'AGS_SDK-6.3.0/ags_lib/'
+
     for member in zip_file.namelist():
       if member.startswith(prefix) and not member.endswith('/'):
         rel_path = os.path.relpath(member, prefix)
+
         if rel_path == '.':
           continue
+
         target_path = os.path.join(ags_sdk_dest_folder, rel_path)
         os.makedirs(os.path.dirname(target_path), exist_ok=True)
+
         with zip_file.open(member) as source, open(target_path, 'wb') as target:
           target.write(source.read())
-          target.close()
+
   print('+++ AGS v6.3.0 installed at {0}'.format(ags_sdk_dest_folder))
 
-# Streamline SDK 2.14.1
 streamline_ver = '2.14.1'
 streamline_dest_folder = dest_dir+'/streamline-'+streamline_ver
-# x64 and aarch64 ship as separate archives that share the same include/ and unpack into one
-# folder, so each is tested on the bin/<arch> only it carries - a run that dies between the
-# two leaves the other arch missing, and the folder alone would look like a finished install
-for streamline_arch, streamline_zip in [('x64', 'streamline-sdk-v'+streamline_ver+'.zip'),
-                                        ('arm64', 'streamline-sdk-v'+streamline_ver+'-aarch64.zip')]:
+
+for streamline_arch, streamline_zip in [
+    ('x64', 'streamline-sdk-v'+streamline_ver+'.zip'),
+    ('arm64', 'streamline-sdk-v'+streamline_ver+'-aarch64.zip')
+]:
   if pathlib.Path(streamline_dest_folder+'/bin/'+streamline_arch).exists():
     print('=== Streamline SDK {1} {2} found at {0}, skipping setup'.format(streamline_dest_folder, streamline_ver, streamline_arch))
   else:
-    download_url2('https://github.com/NVIDIA-RTX/Streamline/releases/download/v'+streamline_ver+'/'+streamline_zip,
-                  streamline_zip)
-    with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/'+streamline_zip), 'r') as zip_file:
-      members = [m for m in zip_file.namelist() if m.startswith(('include/', 'bin/', 'lib/'))]
+    streamline_zip_path = setup_zip_package(dest_dir+'/.packages/'+streamline_zip, 'Streamline SDK {0} {1}'.format(streamline_ver, streamline_arch),
+                                            'https://github.com/NVIDIA-RTX/Streamline/releases/download/v'+streamline_ver+'/'+streamline_zip, streamline_zip)
+
+    with zipfile.ZipFile(streamline_zip_path, 'r') as zip_file:
+      members = [
+        m for m in zip_file.namelist()
+        if m.startswith(('include/', 'bin/', 'lib/'))
+      ]
+
       zip_file.extractall(streamline_dest_folder, members)
+
     print('+++ Streamline SDK {1} {2} installed at {0}'.format(streamline_dest_folder, streamline_ver, streamline_arch))
 
 # install 3ds Max SDKs
