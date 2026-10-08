@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDagBigFace" kind="struct" language="C++" prot="public">
+    <compoundname>DagBigFace</compoundname>
+    <includes refid="dagfmt_8h" local="no">dagfmt.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDagBigFace_1a1b430c0a040da2c1716c738531b7830c" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int DagBigFace::v[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>v</name>
+        <qualifiedname>DagBigFace::v</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="180" column="16" bodyfile="dagfmt.h" bodystart="180" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagBigFace_1ac8ec83b84f3c125e32aa8cfdb0cc914a" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DagBigFace::smgr</definition>
+        <argsstring></argsstring>
+        <name>smgr</name>
+        <qualifiedname>DagBigFace::smgr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="181" column="12" bodyfile="dagfmt.h" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagBigFace_1aa34160c34739683aee40a6ff58e46412" prot="public" static="no" mutable="no">
+        <type>unsigned short</type>
+        <definition>unsigned short DagBigFace::mat</definition>
+        <argsstring></argsstring>
+        <name>mat</name>
+        <qualifiedname>DagBigFace::mat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="182" column="18" bodyfile="dagfmt.h" bodystart="182" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDagBigFace_1a5458415545b2a8c2955e766ee77f3414" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagBigFace::DagBigFace</definition>
+        <argsstring>()</argsstring>
+        <name>DagBigFace</name>
+        <qualifiedname>DagBigFace::DagBigFace</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="183" column="3" bodyfile="dagfmt.h" bodystart="183" bodyend="183"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagfmt.h" line="178" column="1" bodyfile="dagfmt.h" bodystart="179" bodyend="184"/>
+    <listofallmembers>
+      <member refid="structDagBigFace_1a5458415545b2a8c2955e766ee77f3414" prot="public" virt="non-virtual"><scope>DagBigFace</scope><name>DagBigFace</name></member>
+      <member refid="structDagBigFace_1aa34160c34739683aee40a6ff58e46412" prot="public" virt="non-virtual"><scope>DagBigFace</scope><name>mat</name></member>
+      <member refid="structDagBigFace_1ac8ec83b84f3c125e32aa8cfdb0cc914a" prot="public" virt="non-virtual"><scope>DagBigFace</scope><name>smgr</name></member>
+      <member refid="structDagBigFace_1a1b430c0a040da2c1716c738531b7830c" prot="public" virt="non-virtual"><scope>DagBigFace</scope><name>v</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

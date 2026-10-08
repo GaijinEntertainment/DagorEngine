@@ -1,0 +1,89 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRollupPanel_1_1UserProp" kind="struct" language="C++" prot="private">
+    <compoundname>RollupPanel::UserProp</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRollupPanel_1_1UserProp_1aaa34cc8453835233ebb4bc4a63341b5d" prot="public" static="no" mutable="no">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref></type>
+        <definition>DataBlock RollupPanel::UserProp::blk</definition>
+        <argsstring></argsstring>
+        <name>blk</name>
+        <qualifiedname>RollupPanel::UserProp::blk</qualifiedname>
+        <initializer>{std::make_shared&lt;<ref refid="classNameMap" kindref="compound">NameMap</ref>&gt;()}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="59" column="15" bodyfile="rolluppanel.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRollupPanel_1_1UserProp_1a2544dffc338d5a420c2af0fe83911a6c" prot="public" static="no" mutable="no">
+        <type>std::string</type>
+        <definition>std::string RollupPanel::UserProp::blkText</definition>
+        <argsstring></argsstring>
+        <name>blkText</name>
+        <qualifiedname>RollupPanel::UserProp::blkText</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="60" column="17" bodyfile="rolluppanel.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRollupPanel_1_1UserProp_1aa7f52a624388b696891c94075ebe09ea" prot="public" static="no" mutable="no">
+        <type>std::string</type>
+        <definition>std::string RollupPanel::UserProp::nonBlkText</definition>
+        <argsstring></argsstring>
+        <name>nonBlkText</name>
+        <qualifiedname>RollupPanel::UserProp::nonBlkText</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="61" column="17" bodyfile="rolluppanel.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRollupPanel_1_1UserProp_1a4d75679b4a1c2ceaa671296a013bbdf4" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RollupPanel::UserProp::cfgMigrated</definition>
+        <argsstring></argsstring>
+        <name>cfgMigrated</name>
+        <qualifiedname>RollupPanel::UserProp::cfgMigrated</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.h" line="62" column="10" bodyfile="rolluppanel.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>DataBlock</label>
+        <link refid="classDataBlock"/>
+      </node>
+      <node id="1">
+        <label>RollupPanel::UserProp</label>
+        <childnode refid="2" relation="usage">
+          <edgelabel>blk</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rolluppanel.h" line="57" column="3" bodyfile="rolluppanel.h" bodystart="58" bodyend="63"/>
+    <listofallmembers>
+      <member refid="structRollupPanel_1_1UserProp_1aaa34cc8453835233ebb4bc4a63341b5d" prot="public" virt="non-virtual"><scope>RollupPanel::UserProp</scope><name>blk</name></member>
+      <member refid="structRollupPanel_1_1UserProp_1a2544dffc338d5a420c2af0fe83911a6c" prot="public" virt="non-virtual"><scope>RollupPanel::UserProp</scope><name>blkText</name></member>
+      <member refid="structRollupPanel_1_1UserProp_1a4d75679b4a1c2ceaa671296a013bbdf4" prot="public" virt="non-virtual"><scope>RollupPanel::UserProp</scope><name>cfgMigrated</name></member>
+      <member refid="structRollupPanel_1_1UserProp_1aa7f52a624388b696891c94075ebe09ea" prot="public" virt="non-virtual"><scope>RollupPanel::UserProp</scope><name>nonBlkText</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

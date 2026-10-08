@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="group__ObjectCreating" kind="group">
+    <compoundname>ObjectCreating</compoundname>
+    <title>Miscellaneous Objects Creating</title>
+    <innerclass refid="classBoxCreator" prot="public">BoxCreator</innerclass>
+    <innerclass refid="classSphereCreator" prot="public">SphereCreator</innerclass>
+    <innerclass refid="classPointCreator" prot="public">PointCreator</innerclass>
+    <innerclass refid="classTargetCreator" prot="public">TargetCreator</innerclass>
+    <innerclass refid="classPlaneCreator" prot="public">PlaneCreator</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

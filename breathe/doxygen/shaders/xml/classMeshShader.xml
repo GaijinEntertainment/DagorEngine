@@ -1,0 +1,192 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMeshShader" kind="class" language="C++" prot="public">
+    <compoundname>MeshShader</compoundname>
+    <includes refid="dag__meshShaders_8h" local="no">dag_meshShaders.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classMeshShader_1a98004efd9f67fa502ea3a185cb1305d6" prot="private" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; <ref refid="classMeshShaderElement" kindref="compound">MeshShaderElement</ref> &gt;</type>
+        <definition>eastl::unique_ptr&lt;MeshShaderElement&gt; MeshShader::elem</definition>
+        <argsstring></argsstring>
+        <name>elem</name>
+        <qualifiedname>MeshShader::elem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_meshShaders.h" line="34" column="21" bodyfile="dag_meshShaders.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMeshShader_1a50e7d75839eb9d3e44d94d924ca58f86" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MeshShader::MeshShader</definition>
+        <argsstring>()=default</argsstring>
+        <name>MeshShader</name>
+        <qualifiedname>MeshShader::MeshShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_meshShaders.h" line="37" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classMeshShader_1a7a027353f3a5fe6e01514f9799b18322" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>MeshShader::MeshShader</definition>
+        <argsstring>(const char *shader_name)</argsstring>
+        <name>MeshShader</name>
+        <qualifiedname>MeshShader::MeshShader</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_meshShaders.h" line="38" column="3" bodyfile="dag_meshShaders.h" bodystart="38" bodyend="38"/>
+      </memberdef>
+      <memberdef kind="function" id="classMeshShader_1abb98769a08ab6aa5fcf96cd32491a337" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool MeshShader::dispatchGroups</definition>
+        <argsstring>(uint32_t groups_x, uint32_t groups_y, uint32_t groups_z) const</argsstring>
+        <name>dispatchGroups</name>
+        <qualifiedname>MeshShader::dispatchGroups</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>groups_x</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>groups_y</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>groups_z</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_meshShaders.h" line="39" column="8" bodyfile="dag_meshShaders.h" bodystart="39" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="classMeshShader_1a21d3d22700aadd262d5eee41ed1f9b83" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool MeshShader::dispatchThreads</definition>
+        <argsstring>(uint32_t threads_x, uint32_t threads_y, uint32_t threads_z) const</argsstring>
+        <name>dispatchThreads</name>
+        <qualifiedname>MeshShader::dispatchThreads</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>threads_x</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>threads_y</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>threads_z</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_meshShaders.h" line="43" column="8" bodyfile="dag_meshShaders.h" bodystart="43" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="classMeshShader_1acce98a5f87532e98350a1cb8fc1e4787" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool MeshShader::dispatchIndirect</definition>
+        <argsstring>(Sbuffer *args, uint32_t count, uint32_t offset, uint32_t stride) const</argsstring>
+        <name>dispatchIndirect</name>
+        <qualifiedname>MeshShader::dispatchIndirect</qualifiedname>
+        <param>
+          <type>Sbuffer *</type>
+          <declname>args</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>offset</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>stride</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_meshShaders.h" line="47" column="8" bodyfile="dag_meshShaders.h" bodystart="47" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="classMeshShader_1ad88ce62e1579f6a573d1fd375ed99bd9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool MeshShader::dispatchIndirectCount</definition>
+        <argsstring>(Sbuffer *args, uint32_t args_offset, uint32_t args_stride, Sbuffer *count, uint32_t count_offset, uint32_t max_count) const</argsstring>
+        <name>dispatchIndirectCount</name>
+        <qualifiedname>MeshShader::dispatchIndirectCount</qualifiedname>
+        <param>
+          <type>Sbuffer *</type>
+          <declname>args</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>args_offset</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>args_stride</declname>
+        </param>
+        <param>
+          <type>Sbuffer *</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>count_offset</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>max_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_meshShaders.h" line="51" column="8" bodyfile="dag_meshShaders.h" bodystart="51" bodyend="55"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>RAII wrapper for mesh shader. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_meshShaders.h" line="32" column="1" bodyfile="dag_meshShaders.h" bodystart="33" bodyend="56"/>
+    <listofallmembers>
+      <member refid="classMeshShader_1abb98769a08ab6aa5fcf96cd32491a337" prot="public" virt="non-virtual"><scope>MeshShader</scope><name>dispatchGroups</name></member>
+      <member refid="classMeshShader_1acce98a5f87532e98350a1cb8fc1e4787" prot="public" virt="non-virtual"><scope>MeshShader</scope><name>dispatchIndirect</name></member>
+      <member refid="classMeshShader_1ad88ce62e1579f6a573d1fd375ed99bd9" prot="public" virt="non-virtual"><scope>MeshShader</scope><name>dispatchIndirectCount</name></member>
+      <member refid="classMeshShader_1a21d3d22700aadd262d5eee41ed1f9b83" prot="public" virt="non-virtual"><scope>MeshShader</scope><name>dispatchThreads</name></member>
+      <member refid="classMeshShader_1a98004efd9f67fa502ea3a185cb1305d6" prot="private" virt="non-virtual"><scope>MeshShader</scope><name>elem</name></member>
+      <member refid="classMeshShader_1a50e7d75839eb9d3e44d94d924ca58f86" prot="public" virt="non-virtual"><scope>MeshShader</scope><name>MeshShader</name></member>
+      <member refid="classMeshShader_1a7a027353f3a5fe6e01514f9799b18322" prot="public" virt="non-virtual"><scope>MeshShader</scope><name>MeshShader</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

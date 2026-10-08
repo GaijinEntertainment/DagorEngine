@@ -1,0 +1,380 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="undo_8h" kind="file" language="C++">
+    <compoundname>undo.h</compoundname>
+    <includes local="no">util/dag_string.h</includes>
+    <includes local="no">EASTL/internal/move_help.h</includes>
+    <includes local="no">EASTL/type_traits.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>undo.h</label>
+        <link refid="undo_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EASTL/internal/move_help.h</label>
+      </node>
+      <node id="4">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="2">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structUndoMergeKey" prot="public">UndoMergeKey</innerclass>
+    <innerclass refid="classUndoRedoObject" prot="public">UndoRedoObject</innerclass>
+    <innerclass refid="classUndoSystem" prot="public">UndoSystem</innerclass>
+    <innerclass refid="classIUndoRedoWndClient" prot="public">IUndoRedoWndClient</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="undo_8h_1ad7839d661d5991ea340b91528394dd25" prot="public" static="no">
+        <name>UNDO_MERGE_KEY_BY_TARGET</name>
+        <param><defname>kind_uid</defname></param>
+        <param><defname>target_expr</defname></param>
+        <initializer>  <ref refid="structUndoMergeKey" kindref="compound">UndoMergeKey</ref> get_merge_key() const override           \
+  {                                                     \
+    <ref refid="structUndoMergeKey" kindref="compound">UndoMergeKey</ref> key;                                   \
+    key.kind = (kind_uid);                              \
+    key.target = (target_expr);                         \
+    return key;                                         \
+  }</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="41" column="9" bodyfile="undo.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="undo_8h_1a0f09404b3cdf360685cb6dca3fc7d33c" prot="public" static="no">
+        <name>UNDO_MERGE_SNAPSHOT_BY_TARGET</name>
+        <param><defname>kind_uid</defname></param>
+        <param><defname>target_expr</defname></param>
+        <initializer>  <ref refid="undo_8h_1ad7839d661d5991ea340b91528394dd25" kindref="member">UNDO_MERGE_KEY_BY_TARGET</ref>(kind_uid, target_expr)            \
+  bool merge(const <ref refid="classUndoRedoObject" kindref="compound">UndoRedoObject</ref> &amp;) override { return true; }</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="52" column="9" bodyfile="undo.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="undo_8h_1a86b51aedf242ac8ea6896e564f03c975" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>constexpr bool undo_declares_merge_key</definition>
+        <argsstring>()</argsstring>
+        <name>undo_declares_merge_key</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="28" column="16" bodyfile="undo.h" bodystart="28" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="undo_8h_1a804c131be95016a648787b9cc3361c3c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classUndoSystem" kindref="compound">UndoSystem</ref> *</type>
+        <definition>UndoSystem * create_undo_system</definition>
+        <argsstring>(const char *name, int max_size=10&lt;&lt; 20, IUndoRedoWndClient *wnd=NULL)</argsstring>
+        <name>create_undo_system</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_size</declname>
+          <defval>10&lt;&lt; 20</defval>
+        </param>
+        <param>
+          <type><ref refid="classIUndoRedoWndClient" kindref="compound">IUndoRedoWndClient</ref> *</type>
+          <declname>wnd</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="257" column="12" declfile="undo.h" declline="257" declcolumn="12"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/internal/move_help.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/type_traits.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="comment">//<sp/>What<sp/>an<sp/>UndoRedoObject<sp/>covers:<sp/>which<sp/>slice<sp/>of<sp/>which<sp/>target.<sp/>Used<sp/>to<sp/>find<sp/>the<sp/>one<sp/>object<sp/>in<sp/>an</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="comment">//<sp/>operation<sp/>a<sp/>new<sp/>one<sp/>could<sp/>fold<sp/>into.<sp/>Both<sp/>halves<sp/>are<sp/>needed,<sp/>one<sp/>frame<sp/>of<sp/>a<sp/>drag<sp/>covers<sp/>several</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="comment">//<sp/>targets<sp/>and<sp/>several<sp/>slices.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="structUndoMergeKey" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structUndoMergeKey" kindref="compound">UndoMergeKey</ref></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16" refid="structUndoMergeKey_1a9e03dcb159de67d49060c8504ef9577e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="structUndoMergeKey_1a9e03dcb159de67d49060c8504ef9577e" kindref="member">kind</ref><sp/>=<sp/>0;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>one<sp/>UID<sp/>per<sp/>UndoRedoObject<sp/>class,<sp/>see<sp/>UNDO_MERGE_KEY_BY_TARGET</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="structUndoMergeKey_1a152899d81c6c03ca31bf631daa46432b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="structUndoMergeKey_1a152899d81c6c03ca31bf631daa46432b" kindref="member">target</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/></highlight><highlight class="comment">//<sp/>what<sp/>the<sp/>state<sp/>was<sp/>read<sp/>from</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="structUndoMergeKey_1a7e3f4bf8ac510fcf6b3b76d8f52be390" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structUndoMergeKey_1a7e3f4bf8ac510fcf6b3b76d8f52be390" kindref="member">is_mergeable</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structUndoMergeKey_1a9e03dcb159de67d49060c8504ef9577e" kindref="member">kind</ref><sp/>!=<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="20" refid="structUndoMergeKey_1a4ba00f011e8fd9b8b7f2060796a22be1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structUndoMergeKey_1a4ba00f011e8fd9b8b7f2060796a22be1" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structUndoMergeKey" kindref="compound">UndoMergeKey</ref><sp/>&amp;k)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structUndoMergeKey_1a9e03dcb159de67d49060c8504ef9577e" kindref="member">kind</ref><sp/>==<sp/>k.<ref refid="structUndoMergeKey_1a9e03dcb159de67d49060c8504ef9577e" kindref="member">kind</ref><sp/>&amp;&amp;<sp/><ref refid="structUndoMergeKey_1a152899d81c6c03ca31bf631daa46432b" kindref="member">target</ref><sp/>==<sp/>k.<ref refid="structUndoMergeKey_1a152899d81c6c03ca31bf631daa46432b" kindref="member">target</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="comment">//<sp/>True<sp/>only<sp/>when<sp/>T<sp/>declares<sp/>get_merge_key()<sp/>itself.<sp/>The<sp/>address<sp/>of<sp/>an<sp/>inherited<sp/>member<sp/>names<sp/>the<sp/>class</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="comment">//<sp/>that<sp/>declared<sp/>it,<sp/>so<sp/>a<sp/>subclass<sp/>that<sp/>does<sp/>not<sp/>repeat<sp/>the<sp/>macro<sp/>below<sp/>reads<sp/>as<sp/>false.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="comment">//<sp/>One<sp/>declared<sp/>with<sp/>another<sp/>signature,<sp/>a<sp/>missing<sp/>const<sp/>say,<sp/>hides<sp/>the<sp/>base<sp/>rather<sp/>than<sp/>overriding<sp/>it<sp/>and</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="comment">//<sp/>reads<sp/>as<sp/>false<sp/>too,<sp/>folding<sp/>nothing<sp/>and<sp/>reporting<sp/>nothing:<sp/>declare<sp/>a<sp/>key<sp/>only<sp/>through<sp/>the<sp/>macro<sp/>below.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="28" refid="undo_8h_1a86b51aedf242ac8ea6896e564f03c975" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="undo_8h_1a86b51aedf242ac8ea6896e564f03c975" kindref="member">undo_declares_merge_key</ref>()</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::is_same_v&lt;</highlight><highlight class="keyword">decltype</highlight><highlight class="normal">(&amp;T::get_merge_key),<sp/><ref refid="structUndoMergeKey" kindref="compound">UndoMergeKey</ref><sp/>(T::*)()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">&gt;;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Declares<sp/>the<sp/>merge<sp/>key.<sp/>Implement<sp/>merge()<sp/>too,<sp/>a<sp/>key<sp/>alone<sp/>folds<sp/>nothing.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="comment">//<sp/>`kind_uid`<sp/>is<sp/>what<sp/>makes<sp/>the<sp/>key<sp/>this<sp/>class&apos;s<sp/>own.<sp/>Generate<sp/>it<sp/>with<sp/>tools/util/hash.exe<sp/>from<sp/>a<sp/>name<sp/>for</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="comment">//<sp/>this<sp/>class<sp/>and<sp/>write<sp/>that<sp/>name<sp/>in<sp/>the<sp/>comment<sp/>beside<sp/>it,<sp/>the<sp/>way<sp/>a<sp/>CID_<sp/>is<sp/>made.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="comment">//<sp/>WARNING:<sp/>THE<sp/>NAME<sp/>MUST<sp/>BE<sp/>UNIQUE<sp/>ACROSS<sp/>EVERY<sp/>UNDO<sp/>CLASS.<sp/>Qualify<sp/>it<sp/>with<sp/>the<sp/>owner<sp/>where<sp/>the<sp/>class<sp/>name</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="comment">//<sp/>alone<sp/>is<sp/>not,<sp/>as<sp/>the<sp/>several<sp/>UndoPropsChange<sp/>do:<sp/>two<sp/>classes<sp/>sharing<sp/>a<sp/>UID<sp/>fold<sp/>into<sp/>each<sp/>other,<sp/>and<sp/>the</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="comment">//<sp/>one<sp/>that<sp/>is<sp/>dropped<sp/>loses<sp/>its<sp/>restore()<sp/>with<sp/>nothing<sp/>to<sp/>report<sp/>it.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="undo_8h_1ad7839d661d5991ea340b91528394dd25" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UNDO_MERGE_KEY_BY_TARGET(kind_uid,<sp/>target_expr)<sp/>\</highlight></codeline>
+<codeline lineno="42"><highlight class="preprocessor"><sp/><sp/>UndoMergeKey<sp/>get_merge_key()<sp/>const<sp/>override<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="43"><highlight class="preprocessor"><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="44"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>UndoMergeKey<sp/>key;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="45"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>key.kind<sp/>=<sp/>(kind_uid);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="46"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>key.target<sp/>=<sp/>(target_expr);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="47"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>return<sp/>key;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="48"><highlight class="preprocessor"><sp/><sp/>}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="comment">//<sp/>For<sp/>an<sp/>object<sp/>that<sp/>snapshots<sp/>its<sp/>target<sp/>whole<sp/>and<sp/>rereads<sp/>the<sp/>redo<sp/>state<sp/>in<sp/>restore(),<sp/>so<sp/>a<sp/>later</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="comment">//<sp/>snapshot<sp/>of<sp/>the<sp/>same<sp/>slice<sp/>adds<sp/>nothing.<sp/>One<sp/>holding<sp/>both<sp/>values<sp/>up<sp/>front<sp/>needs<sp/>its<sp/>own<sp/>merge().</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="undo_8h_1a0f09404b3cdf360685cb6dca3fc7d33c" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UNDO_MERGE_SNAPSHOT_BY_TARGET(kind_uid,<sp/>target_expr)<sp/>\</highlight></codeline>
+<codeline lineno="53"><highlight class="preprocessor"><sp/><sp/>UNDO_MERGE_KEY_BY_TARGET(kind_uid,<sp/>target_expr)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="54"><highlight class="preprocessor"><sp/><sp/>bool<sp/>merge(const<sp/>UndoRedoObject<sp/>&amp;)<sp/>override<sp/>{<sp/>return<sp/>true;<sp/>}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="comment">//<sp/>object<sp/>that<sp/>holds<sp/>undo/redo<sp/>data</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="comment">//<sp/>derive<sp/>your<sp/>objects<sp/>from<sp/>this<sp/>one</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="classUndoRedoObject" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classUndoRedoObject" kindref="compound">UndoRedoObject</ref></highlight></codeline>
+<codeline lineno="59"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="61" refid="classUndoRedoObject_1a34fadaf06fb3203577c747c180f11156" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classUndoRedoObject_1a34fadaf06fb3203577c747c180f11156" kindref="member">~UndoRedoObject</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>called<sp/>to<sp/>undo<sp/>changes<sp/>to<sp/>database</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>if<sp/>save_redo_data<sp/>is<sp/>true,<sp/>save<sp/>data<sp/>necessary<sp/>to<sp/>restore</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/>database<sp/>to<sp/>its<sp/>current<sp/>state<sp/>in<sp/>redo<sp/>operation</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="classUndoRedoObject_1a667614c78f53dafad239f4e9b6b7e45e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoRedoObject_1a667614c78f53dafad239f4e9b6b7e45e" kindref="member">restore</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>save_redo_data)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>redo<sp/>undone<sp/>changes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69" refid="classUndoRedoObject_1a6cfa575de5ea88a980f90750897a7c3b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoRedoObject_1a6cfa575de5ea88a980f90750897a7c3b" kindref="member">redo</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>get<sp/>approximate<sp/>size<sp/>of<sp/>this<sp/>object<sp/>(bytes)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>used<sp/>to<sp/>keep<sp/>undo<sp/>data<sp/>size<sp/>under<sp/>reasonable<sp/>limit</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73" refid="classUndoRedoObject_1ae5d898fe38e036d5a3c1b156ea02e030" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="classUndoRedoObject_1ae5d898fe38e036d5a3c1b156ea02e030" kindref="member">size</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>see<sp/>UndoMergeKey,<sp/>declare<sp/>it<sp/>through<sp/>UNDO_MERGE_KEY_BY_TARGET</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76" refid="classUndoRedoObject_1af397e4386f0bf137f980b682557b2358" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="structUndoMergeKey" kindref="compound">UndoMergeKey</ref><sp/><ref refid="classUndoRedoObject_1af397e4386f0bf137f980b682557b2358" kindref="member">get_merge_key</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structUndoMergeKey" kindref="compound">UndoMergeKey</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Fold<sp/>`newer`,<sp/>which<sp/>has<sp/>the<sp/>same<sp/>key,<sp/>into<sp/>this<sp/>object<sp/>and<sp/>return<sp/>true<sp/>so<sp/>it<sp/>can<sp/>be<sp/>dropped;<sp/>false</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>keeps<sp/>both,<sp/>must<sp/>change<sp/>nothing,<sp/>and<sp/>may<sp/>be<sp/>asked<sp/>again.<sp/>Both<sp/>always<sp/>belong<sp/>to<sp/>one<sp/>operation,<sp/>so</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>data<sp/>taken<sp/>out<sp/>of<sp/>`newer`<sp/>cannot<sp/>outlive<sp/>a<sp/>cancel<sp/>of<sp/>it,<sp/>but<sp/>never<sp/>keep<sp/>a<sp/>pointer<sp/>into<sp/>`newer`:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>put&lt;T&gt;()<sp/>moves<sp/>it<sp/>away<sp/>right<sp/>after.<sp/>The<sp/>key<sp/>names<sp/>one<sp/>class,<sp/>so<sp/>`newer`<sp/>casts<sp/>to<sp/>it<sp/>without<sp/>a<sp/>check.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82" refid="classUndoRedoObject_1ab1c87ec4bbe9520ddd2a7a67bae00522" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classUndoRedoObject_1ab1c87ec4bbe9520ddd2a7a67bae00522" kindref="member">merge</ref>([[maybe_unused]]<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classUndoRedoObject" kindref="compound">UndoRedoObject</ref><sp/>&amp;newer)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>True<sp/>only<sp/>for<sp/>the<sp/>object<sp/>the<sp/>undo<sp/>system<sp/>groups<sp/>an<sp/>operation<sp/>into,<sp/>so<sp/>it<sp/>can<sp/>walk<sp/>one.<sp/>Do<sp/>not</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>override<sp/>it:<sp/>the<sp/>undo<sp/>system<sp/>casts<sp/>whatever<sp/>answers<sp/>true<sp/>to<sp/>that<sp/>type.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="86" refid="classUndoRedoObject_1a0c07b2322c720a6f2a9e4cde1f3f7cf4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classUndoRedoObject_1a0c07b2322c720a6f2a9e4cde1f3f7cf4" kindref="member">is_operation_group</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>called<sp/>when<sp/>this<sp/>object<sp/>is<sp/>accepted<sp/>in<sp/>UndoSystem</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/>as<sp/>a<sp/>result<sp/>of<sp/>accept()<sp/>or<sp/>cancel()</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Not<sp/>once<sp/>per<sp/>object:<sp/>one<sp/>that<sp/>folds<sp/>away<sp/>at<sp/>put<sp/>time<sp/>never<sp/>hears<sp/>it,<sp/>one<sp/>that<sp/>folds<sp/>when<sp/>its</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>operation<sp/>is<sp/>accepted<sp/>hears<sp/>it<sp/>first<sp/>and<sp/>is<sp/>dropped<sp/>anyway,<sp/>and<sp/>one<sp/>in<sp/>a<sp/>nested<sp/>operation<sp/>hears<sp/>it</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>again<sp/>from<sp/>each<sp/>accept<sp/>around<sp/>it.<sp/>So<sp/>do<sp/>no<sp/>work<sp/>here<sp/>that<sp/>any<sp/>of<sp/>those<sp/>would<sp/>spoil.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93" refid="classUndoRedoObject_1ab83ce4f60d81e6e556046e6c4b5c8949" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoRedoObject_1ab83ce4f60d81e6e556046e6c4b5c8949" kindref="member">accepted</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>for<sp/>debugging</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96" refid="classUndoRedoObject_1ad2fdd3f63413f2656c58fe56429dfa5e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoRedoObject_1ad2fdd3f63413f2656c58fe56429dfa5e" kindref="member">get_description</ref>(String<sp/>&amp;)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight><highlight class="comment">//<sp/>undo/redo<sp/>system<sp/>managing<sp/>undo/redo<sp/>for<sp/>some<sp/>database</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight><highlight class="comment">//<sp/>see<sp/>create_undo_system()</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="101" refid="classUndoSystem" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classUndoSystem" kindref="compound">UndoSystem</ref></highlight></codeline>
+<codeline lineno="102"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="104" refid="classUndoSystem_1aa355d47aab1ca4d186cfc13b87896521" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classUndoSystem_1aa355d47aab1ca4d186cfc13b87896521" kindref="member">UndoSystem</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="105" refid="classUndoSystem_1a6c7d630216788cc30a9d1955a7f7471d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classUndoSystem_1a6c7d630216788cc30a9d1955a7f7471d" kindref="member">UndoSystem</ref>(<ref refid="classUndoSystem" kindref="compound">UndoSystem</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="106" refid="classUndoSystem_1a583dd0b74ecd8d0b0a7386d07149cd51" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1a583dd0b74ecd8d0b0a7386d07149cd51" kindref="member">~UndoSystem</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>call<sp/>this<sp/>method<sp/>to<sp/>start<sp/>operation,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/>then<sp/>call<sp/>accept(),<sp/>or<sp/>cancel()<sp/>for<sp/>one<sp/>opened<sp/>with<sp/>can_cancel,<sp/>to<sp/>end<sp/>it.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>NOTE:<sp/>operations<sp/>can<sp/>be<sp/>nested</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>The<sp/>default<sp/>promises<sp/>this<sp/>operation<sp/>will<sp/>only<sp/>ever<sp/>be<sp/>accepted,<sp/>which<sp/>lets<sp/>what<sp/>is<sp/>put<sp/>into<sp/>it<sp/>fold</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>into<sp/>the<sp/>operation<sp/>around<sp/>it<sp/>as<sp/>it<sp/>arrives<sp/>instead<sp/>of<sp/>waiting<sp/>for<sp/>the<sp/>accept.<sp/>An<sp/>operation<sp/>with<sp/>a</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>path<sp/>that<sp/>reaches<sp/>cancel()<sp/>has<sp/>to<sp/>ask<sp/>for<sp/>can_cancel:<sp/>cancel()<sp/>on<sp/>one<sp/>without<sp/>it<sp/>asserts<sp/>and<sp/>then</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>closes<sp/>it<sp/>without<sp/>reverting.<sp/>A<sp/>nested<sp/>one<sp/>holds<sp/>what<sp/>is<sp/>already<sp/>recorded<sp/>in<sp/>the<sp/>operation<sp/>around<sp/>it;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>a<sp/>top<sp/>level<sp/>one<sp/>has<sp/>nothing<sp/>outside<sp/>it<sp/>covering<sp/>that,<sp/>so<sp/>it<sp/>drops<sp/>the<sp/>record<sp/>and<sp/>leaves<sp/>the<sp/>change</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>applied.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="117" refid="classUndoSystem_1a33066c73d9ddcdcda4a2b92bd609ed59" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1a33066c73d9ddcdcda4a2b92bd609ed59" kindref="member">begin</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>can_cancel<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>put<sp/>object<sp/>into<sp/>current<sp/>operation.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>if<sp/>no<sp/>operation<sp/>was<sp/>started<sp/>(is_holding()<sp/>is<sp/>false),</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/>the<sp/>passed<sp/>object<sp/>will<sp/>be<sp/>canceled<sp/>and<sp/>destroyed.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>For<sp/>an<sp/>object<sp/>nobody<sp/>can<sp/>build<sp/>in<sp/>place:<sp/>a<sp/>factory<sp/>result,<sp/>or<sp/>one<sp/>filled<sp/>in<sp/>after<sp/>it<sp/>is</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>constructed.<sp/>Anything<sp/>built<sp/>from<sp/>its<sp/>arguments<sp/>goes<sp/>through<sp/>put&lt;T&gt;()<sp/>below.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124" refid="classUndoSystem_1a7e44451e1825dd88e406b8b29fc5e842" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1a7e44451e1825dd88e406b8b29fc5e842" kindref="member">put</ref>(<ref refid="classUndoRedoObject" kindref="compound">UndoRedoObject</ref><sp/>*)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Same,<sp/>for<sp/>an<sp/>object<sp/>built<sp/>from<sp/>`args`.<sp/>When<sp/>T<sp/>declares<sp/>a<sp/>merge<sp/>key,<sp/>it<sp/>is<sp/>built<sp/>on<sp/>the<sp/>caller&apos;s<sp/>stack</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>and<sp/>reaches<sp/>the<sp/>heap<sp/>only<sp/>if<sp/>the<sp/>current<sp/>operation<sp/>has<sp/>to<sp/>keep<sp/>it,<sp/>so<sp/>a<sp/>repeat<sp/>of<sp/>what<sp/>that<sp/>operation</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>covers<sp/>costs<sp/>nothing.<sp/>Without<sp/>one,<sp/>`args`<sp/>go<sp/>straight<sp/>to<sp/>the<sp/>heap<sp/>under<sp/>an<sp/>empty<sp/>key,<sp/>so<sp/>nothing<sp/>is</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>offered<sp/>to<sp/>the<sp/>fold<sp/>map<sp/>here:<sp/>a<sp/>T<sp/>that<sp/>only<sp/>inherits<sp/>a<sp/>key<sp/>folds<sp/>at<sp/>its<sp/>accept,<sp/>not<sp/>as<sp/>it<sp/>arrives.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">T,<sp/></highlight><highlight class="keyword">class</highlight><highlight class="normal">...<sp/>Args&gt;</highlight></codeline>
+<codeline lineno="131" refid="classUndoSystem_1afdbff8dbd35c33db3d08eafde9ff45c8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1afdbff8dbd35c33db3d08eafde9ff45c8" kindref="member">put</ref>(Args<sp/>&amp;&amp;...args)</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static_assert</highlight><highlight class="normal">(eastl::is_base_of_v&lt;UndoRedoObject,<sp/>T&gt;,<sp/></highlight><highlight class="stringliteral">&quot;put&lt;T&gt;()<sp/>records<sp/>an<sp/>UndoRedoObject&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static_assert</highlight><highlight class="normal">(!eastl::is_abstract_v&lt;T&gt;,<sp/></highlight><highlight class="stringliteral">&quot;put&lt;T&gt;()<sp/>has<sp/>to<sp/>build<sp/>a<sp/>T,<sp/>so<sp/>it<sp/>cannot<sp/>be<sp/>abstract&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>T<sp/>reaches<sp/>the<sp/>heap<sp/>by<sp/>move,<sp/>or<sp/>by<sp/>copy<sp/>when<sp/>a<sp/>user<sp/>declared<sp/>destructor<sp/>left<sp/>it<sp/>no<sp/>move<sp/>constructor.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>One<sp/>owning<sp/>a<sp/>raw<sp/>resource<sp/>has<sp/>to<sp/>declare<sp/>one,<sp/>or<sp/>the<sp/>stack<sp/>object<sp/>and<sp/>the<sp/>heap<sp/>copy<sp/>both<sp/>release<sp/>it.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Only<sp/>a<sp/>key<sp/>T<sp/>declares<sp/>itself<sp/>is<sp/>worth<sp/>a<sp/>probe;<sp/>an<sp/>inherited<sp/>one<sp/>belongs<sp/>to<sp/>the<sp/>base.<sp/>Declaring<sp/>one</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>is<sp/>on<sp/>T:<sp/>the<sp/>fold<sp/>at<sp/>accept()<sp/>has<sp/>just<sp/>a<sp/>pointer,<sp/>so<sp/>nothing<sp/>here<sp/>can<sp/>hold<sp/>that<sp/>for<sp/>it.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>(undo_declares_merge_key&lt;T&gt;())</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>T<sp/>probe(eastl::forward&lt;Args&gt;(args)...);</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structUndoMergeKey" kindref="compound">UndoMergeKey</ref><sp/>key<sp/>=<sp/>probe.get_merge_key();</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!<ref refid="classUndoSystem_1a19a223508261219aa15d776533328eaa" kindref="member">take_probe</ref>(probe,<sp/>key))</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classUndoSystem_1a1b0eb9b4b9e4e970f0a065b06777c47b" kindref="member">record_put</ref>(</highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/>T(eastl::move(probe)),<sp/>key);</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Nothing<sp/>it<sp/>could<sp/>fold<sp/>into,<sp/>so<sp/>a<sp/>stack<sp/>copy<sp/>would<sp/>save<sp/>nothing<sp/>and<sp/>only<sp/>cost<sp/>a<sp/>move.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classUndoSystem_1a1b0eb9b4b9e4e970f0a065b06777c47b" kindref="member">record_put</ref>(</highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/>T(eastl::forward&lt;Args&gt;(args)...),<sp/><ref refid="structUndoMergeKey" kindref="compound">UndoMergeKey</ref>());</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>accept<sp/>current<sp/>operation<sp/>and<sp/>leave<sp/>database<sp/>in<sp/>its<sp/>modified<sp/>state</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>NOTE:<sp/>operations<sp/>can<sp/>be<sp/>nested</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="156" refid="classUndoSystem_1a0762402b582f4da4648e86934935ace6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1a0762402b582f4da4648e86934935ace6" kindref="member">accept</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*operation_name)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>cancel<sp/>current<sp/>operation<sp/>and<sp/>restore<sp/>database</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/>to<sp/>its<sp/>state<sp/>before<sp/>last<sp/>begin(),<sp/>destroy<sp/>UndoRedoObjects</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>NOTE:<sp/>operations<sp/>can<sp/>be<sp/>nested</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Only<sp/>for<sp/>an<sp/>operation<sp/>opened<sp/>with<sp/>can_cancel.<sp/>One<sp/>opened<sp/>without<sp/>it<sp/>is<sp/>closed<sp/>and<sp/>not<sp/>reverted,<sp/>and</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>the<sp/>assert<sp/>that<sp/>reports<sp/>it<sp/>is<sp/>compiled<sp/>out<sp/>of<sp/>release,<sp/>so<sp/>ask<sp/>for<sp/>can_cancel<sp/>wherever<sp/>this<sp/>is<sp/>reached.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="163" refid="classUndoSystem_1a2baa7566f968bfd0437d56e9f8e78a0b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1a2baa7566f968bfd0437d56e9f8e78a0b" kindref="member">cancel</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>returns<sp/>true<sp/>if<sp/>system<sp/>is<sp/>saving<sp/>undo<sp/>data</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>(begin()<sp/>was<sp/>called<sp/>without<sp/>matching<sp/>accept()<sp/>or<sp/>cancel())</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="167" refid="classUndoSystem_1afccb57eee38dff1b8c0bf395e7376fdc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1afccb57eee38dff1b8c0bf395e7376fdc" kindref="member">is_holding</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>How<sp/>many<sp/>operations<sp/>are<sp/>open.<sp/>Whoever<sp/>opens<sp/>one<sp/>records<sp/>this<sp/>straight<sp/>after<sp/>its<sp/>begin()<sp/>and<sp/>closes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>it<sp/>only<sp/>while<sp/>the<sp/>count<sp/>is<sp/>still<sp/>at<sp/>least<sp/>that,<sp/>which<sp/>is_holding()<sp/>cannot<sp/>tell<sp/>it:<sp/>one<sp/>opened</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>inside<sp/>this<sp/>one<sp/>reads<sp/>as<sp/>holding<sp/>too.<sp/>It<sp/>does<sp/>not<sp/>separate<sp/>an<sp/>operation<sp/>of<sp/>its<sp/>own<sp/>from<sp/>one<sp/>another</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>owner<sp/>opened<sp/>after<sp/>a<sp/>clear()<sp/>dropped<sp/>it,<sp/>because<sp/>both<sp/>read<sp/>the<sp/>same<sp/>count.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="173" refid="classUndoSystem_1ac8b3ce8fb16feeab295b302ecef2c1c9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1ac8b3ce8fb16feeab295b302ecef2c1c9" kindref="member">open_operation_count</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>returns<sp/>true<sp/>if<sp/>undo<sp/>is<sp/>possible</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="177" refid="classUndoSystem_1a2db8cab3cbe55272fd6fb518dd4f6ef3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1a2db8cab3cbe55272fd6fb518dd4f6ef3" kindref="member">can_undo</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"></highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>returns<sp/>true<sp/>if<sp/>redo<sp/>is<sp/>possible</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="180" refid="classUndoSystem_1abb2ef9e143e8c3151c7aa5ce73132ee7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1abb2ef9e143e8c3151c7aa5ce73132ee7" kindref="member">can_redo</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>undo<sp/>last<sp/>operation</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="183" refid="classUndoSystem_1ae15eff0f385489b3404328e183f58ca0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1ae15eff0f385489b3404328e183f58ca0" kindref="member">undo</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>redo<sp/>last<sp/>undone<sp/>operation</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="186" refid="classUndoSystem_1ac2606c3ed1a86c1c680ed6d971e7b955" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1ac2606c3ed1a86c1c680ed6d971e7b955" kindref="member">redo</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"></highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>returns<sp/>number<sp/>of<sp/>(top-level)<sp/>operations<sp/>that<sp/>can<sp/>be<sp/>undone</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="189" refid="classUndoSystem_1a1b80225299a4e2f005370dbec1e5aed1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1a1b80225299a4e2f005370dbec1e5aed1" kindref="member">undo_level</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"></highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>returns<sp/>i-th<sp/>undo<sp/>operation<sp/>name<sp/>(0<sp/>is<sp/>last<sp/>operation,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/>1<sp/>is<sp/>operation<sp/>before<sp/>it,<sp/>etc...),<sp/>or<sp/>NULL<sp/>if<sp/>no<sp/>such<sp/>operation</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="193" refid="classUndoSystem_1a96ded1fee2e2c3a7ee76bfdd14d0b106" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classUndoSystem_1a96ded1fee2e2c3a7ee76bfdd14d0b106" kindref="member">get_undo_name</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>returns<sp/>number<sp/>of<sp/>(top-level)<sp/>operations<sp/>that<sp/>can<sp/>be<sp/>redone</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="196" refid="classUndoSystem_1a63fee00f550a68cfaeb975512a59b774" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1a63fee00f550a68cfaeb975512a59b774" kindref="member">redo_level</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"></highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>returns<sp/>i-th<sp/>redo<sp/>operation<sp/>name<sp/>(0<sp/>is<sp/>current<sp/>operation,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/>1<sp/>is<sp/>operation<sp/>after<sp/>it,<sp/>etc...),<sp/>or<sp/>NULL<sp/>if<sp/>no<sp/>such<sp/>operation</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="200" refid="classUndoSystem_1a5f0b12b9bdbd7a30fb815b524733896b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classUndoSystem_1a5f0b12b9bdbd7a30fb815b524733896b" kindref="member">get_redo_name</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>set<sp/>maximum<sp/>undo<sp/>size<sp/>(bytes)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="203" refid="classUndoSystem_1ad72f6d4a1b781bae099c549d602e7565" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1ad72f6d4a1b781bae099c549d602e7565" kindref="member">set_max_size</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>get<sp/>maximum<sp/>undo<sp/>size<sp/>(bytes)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="206" refid="classUndoSystem_1a753df80b31af7c63cd073e8611b25d17" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1a753df80b31af7c63cd073e8611b25d17" kindref="member">get_max_size</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>remove<sp/>all<sp/>undo/redo<sp/>operations</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="209" refid="classUndoSystem_1a6c7889b3ac0567cafd074d551fb24960" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1a6c7889b3ac0567cafd074d551fb24960" kindref="member">clear</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"></highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Per-operation<sp/>owner<sp/>token.<sp/>The<sp/>undo<sp/>system<sp/>never<sp/>dereferences<sp/>it<sp/>--<sp/>the<sp/>owner</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>is<sp/>opaque<sp/>and<sp/>interpreted<sp/>by<sp/>the<sp/>caller<sp/>(the<sp/>editor<sp/>app<sp/>uses<sp/>it<sp/>as<sp/>the<sp/>active</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>plugin).<sp/>The<sp/>current<sp/>owner<sp/>is<sp/>stamped<sp/>onto<sp/>every<sp/>operation<sp/>committed<sp/>by</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>accept();<sp/>set_op_owner<sp/>is<sp/>normally<sp/>called<sp/>when<sp/>the<sp/>active<sp/>plugin<sp/>changes.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Default<sp/>owner<sp/>is<sp/>NULL.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="216" refid="classUndoSystem_1aa63a09bf630de32609084eebe520d68a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1aa63a09bf630de32609084eebe520d68a" kindref="member">set_op_owner</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*owner)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Owner<sp/>of<sp/>the<sp/>operation<sp/>that<sp/>the<sp/>next<sp/>undo()<sp/>/<sp/>redo()<sp/>would<sp/>act<sp/>on,<sp/>or<sp/>NULL<sp/>when</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>there<sp/>is<sp/>no<sp/>such<sp/>operation.<sp/>Lets<sp/>the<sp/>caller<sp/>switch<sp/>to<sp/>the<sp/>owning<sp/>context<sp/>before</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>applying<sp/>the<sp/>change.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="221" refid="classUndoSystem_1a8b923da8438399363daa3132d3c594de" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="classUndoSystem_1a8b923da8438399363daa3132d3c594de" kindref="member">get_undo_owner</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="222" refid="classUndoSystem_1a4ae8e81b2c5f2dbf7f3a848c74e534f0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="classUndoSystem_1a4ae8e81b2c5f2dbf7f3a848c74e534f0" kindref="member">get_redo_owner</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"></highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Remove<sp/>every<sp/>top-level<sp/>operation<sp/>stamped<sp/>with<sp/>`owner`<sp/>(both<sp/>undo<sp/>and<sp/>redo<sp/>sides),</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>adjusting<sp/>the<sp/>current<sp/>position<sp/>so<sp/>the<sp/>surviving<sp/>operations<sp/>keep<sp/>their<sp/>order.<sp/>Used</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>to<sp/>drop<sp/>one<sp/>owner&apos;s<sp/>history<sp/>without<sp/>touching<sp/>others<sp/>--<sp/>e.g.<sp/>a<sp/>plugin<sp/>reloading<sp/>its</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>document.<sp/>No-op<sp/>while<sp/>an<sp/>operation<sp/>is<sp/>being<sp/>recorded<sp/>(is_holding()).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="228" refid="classUndoSystem_1a1148b3b2b7999fecd019add1dfa6b10a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1a1148b3b2b7999fecd019add1dfa6b10a" kindref="member">remove_ops_by_owner</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*owner)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"></highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>&quot;Dirty&quot;<sp/>flag<sp/>is<sp/>set<sp/>when<sp/>undo<sp/>system<sp/>is<sp/>modified<sp/>in<sp/>some<sp/>way,<sp/>or<sp/>when<sp/>setDirty()<sp/>is<sp/>called.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="231" refid="classUndoSystem_1a55d2e00de550ee89a9b63833a86cd661" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1a55d2e00de550ee89a9b63833a86cd661" kindref="member">isDirty</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"></highlight></codeline>
+<codeline lineno="233" refid="classUndoSystem_1ae551219952c254b976fe1c7b4e383bad" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1ae551219952c254b976fe1c7b4e383bad" kindref="member">setDirty</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dirty<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"></highlight></codeline>
+<codeline lineno="235"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>put&lt;T&gt;()<sp/>offers<sp/>what<sp/>it<sp/>built<sp/>here<sp/>first,<sp/>under<sp/>the<sp/>key<sp/>it<sp/>worked<sp/>out<sp/>for<sp/>T.<sp/>True<sp/>means<sp/>it<sp/>is<sp/>dealt</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>with<sp/>and<sp/>must<sp/>not<sp/>be<sp/>kept:<sp/>either<sp/>no<sp/>operation<sp/>is<sp/>open,<sp/>so<sp/>it<sp/>was<sp/>applied<sp/>and<sp/>reverted,<sp/>or<sp/>it<sp/>folded</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>into<sp/>one<sp/>this<sp/>operation<sp/>covers.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="239" refid="classUndoSystem_1a19a223508261219aa15d776533328eaa" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1a19a223508261219aa15d776533328eaa" kindref="member">take_probe</ref>(<ref refid="classUndoRedoObject" kindref="compound">UndoRedoObject</ref><sp/>&amp;probe,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structUndoMergeKey" kindref="compound">UndoMergeKey</ref><sp/>&amp;key)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"></highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Records<sp/>an<sp/>object<sp/>put&lt;T&gt;()<sp/>built<sp/>on<sp/>the<sp/>heap,<sp/>under<sp/>the<sp/>key<sp/>it<sp/>worked<sp/>out<sp/>for<sp/>T.<sp/>An<sp/>empty<sp/>key<sp/>keeps</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>`o`<sp/>out<sp/>of<sp/>this<sp/>operation&apos;s<sp/>fold<sp/>map;<sp/>the<sp/>fold<sp/>at<sp/>accept()<sp/>asks<sp/>the<sp/>object<sp/>for<sp/>its<sp/>key<sp/>instead,<sp/>so<sp/>a</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>key<sp/>it<sp/>inherited<sp/>still<sp/>folds<sp/>there.<sp/>Applies<sp/>and<sp/>reverts<sp/>`o`<sp/>when<sp/>no<sp/>operation<sp/>is<sp/>open,<sp/>as<sp/>the<sp/>raw<sp/>put</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>does.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="245" refid="classUndoSystem_1a1b0eb9b4b9e4e970f0a065b06777c47b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classUndoSystem_1a1b0eb9b4b9e4e970f0a065b06777c47b" kindref="member">record_put</ref>(<ref refid="classUndoRedoObject" kindref="compound">UndoRedoObject</ref><sp/>*o,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structUndoMergeKey" kindref="compound">UndoMergeKey</ref><sp/>&amp;key)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="246"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"></highlight></codeline>
+<codeline lineno="248"><highlight class="normal"></highlight></codeline>
+<codeline lineno="249" refid="classIUndoRedoWndClient" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIUndoRedoWndClient" kindref="compound">IUndoRedoWndClient</ref></highlight></codeline>
+<codeline lineno="250"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="252" refid="classIUndoRedoWndClient_1a94acc7c893cf3792941c96ded5887772" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIUndoRedoWndClient_1a94acc7c893cf3792941c96ded5887772" kindref="member">updateUndoRedoMenu</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="253" refid="classIUndoRedoWndClient_1a6628e8535afb3bb53d267141f068d976" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIUndoRedoWndClient_1a6628e8535afb3bb53d267141f068d976" kindref="member">onUndoRedo</ref>([[maybe_unused]]<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*nm,<sp/>[[maybe_unused]]<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>wasUndo)<sp/>{}</highlight></codeline>
+<codeline lineno="254"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"></highlight></codeline>
+<codeline lineno="256"><highlight class="normal"></highlight><highlight class="comment">//<sp/>create<sp/>UndoSystem<sp/>object</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="257" refid="undo_8h_1a804c131be95016a648787b9cc3361c3c" refkind="member"><highlight class="normal"><ref refid="classUndoSystem" kindref="compound">UndoSystem</ref><sp/>*<ref refid="undo_8h_1a804c131be95016a648787b9cc3361c3c" kindref="member">create_undo_system</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_size<sp/>=<sp/>10<sp/>&lt;&lt;<sp/>20,<sp/><ref refid="classIUndoRedoWndClient" kindref="compound">IUndoRedoWndClient</ref><sp/>*wnd<sp/>=<sp/>NULL);</highlight></codeline>
+    </programlisting>
+    <location file="undo.h"/>
+  </compounddef>
+</doxygen>

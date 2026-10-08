@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structMilkshapeAnimTrack" kind="struct" language="C++" prot="public">
+    <compoundname>MilkshapeAnimTrack</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structMilkshapeAnimTrack_1a8547cef21c9f805a917da444244e1ef4" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structMilkshapeKey" kindref="compound">MilkshapeKey</ref> &gt;</type>
+        <definition>Tab&lt;MilkshapeKey&gt; MilkshapeAnimTrack::keys</definition>
+        <argsstring></argsstring>
+        <name>keys</name>
+        <qualifiedname>MilkshapeAnimTrack::keys</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="milkShapeAnimImport.cpp" line="111" column="7" bodyfile="milkShapeAnimImport.cpp" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structMilkshapeAnimTrack_1afcf27f78ccfba627e181ddba898d6a6a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 MilkshapeAnimTrack::interp</definition>
+        <argsstring>(float time)</argsstring>
+        <name>interp</name>
+        <qualifiedname>MilkshapeAnimTrack::interp</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>time</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="milkShapeAnimImport.cpp" line="113" column="10" bodyfile="milkShapeAnimImport.cpp" bodystart="113" bodyend="127"/>
+      </memberdef>
+      <memberdef kind="function" id="structMilkshapeAnimTrack_1acbc817881cc65a8e4acf03afddabdf27" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Quat</type>
+        <definition>Quat MilkshapeAnimTrack::interpRot</definition>
+        <argsstring>(float time)</argsstring>
+        <name>interpRot</name>
+        <qualifiedname>MilkshapeAnimTrack::interpRot</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>time</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="milkShapeAnimImport.cpp" line="130" column="8" bodyfile="milkShapeAnimImport.cpp" bodystart="130" bodyend="147"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="milkShapeAnimImport.cpp" line="109" column="1" bodyfile="milkShapeAnimImport.cpp" bodystart="110" bodyend="148"/>
+    <listofallmembers>
+      <member refid="structMilkshapeAnimTrack_1afcf27f78ccfba627e181ddba898d6a6a" prot="public" virt="non-virtual"><scope>MilkshapeAnimTrack</scope><name>interp</name></member>
+      <member refid="structMilkshapeAnimTrack_1acbc817881cc65a8e4acf03afddabdf27" prot="public" virt="non-virtual"><scope>MilkshapeAnimTrack</scope><name>interpRot</name></member>
+      <member refid="structMilkshapeAnimTrack_1a8547cef21c9f805a917da444244e1ef4" prot="public" virt="non-virtual"><scope>MilkshapeAnimTrack</scope><name>keys</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

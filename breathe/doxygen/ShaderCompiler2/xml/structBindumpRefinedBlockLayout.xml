@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structBindumpRefinedBlockLayout" kind="struct" language="C++" prot="public">
+    <compoundname>BindumpRefinedBlockLayout</compoundname>
+    <includes refid="linkShaders_8h" local="no">linkShaders.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structBindumpRefinedBlockLayout_1ae44e98adc8337b7d191ba52360f9f7f0" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BindumpRefinedBlockLayout::cache_sign</definition>
+        <argsstring></argsstring>
+        <name>cache_sign</name>
+        <qualifiedname>BindumpRefinedBlockLayout::cache_sign</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="35" column="7" bodyfile="linkShaders.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBindumpRefinedBlockLayout_1a90b09521e71b35f53220b034d1bb452e" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BindumpRefinedBlockLayout::cache_version</definition>
+        <argsstring></argsstring>
+        <name>cache_version</name>
+        <qualifiedname>BindumpRefinedBlockLayout::cache_version</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="36" column="7" bodyfile="linkShaders.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBindumpRefinedBlockLayout_1aa61ac5407c349ebe8e9a67a9b4c5a9bf" prot="public" static="no" mutable="no">
+        <type>bindump::vector&lt; <ref refid="structRefinedBlockLayoutBindumpEntry" kindref="compound">RefinedBlockLayoutBindumpEntry</ref> &gt;</type>
+        <definition>bindump::vector&lt;RefinedBlockLayoutBindumpEntry&gt; BindumpRefinedBlockLayout::vars</definition>
+        <argsstring></argsstring>
+        <name>vars</name>
+        <qualifiedname>BindumpRefinedBlockLayout::vars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="37" column="19" bodyfile="linkShaders.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="linkShaders.h" line="33" column="1" bodyfile="linkShaders.h" bodystart="34" bodyend="38"/>
+    <listofallmembers>
+      <member refid="structBindumpRefinedBlockLayout_1ae44e98adc8337b7d191ba52360f9f7f0" prot="public" virt="non-virtual"><scope>BindumpRefinedBlockLayout</scope><name>cache_sign</name></member>
+      <member refid="structBindumpRefinedBlockLayout_1a90b09521e71b35f53220b034d1bb452e" prot="public" virt="non-virtual"><scope>BindumpRefinedBlockLayout</scope><name>cache_version</name></member>
+      <member refid="structBindumpRefinedBlockLayout_1aa61ac5407c349ebe8e9a67a9b4c5a9bf" prot="public" virt="non-virtual"><scope>BindumpRefinedBlockLayout</scope><name>vars</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,285 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceVariableMap" kind="namespace" language="C++">
+    <compoundname>VariableMap</compoundname>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__shaderVar_8h_1afccec9a11cb454c201f4ebaa36f71003" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int VariableMap::BAD_ID</definition>
+        <argsstring></argsstring>
+        <name>BAD_ID</name>
+        <qualifiedname>VariableMap::BAD_ID</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="32" column="22" bodyfile="dag_shaderVar.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__shaderVar_8h_1ac0cf0a9dc533ebaa472b2252467ce408" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * VariableMap::getVariableName</definition>
+        <argsstring>(int var_id, bool sec_dump_for_exp=false)</argsstring>
+        <name>getVariableName</name>
+        <qualifiedname>VariableMap::getVariableName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>sec_dump_for_exp</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>Get variable name by ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>NULL when var_id is out of range. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="36" column="12" declfile="dag_shaderVar.h" declline="36" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ac0f80078af9dfc329609b2c5a608ad34" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int VariableMap::getVariableId</definition>
+        <argsstring>(const char *variable_name, bool sec_dump_for_exp=false)</argsstring>
+        <name>getVariableId</name>
+        <qualifiedname>VariableMap::getVariableId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>variable_name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>sec_dump_for_exp</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>Get varID by for nam. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>BAD_ID if fail (but generally will always return valid ID, so isVariablePresent() should also be used). </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="40" column="5" declfile="dag_shaderVar.h" declline="40" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a70e7effbacaf74e814e130b47db150b3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int VariableMap::getVariableArraySize</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>getVariableArraySize</name>
+        <qualifiedname>VariableMap::getVariableArraySize</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The size of an array for a variable name. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="43" column="5" declfile="dag_shaderVar.h" declline="43" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1acc94686a31c9fc0c1293c103c1dafcc7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int VariableMap::getVariablesCount</definition>
+        <argsstring>(bool sec_dump_for_exp=false)</argsstring>
+        <name>getVariablesCount</name>
+        <qualifiedname>VariableMap::getVariablesCount</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>sec_dump_for_exp</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>Total number of variable identifiers (var_id will be valid from 0 to count-1). </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="46" column="5" declfile="dag_shaderVar.h" declline="46" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a8ee8a5e44d6a34d7f562f294d1364ca7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int VariableMap::getGlobalVariablesCount</definition>
+        <argsstring>()</argsstring>
+        <name>getGlobalVariablesCount</name>
+        <qualifiedname>VariableMap::getGlobalVariablesCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>Total number of global variables. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="49" column="5" declfile="dag_shaderVar.h" declline="49" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a000aca26d221a991899f50303bc1d3ee" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * VariableMap::getGlobalVariableName</definition>
+        <argsstring>(int globvar_idx)</argsstring>
+        <name>getGlobalVariableName</name>
+        <qualifiedname>VariableMap::getGlobalVariableName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>globvar_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>Name of global variable specified by ordinal index. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="52" column="12" declfile="dag_shaderVar.h" declline="52" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a7549ed935160a8e2fc00302b285604eb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool VariableMap::isVariablePresent</definition>
+        <argsstring>(int var_id)</argsstring>
+        <name>isVariablePresent</name>
+        <qualifiedname>VariableMap::isVariablePresent</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>true when variable for specified var_id is present in shaders dump. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="55" column="6" declfile="dag_shaderVar.h" declline="55" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1acea7564a1f93862d4afafadda12b9fa9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool VariableMap::isVariablePresent</definition>
+        <argsstring>(const ShaderVariableInfo &amp;var_id)</argsstring>
+        <name>isVariablePresent</name>
+        <qualifiedname>VariableMap::isVariablePresent</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>true when variable for specified var_id is present in shaders dump. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="57" column="6" declfile="dag_shaderVar.h" declline="57" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a06bc68616bdb11d3366fbf64a57c2922" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool VariableMap::isGlobVariablePresent</definition>
+        <argsstring>(int var_id)</argsstring>
+        <name>isGlobVariablePresent</name>
+        <qualifiedname>VariableMap::isGlobVariablePresent</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>true when global variable for specified var_id is present in shaders dump. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="59" column="6" declfile="dag_shaderVar.h" declline="59" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1aee0fdc2a5a8115cf0fe00078ae6abaae" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool VariableMap::isGlobVariablePresent</definition>
+        <argsstring>(const ShaderVariableInfo &amp;var_id)</argsstring>
+        <name>isGlobVariablePresent</name>
+        <qualifiedname>VariableMap::isGlobVariablePresent</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>true when global variable for specified var_id is present in shaders dump. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="61" column="6" declfile="dag_shaderVar.h" declline="61" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1ac70b95119bdb8ffbcee1058ba861b89d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::Vector&lt; String &gt;</type>
+        <definition>dag::Vector&lt; String &gt; VariableMap::getPresentedGlobalVariableNames</definition>
+        <argsstring>()</argsstring>
+        <name>getPresentedGlobalVariableNames</name>
+        <qualifiedname>VariableMap::getPresentedGlobalVariableNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>List of all global shader variables names which are presented in current shaders dump. </para>
+</simplesect>
+<simplesect kind="note"><para>Consider that some shadervars are present in dump but never used by ShaderGlobal:: or VariableMap:: public API. To iterate over all used variables you can use raw IDs from 0 to getGlobalVariablesCount() </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="68" column="13" declfile="dag_shaderVar.h" declline="68" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderVar_8h_1a4d590180507fc8adc60aee3ea7ed53b1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t VariableMap::generation</definition>
+        <argsstring>()</argsstring>
+        <name>generation</name>
+        <qualifiedname>VariableMap::generation</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>generation (i.e. is shader dump was reloaded). </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="71" column="10" declfile="dag_shaderVar.h" declline="71" declcolumn="10"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderVar.h" line="30" column="1"/>
+  </compounddef>
+</doxygen>

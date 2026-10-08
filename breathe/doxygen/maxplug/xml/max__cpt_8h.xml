@@ -1,0 +1,99 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="max__cpt_8h" kind="file" language="C++">
+    <compoundname>max_cpt.h</compoundname>
+    <includes local="no">max.h</includes>
+    <includes local="no">assert.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>max_cpt.h</label>
+        <link refid="max__cpt_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>assert.h</label>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="max__cpt_8h_1aa3b7f5b93a662600e293010eae105f1a" prot="public" static="no">
+        <name>MakeRefByID</name>
+        <param><defname>x</defname></param>
+        <param><defname>y</defname></param>
+        <param><defname>z</defname></param>
+        <initializer>ReplaceReference(y, z)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="max_cpt.h" line="8" column="9" bodyfile="max_cpt.h" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="max__cpt_8h_1ad4866a838f923891a0355383f4521f1b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BitArray &amp;</type>
+        <definition>BitArray &amp; mesh_face_sel</definition>
+        <argsstring>(Mesh &amp;m)</argsstring>
+        <name>mesh_face_sel</name>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="max_cpt.h" line="14" column="17" bodyfile="max_cpt.h" bodystart="14" bodyend="14"/>
+      </memberdef>
+      <memberdef kind="function" id="max__cpt_8h_1a6c961322e67a5db9a7b732efae8e0c0d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BitArray &amp;</type>
+        <definition>BitArray &amp; mesh_vert_sel</definition>
+        <argsstring>(Mesh &amp;m)</argsstring>
+        <name>mesh_vert_sel</name>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="max_cpt.h" line="15" column="17" bodyfile="max_cpt.h" bodystart="15" bodyend="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;assert.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8" refid="max__cpt_8h_1aa3b7f5b93a662600e293010eae105f1a" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MakeRefByID(x,<sp/>y,<sp/>z)<sp/>ReplaceReference(y,<sp/>z)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R26)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R26</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>BitArray<sp/>&amp;<ref refid="max__cpt_8h_1ad4866a838f923891a0355383f4521f1b" kindref="member">mesh_face_sel</ref>(Mesh<sp/>&amp;m)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>m.FaceSel();<sp/>}</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>BitArray<sp/>&amp;<ref refid="max__cpt_8h_1a6c961322e67a5db9a7b732efae8e0c0d" kindref="member">mesh_vert_sel</ref>(Mesh<sp/>&amp;m)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>m.VertSel();<sp/>}</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="max__cpt_8h_1ad4866a838f923891a0355383f4521f1b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>BitArray<sp/>&amp;<ref refid="max__cpt_8h_1ad4866a838f923891a0355383f4521f1b" kindref="member">mesh_face_sel</ref>(Mesh<sp/>&amp;m)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>m.faceSel;<sp/>}</highlight></codeline>
+<codeline lineno="15" refid="max__cpt_8h_1a6c961322e67a5db9a7b732efae8e0c0d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>BitArray<sp/>&amp;<ref refid="max__cpt_8h_1a6c961322e67a5db9a7b732efae8e0c0d" kindref="member">mesh_vert_sel</ref>(Mesh<sp/>&amp;m)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>m.vertSel;<sp/>}</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="max_cpt.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,1719 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaced3d" kind="namespace" language="C++">
+    <compoundname>d3d</compoundname>
+    <innerclass refid="structd3d_1_1AutoPipelineAsyncCompile" prot="public">d3d::AutoPipelineAsyncCompile</innerclass>
+    <innerclass refid="classd3d_1_1AutoPipelineAsyncCompileFeedback" prot="public">d3d::AutoPipelineAsyncCompileFeedback</innerclass>
+    <innerclass refid="structd3d_1_1AutoPipelineSyncCompile" prot="public">d3d::AutoPipelineSyncCompile</innerclass>
+    <innerclass refid="structd3d_1_1BorderColor" prot="public">d3d::BorderColor</innerclass>
+    <innerclass refid="structd3d_1_1BufferBarrier" prot="public">d3d::BufferBarrier</innerclass>
+    <innerclass refid="structd3d_1_1BufferBarrierBatchItem" prot="public">d3d::BufferBarrierBatchItem</innerclass>
+    <innerclass refid="structd3d_1_1GpuAutoLock" prot="public">d3d::GpuAutoLock</innerclass>
+    <innerclass refid="structd3d_1_1GPUWorkloadSplit" prot="public">d3d::GPUWorkloadSplit</innerclass>
+    <innerclass refid="structd3d_1_1LayoutTransitionOperation" prot="public">d3d::LayoutTransitionOperation</innerclass>
+    <innerclass refid="structd3d_1_1LoadingAutoLock" prot="public">d3d::LoadingAutoLock</innerclass>
+    <innerclass refid="structd3d_1_1MemorySyncOperation" prot="public">d3d::MemorySyncOperation</innerclass>
+    <innerclass refid="structd3d_1_1PipelineSyncOperation" prot="public">d3d::PipelineSyncOperation</innerclass>
+    <innerclass refid="structd3d_1_1Range" prot="public">d3d::Range</innerclass>
+    <innerclass refid="structd3d_1_1SamplerInfo" prot="public">d3d::SamplerInfo</innerclass>
+    <innerclass refid="structd3d_1_1TextureBarrier" prot="public">d3d::TextureBarrier</innerclass>
+    <innerclass refid="structd3d_1_1TextureBarrierBatchItem" prot="public">d3d::TextureBarrierBatchItem</innerclass>
+    <innerclass refid="structd3d_1_1TextureSubresourceRange" prot="public">d3d::TextureSubresourceRange</innerclass>
+    <innernamespace refid="namespaced3d_1_1buffers">d3d::buffers</innernamespace>
+    <innernamespace refid="namespaced3d_1_1drivercode">d3d::drivercode</innernamespace>
+    <innernamespace refid="namespaced3d_1_1ps">d3d::ps</innernamespace>
+    <innernamespace refid="namespaced3d_1_1shadermodel">d3d::shadermodel</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccf" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>d3d</qualifiedname>
+        <enumvalue id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccfaee46fe06b740cec520589bc8c1df3674" prot="public">
+          <name>USAGE_TEXTURE</name>
+          <initializer>= 0x01</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccfa25c88b41a632efca29f5d7b5ab2fac63" prot="public">
+          <name>USAGE_DEPTH</name>
+          <initializer>= 0x02</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccfa06f00452a5bc53893dab6d2148755179" prot="public">
+          <name>USAGE_RTARGET</name>
+          <initializer>= 0x04</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccfada2e5999587a6870d75e7bbca08a223d" prot="public">
+          <name>USAGE_AUTOGENMIPS</name>
+          <initializer>= 0x08</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccfad8b97022c6bee9e15ce4a9b92f636409" prot="public">
+          <name>USAGE_FILTER</name>
+          <initializer>= 0x10</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccfa71196d667d9f45a952d66c7143233451" prot="public">
+          <name>USAGE_BLEND</name>
+          <initializer>= 0x20</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccfa12191e605dba380d589f686e04604c51" prot="public">
+          <name>USAGE_VERTEXTEXTURE</name>
+          <initializer>= 0x40</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccfa93bc5178deae6a120dafd5495beb3841" prot="public">
+          <name>USAGE_SRGBREAD</name>
+          <initializer>= 0x80</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccfa05c5e7a35f4c0980df1c16cfa1acada6" prot="public">
+          <name>USAGE_SRGBWRITE</name>
+          <initializer>= 0x100</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccfa482b0d2d26ee227f66e2df247591d5a2" prot="public">
+          <name>USAGE_SAMPLECMP</name>
+          <initializer>= 0x200</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccfa4f14ff8bba567519d091fe1e1f664868" prot="public">
+          <name>USAGE_PIXREADWRITE</name>
+          <initializer>= 0x400</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccfa47f1d54d74aab821bf0888bea91d7a54" prot="public">
+          <name>USAGE_TILED</name>
+          <initializer>= 0x800</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccfa15dbc7445976acd87d2acb0ac2dd99a4" prot="public">
+          <name>USAGE_UNORDERED</name>
+          <initializer>= 0x1000</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab4f3923e2c1701661b1070ebc1c4dccfaa6457b22023fb792606cf7f28fc03927" prot="public">
+          <name>USAGE_UNORDERED_LOAD</name>
+          <initializer>= 0x2000</initializer>
+          <briefdescription>
+<para>Indicates the format supports unordered loads. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driver.h" line="41" column="1" bodyfile="dag_driver.h" bodystart="42" bodyend="58"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaced3d_1ade5363267a90a6114e8f9cf9ccffc8c5" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>d3d</qualifiedname>
+        <enumvalue id="namespaced3d_1ade5363267a90a6114e8f9cf9ccffc8c5af3fae37f9d49ae87aafc79ff1cf5cc0f" prot="public">
+          <name>CAPFMT_X8R8G8B8</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ade5363267a90a6114e8f9cf9ccffc8c5a44a87bef6604334b7545909721efe26d" prot="public">
+          <name>CAPFMT_R8G8B8</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ade5363267a90a6114e8f9cf9ccffc8c5a79a7540ba2824f7c49a461426465b7cd" prot="public">
+          <name>CAPFMT_R5G6B5</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ade5363267a90a6114e8f9cf9ccffc8c5a5bf8b2a041ae2da1df541a9059bce078" prot="public">
+          <name>CAPFMT_X1R5G5B5</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driver.h" line="60" column="1" bodyfile="dag_driver.h" bodystart="61" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaced3d_1a83575d13d980a87318680affe191db2a" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>TextureLayout</name>
+        <qualifiedname>d3d::TextureLayout</qualifiedname>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aaec0fc0100c4fc1ce4eea230c3dc10360" prot="public">
+          <name>Undefined</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aae94aab556e7fb8e739eeb1d24ce5db63" prot="public">
+          <name>GenericRead</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aa9b0bffda4bcb312168c0d6537cb04b4d" prot="public">
+          <name>RenderTarget</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aa11c4aac157309541bd3fc4735e727683" prot="public">
+          <name>UnorderedAccess</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aadadab243e0ba960dadb59d2b918293b6" prot="public">
+          <name>DepthRwStencilRw</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aa9f9a1eb0ae110bd4aaf95057d02519d4" prot="public">
+          <name>DepthRwStencilRo</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aac31bddb284cbf7ea6997e02fdaa902c4" prot="public">
+          <name>DepthRoStencilRw</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aad90559c7f68af4512143f7f05669bf03" prot="public">
+          <name>DepthRoStencilRo</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aaa7a869f93efbf0c814d364316f5f3994" prot="public">
+          <name>DepthRw</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aae232f3406538dad6125e95b8b858373f" prot="public">
+          <name>DepthRo</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aada4ef1bdf2d2fce1cfc6fd62870a44ef" prot="public">
+          <name>ShaderResource</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aaecadd2bfc4f324796b72c8d1e4511a9d" prot="public">
+          <name>CopySource</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aac46da1ab89fbccdb37dc1847070acf06" prot="public">
+          <name>CopyDest</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aae67049ae12adc361177166c67d8800a1" prot="public">
+          <name>BlitSource</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aa4d131d7e201f1f1911d4b4334cc62b2d" prot="public">
+          <name>BlitDest</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aa256ff6a4e48f8d0275e644fafd4dcb0d" prot="public">
+          <name>ResolveSource</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aab3133d71abc67b70230c484300388292" prot="public">
+          <name>ResolveDest</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aacdd9344a09a09320014be5d2bce90d3b" prot="public">
+          <name>ClearDest</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aa4c89615d23613a070145a5529f58a4a5" prot="public">
+          <name>ShadingRateSource</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a83575d13d980a87318680affe191db2aa4ef835ee98f26ba4bb4f020544a6fff1" prot="public">
+          <name>MAX_VAL</name>
+          <initializer>= ShadingRateSource</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="19" column="1" bodyfile="dag_enhanced_barrier.h" bodystart="20" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>PipelineStageFlag</name>
+        <qualifiedname>d3d::PipelineStageFlag</qualifiedname>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a767352b788f422b452df064df32a9972" prot="public">
+          <name>NoStage</name>
+          <initializer>= 0u</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a41d3bc947bcd387a1deb57d73d68bb6b" prot="public">
+          <name>ExecuteIndirect</name>
+          <initializer>= 1u &lt;&lt; 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69ad30d077004b72514eece7ad6cb137e9c" prot="public">
+          <name>IndexInput</name>
+          <initializer>= 1u &lt;&lt; 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a25ae6c09e36c60e235111e40c7c33b73" prot="public">
+          <name>VertexAttributeInput</name>
+          <initializer>= 1u &lt;&lt; 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a6f1d562cc01239b98a4137078d9a849c" prot="public">
+          <name>AllVertexShading</name>
+          <initializer>= 1u &lt;&lt; 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a024043b5092c2e1c0698220fadf8db9e" prot="public">
+          <name>Rasterization</name>
+          <initializer>= 1u &lt;&lt; 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a5ad09049db5ad41b32b78a92294484c7" prot="public">
+          <name>EarlyFragmentTests</name>
+          <initializer>= 1u &lt;&lt; 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69aeb0331da83117987126f4ce7f12d5bbe" prot="public">
+          <name>PixelShading</name>
+          <initializer>= 1u &lt;&lt; 6</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69aeada3dda11ce9944c5f92e0d721f9394" prot="public">
+          <name>LateFragmentTests</name>
+          <initializer>= 1u &lt;&lt; 7</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a53a5ac710c62be20dee306db642794de" prot="public">
+          <name>OutputMerging</name>
+          <initializer>= 1u &lt;&lt; 8</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a04d71949c00f9afd37b4ca81dcee5b41" prot="public">
+          <name>ComputeShading</name>
+          <initializer>= 1u &lt;&lt; 9</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a5fb63579fc981698f97d55bfecb213ea" prot="public">
+          <name>Copy</name>
+          <initializer>= 1u &lt;&lt; 12</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a981400fbb4e01f43fd7bd7962d184e60" prot="public">
+          <name>Blit</name>
+          <initializer>= 1u &lt;&lt; 13</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69adc30bc0c7914db5918da4263fce93ad2" prot="public">
+          <name>Clear</name>
+          <initializer>= 1u &lt;&lt; 14</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a05d26e7d7c53744b903ae1f6f8a8c7ed" prot="public">
+          <name>Resolve</name>
+          <initializer>= 1u &lt;&lt; 15</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69ab1c94ca2fbc3e78fc30069c8d0f01680" prot="public">
+          <name>All</name>
+          <initializer>= 1u &lt;&lt; 31</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="70" column="1" bodyfile="dag_enhanced_barrier.h" bodystart="71" bodyend="111"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>AccessFlag</name>
+        <qualifiedname>d3d::AccessFlag</qualifiedname>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a88a12f09800c497f30b98781952b50f2" prot="public">
+          <name>NoAccess</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a524d085ce6a6a41af0773e42b73aa99d" prot="public">
+          <name>IndirectArgument</name>
+          <initializer>= 1u &lt;&lt; 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a10461f19cdb5aadba2fc9986be6400bd" prot="public">
+          <name>VertexBuffer</name>
+          <initializer>= 1u &lt;&lt; 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a7c3895116254ff0417e58b6286de27c0" prot="public">
+          <name>IndexBuffer</name>
+          <initializer>= 1u &lt;&lt; 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22af09d0dd3c08eeabc5b432609f31d0a8c" prot="public">
+          <name>ConstantBuffer</name>
+          <initializer>= 1u &lt;&lt; 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a4fea95ae9dbffba1a2a70e2518d77d08" prot="public">
+          <name>RenderTargetRead</name>
+          <initializer>= 1u &lt;&lt; 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a9319eed0b6422e1371e1baf3b623a102" prot="public">
+          <name>RenderTargetWrite</name>
+          <initializer>= 1u &lt;&lt; 6</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a11c4aac157309541bd3fc4735e727683" prot="public">
+          <name>UnorderedAccess</name>
+          <initializer>= 1u &lt;&lt; 7</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22aaab1a48a275c112d160f5b28d0d3a123" prot="public">
+          <name>DepthStencilWrite</name>
+          <initializer>= 1u &lt;&lt; 8</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22aa7419f15f4d15322a98d29734b8e48b4" prot="public">
+          <name>DepthStencilRead</name>
+          <initializer>= 1u &lt;&lt; 9</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a261d965f5dd43c6873489b68730dbe57" prot="public">
+          <name>InputAttachment</name>
+          <initializer>= 1u &lt;&lt; 10</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22ada4ef1bdf2d2fce1cfc6fd62870a44ef" prot="public">
+          <name>ShaderResource</name>
+          <initializer>= 1u &lt;&lt; 11</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a3a23dd1e2979213e268b02eca78f1093" prot="public">
+          <name>CopyRead</name>
+          <initializer>= 1u &lt;&lt; 12</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22aac0d23bb3afb6d4ffb725d00de2b3ffb" prot="public">
+          <name>CopyWrite</name>
+          <initializer>= 1u &lt;&lt; 13</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a8ad00aa9ac857a35f52083b4162250fb" prot="public">
+          <name>BlitRead</name>
+          <initializer>= 1u &lt;&lt; 14</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22ac1e5f6a9865fc125c28c99d1646ca11d" prot="public">
+          <name>BlitWrite</name>
+          <initializer>= 1u &lt;&lt; 15</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a39259427eafa0b50e55f2899dc7608fc" prot="public">
+          <name>ResolveRead</name>
+          <initializer>= 1u &lt;&lt; 16</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a1e4863fcdbc036ee0a22680d4181963e" prot="public">
+          <name>ResolveWrite</name>
+          <initializer>= 1u &lt;&lt; 17</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22ad51b41b4342ce7a9a27c486a7f003275" prot="public">
+          <name>ClearWrite</name>
+          <initializer>= 1u &lt;&lt; 18</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22ad06880ee51f422722682d4ff5a35dc30" prot="public">
+          <name>ShadingRate</name>
+          <initializer>= 1u &lt;&lt; 23</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="116" column="1" bodyfile="dag_enhanced_barrier.h" bodystart="117" bodyend="164"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaced3d_1aea6114c753431df075c9eae6250f6ebc" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>MipMapMode</name>
+        <qualifiedname>d3d::MipMapMode</qualifiedname>
+        <enumvalue id="namespaced3d_1aea6114c753431df075c9eae6250f6ebcab9f5c797ebbf55adccdd8539a65a0241" prot="public">
+          <name>Disabled</name>
+          <initializer>= TEXMIPMAP_NONE</initializer>
+          <briefdescription>
+<para>[DEPRECATED] no mipmapping </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1aea6114c753431df075c9eae6250f6ebca2a3cd5946cfd317eb99c3d32e35e2d4c" prot="public">
+          <name>Point</name>
+          <initializer>= TEXMIPMAP_POINT</initializer>
+          <briefdescription>
+<para>point mipmapping </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1aea6114c753431df075c9eae6250f6ebca32a843da6ea40ab3b17a3421ccdf671b" prot="public">
+          <name>Linear</name>
+          <initializer>= TEXMIPMAP_LINEAR</initializer>
+          <briefdescription>
+<para>linear mipmapping </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>MipMapMode enum class. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sampler.h" line="35" column="1" bodyfile="dag_sampler.h" bodystart="36" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaced3d_1a14111ae4f0e117b81c3adb833ec2befa" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>FilterMode</name>
+        <qualifiedname>d3d::FilterMode</qualifiedname>
+        <enumvalue id="namespaced3d_1a14111ae4f0e117b81c3adb833ec2befaab9f5c797ebbf55adccdd8539a65a0241" prot="public">
+          <name>Disabled</name>
+          <initializer>= TEXFILTER_NONE</initializer>
+          <briefdescription>
+<para>[DEPRECATED] </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a14111ae4f0e117b81c3adb833ec2befaa2a3cd5946cfd317eb99c3d32e35e2d4c" prot="public">
+          <name>Point</name>
+          <initializer>= TEXFILTER_POINT</initializer>
+          <briefdescription>
+<para>point sampling </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a14111ae4f0e117b81c3adb833ec2befaa32a843da6ea40ab3b17a3421ccdf671b" prot="public">
+          <name>Linear</name>
+          <initializer>= TEXFILTER_LINEAR</initializer>
+          <briefdescription>
+<para>linear sampling </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a14111ae4f0e117b81c3adb833ec2befaa68ef004de6166492c1d668eb8efe09bd" prot="public">
+          <name>Best</name>
+          <initializer>= TEXFILTER_BEST</initializer>
+          <briefdescription>
+<para>[DEPRECATED] anisotropic and similar, if available </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1a14111ae4f0e117b81c3adb833ec2befaa7eece51cf3938103677db7a5051ef8f5" prot="public">
+          <name>Compare</name>
+          <initializer>= TEXFILTER_COMPARE</initializer>
+          <briefdescription>
+<para>point comparasion for using in pcf </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>FilterMode enum class. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sampler.h" line="45" column="1" bodyfile="dag_sampler.h" bodystart="46" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caa" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>AddressMode</name>
+        <qualifiedname>d3d::AddressMode</qualifiedname>
+        <enumvalue id="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caaaa212b19ef5f2fb30acf92e6cbccc1f2d" prot="public">
+          <name>Wrap</name>
+          <initializer>= TEXADDR_WRAP</initializer>
+          <briefdescription>
+<para>Repeats the texture when texture coordinates are outside [0, 1]. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caaa2403def5083f02105e7802b3b315681e" prot="public">
+          <name>Mirror</name>
+          <initializer>= TEXADDR_MIRROR</initializer>
+          <briefdescription>
+<para>Mirrors the texture when texture coordinates are outside [0, 1]. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caaa08825280e3f8137556325061ba67ff8c" prot="public">
+          <name>Clamp</name>
+          <initializer>= TEXADDR_CLAMP</initializer>
+          <briefdescription>
+<para>Clamps texture coordinates to [0, 1]. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caaa070554647306343cbea29ebfdd278ba8" prot="public">
+          <name>Border</name>
+          <initializer>= TEXADDR_BORDER</initializer>
+          <briefdescription>
+<para>Uses the border color when texture coordinates are outside [0, 1]. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaced3d_1ab9b8bd4f130a7805eef77eb4d7c71caaabbfe58735042c726d2d04562ea4e265a" prot="public">
+          <name>MirrorOnce</name>
+          <initializer>= TEXADDR_MIRRORONCE</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Similar to Mirror and Clamp. Takes the absolute value of the texture coordinate (thus, mirroring around 0), and then clamps to the maximum value. The most common usage is for volume textures, where support for the full MirrorOnce texture-addressing mode is not necessary, but the data is symmetrical around the one axis. </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>AddressMode enum class. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sampler.h" line="57" column="1" bodyfile="dag_sampler.h" bodystart="58" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaced3d_1aee766f4273f69e0942fff59ab388cfe2" prot="public" static="no" strong="yes">
+        <type>uint64_t</type>
+        <name>SamplerHandle</name>
+        <qualifiedname>d3d::SamplerHandle</qualifiedname>
+        <enumvalue id="namespaced3d_1aee766f4273f69e0942fff59ab388cfe2a4bbb8f967da6d1a610596d7257179c2b" prot="public">
+          <name>Invalid</name>
+          <initializer>= 0x0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_samplerHandle.h" line="12" column="1" bodyfile="dag_samplerHandle.h" bodystart="13" bodyend="15"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespaced3d_1a5d523f6e8e43e278ec212ae330f93ca4" prot="public" static="no">
+        <type>BitFlagsMask&lt; <ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69" kindref="member">PipelineStageFlag</ref> &gt;</type>
+        <definition>using d3d::PipelineStageFlags = typedef BitFlagsMask&lt;PipelineStageFlag&gt;</definition>
+        <argsstring></argsstring>
+        <name>PipelineStageFlags</name>
+        <qualifiedname>d3d::PipelineStageFlags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="113" column="1" bodyfile="dag_enhanced_barrier.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaced3d_1ad429b802c42bd2273a5f9fafc345d7cf" prot="public" static="no">
+        <type>BitFlagsMask&lt; <ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22" kindref="member">AccessFlag</ref> &gt;</type>
+        <definition>using d3d::AccessFlags = typedef BitFlagsMask&lt;AccessFlag&gt;</definition>
+        <argsstring></argsstring>
+        <name>AccessFlags</name>
+        <qualifiedname>d3d::AccessFlags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="166" column="1" bodyfile="dag_enhanced_barrier.h" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaced3d_1ac319d128a742223a1955303d059922a9" prot="public" static="no">
+        <type>D3dEventQuery</type>
+        <definition>typedef D3dEventQuery d3d::EventQuery</definition>
+        <argsstring></argsstring>
+        <name>EventQuery</name>
+        <qualifiedname>d3d::EventQuery</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_interface_table.h" line="31" column="23" bodyfile="dag_interface_table.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaced3d_1a6e18a07fbff9c75f3a4861c01491169b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int d3d::RENDER_TO_WHOLE_ARRAY</definition>
+        <argsstring></argsstring>
+        <name>RENDER_TO_WHOLE_ARRAY</name>
+        <qualifiedname>d3d::RENDER_TO_WHOLE_ARRAY</qualifiedname>
+        <initializer>= 1023</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driver.h" line="70" column="22" bodyfile="dag_driver.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a69450882aa2d6edf9c3365388e840fb3" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::dx11</definition>
+        <argsstring></argsstring>
+        <name>dx11</name>
+        <qualifiedname>d3d::dx11</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current driver is \dx11 and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="890" column="51" bodyfile="dag_driverCode.h" bodystart="890" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a379fdccd89a679d3d3f60aa5adccff46" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::dx12</definition>
+        <argsstring></argsstring>
+        <name>dx12</name>
+        <qualifiedname>d3d::dx12</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current driver is \dx12 and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="892" column="51" bodyfile="dag_driverCode.h" bodystart="892" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a0c4ec8811b6cb2415f0d970d1ad3b09f" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::vulkan</definition>
+        <argsstring></argsstring>
+        <name>vulkan</name>
+        <qualifiedname>d3d::vulkan</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current driver is \vk and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="894" column="51" bodyfile="dag_driverCode.h" bodystart="894" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a11c448fac4890d7a7e6fdde8dc68e9b9" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::ps4</definition>
+        <argsstring></argsstring>
+        <name>ps4</name>
+        <qualifiedname>d3d::ps4</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current platform / driver is \ps4 and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="896" column="51" bodyfile="dag_driverCode.h" bodystart="896" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a2e85cfa526d03301bb509cb03d361400" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::ps5</definition>
+        <argsstring></argsstring>
+        <name>ps5</name>
+        <qualifiedname>d3d::ps5</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current platform / driver is \ps5 and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="898" column="51" bodyfile="dag_driverCode.h" bodystart="898" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a68ae646b3ed40f473cf8b441714bdab7" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::metal</definition>
+        <argsstring></argsstring>
+        <name>metal</name>
+        <qualifiedname>d3d::metal</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current driver is \metal and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="900" column="51" bodyfile="dag_driverCode.h" bodystart="900" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a4a5ce3875969d20bc813f50d91bbd1eb" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::null</definition>
+        <argsstring></argsstring>
+        <name>null</name>
+        <qualifiedname>d3d::null</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current driver is null and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="902" column="51" bodyfile="dag_driverCode.h" bodystart="902" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1ae96b52312925b3c8950e6242e7bce42d" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::stub</definition>
+        <argsstring></argsstring>
+        <name>stub</name>
+        <qualifiedname>d3d::stub</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current driver is stub and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="904" column="51" bodyfile="dag_driverCode.h" bodystart="904" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a0b93a22ed9f589b928958390fd326bc7" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::xboxOne</definition>
+        <argsstring></argsstring>
+        <name>xboxOne</name>
+        <qualifiedname>d3d::xboxOne</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current platform is \xbone and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="931" column="51" bodyfile="dag_driverCode.h" bodystart="931" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a94c41f0233d3ce3f626d1bc55e12bc56" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::scarlett</definition>
+        <argsstring></argsstring>
+        <name>scarlett</name>
+        <qualifiedname>d3d::scarlett</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current platform is \scarlett and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="933" column="51" bodyfile="dag_driverCode.h" bodystart="933" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a4d2bee7bc5b0382c948e80f1c59d6788" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::iOS</definition>
+        <argsstring></argsstring>
+        <name>iOS</name>
+        <qualifiedname>d3d::iOS</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current platform is \ios and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="935" column="51" bodyfile="dag_driverCode.h" bodystart="935" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a6e593f2820d5d6f5ce64edd55e72cadf" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::tvOS</definition>
+        <argsstring></argsstring>
+        <name>tvOS</name>
+        <qualifiedname>d3d::tvOS</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current platform is \tvos and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="937" column="51" bodyfile="dag_driverCode.h" bodystart="937" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a87e64d0876126abd4c4c87e72e49f74a" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::nintendoSwitch</definition>
+        <argsstring></argsstring>
+        <name>nintendoSwitch</name>
+        <qualifiedname>d3d::nintendoSwitch</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current platform is \nswitch and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="939" column="51" bodyfile="dag_driverCode.h" bodystart="939" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a25ad7fc8e2a77ae96994e70b276a9046" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::android</definition>
+        <argsstring></argsstring>
+        <name>android</name>
+        <qualifiedname>d3d::android</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current platform is \android and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="941" column="51" bodyfile="dag_driverCode.h" bodystart="941" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a330e3ed79c885f83aee7a210c7f6bfe4" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::macOSX</definition>
+        <argsstring></argsstring>
+        <name>macOSX</name>
+        <qualifiedname>d3d::macOSX</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current platform is \mac and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="943" column="51" bodyfile="dag_driverCode.h" bodystart="943" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a7bb5971f026754eed02b077d51d388e4" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::linux</definition>
+        <argsstring></argsstring>
+        <name>linux</name>
+        <qualifiedname>d3d::linux</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current platform is \linux and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="945" column="51" bodyfile="dag_driverCode.h" bodystart="945" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a44390d618141249cc76aaf7c7ff51aab" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Unsupported" kindref="compound">drivercode::matcher::Unsupported</ref></type>
+        <definition>constexpr drivercode::matcher::Unsupported d3d::windows</definition>
+        <argsstring></argsstring>
+        <name>windows</name>
+        <qualifiedname>d3d::windows</qualifiedname>
+        <briefdescription>
+<para>Matches to true when the current platform is \win32 and otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="947" column="51" bodyfile="dag_driverCode.h" bodystart="947" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1aeb11dc2eac7c20cb9f1508db9c55115c" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::anyXbox</definition>
+        <argsstring></argsstring>
+        <name>anyXbox</name>
+        <qualifiedname>d3d::anyXbox</qualifiedname>
+        <initializer>= <ref refid="namespaced3d_1a0b93a22ed9f589b928958390fd326bc7" kindref="member">xboxOne</ref> || <ref refid="namespaced3d_1a94c41f0233d3ce3f626d1bc55e12bc56" kindref="member">scarlett</ref></initializer>
+        <briefdescription>
+<para>Matches true when either \xbone or \scarlett matches true, otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="977" column="23" bodyfile="dag_driverCode.h" bodystart="977" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1ac8fd4c4df938b77c6c71c408671a7628" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::anyPS</definition>
+        <argsstring></argsstring>
+        <name>anyPS</name>
+        <qualifiedname>d3d::anyPS</qualifiedname>
+        <initializer>= <ref refid="namespaced3d_1a11c448fac4890d7a7e6fdde8dc68e9b9" kindref="member">ps4</ref> || <ref refid="namespaced3d_1a2e85cfa526d03301bb509cb03d361400" kindref="member">ps5</ref></initializer>
+        <briefdescription>
+<para>Matches true when either \ps4 or \ps5 matches true, otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="979" column="23" bodyfile="dag_driverCode.h" bodystart="979" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a56951da138e4fecc90f8ba261a7ae5f2" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::anyPC</definition>
+        <argsstring></argsstring>
+        <name>anyPC</name>
+        <qualifiedname>d3d::anyPC</qualifiedname>
+        <initializer>= <ref refid="namespaced3d_1a330e3ed79c885f83aee7a210c7f6bfe4" kindref="member">macOSX</ref> || <ref refid="namespaced3d_1a7bb5971f026754eed02b077d51d388e4" kindref="member">linux</ref> || <ref refid="namespaced3d_1a44390d618141249cc76aaf7c7ff51aab" kindref="member">windows</ref></initializer>
+        <briefdescription>
+<para>Matches true when either \mac, \linux or \win32 matches true, otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="981" column="23" bodyfile="dag_driverCode.h" bodystart="981" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a1ca178fef1dacb2574146e67b7ec3a1a" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Undefined" kindref="compound">d3d::drivercode::matcher::Undefined</ref></type>
+        <definition>constexpr d3d::drivercode::matcher::Undefined d3d::undefined</definition>
+        <argsstring></argsstring>
+        <name>undefined</name>
+        <qualifiedname>d3d::undefined</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Matches true when no driver could be matched, otherwise false. <simplesect kind="note"><para>On platforms with a fixed driver, this will always match false. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="984" column="54" bodyfile="dag_driverCode.h" bodystart="984" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a60a1c3f00ff80b058e1df3ade774f3e3" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Any" kindref="compound">drivercode::matcher::Any</ref></type>
+        <definition>constexpr drivercode::matcher::Any d3d::any</definition>
+        <argsstring></argsstring>
+        <name>any</name>
+        <qualifiedname>d3d::any</qualifiedname>
+        <briefdescription>
+<para>Matches always true, has special meaning for some uses, like map. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="986" column="43" bodyfile="dag_driverCode.h" bodystart="986" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a819997d0f9dad1eb54b88ba123648d0a" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::apple</definition>
+        <argsstring></argsstring>
+        <name>apple</name>
+        <qualifiedname>d3d::apple</qualifiedname>
+        <initializer>= <ref refid="namespaced3d_1a4d2bee7bc5b0382c948e80f1c59d6788" kindref="member">iOS</ref> || <ref refid="namespaced3d_1a6e593f2820d5d6f5ce64edd55e72cadf" kindref="member">tvOS</ref> || <ref refid="namespaced3d_1a330e3ed79c885f83aee7a210c7f6bfe4" kindref="member">macOSX</ref></initializer>
+        <briefdescription>
+<para>Matches true when either \ios, \tvos or \mac matches true, otherwise false. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="988" column="23" bodyfile="dag_driverCode.h" bodystart="988" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a1bb7d0366e017244035538499e5e22a6" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Const" kindref="compound">drivercode::matcher::Const</ref>&lt; true &gt;</type>
+        <definition>constexpr drivercode::matcher::Const&lt;true&gt; d3d::bit32</definition>
+        <argsstring></argsstring>
+        <name>bit32</name>
+        <qualifiedname>d3d::bit32</qualifiedname>
+        <briefdescription>
+<para>Matches true when the build of the project targets a 32 bit architecture. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="994" column="45" bodyfile="dag_driverCode.h" bodystart="994" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1ab468bfc507917cdddd323f11030fe6e0" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1Const" kindref="compound">drivercode::matcher::Const</ref>&lt; false &gt;</type>
+        <definition>constexpr drivercode::matcher::Const&lt;false&gt; d3d::bit64</definition>
+        <argsstring></argsstring>
+        <name>bit64</name>
+        <qualifiedname>d3d::bit64</qualifiedname>
+        <briefdescription>
+<para>Matches true when the build of the project targets a 64 bit architecture. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverCode.h" line="996" column="45" bodyfile="dag_driverCode.h" bodystart="996" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1ac4554f9e2d21dfb2dade16cb321bb65d" prot="public" static="no" mutable="no">
+        <type>const <ref refid="namespaced3d_1aee766f4273f69e0942fff59ab388cfe2" kindref="member">SamplerHandle</ref></type>
+        <definition>const SamplerHandle d3d::INVALID_SAMPLER_HANDLE</definition>
+        <argsstring></argsstring>
+        <name>INVALID_SAMPLER_HANDLE</name>
+        <qualifiedname>d3d::INVALID_SAMPLER_HANDLE</qualifiedname>
+        <initializer>= <ref refid="namespaced3d_1aee766f4273f69e0942fff59ab388cfe2a4bbb8f967da6d1a610596d7257179c2b" kindref="member">SamplerHandle::Invalid</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_samplerHandle.h" line="16" column="28" bodyfile="dag_samplerHandle.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1af3dabcf7b6af7fb8650b43bfa15c5df2" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1shadermodel_1_1VersionConstant" kindref="compound">shadermodel::VersionConstant</ref>&lt; 0, 0 &gt;</type>
+        <definition>constexpr shadermodel::VersionConstant&lt;0, 0&gt; d3d::smNone</definition>
+        <argsstring></argsstring>
+        <name>smNone</name>
+        <qualifiedname>d3d::smNone</qualifiedname>
+        <briefdescription>
+<para>Shader model constant that represents no shader model. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="732" column="47" bodyfile="dag_shaderModelVersion.h" bodystart="732" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1abcaa3d49db529f5744533d8ce82355cf" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1shadermodel_1_1VersionConstant" kindref="compound">shadermodel::VersionConstant</ref>&lt; 4, 0 &gt;</type>
+        <definition>constexpr shadermodel::VersionConstant&lt;4, 0&gt; d3d::sm40</definition>
+        <argsstring></argsstring>
+        <name>sm40</name>
+        <qualifiedname>d3d::sm40</qualifiedname>
+        <briefdescription>
+<para>Version constant of the 4.0 shader model. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="734" column="47" bodyfile="dag_shaderModelVersion.h" bodystart="734" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a3985e26c553749374d811c92e99170c2" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1shadermodel_1_1VersionConstant" kindref="compound">shadermodel::VersionConstant</ref>&lt; 4, 1 &gt;</type>
+        <definition>constexpr shadermodel::VersionConstant&lt;4, 1&gt; d3d::sm41</definition>
+        <argsstring></argsstring>
+        <name>sm41</name>
+        <qualifiedname>d3d::sm41</qualifiedname>
+        <briefdescription>
+<para>Version constant of the 4.1 shader model. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="736" column="47" bodyfile="dag_shaderModelVersion.h" bodystart="736" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a5ce7eb525cc184abc988dc2bc2ff55be" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1shadermodel_1_1VersionConstant" kindref="compound">shadermodel::VersionConstant</ref>&lt; 5, 0 &gt;</type>
+        <definition>constexpr shadermodel::VersionConstant&lt;5, 0&gt; d3d::sm50</definition>
+        <argsstring></argsstring>
+        <name>sm50</name>
+        <qualifiedname>d3d::sm50</qualifiedname>
+        <briefdescription>
+<para>Version constant of the 5.0 shader model. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="738" column="47" bodyfile="dag_shaderModelVersion.h" bodystart="738" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a8d9c7612bd6bdf1692da087195a99e4c" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1shadermodel_1_1VersionConstant" kindref="compound">shadermodel::VersionConstant</ref>&lt; 6, 0 &gt;</type>
+        <definition>constexpr shadermodel::VersionConstant&lt;6, 0&gt; d3d::sm60</definition>
+        <argsstring></argsstring>
+        <name>sm60</name>
+        <qualifiedname>d3d::sm60</qualifiedname>
+        <briefdescription>
+<para>Version constant of the 6.0 shader model. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="740" column="47" bodyfile="dag_shaderModelVersion.h" bodystart="740" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a4c785ac8be0704cf305c4b2bdb68d2d1" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1shadermodel_1_1VersionConstant" kindref="compound">shadermodel::VersionConstant</ref>&lt; 6, 6 &gt;</type>
+        <definition>constexpr shadermodel::VersionConstant&lt;6, 6&gt; d3d::sm66</definition>
+        <argsstring></argsstring>
+        <name>sm66</name>
+        <qualifiedname>d3d::sm66</qualifiedname>
+        <briefdescription>
+<para>Version constant of the 6.6 shader model. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="742" column="47" bodyfile="dag_shaderModelVersion.h" bodystart="742" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1ac45df8f15949fed05b98d91754d81412" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1shadermodel_1_1AnyVersion" kindref="compound">shadermodel::AnyVersion</ref></type>
+        <definition>constexpr shadermodel::AnyVersion d3d::smAny</definition>
+        <argsstring></argsstring>
+        <name>smAny</name>
+        <qualifiedname>d3d::smAny</qualifiedname>
+        <briefdescription>
+<para>Version constant that will match true to any shader model version. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="744" column="42" bodyfile="dag_shaderModelVersion.h" bodystart="744" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1aec52786110f4e8860f140c90c47a7813" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::smMax</definition>
+        <argsstring></argsstring>
+        <name>smMax</name>
+        <qualifiedname>d3d::smMax</qualifiedname>
+        <initializer>= max(<ref refid="namespaced3d_1_1shadermodel_1af7c6b8e9847f1caff846139429a3b0cc" kindref="member">shadermodel::AllVersionsList</ref>{})</initializer>
+        <briefdescription>
+<para>Latest supported shader model version of the list defined by <ref refid="namespaced3d_1_1shadermodel_1af7c6b8e9847f1caff846139429a3b0cc" kindref="member">shadermodel::AllVersionsList</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="752" column="23" bodyfile="dag_shaderModelVersion.h" bodystart="752" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1a54a5e87c28440117f7573993dffaa8e3" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::smMin</definition>
+        <argsstring></argsstring>
+        <name>smMin</name>
+        <qualifiedname>d3d::smMin</qualifiedname>
+        <initializer>= min(<ref refid="namespaced3d_1_1shadermodel_1af7c6b8e9847f1caff846139429a3b0cc" kindref="member">shadermodel::AllVersionsList</ref>{})</initializer>
+        <briefdescription>
+<para>Earliest supported shader model version of the list defined by <ref refid="namespaced3d_1_1shadermodel_1af7c6b8e9847f1caff846139429a3b0cc" kindref="member">shadermodel::AllVersionsList</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="754" column="23" bodyfile="dag_shaderModelVersion.h" bodystart="754" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaced3d_1adef9e70546552aedf9e6f9a6065641fd" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structd3d_1_1shadermodel_1_1VersionRange" kindref="compound">shadermodel::VersionRange</ref>&lt; <ref refid="namespaced3d_1_1shadermodel_1af7c6b8e9847f1caff846139429a3b0cc" kindref="member">shadermodel::AllVersionsList</ref> &gt;</type>
+        <definition>constexpr shadermodel::VersionRange&lt;shadermodel::AllVersionsList&gt; d3d::smAll</definition>
+        <argsstring></argsstring>
+        <name>smAll</name>
+        <qualifiedname>d3d::smAll</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>This value is a version range over all listed versions, to extend the list, alter the type <ref refid="namespaced3d_1_1shadermodel_1af7c6b8e9847f1caff846139429a3b0cc" kindref="member">d3d::shadermodel::AllVersionsList</ref>. This value supports begin / end and can be used as a range for range based for loops. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="757" column="44" bodyfile="dag_shaderModelVersion.h" bodystart="757" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaced3d_1a4ed2ab8b42ec71b70da6c070fd775363" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::update_window_mode</definition>
+        <argsstring>()</argsstring>
+        <name>update_window_mode</name>
+        <qualifiedname>d3d::update_window_mode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driver.h" line="68" column="6" declfile="dag_driver.h" declline="68" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1af4c6c40be93f1fa32a67acb41422da8b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::resummarize_htile</definition>
+        <argsstring>(BaseTexture *)</argsstring>
+        <name>resummarize_htile</name>
+        <qualifiedname>d3d::resummarize_htile</qualifiedname>
+        <param>
+          <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driver.h" line="213" column="13" bodyfile="dag_driver.h" bodystart="213" bodyend="213"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1ad22bac99624b092481d3ac723a2d3b2f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::set_esram_layout</definition>
+        <argsstring>(const wchar_t *)</argsstring>
+        <name>set_esram_layout</name>
+        <qualifiedname>d3d::set_esram_layout</qualifiedname>
+        <param>
+          <type>const wchar_t *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driver.h" line="221" column="13" bodyfile="dag_driver.h" bodystart="221" bodyend="221"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1a8cb4a06888dca57cabf179bf844b573e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::unset_esram_layout</definition>
+        <argsstring>()</argsstring>
+        <name>unset_esram_layout</name>
+        <qualifiedname>d3d::unset_esram_layout</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driver.h" line="222" column="13" bodyfile="dag_driver.h" bodystart="222" bodyend="222"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1a07b55b9650e60a0f4dc0677ca6d81b4d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::reset_esram_layout</definition>
+        <argsstring>()</argsstring>
+        <name>reset_esram_layout</name>
+        <qualifiedname>d3d::reset_esram_layout</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driver.h" line="223" column="13" bodyfile="dag_driver.h" bodystart="223" bodyend="223"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1a9e8640a2b3b63b3d908fbf7a1cc0f6c7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::BITMASK_DECLARE_FLAGS_OPERATORS</definition>
+        <argsstring>(PipelineStageFlag)</argsstring>
+        <name>BITMASK_DECLARE_FLAGS_OPERATORS</name>
+        <qualifiedname>d3d::BITMASK_DECLARE_FLAGS_OPERATORS</qualifiedname>
+        <param>
+          <type><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69" kindref="member">PipelineStageFlag</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="114" column="1" declfile="dag_enhanced_barrier.h" declline="114" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1aa32d8c2281f33c54466b2eb6cdb5ddec" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::BITMASK_DECLARE_FLAGS_OPERATORS</definition>
+        <argsstring>(AccessFlag)</argsstring>
+        <name>BITMASK_DECLARE_FLAGS_OPERATORS</name>
+        <qualifiedname>d3d::BITMASK_DECLARE_FLAGS_OPERATORS</qualifiedname>
+        <param>
+          <type><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22" kindref="member">AccessFlag</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="167" column="1" declfile="dag_enhanced_barrier.h" declline="167" declcolumn="1"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1abc3dec902a6e26cfd294ffd7b596e313" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::get_vsync_enabled</definition>
+        <argsstring>()</argsstring>
+        <name>get_vsync_enabled</name>
+        <qualifiedname>d3d::get_vsync_enabled</qualifiedname>
+        <briefdescription>
+<para>returns current state of VSYNC </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_platform_ps.h" line="19" column="6" declfile="dag_platform_ps.h" declline="19" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1ac10d075649cf9abfe892df5492192e6b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::enable_vsync</definition>
+        <argsstring>(bool enable)</argsstring>
+        <name>enable_vsync</name>
+        <qualifiedname>d3d::enable_vsync</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <briefdescription>
+<para>enables or disables strong VSYNC (flips only on VBLANK); returns true on success </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_platform_ps.h" line="21" column="6" declfile="dag_platform_ps.h" declline="21" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1abb2997c2384289aab9efef4fd50176b2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * d3d::as_string</definition>
+        <argsstring>(d3d::shadermodel::Version v)</argsstring>
+        <name>as_string</name>
+        <qualifiedname>d3d::as_string</qualifiedname>
+        <param>
+          <type><ref refid="structd3d_1_1shadermodel_1_1Version" kindref="compound">d3d::shadermodel::Version</ref></type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns the &quot;&lt;major&gt;.&lt;minor&gt;&quot; string representation of a Version value that is part of <ref refid="namespaced3d_1ac45df8f15949fed05b98d91754d81412" kindref="member">d3d::smAny</ref>. <computeroutput>v</computeroutput> Version for which string it should be returned. <simplesect kind="return"><para>A valid constant string for versions included in <ref refid="namespaced3d_1ac45df8f15949fed05b98d91754d81412" kindref="member">d3d::smAny</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="761" column="19" bodyfile="dag_shaderModelVersion.h" bodystart="761" bodyend="770"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1a1e9473d1d4170ded64f88344b7605abf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * d3d::as_string</definition>
+        <argsstring>(d3d::shadermodel::VersionWithName v)</argsstring>
+        <name>as_string</name>
+        <qualifiedname>d3d::as_string</qualifiedname>
+        <param>
+          <type><ref refid="structd3d_1_1shadermodel_1_1VersionWithName" kindref="compound">d3d::shadermodel::VersionWithName</ref></type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns the &quot;&lt;major&gt;.&lt;minor&gt;&quot; string representation of a VersionWithName value. <computeroutput>v</computeroutput> Version for which string it should be returned. <simplesect kind="return"><para><computeroutput>versionName</computeroutput> member of <computeroutput>v</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="774" column="19" bodyfile="dag_shaderModelVersion.h" bodystart="774" bodyend="774"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1aa273ad5a40a5869afa8769b874ff99f7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * d3d::as_ps_string</definition>
+        <argsstring>(d3d::shadermodel::Version v)</argsstring>
+        <name>as_ps_string</name>
+        <qualifiedname>d3d::as_ps_string</qualifiedname>
+        <param>
+          <type><ref refid="structd3d_1_1shadermodel_1_1Version" kindref="compound">d3d::shadermodel::Version</ref></type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns the &quot;ps&lt;major&gt;&lt;minor&gt;&quot; string representation of a Version value that is part of <ref refid="namespaced3d_1ac45df8f15949fed05b98d91754d81412" kindref="member">d3d::smAny</ref>. <computeroutput>v</computeroutput> Version for which string it should be returned. <simplesect kind="return"><para>A valid constant string for versions included in <ref refid="namespaced3d_1ac45df8f15949fed05b98d91754d81412" kindref="member">d3d::smAny</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="778" column="19" bodyfile="dag_shaderModelVersion.h" bodystart="778" bodyend="787"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1a0047f102cd53040be1c4ffa45759fb66" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * d3d::as_ps_string</definition>
+        <argsstring>(d3d::shadermodel::VersionWithName v)</argsstring>
+        <name>as_ps_string</name>
+        <qualifiedname>d3d::as_ps_string</qualifiedname>
+        <param>
+          <type><ref refid="structd3d_1_1shadermodel_1_1VersionWithName" kindref="compound">d3d::shadermodel::VersionWithName</ref></type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns the &quot;ps&lt;major&gt;&lt;minor&gt;&quot; string representation of a VersionWithName value. <computeroutput>v</computeroutput> Version for which string it should be returned. <simplesect kind="return"><para><computeroutput>psName</computeroutput> member of <computeroutput>v</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderModelVersion.h" line="791" column="19" bodyfile="dag_shaderModelVersion.h" bodystart="791" bodyend="791"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1aebb9844d6160f0d66ba4560cdce870e3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::setviewscissor</definition>
+        <argsstring>(int x, int y, int w, int h, float minz=0, float maxz=1)</argsstring>
+        <name>setviewscissor</name>
+        <qualifiedname>d3d::setviewscissor</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>minz</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>maxz</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_viewScissor.h" line="86" column="13" bodyfile="dag_viewScissor.h" bodystart="86" bodyend="89"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_async_pipeline.h" line="10" column="1"/>
+  </compounddef>
+</doxygen>

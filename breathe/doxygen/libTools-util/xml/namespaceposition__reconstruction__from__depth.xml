@@ -1,0 +1,155 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceposition__reconstruction__from__depth" kind="namespace" language="C++">
+    <compoundname>position_reconstruction_from_depth</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceposition__reconstruction__from__depth_1a4e8211a28920d050b9e54e893d570fb1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float position_reconstruction_from_depth::linearize_z</definition>
+        <argsstring>(float raw_z, Point2 decode_depth)</argsstring>
+        <name>linearize_z</name>
+        <qualifiedname>position_reconstruction_from_depth::linearize_z</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>raw_z</declname>
+        </param>
+        <param>
+          <type>Point2</type>
+          <declname>decode_depth</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="positionReconstructionFromDepth.h" line="17" column="7" declfile="positionReconstructionFromDepth.h" declline="17" declcolumn="7"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceposition__reconstruction__from__depth_1a07babd52af27e74ef6915245c2c25693" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float position_reconstruction_from_depth::linearize_z</definition>
+        <argsstring>(float raw_z, float near_z, float far_z)</argsstring>
+        <name>linearize_z</name>
+        <qualifiedname>position_reconstruction_from_depth::linearize_z</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>raw_z</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>near_z</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>far_z</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="positionReconstructionFromDepth.h" line="18" column="7" declfile="positionReconstructionFromDepth.h" declline="18" declcolumn="7"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceposition__reconstruction__from__depth_1a7aee9f84d8a31fdb83ec857602eefc74" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 position_reconstruction_from_depth::reconstruct_ws_position_from_raw_depth</definition>
+        <argsstring>(const TMatrix &amp;view_tm, const TMatrix4 &amp;proj_tm, Point2 sample_pos, float raw_z)</argsstring>
+        <name>reconstruct_ws_position_from_raw_depth</name>
+        <qualifiedname>position_reconstruction_from_depth::reconstruct_ws_position_from_raw_depth</qualifiedname>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>view_tm</declname>
+        </param>
+        <param>
+          <type>const TMatrix4 &amp;</type>
+          <declname>proj_tm</declname>
+        </param>
+        <param>
+          <type>Point2</type>
+          <declname>sample_pos</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>raw_z</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="positionReconstructionFromDepth.h" line="20" column="8" declfile="positionReconstructionFromDepth.h" declline="20" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceposition__reconstruction__from__depth_1ad7a07b88af59a3ac2caa65b95585e018" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 position_reconstruction_from_depth::reconstruct_ws_position_from_linear_depth</definition>
+        <argsstring>(const TMatrix &amp;view_tm, const TMatrix4 &amp;proj_tm, Point2 sample_pos, float linear_z)</argsstring>
+        <name>reconstruct_ws_position_from_linear_depth</name>
+        <qualifiedname>position_reconstruction_from_depth::reconstruct_ws_position_from_linear_depth</qualifiedname>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>view_tm</declname>
+        </param>
+        <param>
+          <type>const TMatrix4 &amp;</type>
+          <declname>proj_tm</declname>
+        </param>
+        <param>
+          <type>Point2</type>
+          <declname>sample_pos</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>linear_z</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="positionReconstructionFromDepth.h" line="21" column="8" declfile="positionReconstructionFromDepth.h" declline="21" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceposition__reconstruction__from__depth_1a142ee12b5b4a650696ac6e49e6d6255e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool position_reconstruction_from_depth::get_position_from_depth</definition>
+        <argsstring>(const TMatrix &amp;view_tm, const TMatrix4 &amp;proj_tm, TEXTUREID depth_texture_id, const Point2 &amp;sample_pos, Point3 &amp;out_world_pos)</argsstring>
+        <name>get_position_from_depth</name>
+        <qualifiedname>position_reconstruction_from_depth::get_position_from_depth</qualifiedname>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>view_tm</declname>
+        </param>
+        <param>
+          <type>const TMatrix4 &amp;</type>
+          <declname>proj_tm</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>depth_texture_id</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>sample_pos</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>out_world_pos</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="positionReconstructionFromDepth.h" line="25" column="6" declfile="positionReconstructionFromDepth.h" declline="25" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="positionReconstructionFromDepth.h" line="14" column="1"/>
+  </compounddef>
+</doxygen>

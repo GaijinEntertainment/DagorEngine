@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="loadta_8h" kind="file" language="C++">
+    <compoundname>loadta.h</compoundname>
+    <includes local="no">string</includes>
+    <includes local="no">vector</includes>
+    <includedby refid="loadta_8cpp" local="yes">loadta.cpp</includedby>
+    <includedby refid="ta_8cpp" local="yes">ta.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>loadta.h</label>
+        <link refid="loadta_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>string</label>
+      </node>
+      <node id="3">
+        <label>vector</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>loadta.cpp</label>
+        <link refid="loadta_8cpp"/>
+      </node>
+      <node id="1">
+        <label>loadta.h</label>
+        <link refid="loadta_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ta.cpp</label>
+        <link refid="ta_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structTexAnimFile" prot="public">TexAnimFile</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;vector&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7" refid="structTexAnimFile" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structTexAnimFile" kindref="compound">TexAnimFile</ref></highlight></codeline>
+<codeline lineno="8"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="9" refid="structTexAnimFile_1adf9946bed83be01c023669174fa5abe4" refkind="member"><highlight class="normal"><sp/><sp/>std::vector&lt;std::wstring&gt;<sp/><ref refid="structTexAnimFile_1adf9946bed83be01c023669174fa5abe4" kindref="member">tex</ref>;</highlight></codeline>
+<codeline lineno="10" refid="structTexAnimFile_1a6f28f7ba37c30b9f31eece6cee43ca13" refkind="member"><highlight class="normal"><sp/><sp/>std::vector&lt;int&gt;<sp/><ref refid="structTexAnimFile_1a6f28f7ba37c30b9f31eece6cee43ca13" kindref="member">frm</ref>;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structTexAnimFile_1a943c2a78ee315eb4801ff47c4f72345a" kindref="member">load</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>*fn);</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>std::wstring<sp/><ref refid="structTexAnimFile_1a5aa2ce21f872b80820a0dbb89ad87d2c" kindref="member">getlasterr</ref>();</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>add_frame(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*);</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>parse(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*);</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="loadta.h"/>
+  </compounddef>
+</doxygen>

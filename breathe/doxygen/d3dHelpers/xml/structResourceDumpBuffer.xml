@@ -1,0 +1,209 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structResourceDumpBuffer" kind="struct" language="C++" prot="public">
+    <compoundname>ResourceDumpBuffer</compoundname>
+    <basecompoundref refid="structResourceDumpBase" prot="public" virt="non-virtual">ResourceDumpBase</basecompoundref>
+    <includes refid="dag__resourceDump_8h" local="no">dag_resourceDump.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structResourceDumpBuffer_1a06827213bad8e9c0eeb2293b3d32f092" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t ResourceDumpBuffer::offset</definition>
+        <argsstring></argsstring>
+        <name>offset</name>
+        <qualifiedname>ResourceDumpBuffer::offset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="58" column="12" bodyfile="dag_resourceDump.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpBuffer_1a2998f163312f199fd6a66357849890d8" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t ResourceDumpBuffer::mapAddress</definition>
+        <argsstring></argsstring>
+        <name>mapAddress</name>
+        <qualifiedname>ResourceDumpBuffer::mapAddress</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="58" column="19" bodyfile="dag_resourceDump.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpBuffer_1a639366a8c7ab12876d6435b5324f172b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ResourceDumpBuffer::memSize</definition>
+        <argsstring></argsstring>
+        <name>memSize</name>
+        <qualifiedname>ResourceDumpBuffer::memSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="59" column="12" bodyfile="dag_resourceDump.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpBuffer_1a2ef8bed77bb67f2f333eed8fc3a20a27" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ResourceDumpBuffer::sysCopySize</definition>
+        <argsstring></argsstring>
+        <name>sysCopySize</name>
+        <qualifiedname>ResourceDumpBuffer::sysCopySize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="59" column="20" bodyfile="dag_resourceDump.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpBuffer_1afc17494bc9ac718c44a18abd298d6ee8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ResourceDumpBuffer::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>ResourceDumpBuffer::flags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="60" column="7" bodyfile="dag_resourceDump.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpBuffer_1a4dac73598ea05d04cc40c13cd03bc4ac" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ResourceDumpBuffer::currentDiscard</definition>
+        <argsstring></argsstring>
+        <name>currentDiscard</name>
+        <qualifiedname>ResourceDumpBuffer::currentDiscard</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="60" column="13" bodyfile="dag_resourceDump.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpBuffer_1a954643c409d39f614bf915307c43556d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ResourceDumpBuffer::currentDiscardOffset</definition>
+        <argsstring></argsstring>
+        <name>currentDiscardOffset</name>
+        <qualifiedname>ResourceDumpBuffer::currentDiscardOffset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="60" column="28" bodyfile="dag_resourceDump.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpBuffer_1a247967f55a25ff0ecdc55fa44a96fa90" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ResourceDumpBuffer::totalDiscards</definition>
+        <argsstring></argsstring>
+        <name>totalDiscards</name>
+        <qualifiedname>ResourceDumpBuffer::totalDiscards</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="60" column="49" bodyfile="dag_resourceDump.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpBuffer_1af7dc23856f99ed524e593144cd0769aa" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ResourceDumpBuffer::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>ResourceDumpBuffer::id</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="60" column="63" bodyfile="dag_resourceDump.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpBuffer_1ad0f9236b15ae2e87d14ff553dded96ae" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string ResourceDumpBuffer::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ResourceDumpBuffer::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="61" column="17" bodyfile="dag_resourceDump.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpBuffer_1add0bdc2f7df9642a6e83c51bf65e1ac9" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string ResourceDumpBuffer::heapNamePS</definition>
+        <argsstring></argsstring>
+        <name>heapNamePS</name>
+        <qualifiedname>ResourceDumpBuffer::heapNamePS</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="62" column="17" bodyfile="dag_resourceDump.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ResourceDumpBase</label>
+        <link refid="structResourceDumpBase"/>
+      </node>
+      <node id="1">
+        <label>ResourceDumpBuffer</label>
+        <link refid="structResourceDumpBuffer"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ResourceDumpBase</label>
+        <link refid="structResourceDumpBase"/>
+      </node>
+      <node id="1">
+        <label>ResourceDumpBuffer</label>
+        <link refid="structResourceDumpBuffer"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resourceDump.h" line="56" column="1" bodyfile="dag_resourceDump.h" bodystart="57" bodyend="63"/>
+    <listofallmembers>
+      <member refid="structResourceDumpBuffer_1a4dac73598ea05d04cc40c13cd03bc4ac" prot="public" virt="non-virtual"><scope>ResourceDumpBuffer</scope><name>currentDiscard</name></member>
+      <member refid="structResourceDumpBuffer_1a954643c409d39f614bf915307c43556d" prot="public" virt="non-virtual"><scope>ResourceDumpBuffer</scope><name>currentDiscardOffset</name></member>
+      <member refid="structResourceDumpBuffer_1afc17494bc9ac718c44a18abd298d6ee8" prot="public" virt="non-virtual"><scope>ResourceDumpBuffer</scope><name>flags</name></member>
+      <member refid="structResourceDumpBase_1a58332b23d52a6790cebd16c171432c95" prot="public" virt="non-virtual"><scope>ResourceDumpBuffer</scope><name>gpuAddress</name></member>
+      <member refid="structResourceDumpBase_1af8a4e6b6711232665ec91c0a3c1c20d5" prot="public" virt="non-virtual"><scope>ResourceDumpBuffer</scope><name>heapId</name></member>
+      <member refid="structResourceDumpBuffer_1add0bdc2f7df9642a6e83c51bf65e1ac9" prot="public" virt="non-virtual"><scope>ResourceDumpBuffer</scope><name>heapNamePS</name></member>
+      <member refid="structResourceDumpBase_1abca6d33bbc67e481aa88b05882f3a48d" prot="public" virt="non-virtual"><scope>ResourceDumpBuffer</scope><name>heapOffset</name></member>
+      <member refid="structResourceDumpBuffer_1af7dc23856f99ed524e593144cd0769aa" prot="public" virt="non-virtual"><scope>ResourceDumpBuffer</scope><name>id</name></member>
+      <member refid="structResourceDumpBuffer_1a2998f163312f199fd6a66357849890d8" prot="public" virt="non-virtual"><scope>ResourceDumpBuffer</scope><name>mapAddress</name></member>
+      <member refid="structResourceDumpBuffer_1a639366a8c7ab12876d6435b5324f172b" prot="public" virt="non-virtual"><scope>ResourceDumpBuffer</scope><name>memSize</name></member>
+      <member refid="structResourceDumpBuffer_1ad0f9236b15ae2e87d14ff553dded96ae" prot="public" virt="non-virtual"><scope>ResourceDumpBuffer</scope><name>name</name></member>
+      <member refid="structResourceDumpBuffer_1a06827213bad8e9c0eeb2293b3d32f092" prot="public" virt="non-virtual"><scope>ResourceDumpBuffer</scope><name>offset</name></member>
+      <member refid="structResourceDumpBuffer_1a2ef8bed77bb67f2f333eed8fc3a20a27" prot="public" virt="non-virtual"><scope>ResourceDumpBuffer</scope><name>sysCopySize</name></member>
+      <member refid="structResourceDumpBuffer_1a247967f55a25ff0ecdc55fa44a96fa90" prot="public" virt="non-virtual"><scope>ResourceDumpBuffer</scope><name>totalDiscards</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

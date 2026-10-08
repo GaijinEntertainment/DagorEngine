@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__gizmoSettings_8h" kind="file" language="C++">
+    <compoundname>ec_gizmoSettings.h</compoundname>
+    <includedby refid="ec__genappwnd_8h" local="no">ec_genappwnd.h</includedby>
+    <invincdepgraph>
+      <node id="3">
+        <label>ec_genapp_ehfilter.h</label>
+        <link refid="ec__genapp__ehfilter_8h"/>
+      </node>
+      <node id="2">
+        <label>ec_genappwnd.h</label>
+        <link refid="ec__genappwnd_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ec_gizmoSettings.h</label>
+        <link refid="ec__gizmoSettings_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaceGizmoSettings">GizmoSettings</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DataBlock;</highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">E3DCOLOR;</highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7" refid="namespaceGizmoSettings" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceGizmoSettings" kindref="compound">GizmoSettings</ref></highlight></codeline>
+<codeline lineno="8"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="namespaceGizmoSettings_1a34ae042c7905dd00d12276fc9d631729" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceGizmoSettings_1a34ae042c7905dd00d12276fc9d631729" kindref="member">load</ref>(DataBlock<sp/>&amp;block);</highlight></codeline>
+<codeline lineno="11" refid="namespaceGizmoSettings_1a61fec107f13b8d4569a89292d0761bb8" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceGizmoSettings_1a61fec107f13b8d4569a89292d0761bb8" kindref="member">save</ref>(DataBlock<sp/>&amp;block);</highlight></codeline>
+<codeline lineno="12" refid="namespaceGizmoSettings_1ac1427fc11cb2eb626226346f4875461a" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceGizmoSettings_1ac1427fc11cb2eb626226346f4875461a" kindref="member">updateAxisColors</ref>();</highlight></codeline>
+<codeline lineno="13" refid="namespaceGizmoSettings_1ac0a1762271c61c028fadc2b2aa416cc1" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceGizmoSettings_1ac0a1762271c61c028fadc2b2aa416cc1" kindref="member">retrieveAxisColors</ref>(E3DCOLOR<sp/>&amp;colorX,<sp/>E3DCOLOR<sp/>&amp;colorY,<sp/>E3DCOLOR<sp/>&amp;colorZ);</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="namespaceGizmoSettings_1aedad30f3bcca626cf181c57020a535cc" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceGizmoSettings_1aedad30f3bcca626cf181c57020a535cc" kindref="member">lineThickness</ref><sp/>=<sp/>2;</highlight></codeline>
+<codeline lineno="16" refid="namespaceGizmoSettings_1a94a22f7226f686310bb504a42fd4c8b0" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="namespaceGizmoSettings_1a94a22f7226f686310bb504a42fd4c8b0" kindref="member">viewportGizmoScaleFactor</ref><sp/>=<sp/>1.0f;</highlight></codeline>
+<codeline lineno="17" refid="namespaceGizmoSettings_1aeb2552975985b878cb35436472302888" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceGizmoSettings_1aeb2552975985b878cb35436472302888" kindref="member">overrideColor</ref>[3]<sp/>=<sp/>{</highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>E3DCOLOR<sp/><ref refid="namespaceGizmoSettings_1a7ec3ef004d34a506479f20e4e451f211" kindref="member">axisColor</ref>[3];</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>GizmoSettings</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="ec_gizmoSettings.h"/>
+  </compounddef>
+</doxygen>

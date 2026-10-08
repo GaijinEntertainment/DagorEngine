@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structdafg_1_1ExternalState" kind="struct" language="C++" prot="public">
+    <compoundname>dafg::ExternalState</compoundname>
+    <includes refid="externalState_8h" local="no">externalState.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structdafg_1_1ExternalState_1a5878ee20a057b391e608e8fc1dd1467a" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool dafg::ExternalState::wireframeModeEnabled</definition>
+        <argsstring></argsstring>
+        <name>wireframeModeEnabled</name>
+        <qualifiedname>dafg::ExternalState::wireframeModeEnabled</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Enables wireframe debug mode for nodes that allow it. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="externalState.h" line="18" column="8" bodyfile="externalState.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdafg_1_1ExternalState_1a9fadb151fc8300ed2f318fa36ee9ac9d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool dafg::ExternalState::vrsMaskEnabled</definition>
+        <argsstring></argsstring>
+        <name>vrsMaskEnabled</name>
+        <qualifiedname>dafg::ExternalState::vrsMaskEnabled</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Enables variable rate shading for all nodes that allow it using the per-node settings specified inside VrsRequirements. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="externalState.h" line="23" column="8" bodyfile="externalState.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Describes various global state that can influence the execution of the frame graph but is not managed by daFG. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="externalState.h" line="15" column="1" bodyfile="externalState.h" bodystart="16" bodyend="24"/>
+    <listofallmembers>
+      <member refid="structdafg_1_1ExternalState_1a9fadb151fc8300ed2f318fa36ee9ac9d" prot="public" virt="non-virtual"><scope>dafg::ExternalState</scope><name>vrsMaskEnabled</name></member>
+      <member refid="structdafg_1_1ExternalState_1a5878ee20a057b391e608e8fc1dd1467a" prot="public" virt="non-virtual"><scope>dafg::ExternalState</scope><name>wireframeModeEnabled</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

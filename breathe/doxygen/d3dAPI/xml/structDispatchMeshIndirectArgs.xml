@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDispatchMeshIndirectArgs" kind="struct" language="C++" prot="public">
+    <compoundname>DispatchMeshIndirectArgs</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDispatchMeshIndirectArgs_1a77adffa177f5b012c397cbfcaf1cd82a" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DispatchMeshIndirectArgs::threadGroupCountX</definition>
+        <argsstring></argsstring>
+        <name>threadGroupCountX</name>
+        <qualifiedname>DispatchMeshIndirectArgs::threadGroupCountX</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="264" column="12" bodyfile="dag_decl.h" bodystart="264" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDispatchMeshIndirectArgs_1a7558d54b5a83c18f25bef8b144d03de0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DispatchMeshIndirectArgs::threadGroupCountY</definition>
+        <argsstring></argsstring>
+        <name>threadGroupCountY</name>
+        <qualifiedname>DispatchMeshIndirectArgs::threadGroupCountY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="265" column="12" bodyfile="dag_decl.h" bodystart="265" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDispatchMeshIndirectArgs_1aae64258e7a0325a65b80cbe3fd42a1ee" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DispatchMeshIndirectArgs::threadGroupCountZ</definition>
+        <argsstring></argsstring>
+        <name>threadGroupCountZ</name>
+        <qualifiedname>DispatchMeshIndirectArgs::threadGroupCountZ</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="266" column="12" bodyfile="dag_decl.h" bodystart="266" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_decl.h" line="262" column="1" bodyfile="dag_decl.h" bodystart="263" bodyend="267"/>
+    <listofallmembers>
+      <member refid="structDispatchMeshIndirectArgs_1a77adffa177f5b012c397cbfcaf1cd82a" prot="public" virt="non-virtual"><scope>DispatchMeshIndirectArgs</scope><name>threadGroupCountX</name></member>
+      <member refid="structDispatchMeshIndirectArgs_1a7558d54b5a83c18f25bef8b144d03de0" prot="public" virt="non-virtual"><scope>DispatchMeshIndirectArgs</scope><name>threadGroupCountY</name></member>
+      <member refid="structDispatchMeshIndirectArgs_1aae64258e7a0325a65b80cbe3fd42a1ee" prot="public" virt="non-virtual"><scope>DispatchMeshIndirectArgs</scope><name>threadGroupCountZ</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

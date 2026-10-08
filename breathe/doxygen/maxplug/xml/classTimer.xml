@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTimer" kind="class" language="C++" prot="public">
+    <compoundname>Timer</compoundname>
+    <includes refid="Timer_8hpp" local="no">Timer.hpp</includes>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classTimer_1a03000d4bf8d0dd0bdd30f4ddfa860e45" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>double</type>
+        <definition>static double Timer::NowMs</definition>
+        <argsstring>()</argsstring>
+        <name>NowMs</name>
+        <qualifiedname>Timer::NowMs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="7" column="17" bodyfile="Timer.hpp" bodystart="7" bodyend="11"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="Timer.hpp" line="4" column="1" bodyfile="Timer.hpp" bodystart="5" bodyend="12"/>
+    <listofallmembers>
+      <member refid="classTimer_1a03000d4bf8d0dd0bdd30f4ddfa860e45" prot="public" virt="non-virtual"><scope>Timer</scope><name>NowMs</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

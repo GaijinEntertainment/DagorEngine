@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceshaderbindump" kind="namespace" language="C++">
+    <compoundname>shaderbindump</compoundname>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__shMaterialUtils_8h_1a9be3884dcfc37ecf874d0423008384ac" prot="public" static="no">
+        <type>bindump::Mapper&lt; shader_layout::ShaderClass &gt;</type>
+        <definition>using shaderbindump::ShaderClass = typedef bindump::Mapper&lt;shader_layout::ShaderClass&gt;</definition>
+        <argsstring></argsstring>
+        <name>ShaderClass</name>
+        <qualifiedname>shaderbindump::ShaderClass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shMaterialUtils.h" line="14" column="1" bodyfile="dag_shMaterialUtils.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shMaterialUtils.h" line="12" column="1"/>
+  </compounddef>
+</doxygen>

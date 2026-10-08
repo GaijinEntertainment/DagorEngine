@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structParamName" kind="struct" language="C++" prot="public">
+    <compoundname>ParamName</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structParamName_1adc09fb45b64e01d85d2026f3c9c0ecac" prot="public" static="no" mutable="no">
+        <type>std::wstring_view</type>
+        <definition>std::wstring_view ParamName::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ParamName::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="466" column="21" bodyfile="mater2.cpp" bodystart="466" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structParamName_1afffabc97bb0be52629284927ce737386" prot="public" static="no" mutable="no">
+        <type>std::wstring_view</type>
+        <definition>std::wstring_view ParamName::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>ParamName::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="467" column="21" bodyfile="mater2.cpp" bodystart="467" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="mater2.cpp" line="464" column="1" bodyfile="mater2.cpp" bodystart="465" bodyend="468"/>
+    <listofallmembers>
+      <member refid="structParamName_1adc09fb45b64e01d85d2026f3c9c0ecac" prot="public" virt="non-virtual"><scope>ParamName</scope><name>name</name></member>
+      <member refid="structParamName_1afffabc97bb0be52629284927ce737386" prot="public" virt="non-virtual"><scope>ParamName</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

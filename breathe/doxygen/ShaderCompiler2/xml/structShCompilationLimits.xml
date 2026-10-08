@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShCompilationLimits" kind="struct" language="C++" prot="public">
+    <compoundname>ShCompilationLimits</compoundname>
+    <includes refid="shCompilationInfo_8h" local="no">shCompilationInfo.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShCompilationLimits_1a65406e069a300e1c5ed46d9515f8e116" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShCompilationLimits::inTargetShaderAmountLimit</definition>
+        <argsstring></argsstring>
+        <name>inTargetShaderAmountLimit</name>
+        <qualifiedname>ShCompilationLimits::inTargetShaderAmountLimit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="86" column="7" bodyfile="shCompilationInfo.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShCompilationLimits_1a3a9016b224be12c898c635b9c3e9a410" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShCompilationLimits::toolsShadersDetected</definition>
+        <argsstring></argsstring>
+        <name>toolsShadersDetected</name>
+        <qualifiedname>ShCompilationLimits::toolsShadersDetected</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="87" column="8" bodyfile="shCompilationInfo.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shCompilationInfo.h" line="84" column="1" bodyfile="shCompilationInfo.h" bodystart="85" bodyend="88"/>
+    <listofallmembers>
+      <member refid="structShCompilationLimits_1a65406e069a300e1c5ed46d9515f8e116" prot="public" virt="non-virtual"><scope>ShCompilationLimits</scope><name>inTargetShaderAmountLimit</name></member>
+      <member refid="structShCompilationLimits_1a3a9016b224be12c898c635b9c3e9a410" prot="public" virt="non-virtual"><scope>ShCompilationLimits</scope><name>toolsShadersDetected</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

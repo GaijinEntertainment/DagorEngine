@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structIesReader_1_1TransformParams" kind="struct" language="C++" prot="public">
+    <compoundname>IesReader::TransformParams</compoundname>
+    <includes refid="iesReader_8h" local="no">iesReader.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structIesReader_1_1TransformParams_1a646a940b45c732b47af8f46032f5f7ae" prot="public" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::TransformParams::zoom</definition>
+        <argsstring></argsstring>
+        <name>zoom</name>
+        <qualifiedname>IesReader::TransformParams::zoom</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="33" column="10" bodyfile="iesReader.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structIesReader_1_1TransformParams_1a5527553c0235c970738acbd88352d0f5" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool IesReader::TransformParams::rotated</definition>
+        <argsstring></argsstring>
+        <name>rotated</name>
+        <qualifiedname>IesReader::TransformParams::rotated</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="34" column="10" bodyfile="iesReader.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="iesReader.h" line="31" column="3" bodyfile="iesReader.h" bodystart="32" bodyend="35"/>
+    <listofallmembers>
+      <member refid="structIesReader_1_1TransformParams_1a5527553c0235c970738acbd88352d0f5" prot="public" virt="non-virtual"><scope>IesReader::TransformParams</scope><name>rotated</name></member>
+      <member refid="structIesReader_1_1TransformParams_1a646a940b45c732b47af8f46032f5f7ae" prot="public" virt="non-virtual"><scope>IesReader::TransformParams</scope><name>zoom</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

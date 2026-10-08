@@ -1,0 +1,198 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="progressInd_8h" kind="file" language="C++">
+    <compoundname>progressInd.h</compoundname>
+    <includes local="no">util/dag_safeArg.h</includes>
+    <includes local="no">util/dag_globDef.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>progressInd.h</label>
+        <link refid="progressInd_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="2">
+        <label>util/dag_safeArg.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classIProgressCB" prot="public">IProgressCB</innerclass>
+    <innerclass refid="classSimpleProgressCB" prot="public">SimpleProgressCB</innerclass>
+    <innerclass refid="classIGenericProgressIndicator" prot="public">IGenericProgressIndicator</innerclass>
+    <innerclass refid="classQuietProgressIndicator" prot="public">QuietProgressIndicator</innerclass>
+    <innerclass refid="classConsoleProgressIndicator" prot="public">ConsoleProgressIndicator</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="progressInd_8h_1ad5c6e896348b92a48387418a812c2187" prot="public" static="no">
+        <name>DSA_OVERLOADS_PARAM_DECL</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="56" column="9" bodyfile="progressInd.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="progressInd_8h_1a5efd92b66f81e72a2c053181a96518a9" prot="public" static="no">
+        <name>DSA_OVERLOADS_PARAM_PASS</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="57" column="9" bodyfile="progressInd.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="progressInd_8h_1a8ab0c4aa3f53c351397a66adf2439f0b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIGenericProgressIndicator" kindref="compound">IGenericProgressIndicator</ref> *</type>
+        <definition>IGenericProgressIndicator * create_con_progressbar</definition>
+        <argsstring>(bool show_pct=true)</argsstring>
+        <name>create_con_progressbar</name>
+        <param>
+          <type>bool</type>
+          <declname>show_pct</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+<para>creates console progress indicator (useful for console applications) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="135" column="27" declfile="progressInd.h" declline="135" declcolumn="27"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_safeArg.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="classIProgressCB" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIProgressCB" kindref="compound">IProgressCB</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="15" refid="classIProgressCB_1a3e6f85179a67dce57a01ffd3c9fdf1d4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIProgressCB_1a3e6f85179a67dce57a01ffd3c9fdf1d4" kindref="member">onCancel</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="classSimpleProgressCB" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classSimpleProgressCB" kindref="compound">SimpleProgressCB</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classIProgressCB" kindref="compound">IProgressCB</ref></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="24" refid="classSimpleProgressCB_1a22c822f259afe793a36023e9607f07f9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classSimpleProgressCB_1a22c822f259afe793a36023e9607f07f9" kindref="member">mustStop</ref>;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="classSimpleProgressCB_1aee9729d0390e7b274e9a5388cc87bfbb" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSimpleProgressCB_1aee9729d0390e7b274e9a5388cc87bfbb" kindref="member">SimpleProgressCB</ref>()<sp/>:<sp/><ref refid="classSimpleProgressCB_1a22c822f259afe793a36023e9607f07f9" kindref="member">mustStop</ref>(false)<sp/>{}</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="classSimpleProgressCB_1a6c574f8aea3798731697a86820dedf24" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSimpleProgressCB_1a6c574f8aea3798731697a86820dedf24" kindref="member">onCancel</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/><ref refid="classSimpleProgressCB_1a22c822f259afe793a36023e9607f07f9" kindref="member">mustStop</ref><sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="classIGenericProgressIndicator" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIGenericProgressIndicator" kindref="compound">IGenericProgressIndicator</ref></highlight></codeline>
+<codeline lineno="34"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="37" refid="classIGenericProgressIndicator_1ae498be70da64475b793509e68311f643" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIGenericProgressIndicator_1ae498be70da64475b793509e68311f643" kindref="member">setActionDescFmt</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*desc,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DagorSafeArg<sp/>*arg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>anum)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="39" refid="classIGenericProgressIndicator_1a86c83496a4c6a3e672a824fd4837a3ac" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIGenericProgressIndicator_1a86c83496a4c6a3e672a824fd4837a3ac" kindref="member">setTotal</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>total_cnt)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="41" refid="classIGenericProgressIndicator_1af61273cbbb0a3f8b0372ab13d8fa4b4b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIGenericProgressIndicator_1af61273cbbb0a3f8b0372ab13d8fa4b4b" kindref="member">setDone</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>done_cnt)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="43" refid="classIGenericProgressIndicator_1ae56a24dec52fcbdbc4dc9c0d02b56e9a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIGenericProgressIndicator_1ae56a24dec52fcbdbc4dc9c0d02b56e9a" kindref="member">incDone</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>inc<sp/>=<sp/>1)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="classIGenericProgressIndicator_1a2695bdad13406028345abe14136e68c4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIGenericProgressIndicator_1a2695bdad13406028345abe14136e68c4" kindref="member">redrawScreen</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="classIGenericProgressIndicator_1a7728d96da0e4b55a5a8928cd87029ca4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIGenericProgressIndicator_1a7728d96da0e4b55a5a8928cd87029ca4" kindref="member">destroy</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="classIGenericProgressIndicator_1a7961d9618fbc30ba9c5a8dbf53769472" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIGenericProgressIndicator_1a7961d9618fbc30ba9c5a8dbf53769472" kindref="member">startProgress</ref>(<ref refid="classIProgressCB" kindref="compound">IProgressCB</ref><sp/>*progress_cb<sp/>=<sp/>NULL)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="54" refid="classIGenericProgressIndicator_1a5dc6416228fdf7cb0bc96f52962e0b84" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIGenericProgressIndicator_1a5dc6416228fdf7cb0bc96f52962e0b84" kindref="member">endProgress</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="progressInd_8h_1ad5c6e896348b92a48387418a812c2187" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DSA_OVERLOADS_PARAM_DECL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57" refid="progressInd_8h_1a5efd92b66f81e72a2c053181a96518a9" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>DSA_OVERLOADS_PARAM_PASS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="classIGenericProgressIndicator_1a1ed452a29863168e758f85e889a2e042" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIGenericProgressIndicator_1a1ed452a29863168e758f85e889a2e042" kindref="member">DECLARE_DSA_OVERLOADS_FAMILY_LT</ref>(</highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setActionDesc,<sp/><ref refid="classIGenericProgressIndicator_1ae498be70da64475b793509e68311f643" kindref="member">setActionDescFmt</ref>);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>DSA_OVERLOADS_PARAM_DECL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>DSA_OVERLOADS_PARAM_PASS</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="classQuietProgressIndicator" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classQuietProgressIndicator" kindref="compound">QuietProgressIndicator</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classIGenericProgressIndicator" kindref="compound">IGenericProgressIndicator</ref></highlight></codeline>
+<codeline lineno="67"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="69" refid="classQuietProgressIndicator_1a67859d32e7cbdb84691eac5ef27c6001" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classQuietProgressIndicator_1a67859d32e7cbdb84691eac5ef27c6001" kindref="member">setActionDescFmt</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*desc,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DagorSafeArg<sp/>*arg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>anum)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="70"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(desc);</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(arg);</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(anum);</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="75" refid="classQuietProgressIndicator_1a92ec0117568f718daa3640af3090c095" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classQuietProgressIndicator_1a92ec0117568f718daa3640af3090c095" kindref="member">setTotal</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>total_cnt)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/>G_UNUSED(total_cnt);<sp/>}</highlight></codeline>
+<codeline lineno="76" refid="classQuietProgressIndicator_1a7758f5c615be4a8524a8a73604764dd6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classQuietProgressIndicator_1a7758f5c615be4a8524a8a73604764dd6" kindref="member">setDone</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>done_cnt)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/>G_UNUSED(done_cnt);<sp/>}</highlight></codeline>
+<codeline lineno="77" refid="classQuietProgressIndicator_1a79f080ca7216b8bb06cacbaa2c3b112b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classQuietProgressIndicator_1a79f080ca7216b8bb06cacbaa2c3b112b" kindref="member">incDone</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>inc<sp/>=<sp/>1)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/>G_UNUSED(inc);<sp/>}</highlight></codeline>
+<codeline lineno="78" refid="classQuietProgressIndicator_1a7c63dd859d3e3c5a4ba36fc120089bde" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classQuietProgressIndicator_1a7c63dd859d3e3c5a4ba36fc120089bde" kindref="member">redrawScreen</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="79" refid="classQuietProgressIndicator_1a6b13529b83c11fd3a5e9450166c15bf4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classQuietProgressIndicator_1a6b13529b83c11fd3a5e9450166c15bf4" kindref="member">destroy</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="80" refid="classQuietProgressIndicator_1a53c0da3450c198640c4bca0cf7ba8efb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classQuietProgressIndicator_1a53c0da3450c198640c4bca0cf7ba8efb" kindref="member">startProgress</ref>(<ref refid="classIProgressCB" kindref="compound">IProgressCB</ref><sp/>*progress_cb<sp/>=<sp/>NULL)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/>G_UNUSED(progress_cb);<sp/>}</highlight></codeline>
+<codeline lineno="81" refid="classQuietProgressIndicator_1a1c72ab1ee0c0074ef3421e9716f6f23c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classQuietProgressIndicator_1a1c72ab1ee0c0074ef3421e9716f6f23c" kindref="member">endProgress</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="82"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85" refid="classConsoleProgressIndicator" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classConsoleProgressIndicator" kindref="compound">ConsoleProgressIndicator</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classIGenericProgressIndicator" kindref="compound">IGenericProgressIndicator</ref></highlight></codeline>
+<codeline lineno="86"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>total<sp/>=<sp/>1,<sp/>done<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lastPct<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>showPct;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="92" refid="classConsoleProgressIndicator_1a6543cde5fe0853655be631e06f877d61" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classConsoleProgressIndicator_1a6543cde5fe0853655be631e06f877d61" kindref="member">ConsoleProgressIndicator</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>show_pct)<sp/>{<sp/>showPct<sp/>=<sp/>show_pct;<sp/>}</highlight></codeline>
+<codeline lineno="93" refid="classConsoleProgressIndicator_1a37f73ad21ef1efdf4107877898904a6b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classConsoleProgressIndicator_1a37f73ad21ef1efdf4107877898904a6b" kindref="member">~ConsoleProgressIndicator</ref>();</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95" refid="classConsoleProgressIndicator_1ad8b09c79658defcbaba23d47974725dc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classConsoleProgressIndicator_1ad8b09c79658defcbaba23d47974725dc" kindref="member">setActionDescFmt</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fmt,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DagorSafeArg<sp/>*arg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>anum)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="96" refid="classConsoleProgressIndicator_1a669b302dbeeb6bda60bee6e6b7cb969a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classConsoleProgressIndicator_1a669b302dbeeb6bda60bee6e6b7cb969a" kindref="member">setTotal</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>total_cnt)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="97"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/>total<sp/>=<sp/>total_cnt<sp/>&lt;<sp/>1<sp/>?<sp/>1<sp/>:<sp/>total_cnt;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classConsoleProgressIndicator_1a48510d3fb6ad94fbec6aa4c6d72fe400" kindref="member">updatePct</ref>();</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="101" refid="classConsoleProgressIndicator_1a96645d5f2decf91dd428d4dc081cd857" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classConsoleProgressIndicator_1a96645d5f2decf91dd428d4dc081cd857" kindref="member">setDone</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>done_cnt)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="102"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/>done<sp/>=<sp/>done_cnt;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classConsoleProgressIndicator_1a48510d3fb6ad94fbec6aa4c6d72fe400" kindref="member">updatePct</ref>();</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="106" refid="classConsoleProgressIndicator_1ab035e72fd76f8a96e59dc6dfa88612f8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classConsoleProgressIndicator_1ab035e72fd76f8a96e59dc6dfa88612f8" kindref="member">incDone</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>inc<sp/>=<sp/>1)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="107"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/>done<sp/>+=<sp/>inc;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classConsoleProgressIndicator_1a48510d3fb6ad94fbec6aa4c6d72fe400" kindref="member">updatePct</ref>();</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="111" refid="classConsoleProgressIndicator_1a0fbc64a69db9d50246da0c7559f24d60" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classConsoleProgressIndicator_1a0fbc64a69db9d50246da0c7559f24d60" kindref="member">redrawScreen</ref>()</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="112"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/>lastPct<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classConsoleProgressIndicator_1a48510d3fb6ad94fbec6aa4c6d72fe400" kindref="member">updatePct</ref>();</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="116" refid="classConsoleProgressIndicator_1a8c4c27a129e0214e634d56093f66752d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classConsoleProgressIndicator_1a8c4c27a129e0214e634d56093f66752d" kindref="member">destroy</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="117" refid="classConsoleProgressIndicator_1a07d251004db5492e832b84bcacfe8a4a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classConsoleProgressIndicator_1a07d251004db5492e832b84bcacfe8a4a" kindref="member">startProgress</ref>(<ref refid="classIProgressCB" kindref="compound">IProgressCB</ref><sp/>*)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="118" refid="classConsoleProgressIndicator_1a08a014a5c6a815987afeb61629e30ecb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classConsoleProgressIndicator_1a08a014a5c6a815987afeb61629e30ecb" kindref="member">endProgress</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="121" refid="classConsoleProgressIndicator_1a0bf2ab4bfe84f179af58d969f65dbdc6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classConsoleProgressIndicator_1a0bf2ab4bfe84f179af58d969f65dbdc6" kindref="member">outputPct</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pct);</highlight></codeline>
+<codeline lineno="122" refid="classConsoleProgressIndicator_1a48510d3fb6ad94fbec6aa4c6d72fe400" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classConsoleProgressIndicator_1a48510d3fb6ad94fbec6aa4c6d72fe400" kindref="member">updatePct</ref>()</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pct<sp/>=<sp/>done<sp/>*<sp/>100<sp/>/<sp/>total;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(pct<sp/>!=<sp/>lastPct)</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(showPct)</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classConsoleProgressIndicator_1a0bf2ab4bfe84f179af58d969f65dbdc6" kindref="member">outputPct</ref>(pct);</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>lastPct<sp/>=<sp/>pct;</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="132"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135" refid="progressInd_8h_1a8ab0c4aa3f53c351397a66adf2439f0b" refkind="member"><highlight class="normal"><ref refid="classIGenericProgressIndicator" kindref="compound">IGenericProgressIndicator</ref><sp/>*<ref refid="progressInd_8h_1a8ab0c4aa3f53c351397a66adf2439f0b" kindref="member">create_con_progressbar</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>show_pct<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+    </programlisting>
+    <location file="progressInd.h"/>
+  </compounddef>
+</doxygen>

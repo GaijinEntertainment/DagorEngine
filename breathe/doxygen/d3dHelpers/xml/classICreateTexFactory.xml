@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classICreateTexFactory" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>ICreateTexFactory</compoundname>
+    <includes refid="dag__createTex_8h" local="no">dag_createTex.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classICreateTexFactory_1af7b1fa72805909e742686981ee4174e1" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>BaseTexture *</type>
+        <definition>virtual BaseTexture * ICreateTexFactory::createTex</definition>
+        <argsstring>(const char *fn, int flg, int levels, const char *fn_ext, const TextureMetaData &amp;tmd)=0</argsstring>
+        <name>createTex</name>
+        <qualifiedname>ICreateTexFactory::createTex</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>levels</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fn_ext</declname>
+        </param>
+        <param>
+          <type>const TextureMetaData &amp;</type>
+          <declname>tmd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_createTex.h" line="15" column="23"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_createTex.h" line="12" column="1" bodyfile="dag_createTex.h" bodystart="13" bodyend="16"/>
+    <listofallmembers>
+      <member refid="classICreateTexFactory_1af7b1fa72805909e742686981ee4174e1" prot="public" virt="pure-virtual"><scope>ICreateTexFactory</scope><name>createTex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

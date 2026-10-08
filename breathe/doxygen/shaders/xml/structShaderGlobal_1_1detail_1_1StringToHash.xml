@@ -1,0 +1,119 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderGlobal_1_1detail_1_1StringToHash" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderGlobal::detail::StringToHash</compoundname>
+    <templateparamlist>
+      <param>
+        <type>bool</type>
+        <declname>is_interval</declname>
+        <defname>is_interval</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderGlobal_1_1detail_1_1StringToHash_1a12ccf286a53e84c031968a403a1ad4c1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderGlobal::detail::StringToHash&lt; is_interval &gt;::hash</definition>
+        <argsstring></argsstring>
+        <name>hash</name>
+        <qualifiedname>ShaderGlobal::detail::StringToHash::hash</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="81" column="12" bodyfile="dag_shaderVar.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderGlobal_1_1detail_1_1StringToHash_1a5c3de7812c6db776e414608aa892919f" prot="public" static="no" constexpr="yes" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr ShaderGlobal::detail::StringToHash&lt; is_interval &gt;::StringToHash</definition>
+        <argsstring>(uint32_t h)</argsstring>
+        <name>StringToHash</name>
+        <qualifiedname>ShaderGlobal::detail::StringToHash::StringToHash</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="82" column="22" bodyfile="dag_shaderVar.h" bodystart="82" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderGlobal_1_1detail_1_1StringToHash_1ad4917d5197198b6b6887f7c5772bda79" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderGlobal::detail::StringToHash&lt; is_interval &gt;::StringToHash</definition>
+        <argsstring>(const char *name, size_t len)</argsstring>
+        <name>StringToHash</name>
+        <qualifiedname>ShaderGlobal::detail::StringToHash::StringToHash</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>len</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="83" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderGlobal_1_1detail_1_1StringToHash_1a0217755548e069fd9741626bd69c1fc9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::detail::StringToHash&lt; is_interval &gt;::operator==</definition>
+        <argsstring>(const StringToHash &amp;rhs) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>ShaderGlobal::detail::StringToHash::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">StringToHash</ref> &amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="85" column="8" bodyfile="dag_shaderVar.h" bodystart="85" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderGlobal_1_1detail_1_1StringToHash_1a01919107d2e2106b7199ff885e2ab720" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderGlobal::detail::StringToHash&lt; is_interval &gt;::operator!=</definition>
+        <argsstring>(const StringToHash &amp;rhs) const</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>ShaderGlobal::detail::StringToHash::operator!=</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderGlobal_1_1detail_1_1StringToHash" kindref="compound">StringToHash</ref> &amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVar.h" line="86" column="8" bodyfile="dag_shaderVar.h" bodystart="86" bodyend="86"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderVar.h" line="79" column="1" bodyfile="dag_shaderVar.h" bodystart="80" bodyend="87"/>
+    <listofallmembers>
+      <member refid="structShaderGlobal_1_1detail_1_1StringToHash_1a12ccf286a53e84c031968a403a1ad4c1" prot="public" virt="non-virtual"><scope>ShaderGlobal::detail::StringToHash</scope><name>hash</name></member>
+      <member refid="structShaderGlobal_1_1detail_1_1StringToHash_1a01919107d2e2106b7199ff885e2ab720" prot="public" virt="non-virtual"><scope>ShaderGlobal::detail::StringToHash</scope><name>operator!=</name></member>
+      <member refid="structShaderGlobal_1_1detail_1_1StringToHash_1a0217755548e069fd9741626bd69c1fc9" prot="public" virt="non-virtual"><scope>ShaderGlobal::detail::StringToHash</scope><name>operator==</name></member>
+      <member refid="structShaderGlobal_1_1detail_1_1StringToHash_1a5c3de7812c6db776e414608aa892919f" prot="public" virt="non-virtual"><scope>ShaderGlobal::detail::StringToHash</scope><name>StringToHash</name></member>
+      <member refid="structShaderGlobal_1_1detail_1_1StringToHash_1ad4917d5197198b6b6887f7c5772bda79" prot="public" virt="non-virtual"><scope>ShaderGlobal::detail::StringToHash</scope><name>StringToHash</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

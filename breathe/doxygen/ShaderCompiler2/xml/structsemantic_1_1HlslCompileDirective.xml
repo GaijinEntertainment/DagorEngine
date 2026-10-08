@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemantic_1_1HlslCompileDirective" kind="struct" language="C++" prot="public">
+    <compoundname>semantic::HlslCompileDirective</compoundname>
+    <includes refid="hwSemantic_8h" local="no">hwSemantic.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemantic_1_1HlslCompileDirective_1aede7021514904bedf9276925187e8178" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String semantic::HlslCompileDirective::profile</definition>
+        <argsstring></argsstring>
+        <name>profile</name>
+        <qualifiedname>semantic::HlslCompileDirective::profile</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.h" line="25" column="10" bodyfile="hwSemantic.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1HlslCompileDirective_1a8bca245d2e3ca5d199cffac8cf0381dd" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String semantic::HlslCompileDirective::entry</definition>
+        <argsstring></argsstring>
+        <name>entry</name>
+        <qualifiedname>semantic::HlslCompileDirective::entry</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.h" line="25" column="18" bodyfile="hwSemantic.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1HlslCompileDirective_1ac617a5f0a91cf7473960514a9fc60f36" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool semantic::HlslCompileDirective::useHalfs</definition>
+        <argsstring></argsstring>
+        <name>useHalfs</name>
+        <qualifiedname>semantic::HlslCompileDirective::useHalfs</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.h" line="26" column="8" bodyfile="hwSemantic.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1HlslCompileDirective_1a100cdd3a68e5f261ba79876cb5a6b50b" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool semantic::HlslCompileDirective::useDefaultProfileIfExists</definition>
+        <argsstring></argsstring>
+        <name>useDefaultProfileIfExists</name>
+        <qualifiedname>semantic::HlslCompileDirective::useDefaultProfileIfExists</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.h" line="27" column="8" bodyfile="hwSemantic.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="hwSemantic.h" line="23" column="1" bodyfile="hwSemantic.h" bodystart="24" bodyend="28"/>
+    <listofallmembers>
+      <member refid="structsemantic_1_1HlslCompileDirective_1a8bca245d2e3ca5d199cffac8cf0381dd" prot="public" virt="non-virtual"><scope>semantic::HlslCompileDirective</scope><name>entry</name></member>
+      <member refid="structsemantic_1_1HlslCompileDirective_1aede7021514904bedf9276925187e8178" prot="public" virt="non-virtual"><scope>semantic::HlslCompileDirective</scope><name>profile</name></member>
+      <member refid="structsemantic_1_1HlslCompileDirective_1a100cdd3a68e5f261ba79876cb5a6b50b" prot="public" virt="non-virtual"><scope>semantic::HlslCompileDirective</scope><name>useDefaultProfileIfExists</name></member>
+      <member refid="structsemantic_1_1HlslCompileDirective_1ac617a5f0a91cf7473960514a9fc60f36" prot="public" virt="non-virtual"><scope>semantic::HlslCompileDirective</scope><name>useHalfs</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

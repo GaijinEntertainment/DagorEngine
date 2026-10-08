@@ -1,0 +1,162 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classUndoRedoObject" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>UndoRedoObject</compoundname>
+    <includes refid="undo_8h" local="no">undo.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classUndoRedoObject_1a34fadaf06fb3203577c747c180f11156" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual UndoRedoObject::~UndoRedoObject</definition>
+        <argsstring>()</argsstring>
+        <name>~UndoRedoObject</name>
+        <qualifiedname>UndoRedoObject::~UndoRedoObject</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="61" column="11" bodyfile="undo.h" bodystart="61" bodyend="61"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoRedoObject_1a667614c78f53dafad239f4e9b6b7e45e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void UndoRedoObject::restore</definition>
+        <argsstring>(bool save_redo_data)=0</argsstring>
+        <name>restore</name>
+        <qualifiedname>UndoRedoObject::restore</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>save_redo_data</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="66" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoRedoObject_1a6cfa575de5ea88a980f90750897a7c3b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void UndoRedoObject::redo</definition>
+        <argsstring>()=0</argsstring>
+        <name>redo</name>
+        <qualifiedname>UndoRedoObject::redo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="69" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoRedoObject_1ae5d898fe38e036d5a3c1b156ea02e030" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>size_t</type>
+        <definition>virtual size_t UndoRedoObject::size</definition>
+        <argsstring>()=0</argsstring>
+        <name>size</name>
+        <qualifiedname>UndoRedoObject::size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="73" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoRedoObject_1af397e4386f0bf137f980b682557b2358" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type><ref refid="structUndoMergeKey" kindref="compound">UndoMergeKey</ref></type>
+        <definition>virtual UndoMergeKey UndoRedoObject::get_merge_key</definition>
+        <argsstring>() const</argsstring>
+        <name>get_merge_key</name>
+        <qualifiedname>UndoRedoObject::get_merge_key</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="76" column="24" bodyfile="undo.h" bodystart="76" bodyend="76"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoRedoObject_1ab1c87ec4bbe9520ddd2a7a67bae00522" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool UndoRedoObject::merge</definition>
+        <argsstring>(const UndoRedoObject &amp;newer)</argsstring>
+        <name>merge</name>
+        <qualifiedname>UndoRedoObject::merge</qualifiedname>
+        <param>
+          <type>const <ref refid="classUndoRedoObject" kindref="compound">UndoRedoObject</ref> &amp;</type>
+          <declname>newer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="82" column="16" bodyfile="undo.h" bodystart="82" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoRedoObject_1a0c07b2322c720a6f2a9e4cde1f3f7cf4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool UndoRedoObject::is_operation_group</definition>
+        <argsstring>() const</argsstring>
+        <name>is_operation_group</name>
+        <qualifiedname>UndoRedoObject::is_operation_group</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="86" column="16" bodyfile="undo.h" bodystart="86" bodyend="86"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoRedoObject_1ab83ce4f60d81e6e556046e6c4b5c8949" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void UndoRedoObject::accepted</definition>
+        <argsstring>()=0</argsstring>
+        <name>accepted</name>
+        <qualifiedname>UndoRedoObject::accepted</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="93" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classUndoRedoObject_1ad2fdd3f63413f2656c58fe56429dfa5e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void UndoRedoObject::get_description</definition>
+        <argsstring>(String &amp;)=0</argsstring>
+        <name>get_description</name>
+        <qualifiedname>UndoRedoObject::get_description</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="undo.h" line="96" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="undo.h" line="58" column="1" bodyfile="undo.h" bodystart="59" bodyend="97"/>
+    <listofallmembers>
+      <member refid="classUndoRedoObject_1ab83ce4f60d81e6e556046e6c4b5c8949" prot="public" virt="pure-virtual"><scope>UndoRedoObject</scope><name>accepted</name></member>
+      <member refid="classUndoRedoObject_1ad2fdd3f63413f2656c58fe56429dfa5e" prot="public" virt="pure-virtual"><scope>UndoRedoObject</scope><name>get_description</name></member>
+      <member refid="classUndoRedoObject_1af397e4386f0bf137f980b682557b2358" prot="public" virt="virtual"><scope>UndoRedoObject</scope><name>get_merge_key</name></member>
+      <member refid="classUndoRedoObject_1a0c07b2322c720a6f2a9e4cde1f3f7cf4" prot="public" virt="virtual"><scope>UndoRedoObject</scope><name>is_operation_group</name></member>
+      <member refid="classUndoRedoObject_1ab1c87ec4bbe9520ddd2a7a67bae00522" prot="public" virt="virtual"><scope>UndoRedoObject</scope><name>merge</name></member>
+      <member refid="classUndoRedoObject_1a6cfa575de5ea88a980f90750897a7c3b" prot="public" virt="pure-virtual"><scope>UndoRedoObject</scope><name>redo</name></member>
+      <member refid="classUndoRedoObject_1a667614c78f53dafad239f4e9b6b7e45e" prot="public" virt="pure-virtual"><scope>UndoRedoObject</scope><name>restore</name></member>
+      <member refid="classUndoRedoObject_1ae5d898fe38e036d5a3c1b156ea02e030" prot="public" virt="pure-virtual"><scope>UndoRedoObject</scope><name>size</name></member>
+      <member refid="classUndoRedoObject_1a34fadaf06fb3203577c747c180f11156" prot="public" virt="virtual"><scope>UndoRedoObject</scope><name>~UndoRedoObject</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,329 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIndirectDrawcallsBuffer" kind="class" language="C++" prot="public">
+    <compoundname>IndirectDrawcallsBuffer</compoundname>
+    <includes refid="dag__indirectDrawcallsBuffer_8h" local="no">dag_indirectDrawcallsBuffer.h</includes>
+    <innerclass refid="structIndirectDrawcallsBuffer_1_1ExtendedDrawIndexedIndirectArgs" prot="private">IndirectDrawcallsBuffer::ExtendedDrawIndexedIndirectArgs</innerclass>
+    <templateparamlist>
+      <param>
+        <type>typename BaseArgsType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classIndirectDrawcallsBuffer_1a370639d7f3ed8e3678b8e83c6c04af83" prot="private" static="no" mutable="no">
+        <type><ref refid="dag__resPtr_8h_1aeb45b68a26629ad747c4a58e8b528a4c" kindref="member">UniqueBuf</ref></type>
+        <definition>UniqueBuf IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::buffer</definition>
+        <argsstring></argsstring>
+        <name>buffer</name>
+        <qualifiedname>IndirectDrawcallsBuffer::buffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="23" column="13" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIndirectDrawcallsBuffer_1af192d66d4fe17298a2410886d5248f3a" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::allocatedDrawcallsInBuffer</definition>
+        <argsstring></argsstring>
+        <name>allocatedDrawcallsInBuffer</name>
+        <qualifiedname>IndirectDrawcallsBuffer::allocatedDrawcallsInBuffer</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="24" column="12" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIndirectDrawcallsBuffer_1a31d41b03800bb4ca43164d94e44831bd" prot="private" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::bufferName</definition>
+        <argsstring></argsstring>
+        <name>bufferName</name>
+        <qualifiedname>IndirectDrawcallsBuffer::bufferName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="25" column="17" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1af5ddf0ee571ae69a7ce2fa492b7d1e1a" prot="private" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::usesPackedDrawCallID</definition>
+        <argsstring>()</argsstring>
+        <name>usesPackedDrawCallID</name>
+        <qualifiedname>IndirectDrawcallsBuffer::usesPackedDrawCallID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="27" column="15" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1aafc6fa67c075558f7c7025fb5d532bd3" prot="private" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::packDrawCallIdAsOffset</definition>
+        <argsstring>()</argsstring>
+        <name>packDrawCallIdAsOffset</name>
+        <qualifiedname>IndirectDrawcallsBuffer::packDrawCallIdAsOffset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="29" column="15" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1aa3aea6e4a9b50ae07af8289d549ad57c" prot="private" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::useDiscardOnFill</definition>
+        <argsstring>()</argsstring>
+        <name>useDiscardOnFill</name>
+        <qualifiedname>IndirectDrawcallsBuffer::useDiscardOnFill</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="31" column="15" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1a1a7c43dfc9e2ce7bcbade77a17f8f814" prot="private" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>static uint32_t IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::dwordsCountPerDrawcall</definition>
+        <argsstring>()</argsstring>
+        <name>dwordsCountPerDrawcall</name>
+        <qualifiedname>IndirectDrawcallsBuffer::dwordsCountPerDrawcall</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="33" column="19" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="33" bodyend="38"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1a5ddb852f7c81552c1af8bdb71b760b74" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::IndirectDrawcallsBuffer</definition>
+        <argsstring>()=default</argsstring>
+        <name>IndirectDrawcallsBuffer</name>
+        <qualifiedname>IndirectDrawcallsBuffer::IndirectDrawcallsBuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="47" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1a0a86b4dbc4d35efeb722b9d553e9c35b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::IndirectDrawcallsBuffer</definition>
+        <argsstring>(eastl::string name)</argsstring>
+        <name>IndirectDrawcallsBuffer</name>
+        <qualifiedname>IndirectDrawcallsBuffer::IndirectDrawcallsBuffer</qualifiedname>
+        <param>
+          <type>eastl::string</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="48" column="3" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1a522318d1ee9aea19677fce7bcf74c13f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::IndirectDrawcallsBuffer</definition>
+        <argsstring>(IndirectDrawcallsBuffer &amp;&amp;)=default</argsstring>
+        <name>IndirectDrawcallsBuffer</name>
+        <qualifiedname>IndirectDrawcallsBuffer::IndirectDrawcallsBuffer</qualifiedname>
+        <param>
+          <type><ref refid="classIndirectDrawcallsBuffer" kindref="compound">IndirectDrawcallsBuffer</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="49" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1a4d6fa2e8db06a91533312c37036a69e2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIndirectDrawcallsBuffer" kindref="compound">IndirectDrawcallsBuffer</ref> &amp;</type>
+        <definition>IndirectDrawcallsBuffer &amp; IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::operator=</definition>
+        <argsstring>(IndirectDrawcallsBuffer &amp;&amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>IndirectDrawcallsBuffer::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classIndirectDrawcallsBuffer" kindref="compound">IndirectDrawcallsBuffer</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="50" column="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1aae7583e50a94c58b605f53726bbedab1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::IndirectDrawcallsBuffer</definition>
+        <argsstring>(IndirectDrawcallsBuffer &amp;)=delete</argsstring>
+        <name>IndirectDrawcallsBuffer</name>
+        <qualifiedname>IndirectDrawcallsBuffer::IndirectDrawcallsBuffer</qualifiedname>
+        <param>
+          <type><ref refid="classIndirectDrawcallsBuffer" kindref="compound">IndirectDrawcallsBuffer</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="51" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1a1060690ffcade5396f6e40d755536106" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIndirectDrawcallsBuffer" kindref="compound">IndirectDrawcallsBuffer</ref> &amp;</type>
+        <definition>IndirectDrawcallsBuffer &amp; IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::operator=</definition>
+        <argsstring>(IndirectDrawcallsBuffer &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>IndirectDrawcallsBuffer::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classIndirectDrawcallsBuffer" kindref="compound">IndirectDrawcallsBuffer</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="52" column="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1abb9eb4aea087edd963e1fbc0fa0c64be" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::fillBuffer</definition>
+        <argsstring>(dag::ConstSpan&lt; BaseArgsType &gt; drawcalls_data, uint32_t drawid_offset=0, FillOnGPU fill_on_gpu=FillOnGPU::No)</argsstring>
+        <name>fillBuffer</name>
+        <qualifiedname>IndirectDrawcallsBuffer::fillBuffer</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; BaseArgsType &gt;</type>
+          <declname>drawcalls_data</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>drawid_offset</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type><ref refid="dag__indirectDrawcallsBuffer_8h_1a840b6e7e43b6985d653fb496d551cedd" kindref="member">FillOnGPU</ref></type>
+          <declname>fill_on_gpu</declname>
+          <defval><ref refid="dag__indirectDrawcallsBuffer_8h_1a840b6e7e43b6985d653fb496d551ceddabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">FillOnGPU::No</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="54" column="8" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="54" bodyend="98"/>
+      </memberdef>
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1a28f5f0c6569fb0279eea48e68a544c6b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>IndirectDrawcallsBuffer::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="100" column="8" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="100" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1ac3c619116a1687b3eae246360d576001" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer * IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::getBuffer</definition>
+        <argsstring>() const</argsstring>
+        <name>getBuffer</name>
+        <qualifiedname>IndirectDrawcallsBuffer::getBuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="106" column="11" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="106" bodyend="106"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1a49fbe9be1cb3e5af643466e665093ba9" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>static uint32_t IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::getStride</definition>
+        <argsstring>()</argsstring>
+        <name>getStride</name>
+        <qualifiedname>IndirectDrawcallsBuffer::getStride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="108" column="19" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="108" bodyend="108"/>
+      </memberdef>
+      <memberdef kind="function" id="classIndirectDrawcallsBuffer_1af6ebb5a7a14296e06381de4a262ebc6e" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>static uint32_t IndirectDrawcallsBuffer&lt; BaseArgsType &gt;::getArgsOffset</definition>
+        <argsstring>()</argsstring>
+        <name>getArgsOffset</name>
+        <qualifiedname>IndirectDrawcallsBuffer::getArgsOffset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_indirectDrawcallsBuffer.h" line="110" column="19" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="110" bodyend="110"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_indirectDrawcallsBuffer.h" line="21" column="1" bodyfile="dag_indirectDrawcallsBuffer.h" bodystart="22" bodyend="111"/>
+    <listofallmembers>
+      <member refid="classIndirectDrawcallsBuffer_1af192d66d4fe17298a2410886d5248f3a" prot="private" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>allocatedDrawcallsInBuffer</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1a370639d7f3ed8e3678b8e83c6c04af83" prot="private" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>buffer</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1a31d41b03800bb4ca43164d94e44831bd" prot="private" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>bufferName</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1a28f5f0c6569fb0279eea48e68a544c6b" prot="public" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>close</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1a1a7c43dfc9e2ce7bcbade77a17f8f814" prot="private" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>dwordsCountPerDrawcall</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1abb9eb4aea087edd963e1fbc0fa0c64be" prot="public" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>fillBuffer</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1af6ebb5a7a14296e06381de4a262ebc6e" prot="public" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>getArgsOffset</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1ac3c619116a1687b3eae246360d576001" prot="public" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>getBuffer</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1a49fbe9be1cb3e5af643466e665093ba9" prot="public" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>getStride</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1a5ddb852f7c81552c1af8bdb71b760b74" prot="public" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>IndirectDrawcallsBuffer</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1a0a86b4dbc4d35efeb722b9d553e9c35b" prot="public" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>IndirectDrawcallsBuffer</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1a522318d1ee9aea19677fce7bcf74c13f" prot="public" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>IndirectDrawcallsBuffer</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1aae7583e50a94c58b605f53726bbedab1" prot="public" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>IndirectDrawcallsBuffer</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1a4d6fa2e8db06a91533312c37036a69e2" prot="public" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>operator=</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1a1060690ffcade5396f6e40d755536106" prot="public" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>operator=</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1aafc6fa67c075558f7c7025fb5d532bd3" prot="private" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>packDrawCallIdAsOffset</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1aa3aea6e4a9b50ae07af8289d549ad57c" prot="private" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>useDiscardOnFill</name></member>
+      <member refid="classIndirectDrawcallsBuffer_1af5ddf0ee571ae69a7ce2fa492b7d1e1a" prot="private" virt="non-virtual"><scope>IndirectDrawcallsBuffer</scope><name>usesPackedDrawCallID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

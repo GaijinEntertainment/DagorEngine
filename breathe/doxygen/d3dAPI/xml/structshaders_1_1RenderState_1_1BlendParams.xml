@@ -1,0 +1,131 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshaders_1_1RenderState_1_1BlendParams" kind="struct" language="C++" prot="public">
+    <compoundname>shaders::RenderState::BlendParams</compoundname>
+    <includes refid="dag__renderStates_8h" local="no">dag_renderStates.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1_1BlendParams_1a3efbf4f5891bccd0264c662d0a9c5bb0" prot="public" static="no" mutable="no">
+        <type><ref refid="structshaders_1_1RenderState_1_1BlendFactors" kindref="compound">BlendFactors</ref></type>
+        <definition>BlendFactors shaders::RenderState::BlendParams::ablendFactors</definition>
+        <argsstring></argsstring>
+        <name>ablendFactors</name>
+        <qualifiedname>shaders::RenderState::BlendParams::ablendFactors</qualifiedname>
+        <briefdescription>
+<para>Configures alpha blend factor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="70" column="18" bodyfile="dag_renderStates.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1_1BlendParams_1a120aba4f8967f122a4dd97cd7ba5c90f" prot="public" static="no" mutable="no">
+        <type><ref refid="structshaders_1_1RenderState_1_1BlendFactors" kindref="compound">BlendFactors</ref></type>
+        <definition>BlendFactors shaders::RenderState::BlendParams::sepablendFactors</definition>
+        <argsstring></argsstring>
+        <name>sepablendFactors</name>
+        <qualifiedname>shaders::RenderState::BlendParams::sepablendFactors</qualifiedname>
+        <briefdescription>
+<para>Configures separate alpha blend factor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="71" column="18" bodyfile="dag_renderStates.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1_1BlendParams_1a9d3f7ddd64ab9809e49a984f13ea0c75" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::BlendParams::blendOp</definition>
+        <argsstring></argsstring>
+        <name>blendOp</name>
+        <qualifiedname>shaders::RenderState::BlendParams::blendOp</qualifiedname>
+        <bitfield> 3</bitfield>
+        <briefdescription>
+<para>Specifies <ref refid="dag__consts__base_8h_1abff73994f37b5e2dbcf79c2552793653" kindref="member">BLENDOP</ref> operation for alpha blending. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="73" column="13" bodyfile="dag_renderStates.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1_1BlendParams_1a20dc3dc1c41c0473d8c4cec4a4807a38" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::BlendParams::sepablendOp</definition>
+        <argsstring></argsstring>
+        <name>sepablendOp</name>
+        <qualifiedname>shaders::RenderState::BlendParams::sepablendOp</qualifiedname>
+        <bitfield> 3</bitfield>
+        <briefdescription>
+<para>Specifies <ref refid="dag__consts__base_8h_1abff73994f37b5e2dbcf79c2552793653" kindref="member">BLENDOP</ref> operation for separate alpha blending. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="74" column="13" bodyfile="dag_renderStates.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1_1BlendParams_1a77877ef77c58ffcce6347822b8ea600a" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::BlendParams::ablend</definition>
+        <argsstring></argsstring>
+        <name>ablend</name>
+        <qualifiedname>shaders::RenderState::BlendParams::ablend</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+<para>Enables alpha blending. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="75" column="13" bodyfile="dag_renderStates.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1RenderState_1_1BlendParams_1a9228df9d7ccb1ffd396f38f6d61e047c" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::BlendParams::sepablend</definition>
+        <argsstring></argsstring>
+        <name>sepablend</name>
+        <qualifiedname>shaders::RenderState::BlendParams::sepablend</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+<para>Enables separate alpha blending. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderStates.h" line="76" column="13" bodyfile="dag_renderStates.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Description of blending parameters. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>shaders::RenderState::BlendFactors</label>
+        <link refid="structshaders_1_1RenderState_1_1BlendFactors"/>
+      </node>
+      <node id="1">
+        <label>shaders::RenderState::BlendParams</label>
+        <link refid="structshaders_1_1RenderState_1_1BlendParams"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>ablendFactors</edgelabel>
+          <edgelabel>sepablendFactors</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_renderStates.h" line="68" column="3" bodyfile="dag_renderStates.h" bodystart="69" bodyend="77"/>
+    <listofallmembers>
+      <member refid="structshaders_1_1RenderState_1_1BlendParams_1a77877ef77c58ffcce6347822b8ea600a" prot="public" virt="non-virtual"><scope>shaders::RenderState::BlendParams</scope><name>ablend</name></member>
+      <member refid="structshaders_1_1RenderState_1_1BlendParams_1a3efbf4f5891bccd0264c662d0a9c5bb0" prot="public" virt="non-virtual"><scope>shaders::RenderState::BlendParams</scope><name>ablendFactors</name></member>
+      <member refid="structshaders_1_1RenderState_1_1BlendParams_1a9d3f7ddd64ab9809e49a984f13ea0c75" prot="public" virt="non-virtual"><scope>shaders::RenderState::BlendParams</scope><name>blendOp</name></member>
+      <member refid="structshaders_1_1RenderState_1_1BlendParams_1a9228df9d7ccb1ffd396f38f6d61e047c" prot="public" virt="non-virtual"><scope>shaders::RenderState::BlendParams</scope><name>sepablend</name></member>
+      <member refid="structshaders_1_1RenderState_1_1BlendParams_1a120aba4f8967f122a4dd97cd7ba5c90f" prot="public" virt="non-virtual"><scope>shaders::RenderState::BlendParams</scope><name>sepablendFactors</name></member>
+      <member refid="structshaders_1_1RenderState_1_1BlendParams_1a20dc3dc1c41c0473d8c4cec4a4807a38" prot="public" virt="non-virtual"><scope>shaders::RenderState::BlendParams</scope><name>sepablendOp</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

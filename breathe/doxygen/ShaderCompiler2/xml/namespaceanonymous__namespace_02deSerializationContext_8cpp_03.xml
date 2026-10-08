@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceanonymous__namespace_02deSerializationContext_8cpp_03" kind="namespace" language="C++">
+    <compoundname>anonymous_namespace{deSerializationContext.cpp}</compoundname>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceanonymous__namespace_02deSerializationContext_8cpp_03_1aef35ee1d38941e3b292b772d5df4043c" prot="public" static="no" mutable="no">
+        <type>thread_local <ref refid="deSerializationContext_8h_1afede1412dc1f58bdedb1e2ebcdd7fa50" kindref="member">ShadersDeSerializationContext</ref></type>
+        <definition>thread_local ShadersDeSerializationContext anonymous_namespace{deSerializationContext.cpp}::g_ctx</definition>
+        <argsstring></argsstring>
+        <name>g_ctx</name>
+        <qualifiedname>anonymous_namespace{deSerializationContext.cpp}::g_ctx</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="deSerializationContext.cpp" line="8" column="44" bodyfile="deSerializationContext.cpp" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="deSerializationContext.cpp" line="6" column="1"/>
+  </compounddef>
+</doxygen>

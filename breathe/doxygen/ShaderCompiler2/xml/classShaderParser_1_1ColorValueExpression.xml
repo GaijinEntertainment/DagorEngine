@@ -1,0 +1,360 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderParser_1_1ColorValueExpression" kind="class" language="C++" prot="public">
+    <compoundname>ShaderParser::ColorValueExpression</compoundname>
+    <basecompoundref refid="classShaderParser_1_1ComplexExpression" prot="public" virt="non-virtual">ShaderParser::ComplexExpression</basecompoundref>
+    <includes refid="shExpr_8h" local="no">shExpr.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderParser_1_1ColorValueExpression_1a2c5728c4ee794735c79caa9859f8173a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ColorValueExpression::ColorValueExpression</definition>
+        <argsstring>(Terminal *s)</argsstring>
+        <name>ColorValueExpression</name>
+        <qualifiedname>ShaderParser::ColorValueExpression::ColorValueExpression</qualifiedname>
+        <param>
+          <type>Terminal *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="455" column="3" bodyfile="shExpr.cpp" bodystart="1059" bodyend="1059"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorValueExpression_1a58e68b670d5f408896ae1f1d1fbb0fb9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>shexpr::Type</type>
+        <definition>shexpr::Type ShaderParser::ColorValueExpression::getType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getType</name>
+        <qualifiedname>ShaderParser::ColorValueExpression::getType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ab8876717d35f647420a5c3bfd7c1c50c">getType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="458" column="23" bodyfile="shExpr.h" bodystart="458" bodyend="458"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorValueExpression_1aa677e0f46de9bee9c1389324d2bc15d1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>shexpr::ValueType</type>
+        <definition>shexpr::ValueType ShaderParser::ColorValueExpression::getValueType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getValueType</name>
+        <qualifiedname>ShaderParser::ColorValueExpression::getValueType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1acc2906c41ab9f1277d513f3c2c97096d">getValueType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="461" column="28" bodyfile="shExpr.h" bodystart="461" bodyend="461"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorValueExpression_1a53263625aca5ca771982e61ba025e264" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::ColorValueExpression::canConvert</definition>
+        <argsstring>(shexpr::ValueType vt) const override</argsstring>
+        <name>canConvert</name>
+        <qualifiedname>ShaderParser::ColorValueExpression::canConvert</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ac19dd34018b4470ad166a8ab244f981d">canConvert</reimplements>
+        <param>
+          <type>shexpr::ValueType</type>
+          <declname>vt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="464" column="8" bodyfile="shExpr.h" bodystart="464" bodyend="464"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorValueExpression_1a8d9ab9acc195ec696a74533ce4f48d00" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool ColorValueExpression::evaluate</definition>
+        <argsstring>(real &amp;out_value, Parser &amp;parser) override</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>ShaderParser::ColorValueExpression::evaluate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a8941f97eca15c43e1ecd37d5c7dc3caf">evaluate</reimplements>
+        <param>
+          <type>real &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="467" column="8" bodyfile="shExpr.cpp" bodystart="1062" bodyend="1066"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorValueExpression_1ae5f85ec8745be4a12ce72fea6e21515b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool ColorValueExpression::evaluate</definition>
+        <argsstring>(Color4 &amp;out_value, Parser &amp;parser) override</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>ShaderParser::ColorValueExpression::evaluate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1af8c5f003ef7d6a21c423c741f3587a1f">evaluate</reimplements>
+        <param>
+          <type>Color4 &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="470" column="8" bodyfile="shExpr.cpp" bodystart="1070" bodyend="1095"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorValueExpression_1ad0541026bf01f6c45b6f2e2fc34c4251" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>Terminal *</type>
+        <definition>Terminal * ShaderParser::ColorValueExpression::getTerminal</definition>
+        <argsstring>() const override</argsstring>
+        <name>getTerminal</name>
+        <qualifiedname>ShaderParser::ColorValueExpression::getTerminal</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a63e9f75ae1b742c5ffcbd7aa65b1963a">getTerminal</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="473" column="12" bodyfile="shExpr.h" bodystart="473" bodyend="473"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorValueExpression_1ac70c52bfd10fc141e39585dc74e7c5ac" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ColorValueExpression::assembleBytecode</definition>
+        <argsstring>(CodeTable &amp;code, Register &amp;dest_reg, StcodeVMRegisterAllocator &amp;reg_allocator, bool is_integer) const override</argsstring>
+        <name>assembleBytecode</name>
+        <qualifiedname>ShaderParser::ColorValueExpression::assembleBytecode</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1adf4dc5757229bb9e7a7d50d3cc6d82f0">assembleBytecode</reimplements>
+        <param>
+          <type><ref refid="namespaceShaderParser_1a732af6cbcecefe1051d9165d3718d702" kindref="member">CodeTable</ref> &amp;</type>
+          <declname>code</declname>
+        </param>
+        <param>
+          <type><ref refid="classRegister" kindref="compound">Register</ref> &amp;</type>
+          <declname>dest_reg</declname>
+        </param>
+        <param>
+          <type><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref> &amp;</type>
+          <declname>reg_allocator</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="476" column="8" bodyfile="shExpr.cpp" bodystart="1109" bodyend="1124"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorValueExpression_1a1116216acf29e6a77e5d620129a933e2" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ColorValueExpression::assembleCpp</definition>
+        <argsstring>(StcodeExpression &amp;cpp_expr, bool is_integer) const override</argsstring>
+        <name>assembleCpp</name>
+        <qualifiedname>ShaderParser::ColorValueExpression::assembleCpp</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a9487371df0a50670438cc4343d06cdb2">assembleCpp</reimplements>
+        <param>
+          <type><ref refid="structStcodeExpression" kindref="compound">StcodeExpression</ref> &amp;</type>
+          <declname>cpp_expr</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="477" column="8" bodyfile="shExpr.cpp" bodystart="1126" bodyend="1131"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorValueExpression_1ad0f1cead895d0beb20ce067ff2597b8b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool ColorValueExpression::collapseNumbers</definition>
+        <argsstring>(Parser &amp;parser) override</argsstring>
+        <name>collapseNumbers</name>
+        <qualifiedname>ShaderParser::ColorValueExpression::collapseNumbers</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a6504a6f642f08f1cf420bebda197efaf">collapseNumbers</reimplements>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="480" column="8" bodyfile="shExpr.cpp" bodystart="1135" bodyend="1161"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorValueExpression_1a7fec4ffeb9dad68b606e3ad21d77d696" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int ShaderParser::ColorValueExpression::getChannels</definition>
+        <argsstring>() const override</argsstring>
+        <name>getChannels</name>
+        <qualifiedname>ShaderParser::ColorValueExpression::getChannels</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a624688ee88ace66f0cafa9481d4e4536">getChannels</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="481" column="7" bodyfile="shExpr.h" bodystart="481" bodyend="481"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ColorValueExpression_1a221bbe17d5ce1b8455968837923f8c8b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::ColorValueExpression::validate</definition>
+        <argsstring>(Parser &amp;parser) const override</argsstring>
+        <name>validate</name>
+        <qualifiedname>ShaderParser::ColorValueExpression::validate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ComplexExpression_1a695de7886520cd4b45f36355857a6674">validate</reimplements>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="482" column="8" bodyfile="shExpr.h" bodystart="482" bodyend="482"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classShaderParser_1_1ColorValueExpression_1aadf77bd6e16d8c776718a43881fe900f" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ColorValueExpression::dump_internal</definition>
+        <argsstring>(int level, const char *tabs) const override</argsstring>
+        <name>dump_internal</name>
+        <qualifiedname>ShaderParser::ColorValueExpression::dump_internal</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ae3261bc8b45356c6090bd84db2508fcb">dump_internal</reimplements>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tabs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="486" column="8" bodyfile="shExpr.cpp" bodystart="1099" bodyend="1105"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ShaderParser::ColorValueExpression</label>
+        <link refid="classShaderParser_1_1ColorValueExpression"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderParser::ComplexExpression</label>
+        <link refid="classShaderParser_1_1ComplexExpression"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ShaderParser::ColorValueExpression</label>
+        <link refid="classShaderParser_1_1ColorValueExpression"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderParser::ComplexExpression</label>
+        <link refid="classShaderParser_1_1ComplexExpression"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+    </collaborationgraph>
+    <location file="shExpr.h" line="451" column="1" bodyfile="shExpr.h" bodystart="452" bodyend="487"/>
+    <listofallmembers>
+      <member refid="classShaderParser_1_1Expression_1a68e771cf9c1584e59c0f5c5e298d3eea" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1aaec5897d85a74cfadd26bf18752a23f1" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1a633bdaee53233d1474dacd39ab7e2d89" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a493d9259f604e81c3545d2c8e88b0727" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>addOperand</name></member>
+      <member refid="classShaderParser_1_1Expression_1a77ed6f7aab61c1f6367d6c1f5fcfdbb1" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>allocateRegForResult</name></member>
+      <member refid="classShaderParser_1_1ColorValueExpression_1ac70c52bfd10fc141e39585dc74e7c5ac" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>assembleBytecode</name></member>
+      <member refid="classShaderParser_1_1Expression_1a7cc153456d29d1e3e52ec2d20563b5d1" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1ac03d00732e3242385f7c5efca77f5d3f" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1ColorValueExpression_1a1116216acf29e6a77e5d620129a933e2" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>assembleCpp</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4037bf3eee8071bba8ab6886455769e1" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1a56f313f3547738e55c1aada81a1dca07" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1ColorValueExpression_1a53263625aca5ca771982e61ba025e264" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>canConvert</name></member>
+      <member refid="classShaderParser_1_1ColorValueExpression_1ad0f1cead895d0beb20ce067ff2597b8b" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>collapseNumbers</name></member>
+      <member refid="classShaderParser_1_1ColorValueExpression_1a2c5728c4ee794735c79caa9859f8173a" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>ColorValueExpression</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a79c0cc4e14d090a32ba465f694dbfa64" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>ComplexExpression</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a4daa1ff85fc33616df59dfa334f2d285" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>ComplexExpression</name></member>
+      <member refid="classShaderParser_1_1Expression_1a08d3c7f008450499ebf2ce26a8f346d5" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>dump</name></member>
+      <member refid="classShaderParser_1_1ColorValueExpression_1aadf77bd6e16d8c776718a43881fe900f" prot="protected" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>dump_internal</name></member>
+      <member refid="classShaderParser_1_1ColorValueExpression_1a8d9ab9acc195ec696a74533ce4f48d00" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1ColorValueExpression_1ae5f85ec8745be4a12ce72fea6e21515b" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4aeeda4b23b0d2b14c2ad2caab0390c5" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>Expression</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a1d01b970349ba568a83f6bfac7abf2ae" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>getBinOperator</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1aa47d915c83255c627dcaee961085fef7" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>getBinOperator</name></member>
+      <member refid="classShaderParser_1_1ColorValueExpression_1a7fec4ffeb9dad68b606e3ad21d77d696" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>getChannels</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a64324bc6708bb2c23085c7e26439e940" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>getCurrentChannel</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a09025279d6667970b8562d9b5f35cabf" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>getOperand</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a5b6822895ad0240bfade8d320d455e0f" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>getOperand</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a30afe78dd5ce4f77ff127d91ca0fa9e4" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>getOperandCount</name></member>
+      <member refid="classShaderParser_1_1Expression_1a21b42b73baa2d365e975d950b60a613d" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>getParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a066eed5146bd48cfcc3acb30a50e9068" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>getParserSymbol</name></member>
+      <member refid="classShaderParser_1_1ColorValueExpression_1ad0541026bf01f6c45b6f2e2fc34c4251" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>getTerminal</name></member>
+      <member refid="classShaderParser_1_1ColorValueExpression_1a58e68b670d5f408896ae1f1d1fbb0fb9" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>getType</name></member>
+      <member refid="classShaderParser_1_1Expression_1a1ab07814f1b27a6786d043da4e080c44" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>getUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1ColorValueExpression_1aa677e0f46de9bee9c1389324d2bc15d1" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>getValueType</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a7d82b28b4591cd98358adaf95cb62164" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>hasDynamicAndMaterialTermsAt</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a7194e5c6d1440272d923f2a43f91b323" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>isConst</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a16bdebae479907f7361ce4fbfaa6f05e" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>isDynamic</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a60faa0e90cdf70dbe209bdaf52089424" prot="protected" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>resizeOperands</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1af8b4d5be02c293d55ebf28f396ef582d" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>setBinOperator</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1ac2d7c6dc761850ca65206441da5b880e" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>setChannels</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a4e909ce00fe124c5200e02e48e2bd41c" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>setLastBinOp</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a1cfcdaf2ee0204346bde3a7961720734" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>setOperand</name></member>
+      <member refid="classShaderParser_1_1Expression_1a85fe9b97eae19d91e0affe293d3eefdf" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>SetParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a6438a4e71937292586b86d9e3e1202f9" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>setUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1ColorValueExpression_1a221bbe17d5ce1b8455968837923f8c8b" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>validate</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a793b5ef8b46b2d5c032d111d5a57b2bc" prot="public" virt="non-virtual"><scope>ShaderParser::ColorValueExpression</scope><name>~ComplexExpression</name></member>
+      <member refid="classShaderParser_1_1Expression_1a9e01aa5ac9dd2e26fa87d4cdd7a042ca" prot="public" virt="virtual"><scope>ShaderParser::ColorValueExpression</scope><name>~Expression</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

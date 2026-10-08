@@ -1,0 +1,317 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ci_8h" kind="file" language="C++">
+    <compoundname>ci.h</compoundname>
+    <includes local="no">algorithm</includes>
+    <includes local="no">string_view</includes>
+    <includedby refid="common_8h" local="yes">common.h</includedby>
+    <includedby refid="datablk_8cpp" local="yes">datablk.cpp</includedby>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <includedby refid="mater2_8cpp" local="yes">mater2.cpp</includedby>
+    <includedby refid="namemap_8h" local="yes">namemap.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>ci.h</label>
+        <link refid="ci_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>algorithm</label>
+      </node>
+      <node id="3">
+        <label>string_view</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="3">
+        <label>cfg.cpp</label>
+        <link refid="cfg_8cpp"/>
+      </node>
+      <node id="1">
+        <label>ci.h</label>
+        <link refid="ci_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>common.cpp</label>
+        <link refid="common_8cpp"/>
+      </node>
+      <node id="2">
+        <label>common.h</label>
+        <link refid="common_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>dagimp.cpp</label>
+        <link refid="dagimp_8cpp"/>
+      </node>
+      <node id="6">
+        <label>datablk.cpp</label>
+        <link refid="datablk_8cpp"/>
+      </node>
+      <node id="22">
+        <label>datablk.h</label>
+        <link refid="datablk_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>debug.cpp</label>
+        <link refid="debug_8cpp"/>
+      </node>
+      <node id="8">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="9">
+        <label>font.cpp</label>
+        <link refid="font_8cpp"/>
+      </node>
+      <node id="10">
+        <label>freecam.cpp</label>
+        <link refid="freecam_8cpp"/>
+      </node>
+      <node id="11">
+        <label>loadta.cpp</label>
+        <link refid="loadta_8cpp"/>
+      </node>
+      <node id="12">
+        <label>matConvUtil.cpp</label>
+        <link refid="matConvUtil_8cpp"/>
+      </node>
+      <node id="13">
+        <label>mater.cpp</label>
+        <link refid="mater_8cpp"/>
+      </node>
+      <node id="14">
+        <label>mater2.cpp</label>
+        <link refid="mater2_8cpp"/>
+      </node>
+      <node id="15">
+        <label>milkShapeAnimImport.cpp</label>
+        <link refid="milkShapeAnimImport_8cpp"/>
+      </node>
+      <node id="25">
+        <label>namemap.cpp</label>
+        <link refid="namemap_8cpp"/>
+      </node>
+      <node id="21">
+        <label>namemap.h</label>
+        <link refid="namemap_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>objectPropertiesEditor.cpp</label>
+        <link refid="objectPropertiesEditor_8cpp"/>
+      </node>
+      <node id="16">
+        <label>physExport.cpp</label>
+        <link refid="physExport_8cpp"/>
+      </node>
+      <node id="17">
+        <label>polyBumpUtil.cpp</label>
+        <link refid="polyBumpUtil_8cpp"/>
+      </node>
+      <node id="18">
+        <label>rolluppanel.cpp</label>
+        <link refid="rolluppanel_8cpp"/>
+      </node>
+      <node id="23">
+        <label>rolluppanel.h</label>
+        <link refid="rolluppanel_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>texmaps.h</label>
+        <link refid="texmaps_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structCaseInsensitiveHash" prot="public">CaseInsensitiveHash</innerclass>
+    <innerclass refid="structCaseInsensitiveEqual" prot="public">CaseInsensitiveEqual</innerclass>
+    <innerclass refid="structCaseInsensitiveHashW" prot="public">CaseInsensitiveHashW</innerclass>
+    <innerclass refid="structCaseInsensitiveEqualW" prot="public">CaseInsensitiveEqualW</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="ci_8h_1a84e23a5165260e1ee2a1e56cbaf898dd" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr unsigned char</type>
+        <definition>constexpr unsigned char ci_tolower</definition>
+        <argsstring>(unsigned char c)</argsstring>
+        <name>ci_tolower</name>
+        <param>
+          <type>unsigned char</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ci.h" line="7" column="25" bodyfile="ci.h" bodystart="7" bodyend="7"/>
+      </memberdef>
+      <memberdef kind="function" id="ci_8h_1aed9b8f3224c7eacc2da7eb2bbdda8189" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr wchar_t</type>
+        <definition>constexpr wchar_t ci_towlower</definition>
+        <argsstring>(wchar_t c)</argsstring>
+        <name>ci_towlower</name>
+        <param>
+          <type>wchar_t</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ci.h" line="37" column="19" bodyfile="ci.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;algorithm&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string_view&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7" refid="ci_8h_1a84e23a5165260e1ee2a1e56cbaf898dd" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="ci_8h_1a84e23a5165260e1ee2a1e56cbaf898dd" kindref="member">ci_tolower</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>c)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(c<sp/>&gt;=<sp/></highlight><highlight class="charliteral">&apos;A&apos;</highlight><highlight class="normal"><sp/>&amp;&amp;<sp/>c<sp/>&lt;=<sp/></highlight><highlight class="charliteral">&apos;Z&apos;</highlight><highlight class="normal">)<sp/>?<sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(c<sp/>-<sp/></highlight><highlight class="charliteral">&apos;A&apos;</highlight><highlight class="normal"><sp/>+<sp/></highlight><highlight class="charliteral">&apos;a&apos;</highlight><highlight class="normal">)<sp/>:<sp/>c;<sp/>}</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="structCaseInsensitiveHash" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structCaseInsensitiveHash" kindref="compound">CaseInsensitiveHash</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11" refid="structCaseInsensitiveHash_1a913345ad2eb4e6105ea491433996d8b8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structCaseInsensitiveHash_1a913345ad2eb4e6105ea491433996d8b8" kindref="member">is_transparent</ref><sp/>=<sp/>void;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="structCaseInsensitiveHash_1ad5fef79758189d18e2a533523109af4f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="structCaseInsensitiveHash_1ad5fef79758189d18e2a533523109af4f" kindref="member">operator()</ref>(std::string_view<sp/>keyval)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="14"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>hash<sp/>=<sp/>525201411107845655ULL;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>c<sp/>:<sp/>keyval)</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>hash<sp/>^=<sp/><ref refid="ci_8h_1a84e23a5165260e1ee2a1e56cbaf898dd" kindref="member">ci_tolower</ref>(c);</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>hash<sp/>*=<sp/>0x5bd1e9955bd1e995ULL;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>hash<sp/>^=<sp/>hash<sp/>&gt;&gt;<sp/>47;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hash;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="structCaseInsensitiveEqual" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structCaseInsensitiveEqual" kindref="compound">CaseInsensitiveEqual</ref></highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28" refid="structCaseInsensitiveEqual_1ac49e05da490c720322575d9313cb045f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structCaseInsensitiveEqual_1ac49e05da490c720322575d9313cb045f" kindref="member">is_transparent</ref><sp/>=<sp/>void;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="structCaseInsensitiveEqual_1a99b7ca2dac1d725528bb220929b596c9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structCaseInsensitiveEqual_1a99b7ca2dac1d725528bb220929b596c9" kindref="member">operator()</ref>(std::string_view<sp/>left,<sp/>std::string_view<sp/>right)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="31"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>std::equal(left.begin(),<sp/>left.end(),<sp/>right.begin(),<sp/>right.end(),</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>[](</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>a,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>b)<sp/>{<sp/>return<sp/>ci_tolower(a)<sp/>==<sp/>ci_tolower(b);<sp/>});</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="ci_8h_1aed9b8f3224c7eacc2da7eb2bbdda8189" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/><ref refid="ci_8h_1aed9b8f3224c7eacc2da7eb2bbdda8189" kindref="member">ci_towlower</ref>(</highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>c)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(c<sp/>&gt;=<sp/>L</highlight><highlight class="charliteral">&apos;A&apos;</highlight><highlight class="normal"><sp/>&amp;&amp;<sp/>c<sp/>&lt;=<sp/>L</highlight><highlight class="charliteral">&apos;Z&apos;</highlight><highlight class="normal">)<sp/>?<sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(c<sp/>-<sp/>L</highlight><highlight class="charliteral">&apos;A&apos;</highlight><highlight class="normal"><sp/>+<sp/>L</highlight><highlight class="charliteral">&apos;a&apos;</highlight><highlight class="normal">)<sp/>:<sp/>c;<sp/>}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="structCaseInsensitiveHashW" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structCaseInsensitiveHashW" kindref="compound">CaseInsensitiveHashW</ref></highlight></codeline>
+<codeline lineno="40"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="41" refid="structCaseInsensitiveHashW_1a53693bf7167e3e362ff7e54f51320b1c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structCaseInsensitiveHashW_1a53693bf7167e3e362ff7e54f51320b1c" kindref="member">is_transparent</ref><sp/>=<sp/>void;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43" refid="structCaseInsensitiveHashW_1a452571fe040daaad6dea55e0b1424179" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="structCaseInsensitiveHashW_1a452571fe040daaad6dea55e0b1424179" kindref="member">operator()</ref>(std::wstring_view<sp/>keyval)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="44"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>hash<sp/>=<sp/>525201411107845655ULL;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>c<sp/>:<sp/>keyval)</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>hash<sp/>^=<sp/><ref refid="ci_8h_1aed9b8f3224c7eacc2da7eb2bbdda8189" kindref="member">ci_towlower</ref>(c);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>hash<sp/>*=<sp/>0x5bd1e9955bd1e995ULL;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>hash<sp/>^=<sp/>hash<sp/>&gt;&gt;<sp/>47;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hash;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="structCaseInsensitiveEqualW" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structCaseInsensitiveEqualW" kindref="compound">CaseInsensitiveEqualW</ref></highlight></codeline>
+<codeline lineno="57"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="58" refid="structCaseInsensitiveEqualW_1a95978f1f2edb652a996130eefcc21645" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="structCaseInsensitiveEqualW_1a95978f1f2edb652a996130eefcc21645" kindref="member">is_transparent</ref><sp/>=<sp/>void;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60" refid="structCaseInsensitiveEqualW_1a733d9d6e6ac97287345397450b88e758" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structCaseInsensitiveEqualW_1a733d9d6e6ac97287345397450b88e758" kindref="member">operator()</ref>(std::wstring_view<sp/>left,<sp/>std::wstring_view<sp/>right)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="61"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>std::equal(left.begin(),<sp/>left.end(),<sp/>right.begin(),<sp/>right.end(),</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>[](</highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>a,<sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>b)<sp/>{<sp/>return<sp/>ci_towlower(a)<sp/>==<sp/>ci_towlower(b);<sp/>});</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="65"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ci.h"/>
+  </compounddef>
+</doxygen>

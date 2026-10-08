@@ -1,0 +1,153 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classVarNameMap" kind="class" language="C++" prot="public">
+    <compoundname>VarNameMap</compoundname>
+    <includes refid="varMap_8h" local="no">varMap.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classVarNameMap_1a96a75e4d04862f459c8b5e1bc7921a42" prot="private" static="no" mutable="no">
+        <type><ref refid="nameMap_8h_1ad3f42c540507651a7e4ce93760afc216" kindref="member">SCFastNameMap</ref></type>
+        <definition>SCFastNameMap VarNameMap::map</definition>
+        <argsstring></argsstring>
+        <name>map</name>
+        <qualifiedname>VarNameMap::map</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varMap.h" line="11" column="17" bodyfile="varMap.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classVarNameMap_1a682211292035e4cf9a23b13bec51efe7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int VarNameMap::BAD_ID</definition>
+        <argsstring></argsstring>
+        <name>BAD_ID</name>
+        <qualifiedname>VarNameMap::BAD_ID</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varMap.h" line="14" column="24" bodyfile="varMap.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classVarNameMap_1ad9cd058a4b7b7a4c6884bb9d20150ef9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>VarNameMap::VarNameMap</definition>
+        <argsstring>()=default</argsstring>
+        <name>VarNameMap</name>
+        <qualifiedname>VarNameMap::VarNameMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varMap.h" line="15" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classVarNameMap_1a828e70bcd3c15d9746ef947fd749dac4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>VarNameMap::~VarNameMap</definition>
+        <argsstring>()</argsstring>
+        <name>~VarNameMap</name>
+        <qualifiedname>VarNameMap::~VarNameMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varMap.h" line="16" column="3" bodyfile="varMap.h" bodystart="16" bodyend="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classVarNameMap_1a8a6529882641e8945737456483807f7b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int VarNameMap::getVarId</definition>
+        <argsstring>(const char *var_name) const</argsstring>
+        <name>getVarId</name>
+        <qualifiedname>VarNameMap::getVarId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>var_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varMap.h" line="17" column="7" bodyfile="varMap.h" bodystart="17" bodyend="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classVarNameMap_1a1aee6745dfff43ef84ae9b292dc9e130" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int VarNameMap::addVarId</definition>
+        <argsstring>(const char *var_name)</argsstring>
+        <name>addVarId</name>
+        <qualifiedname>VarNameMap::addVarId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>var_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varMap.h" line="18" column="7" bodyfile="varMap.h" bodystart="18" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classVarNameMap_1aa4ec548a463a0718e1b9af0e121b3892" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int VarNameMap::getIdCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getIdCount</name>
+        <qualifiedname>VarNameMap::getIdCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varMap.h" line="19" column="7" bodyfile="varMap.h" bodystart="19" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classVarNameMap_1a67d66b5cb5d304dcceafb08083f0f839" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * VarNameMap::getName</definition>
+        <argsstring>(int id) const</argsstring>
+        <name>getName</name>
+        <qualifiedname>VarNameMap::getName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varMap.h" line="20" column="14" bodyfile="varMap.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="varMap.h" line="9" column="1" bodyfile="varMap.h" bodystart="10" bodyend="21"/>
+    <listofallmembers>
+      <member refid="classVarNameMap_1a1aee6745dfff43ef84ae9b292dc9e130" prot="public" virt="non-virtual"><scope>VarNameMap</scope><name>addVarId</name></member>
+      <member refid="classVarNameMap_1a682211292035e4cf9a23b13bec51efe7" prot="public" virt="non-virtual"><scope>VarNameMap</scope><name>BAD_ID</name></member>
+      <member refid="classVarNameMap_1aa4ec548a463a0718e1b9af0e121b3892" prot="public" virt="non-virtual"><scope>VarNameMap</scope><name>getIdCount</name></member>
+      <member refid="classVarNameMap_1a67d66b5cb5d304dcceafb08083f0f839" prot="public" virt="non-virtual"><scope>VarNameMap</scope><name>getName</name></member>
+      <member refid="classVarNameMap_1a8a6529882641e8945737456483807f7b" prot="public" virt="non-virtual"><scope>VarNameMap</scope><name>getVarId</name></member>
+      <member refid="classVarNameMap_1a96a75e4d04862f459c8b5e1bc7921a42" prot="private" virt="non-virtual"><scope>VarNameMap</scope><name>map</name></member>
+      <member refid="classVarNameMap_1ad9cd058a4b7b7a4c6884bb9d20150ef9" prot="public" virt="non-virtual"><scope>VarNameMap</scope><name>VarNameMap</name></member>
+      <member refid="classVarNameMap_1a828e70bcd3c15d9746ef947fd749dac4" prot="public" virt="non-virtual"><scope>VarNameMap</scope><name>~VarNameMap</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

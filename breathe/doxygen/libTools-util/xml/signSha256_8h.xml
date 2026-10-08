@@ -1,0 +1,328 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="signSha256_8h" kind="file" language="C++">
+    <compoundname>signSha256.h</compoundname>
+    <includes local="no">openssl/evp.h</includes>
+    <includes local="no">openssl/pem.h</includes>
+    <includes local="no">openssl/err.h</includes>
+    <includes local="no">ioSys/dag_fileIo.h</includes>
+    <includes local="no">osApiWrappers/dag_files.h</includes>
+    <includes local="no">osApiWrappers/dag_direct.h</includes>
+    <includes refid="iLogWriter_8h" local="no">libTools/util/iLogWriter.h</includes>
+    <incdepgraph>
+      <node id="8">
+        <label>libTools/util/iLogWriter.h</label>
+        <link refid="iLogWriter_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>signSha256.h</label>
+        <link refid="signSha256_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>ioSys/dag_fileIo.h</label>
+      </node>
+      <node id="4">
+        <label>openssl/err.h</label>
+      </node>
+      <node id="2">
+        <label>openssl/evp.h</label>
+      </node>
+      <node id="3">
+        <label>openssl/pem.h</label>
+      </node>
+      <node id="7">
+        <label>osApiWrappers/dag_direct.h</label>
+      </node>
+      <node id="6">
+        <label>osApiWrappers/dag_files.h</label>
+      </node>
+      <node id="9">
+        <label>util/dag_safeArg.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="signSha256_8h_1ab0c3dbc48d84cbe6bfe3d6659c55b1da" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool add_digital_signature</definition>
+        <argsstring>(const char *fn, const char *private_key, ILogWriter &amp;log)</argsstring>
+        <name>add_digital_signature</name>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>private_key</declname>
+        </param>
+        <param>
+          <type><ref refid="classILogWriter" kindref="compound">ILogWriter</ref> &amp;</type>
+          <declname>log</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="signSha256.h" line="18" column="14" bodyfile="signSha256.h" bodystart="18" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="signSha256_8h_1ad9015ee3bdbd8267eb806223b1048a4b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool verify_digital_signature_mem</definition>
+        <argsstring>(const void *data, int data_len, const unsigned char *signature, int signature_size, const unsigned char *public_key, int public_key_len)</argsstring>
+        <name>verify_digital_signature_mem</name>
+        <param>
+          <type>const void *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>data_len</declname>
+        </param>
+        <param>
+          <type>const unsigned char *</type>
+          <declname>signature</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>signature_size</declname>
+        </param>
+        <param>
+          <type>const unsigned char *</type>
+          <declname>public_key</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>public_key_len</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="signSha256.h" line="98" column="14" bodyfile="signSha256.h" bodystart="98" bodyend="121"/>
+      </memberdef>
+      <memberdef kind="function" id="signSha256_8h_1afd7e6f57e6dad48124492f6abce2e052" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool verify_digital_signature</definition>
+        <argsstring>(const char *fn, const char *public_key, ILogWriter &amp;log)</argsstring>
+        <name>verify_digital_signature</name>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>public_key</declname>
+        </param>
+        <param>
+          <type><ref refid="classILogWriter" kindref="compound">ILogWriter</ref> &amp;</type>
+          <declname>log</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="signSha256.h" line="123" column="14" bodyfile="signSha256.h" bodystart="123" bodyend="172"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>requires<sp/>AddIncludes<sp/>+=<sp/>$(Root)/prog/3rdPartyLibs/openssl/include<sp/>;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="comment">//<sp/>requires<sp/>UseProgLibs<sp/>+=<sp/>3rdPartyLibs/openssl<sp/>;<sp/>(and<sp/>sometimes<sp/>3rdPartyLibs/arc/zlib-1.2.7)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;openssl/evp.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;openssl/pem.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;openssl/err.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;ioSys/dag_fileIo.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_files.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_direct.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="iLogWriter_8h" kindref="compound">libTools/util/iLogWriter.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>add_digital_signature(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fn,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*private_key,<sp/><ref refid="classILogWriter" kindref="compound">ILogWriter</ref><sp/>&amp;log)</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>retval<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>signature[1024];</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/>EVP_MD_CTX<sp/>*ctx<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>EVP_PKEY<sp/>*pkey<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!private_key<sp/>||<sp/>!*private_key)</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/>FILE<sp/>*fp<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>readed<sp/>=<sp/>0,<sp/>sign_size<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>real_sign_size<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>FullFileLoadCB<sp/>crd(fn);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!crd.fileHandle)</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/>done;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/>fp<sp/>=<sp/>fopen(private_key,<sp/></highlight><highlight class="stringliteral">&quot;r&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!fp)</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/>log.addMessage(log.<ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca1570996a0642f28b06b331c1c2921179" kindref="member">ERROR</ref>,<sp/></highlight><highlight class="stringliteral">&quot;can&apos;t<sp/>open<sp/>private<sp/>key<sp/>&apos;%s&apos;&quot;</highlight><highlight class="normal">,<sp/>private_key);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/>retval<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/>done;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>pkey<sp/>=<sp/>PEM_read_PrivateKey(fp,<sp/>NULL,<sp/>NULL,<sp/>NULL);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!pkey)</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/>log.addMessage(log.<ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca1570996a0642f28b06b331c1c2921179" kindref="member">ERROR</ref>,<sp/></highlight><highlight class="stringliteral">&quot;error<sp/>reading<sp/>private<sp/>key<sp/>from<sp/>&apos;%s&apos;&quot;</highlight><highlight class="normal">,<sp/>private_key);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/>ERR_print_errors_fp(stdout);</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>retval<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/>done;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>fclose(fp);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>fp<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(signature)<sp/>&lt;<sp/>EVP_PKEY_size(pkey))</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/>log.addMessage(log.<ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca1570996a0642f28b06b331c1c2921179" kindref="member">ERROR</ref>,<sp/></highlight><highlight class="stringliteral">&quot;EVP_PKEY_size=%d<sp/>is<sp/>too<sp/>big&quot;</highlight><highlight class="normal">,<sp/>EVP_PKEY_size(pkey));</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/>retval<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/>done;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/>memset(signature,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(signature));</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>ctx<sp/>=<sp/>EVP_MD_CTX_create();</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(EVP_SignInit(ctx,<sp/>EVP_sha256()))</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>buf[4096];</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sz<sp/>=<sp/>crd.tryRead(buf,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(buf)))</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!EVP_SignUpdate(ctx,<sp/>buf,<sp/>sz))</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/>sign_fail;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fileName<sp/>=<sp/>dd_get_fname(fn);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!fileName<sp/>||<sp/>!*fileName)</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>log.addMessage(log.<ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca1570996a0642f28b06b331c1c2921179" kindref="member">ERROR</ref>,<sp/></highlight><highlight class="stringliteral">&quot;could<sp/>not<sp/>determine<sp/>vrom<sp/>file<sp/>name,<sp/>infname:<sp/>&apos;%s&apos;&quot;</highlight><highlight class="normal">,<sp/>fn);</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>retval<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/>done;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!EVP_SignFinal(ctx,<sp/>signature,<sp/>&amp;real_sign_size,<sp/>pkey))</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">goto</highlight><highlight class="normal"><sp/>sign_fail;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/>crd.close();</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>FullFileSaveCB<sp/>cwr(fn,<sp/>DF_WRITE<sp/>|<sp/>DF_APPEND);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>cwr.write(signature,<sp/>real_sign_size);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/>cwr.close();</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>log.addMessage(log.<ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40cafb236d27a41cd9214a5925219b3baf42" kindref="member">NOTE</ref>,<sp/></highlight><highlight class="stringliteral">&quot;written<sp/>digital<sp/>signature<sp/>&apos;%s&apos;<sp/>of<sp/>size<sp/>%d;<sp/>file<sp/>name:<sp/>&apos;%s&apos;&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;sha256&quot;</highlight><highlight class="normal">,<sp/>real_sign_size,<sp/>fn);</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/>sign_fail:</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/>log.addMessage(log.<ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca1570996a0642f28b06b331c1c2921179" kindref="member">ERROR</ref>,<sp/></highlight><highlight class="stringliteral">&quot;failed<sp/>to<sp/>sign<sp/>%s&quot;</highlight><highlight class="normal">,<sp/>fn);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/>retval<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/>ERR_print_errors_fp(stdout);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="88"><highlight class="normal">done:</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(ctx)</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/>EVP_MD_CTX_destroy(ctx);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(pkey)</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/>EVP_PKEY_free(pkey);</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(fp)</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/>fclose(fp);</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>retval;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>verify_digital_signature_mem(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*data,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>data_len,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*signature,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>signature_size,</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*public_key,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>public_key_len)</highlight></codeline>
+<codeline lineno="100"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*p<sp/>=<sp/>public_key;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>EVP_PKEY<sp/>*pkey<sp/>=<sp/>d2i_PUBKEY(NULL,<sp/>&amp;p,<sp/>public_key_len);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!pkey)</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/>EVP_MD_CTX<sp/>*ctx<sp/>=<sp/>EVP_MD_CTX_create();</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>verified<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(EVP_VerifyInit(ctx,<sp/>EVP_sha256()))</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/>verified<sp/>=<sp/>EVP_VerifyUpdate(ctx,<sp/>data,<sp/>data_len)<sp/>!=<sp/>0;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(verified)</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>verified<sp/>=<sp/>EVP_VerifyFinal(ctx,<sp/>signature,<sp/>signature_size,<sp/>pkey)<sp/>==<sp/>1;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/>verified<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/>EVP_PKEY_free(pkey);</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/>EVP_MD_CTX_destroy(ctx);</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>verified;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>verify_digital_signature(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fn,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*public_key,<sp/><ref refid="classILogWriter" kindref="compound">ILogWriter</ref><sp/>&amp;log)</highlight></codeline>
+<codeline lineno="124"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/>Tab&lt;unsigned<sp/>char&gt;<sp/>key_data;</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(strcmp(public_key,<sp/></highlight><highlight class="stringliteral">&quot;*gaijin&quot;</highlight><highlight class="normal">)<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>public_key_gaijin[]<sp/>=</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;\x30\x82\x01\x20\x30\x0d\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01\x05\x00\x03\x82\x01\x0d\x00\x30\x82\x01\x08\x02\x82\x01&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;\x01\x00\xcc\xa6\x0b\xdb\x1d\x6e\xeb\x16\x09\x8e\x88\x0f\xa8\x1c\x8f\x7b\x89\x8b\x9b\xbe\xb4\x5f\x14\x75\xd6\x28\xa6\xae\x84&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;\x95\x38\x2e\xb6\xfe\x92\xc9\x72\xca\x0c\x82\xed\x02\xfc\x56\x79\xc8\x07\xd5\x9c\xcc\x89\x57\xe9\x27\xe0\xdd\xd8\x79\x4c\x38&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;\x12\x43\x15\xe2\x10\x97\x93\x59\x0c\xbe\xe1\xe8\xde\x64\xbc\x59\x6f\x8e\x03\x70\x18\x31\x0e\xc2\xcb\x91\xa8\x95\x65\x2d\xc7&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;\xff\xc0\xe9\xdf\x12\x26\x87\xa4\x18\xfe\x7d\xa1\x79\x01\x7c\xca\x6f\x5f\x0a\x91\x44\x2a\xb4\x83\xc0\xc5\x13\x7b\xa7\x32\x8e&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;\xb8\xae\x5e\x07\x2a\x25\xbc\x1c\x37\xff\x09\xc3\x79\xe4\x8d\x39\x50\x3b\x0e\xbb\x03\x19\xd4\x3c\x77\x93\xb2\xd5\xeb\x4c\xda&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;\x00\xe4\x07\x97\x3a\x11\x57\x23\xf3\x8e\xc1\x5f\x64\x6e\x8c\xd9\xf2\xd2\x22\x7a\x57\x5e\xc3\x08\x2d\xc3\xf2\x37\xdd\x4a\x40&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;\x4e\x82\x16\x91\x9d\x9e\x96\x1d\x42\x97\xe2\x4f\xe1\x40\x04\xf9\x16\x92\xb9\x93\xdd\x8b\x60\x0b\x62\x30\xc1\xe7\xd6\xef\x22&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;\xc4\x51\x34\xc5\xe6\xf9\xf2\x1b\x32\x26\xc0\xed\xe9\xe6\x68\x6f\x21\x9b\x39\xf5\xd2\xda\x37\x96\xeb\xb2\x87\xa5\x42\x78\xc0&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;\x31\x36\x4a\xdf\x85\x3a\x46\xf5\x81\x2b\x02\x01\x03&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/>key_data<sp/>=<sp/>make_span_const(public_key_gaijin,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(public_key_gaijin)<sp/>-<sp/>1);</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(file_ptr_t<sp/>fp<sp/>=<sp/>df_open(public_key,<sp/>DF_READ<sp/>|<sp/>DF_IGNORE_MISSING))</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/>key_data.resize(df_length(fp));</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/>df_read(fp,<sp/>key_data.data(),<sp/>data_size(key_data));</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/>df_close(fp);</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/>log.addMessage(log.<ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca1570996a0642f28b06b331c1c2921179" kindref="member">ERROR</ref>,<sp/></highlight><highlight class="stringliteral">&quot;failed<sp/>to<sp/>open<sp/>public<sp/>key<sp/>%s&quot;</highlight><highlight class="normal">,<sp/>public_key);</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/>FullFileLoadCB<sp/>crd(fn,<sp/>DF_READ<sp/>|<sp/>DF_IGNORE_MISSING);</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(crd.fileHandle)</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flen<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*fdata<sp/>=<sp/>df_mmap(crd.fileHandle,<sp/>&amp;flen))</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>SHA256_SIG_SZ<sp/>=<sp/>256;</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*buf[]<sp/>=<sp/>{fdata,<sp/>NULL};</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>buf_sz[]<sp/>=<sp/>{unsigned(flen)<sp/>-<sp/>SHA256_SIG_SZ,<sp/>0};</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>sign_ok<sp/>=<sp/>verify_digital_signature_mem(fdata,<sp/>flen<sp/>-<sp/>SHA256_SIG_SZ,<sp/>flen<sp/>-<sp/>SHA256_SIG_SZ<sp/>+<sp/>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*)fdata,</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SHA256_SIG_SZ,<sp/>key_data.data(),<sp/>data_size(key_data));</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>df_unmap(fdata,<sp/>flen);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sign_ok)</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/>log.addMessage(log.<ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca1570996a0642f28b06b331c1c2921179" kindref="member">ERROR</ref>,<sp/></highlight><highlight class="stringliteral">&quot;failed<sp/>to<sp/>open<sp/>%s&quot;</highlight><highlight class="normal">,<sp/>fn);</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="172"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="signSha256.h"/>
+  </compounddef>
+</doxygen>

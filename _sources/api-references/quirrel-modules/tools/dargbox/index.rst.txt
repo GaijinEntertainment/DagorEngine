@@ -1,0 +1,13 @@
+
+dargbox Tool
+============
+
+Docs for dargbox - daRG utility application and sandbox.
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+   :glob:
+
+   *
+

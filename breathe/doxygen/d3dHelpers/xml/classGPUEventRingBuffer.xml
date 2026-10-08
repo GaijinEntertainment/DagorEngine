@@ -1,0 +1,224 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classGPUEventRingBuffer" kind="class" language="C++" prot="public">
+    <compoundname>GPUEventRingBuffer</compoundname>
+    <includes refid="dag__gpuEventRingBuffer_8h" local="no">dag_gpuEventRingBuffer.h</includes>
+    <innerclass refid="structGPUEventRingBuffer_1_1EventQuery" prot="public">GPUEventRingBuffer::EventQuery</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" prot="public" static="no">
+        <type><ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref>&lt; <ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref> &gt;::offset_type_t</type>
+        <definition>using GPUEventRingBuffer::offset_type_t =  FencedRingBuffer&lt;EventQuery&gt;::offset_type_t</definition>
+        <argsstring></argsstring>
+        <name>offset_type_t</name>
+        <qualifiedname>GPUEventRingBuffer::offset_type_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="32" column="3" bodyfile="dag_gpuEventRingBuffer.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classGPUEventRingBuffer_1a243036cafc7c3806f76080d956a7318c" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t GPUEventRingBuffer::resetCounter</definition>
+        <argsstring></argsstring>
+        <name>resetCounter</name>
+        <qualifiedname>GPUEventRingBuffer::resetCounter</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="14" column="12" bodyfile="dag_gpuEventRingBuffer.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classGPUEventRingBuffer_1a6e607952edc3b922426b1245ed310539" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref></type>
+        <definition>constexpr offset_type_t GPUEventRingBuffer::invalid_offset</definition>
+        <argsstring></argsstring>
+        <name>invalid_offset</name>
+        <qualifiedname>GPUEventRingBuffer::invalid_offset</qualifiedname>
+        <initializer>= <ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref>(~<ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref>(0))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="33" column="34" bodyfile="dag_gpuEventRingBuffer.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classGPUEventRingBuffer_1aa0f186f9c408a7a0938b4d6a6f77f98a" prot="public" static="no" mutable="no">
+        <type><ref refid="classFencedRingBuffer" kindref="compound">FencedRingBuffer</ref>&lt; <ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref> &gt;</type>
+        <definition>FencedRingBuffer&lt;EventQuery&gt; GPUEventRingBuffer::buffer</definition>
+        <argsstring></argsstring>
+        <name>buffer</name>
+        <qualifiedname>GPUEventRingBuffer::buffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="35" column="20" bodyfile="dag_gpuEventRingBuffer.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classGPUEventRingBuffer_1a35d5678c67421f66c8cd3bc701a313cc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>GPUEventRingBuffer::GPUEventRingBuffer</definition>
+        <argsstring>(size_t sz)</argsstring>
+        <name>GPUEventRingBuffer</name>
+        <qualifiedname>GPUEventRingBuffer::GPUEventRingBuffer</qualifiedname>
+        <param>
+          <type>size_t</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="36" column="3" bodyfile="dag_gpuEventRingBuffer.h" bodystart="36" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classGPUEventRingBuffer_1ac399a1dcbd909f90017e0f0a696d637d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GPUEventRingBuffer::finishCurrentFrame</definition>
+        <argsstring>()</argsstring>
+        <name>finishCurrentFrame</name>
+        <qualifiedname>GPUEventRingBuffer::finishCurrentFrame</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="37" column="8" bodyfile="dag_gpuEventRingBuffer.h" bodystart="37" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="classGPUEventRingBuffer_1a2c2df8bebff5e1d1bd65b0ac6ab3a4d2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t GPUEventRingBuffer::allocate</definition>
+        <argsstring>(offset_type_t size, offset_type_t alignment)</argsstring>
+        <name>allocate</name>
+        <qualifiedname>GPUEventRingBuffer::allocate</qualifiedname>
+        <param>
+          <type><ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref></type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type><ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref></type>
+          <declname>alignment</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="43" column="17" bodyfile="dag_gpuEventRingBuffer.h" bodystart="43" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="classGPUEventRingBuffer_1a77ee86f45d6089aa2705fe317e7d051b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GPUEventRingBuffer::forceReset</definition>
+        <argsstring>()</argsstring>
+        <name>forceReset</name>
+        <qualifiedname>GPUEventRingBuffer::forceReset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="53" column="8" bodyfile="dag_gpuEventRingBuffer.h" bodystart="53" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classGPUEventRingBuffer_1ad220440733f16c58c5649b8c5f8318c1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GPUEventRingBuffer::reset</definition>
+        <argsstring>(offset_type_t max_sz)</argsstring>
+        <name>reset</name>
+        <qualifiedname>GPUEventRingBuffer::reset</qualifiedname>
+        <param>
+          <type><ref refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" kindref="member">offset_type_t</ref></type>
+          <declname>max_sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="54" column="8" bodyfile="dag_gpuEventRingBuffer.h" bodystart="54" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="classGPUEventRingBuffer_1add0fe3d2f99919c8dd1d379c107c7ed5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GPUEventRingBuffer::releaseCompletedFrames</definition>
+        <argsstring>()</argsstring>
+        <name>releaseCompletedFrames</name>
+        <qualifiedname>GPUEventRingBuffer::releaseCompletedFrames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="55" column="8" bodyfile="dag_gpuEventRingBuffer.h" bodystart="55" bodyend="58"/>
+      </memberdef>
+      <memberdef kind="function" id="classGPUEventRingBuffer_1ac5db04cee96d64ccaeb8da7d560fa0b5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GPUEventRingBuffer::updateLast</definition>
+        <argsstring>(intptr_t allocated_minus_actual_used)</argsstring>
+        <name>updateLast</name>
+        <qualifiedname>GPUEventRingBuffer::updateLast</qualifiedname>
+        <param>
+          <type>intptr_t</type>
+          <declname>allocated_minus_actual_used</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="59" column="8" bodyfile="dag_gpuEventRingBuffer.h" bodystart="59" bodyend="59"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>FencedRingBuffer&lt; GPUEventRingBuffer::EventQuery &gt;</label>
+        <link refid="classFencedRingBuffer"/>
+      </node>
+      <node id="1">
+        <label>GPUEventRingBuffer</label>
+        <link refid="classGPUEventRingBuffer"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>buffer</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_gpuEventRingBuffer.h" line="12" column="1" bodyfile="dag_gpuEventRingBuffer.h" bodystart="13" bodyend="60"/>
+    <listofallmembers>
+      <member refid="classGPUEventRingBuffer_1a2c2df8bebff5e1d1bd65b0ac6ab3a4d2" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer</scope><name>allocate</name></member>
+      <member refid="classGPUEventRingBuffer_1aa0f186f9c408a7a0938b4d6a6f77f98a" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer</scope><name>buffer</name></member>
+      <member refid="classGPUEventRingBuffer_1ac399a1dcbd909f90017e0f0a696d637d" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer</scope><name>finishCurrentFrame</name></member>
+      <member refid="classGPUEventRingBuffer_1a77ee86f45d6089aa2705fe317e7d051b" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer</scope><name>forceReset</name></member>
+      <member refid="classGPUEventRingBuffer_1a35d5678c67421f66c8cd3bc701a313cc" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer</scope><name>GPUEventRingBuffer</name></member>
+      <member refid="classGPUEventRingBuffer_1a6e607952edc3b922426b1245ed310539" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer</scope><name>invalid_offset</name></member>
+      <member refid="classGPUEventRingBuffer_1a6948a9d2e683649593e26042c3620300" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer</scope><name>offset_type_t</name></member>
+      <member refid="classGPUEventRingBuffer_1add0fe3d2f99919c8dd1d379c107c7ed5" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer</scope><name>releaseCompletedFrames</name></member>
+      <member refid="classGPUEventRingBuffer_1ad220440733f16c58c5649b8c5f8318c1" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer</scope><name>reset</name></member>
+      <member refid="classGPUEventRingBuffer_1a243036cafc7c3806f76080d956a7318c" prot="private" virt="non-virtual"><scope>GPUEventRingBuffer</scope><name>resetCounter</name></member>
+      <member refid="classGPUEventRingBuffer_1ac5db04cee96d64ccaeb8da7d560fa0b5" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer</scope><name>updateLast</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

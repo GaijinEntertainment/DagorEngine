@@ -1,0 +1,354 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__multi__interface_8h" kind="file" language="C++">
+    <compoundname>dag_multi_interface.h</compoundname>
+    <includedby refid="dag__bindless_8h" local="no">dag_bindless.h</includedby>
+    <includedby refid="dag__buffers_8h" local="no">dag_buffers.h</includedby>
+    <includedby refid="dag__capture_8h" local="no">dag_capture.h</includedby>
+    <includedby refid="dag__commands_8h" local="no">dag_commands.h</includedby>
+    <includedby refid="dag__dispatch_8h" local="no">dag_dispatch.h</includedby>
+    <includedby refid="dag__dispatchMesh_8h" local="no">dag_dispatchMesh.h</includedby>
+    <includedby refid="dag__draw_8h" local="no">dag_draw.h</includedby>
+    <includedby refid="dag__driver_8h" local="no">dag_driver.h</includedby>
+    <includedby refid="dag__driverDesc_8h" local="no">dag_driverDesc.h</includedby>
+    <includedby refid="dag__enhanced__barrier_8h" local="no">dag_enhanced_barrier.h</includedby>
+    <includedby refid="dag__heap_8h" local="no">dag_heap.h</includedby>
+    <includedby refid="dag__info_8h" local="no">dag_info.h</includedby>
+    <includedby refid="dag__matricesAndPerspective_8h" local="no">dag_matricesAndPerspective.h</includedby>
+    <includedby refid="dag__platform__pc_8h" local="no">dag_platform_pc.h</includedby>
+    <includedby refid="dag__query_8h" local="no">dag_query.h</includedby>
+    <includedby refid="dag__renderPass_8h" local="no">dag_renderPass.h</includedby>
+    <includedby refid="dag__renderStates_8h" local="no">dag_renderStates.h</includedby>
+    <includedby refid="dag__renderTarget_8h" local="no">dag_renderTarget.h</includedby>
+    <includedby refid="dag__res_8h" local="no">dag_res.h</includedby>
+    <includedby refid="dag__resUpdateBuffer_8h" local="no">dag_resUpdateBuffer.h</includedby>
+    <includedby refid="dag__resourceTag_8h" local="no">dag_resourceTag.h</includedby>
+    <includedby refid="dag__rwResource_8h" local="no">dag_rwResource.h</includedby>
+    <includedby refid="dag__sampler_8h" local="no">dag_sampler.h</includedby>
+    <includedby refid="dag__shader_8h" local="no">dag_shader.h</includedby>
+    <includedby refid="dag__shaderConstants_8h" local="no">dag_shaderConstants.h</includedby>
+    <includedby refid="dag__shaderLibrary_8h" local="no">dag_shaderLibrary.h</includedby>
+    <includedby refid="dag__streamOutput_8h" local="no">dag_streamOutput.h</includedby>
+    <includedby refid="dag__texture_8h" local="no">dag_texture.h</includedby>
+    <includedby refid="dag__tiledResource_8h" local="no">dag_tiledResource.h</includedby>
+    <includedby refid="dag__variableRateShading_8h" local="no">dag_variableRateShading.h</includedby>
+    <includedby refid="dag__vertexIndexBuffer_8h" local="no">dag_vertexIndexBuffer.h</includedby>
+    <includedby refid="dag__viewScissor_8h" local="no">dag_viewScissor.h</includedby>
+    <invincdepgraph>
+      <node id="6">
+        <label>dag_async_pipeline.h</label>
+        <link refid="dag__async__pipeline_8h"/>
+      </node>
+      <node id="2">
+        <label>dag_bindless.h</label>
+        <link refid="dag__bindless_8h"/>
+      </node>
+      <node id="3">
+        <label>dag_buffers.h</label>
+        <link refid="dag__buffers_8h"/>
+      </node>
+      <node id="4">
+        <label>dag_capture.h</label>
+        <link refid="dag__capture_8h"/>
+      </node>
+      <node id="5">
+        <label>dag_commands.h</label>
+        <link refid="dag__commands_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>dag_dispatch.h</label>
+        <link refid="dag__dispatch_8h"/>
+      </node>
+      <node id="9">
+        <label>dag_dispatchMesh.h</label>
+        <link refid="dag__dispatchMesh_8h"/>
+      </node>
+      <node id="10">
+        <label>dag_draw.h</label>
+        <link refid="dag__draw_8h"/>
+      </node>
+      <node id="11">
+        <label>dag_driver.h</label>
+        <link refid="dag__driver_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>dag_driverDesc.h</label>
+        <link refid="dag__driverDesc_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>dag_drv3d_multi.h</label>
+        <link refid="dag__drv3d__multi_8h"/>
+      </node>
+      <node id="18">
+        <label>dag_enhanced_barrier.h</label>
+        <link refid="dag__enhanced__barrier_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>dag_gpuDesc.h</label>
+        <link refid="dag__gpuDesc_8h"/>
+      </node>
+      <node id="20">
+        <label>dag_heap.h</label>
+        <link refid="dag__heap_8h"/>
+      </node>
+      <node id="21">
+        <label>dag_info.h</label>
+        <link refid="dag__info_8h"/>
+      </node>
+      <node id="19">
+        <label>dag_interface_table.h</label>
+        <link refid="dag__interface__table_8h"/>
+      </node>
+      <node id="7">
+        <label>dag_lock.h</label>
+        <link refid="dag__lock_8h"/>
+      </node>
+      <node id="22">
+        <label>dag_matricesAndPerspective.h</label>
+        <link refid="dag__matricesAndPerspective_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_multi_interface.h</label>
+        <link refid="dag__multi__interface_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>dag_platform.h</label>
+        <link refid="dag__platform_8h"/>
+      </node>
+      <node id="13">
+        <label>dag_platform_pc.h</label>
+        <link refid="dag__platform__pc_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>dag_platform_ps.h</label>
+        <link refid="dag__platform__ps_8h"/>
+      </node>
+      <node id="23">
+        <label>dag_query.h</label>
+        <link refid="dag__query_8h"/>
+      </node>
+      <node id="24">
+        <label>dag_renderPass.h</label>
+        <link refid="dag__renderPass_8h"/>
+      </node>
+      <node id="25">
+        <label>dag_renderStates.h</label>
+        <link refid="dag__renderStates_8h"/>
+      </node>
+      <node id="26">
+        <label>dag_renderTarget.h</label>
+        <link refid="dag__renderTarget_8h"/>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>dag_res.h</label>
+        <link refid="dag__res_8h"/>
+      </node>
+      <node id="28">
+        <label>dag_resUpdateBuffer.h</label>
+        <link refid="dag__resUpdateBuffer_8h"/>
+      </node>
+      <node id="29">
+        <label>dag_resourceTag.h</label>
+        <link refid="dag__resourceTag_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>dag_rwResource.h</label>
+        <link refid="dag__rwResource_8h"/>
+      </node>
+      <node id="31">
+        <label>dag_sampler.h</label>
+        <link refid="dag__sampler_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="34">
+        <label>dag_shader.h</label>
+        <link refid="dag__shader_8h"/>
+      </node>
+      <node id="35">
+        <label>dag_shaderConstants.h</label>
+        <link refid="dag__shaderConstants_8h"/>
+      </node>
+      <node id="36">
+        <label>dag_shaderLibrary.h</label>
+        <link refid="dag__shaderLibrary_8h"/>
+      </node>
+      <node id="37">
+        <label>dag_streamOutput.h</label>
+        <link refid="dag__streamOutput_8h"/>
+      </node>
+      <node id="32">
+        <label>dag_tex3d.h</label>
+        <link refid="dag__tex3d_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="33">
+        <label>dag_texture.h</label>
+        <link refid="dag__texture_8h"/>
+      </node>
+      <node id="38">
+        <label>dag_tiledResource.h</label>
+        <link refid="dag__tiledResource_8h"/>
+      </node>
+      <node id="39">
+        <label>dag_variableRateShading.h</label>
+        <link refid="dag__variableRateShading_8h"/>
+      </node>
+      <node id="40">
+        <label>dag_vertexIndexBuffer.h</label>
+        <link refid="dag__vertexIndexBuffer_8h"/>
+      </node>
+      <node id="41">
+        <label>dag_viewScissor.h</label>
+        <link refid="dag__viewScissor_8h"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dag__multi__interface_8h_1a365e57dddd0dfa9064aa74a954564d54" prot="public" static="no">
+        <name>_MULTI_INTERFACE</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multi_interface.h" line="30" column="9" bodyfile="dag_multi_interface.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>_MULTI_INTERFACE<sp/>selects<sp/>where<sp/>a<sp/>d3d<sp/>symbol<sp/>lives.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="comment">//<sp/>In<sp/>a<sp/>single-driver<sp/>build<sp/>it<sp/>expands<sp/>to<sp/>nothing,<sp/>so</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/>namespace<sp/>d3d<sp/>_MULTI_INTERFACE<sp/>{<sp/>...<sp/>}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="comment">//<sp/>is<sp/>just<sp/>namespace<sp/>d3d.<sp/>In<sp/>a<sp/>multi-driver<sp/>build<sp/>each<sp/>driver&apos;s<sp/>d3d_config.h</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="comment">//<sp/>redefines<sp/>it<sp/>to<sp/>&quot;::inline<sp/>multi_&lt;driver&gt;&quot;,<sp/>turning<sp/>the<sp/>block<sp/>into<sp/>an<sp/>inline</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="comment">//<sp/>sub-namespace<sp/>of<sp/>d3d<sp/>(e.g.<sp/>d3d::inline<sp/>multi_dx11).<sp/>Every<sp/>driver<sp/>then<sp/>defines</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="comment">//<sp/>its<sp/>functions<sp/>in<sp/>its<sp/>own<sp/>sub-namespace,<sp/>so<sp/>identically-named<sp/>definitions<sp/>from</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="comment">//<sp/>different<sp/>drivers<sp/>do<sp/>not<sp/>collide.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Rule<sp/>for<sp/>splitting<sp/>a<sp/>header<sp/>between<sp/>the<sp/>two<sp/>blocks:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/>-<sp/>namespace<sp/>d3d<sp/>{<sp/>...<sp/>}<sp/>--<sp/>shared<sp/>symbols:<sp/>one<sp/>definition<sp/>common<sp/>to<sp/>all</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>drivers<sp/>(structs,<sp/>enums,<sp/>opaque<sp/>forward<sp/>declarations</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>like<sp/>struct<sp/>RenderPass;).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/>-<sp/>namespace<sp/>d3d<sp/>_MULTI_INTERFACE<sp/>{<sp/>...<sp/>}<sp/>--<sp/>per-driver<sp/>functions:<sp/>each<sp/>driver</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>provides<sp/>its<sp/>own<sp/>definition.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="comment">//<sp/>_MULTI_INTERFACE<sp/>must<sp/>come<sp/>AFTER<sp/>ALL<sp/>NESTED<sp/>NAMESPACES,<sp/>so<sp/>the<sp/>per-driver</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="comment">//<sp/>inline<sp/>sub-namespace<sp/>is<sp/>the<sp/>innermost<sp/>segment.<sp/>The<sp/>general<sp/>form<sp/>is</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/>namespace<sp/>d3d&lt;nested&gt;<sp/>_MULTI_INTERFACE<sp/>{<sp/>...<sp/>}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="comment">//<sp/>where<sp/>&lt;nested&gt;<sp/>is<sp/>nothing,<sp/>::raytrace,<sp/>::pcwin,<sp/>etc.,<sp/>e.g.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/>namespace<sp/>d3d::raytrace<sp/>_MULTI_INTERFACE<sp/>{<sp/>...<sp/>}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="comment">//<sp/>expands<sp/>in<sp/>multi-driver<sp/>builds<sp/>to<sp/>d3d::raytrace::inline<sp/>multi_&lt;driver&gt;.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>_MULTI_INTERFACE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="dag__multi__interface_8h_1a365e57dddd0dfa9064aa74a954564d54" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>_MULTI_INTERFACE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="dag_multi_interface.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemantic_1_1HlslNullCompileDirective" kind="struct" language="C++" prot="public">
+    <compoundname>semantic::HlslNullCompileDirective</compoundname>
+    <includes refid="hwSemantic_8h" local="no">hwSemantic.h</includes>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="hwSemantic.h" line="35" column="1" bodyfile="hwSemantic.h" bodystart="36" bodyend="36"/>
+    <listofallmembers>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

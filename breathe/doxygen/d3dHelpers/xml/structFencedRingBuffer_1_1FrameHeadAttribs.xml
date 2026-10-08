@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structFencedRingBuffer_1_1FrameHeadAttribs" kind="struct" language="C++" prot="public">
+    <compoundname>FencedRingBuffer::FrameHeadAttribs</compoundname>
+    <includes refid="dag__fencedRingBuffer_8h" local="no">dag_fencedRingBuffer.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structFencedRingBuffer_1_1FrameHeadAttribs_1a6bef2ad923b325e715b410ad2c14e0a3" prot="public" static="no" mutable="no">
+        <type>FenceType</type>
+        <definition>FenceType FencedRingBuffer&lt; FenceType &gt;::FrameHeadAttribs::fence</definition>
+        <argsstring></argsstring>
+        <name>fence</name>
+        <qualifiedname>FencedRingBuffer::FrameHeadAttribs::fence</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="22" column="15" bodyfile="dag_fencedRingBuffer.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFencedRingBuffer_1_1FrameHeadAttribs_1a34a81651c81c1cd50ae6c5e3c1e1113b" prot="public" static="no" mutable="no">
+        <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t FencedRingBuffer&lt; FenceType &gt;::FrameHeadAttribs::offset</definition>
+        <argsstring></argsstring>
+        <name>offset</name>
+        <qualifiedname>FencedRingBuffer::FrameHeadAttribs::offset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="23" column="19" bodyfile="dag_fencedRingBuffer.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFencedRingBuffer_1_1FrameHeadAttribs_1a2338b3cbb850555178e5a29b783061be" prot="public" static="no" mutable="no">
+        <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+        <definition>offset_type_t FencedRingBuffer&lt; FenceType &gt;::FrameHeadAttribs::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <qualifiedname>FencedRingBuffer::FrameHeadAttribs::size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="24" column="19" bodyfile="dag_fencedRingBuffer.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structFencedRingBuffer_1_1FrameHeadAttribs_1a0ea0f549888ed28d9bec4108e308db73" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>FencedRingBuffer&lt; FenceType &gt;::FrameHeadAttribs::FrameHeadAttribs</definition>
+        <argsstring>(FenceType &amp;&amp;f, offset_type_t off, offset_type_t sz)</argsstring>
+        <name>FrameHeadAttribs</name>
+        <qualifiedname>FencedRingBuffer::FrameHeadAttribs::FrameHeadAttribs</qualifiedname>
+        <param>
+          <type>FenceType &amp;&amp;</type>
+          <declname>f</declname>
+        </param>
+        <param>
+          <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+          <declname>off</declname>
+        </param>
+        <param>
+          <type><ref refid="classFencedRingBuffer_1a98ccaa4dfe48fb424cb38aecbf8e319b" kindref="member">offset_type_t</ref></type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_fencedRingBuffer.h" line="20" column="5" bodyfile="dag_fencedRingBuffer.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_fencedRingBuffer.h" line="18" column="3" bodyfile="dag_fencedRingBuffer.h" bodystart="19" bodyend="25"/>
+    <listofallmembers>
+      <member refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a6bef2ad923b325e715b410ad2c14e0a3" prot="public" virt="non-virtual"><scope>FencedRingBuffer::FrameHeadAttribs</scope><name>fence</name></member>
+      <member refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a0ea0f549888ed28d9bec4108e308db73" prot="public" virt="non-virtual"><scope>FencedRingBuffer::FrameHeadAttribs</scope><name>FrameHeadAttribs</name></member>
+      <member refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a34a81651c81c1cd50ae6c5e3c1e1113b" prot="public" virt="non-virtual"><scope>FencedRingBuffer::FrameHeadAttribs</scope><name>offset</name></member>
+      <member refid="structFencedRingBuffer_1_1FrameHeadAttribs_1a2338b3cbb850555178e5a29b783061be" prot="public" virt="non-virtual"><scope>FencedRingBuffer::FrameHeadAttribs</scope><name>size</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

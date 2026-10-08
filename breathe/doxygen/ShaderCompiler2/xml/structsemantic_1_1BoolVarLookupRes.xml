@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemantic_1_1BoolVarLookupRes" kind="struct" language="C++" prot="public">
+    <compoundname>semantic::BoolVarLookupRes</compoundname>
+    <includes refid="shaderSemantic_8h" local="no">shaderSemantic.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemantic_1_1BoolVarLookupRes_1a71374677a7a7c227ae79faba7c577bfa" prot="public" static="no" mutable="no">
+        <type>ShaderTerminal::bool_expr *</type>
+        <definition>ShaderTerminal::bool_expr* semantic::BoolVarLookupRes::expr</definition>
+        <argsstring></argsstring>
+        <name>expr</name>
+        <qualifiedname>semantic::BoolVarLookupRes::expr</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSemantic.h" line="17" column="29" bodyfile="shaderSemantic.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1BoolVarLookupRes_1aff8f97bc14c9f6a3b663b284b7af3c15" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool semantic::BoolVarLookupRes::isGlobal</definition>
+        <argsstring></argsstring>
+        <name>isGlobal</name>
+        <qualifiedname>semantic::BoolVarLookupRes::isGlobal</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSemantic.h" line="18" column="8" bodyfile="shaderSemantic.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1BoolVarLookupRes_1a57afcc3ce9d5929ca0cd2a84bff1716b" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool semantic::BoolVarLookupRes::hasMultipleDeclarations</definition>
+        <argsstring></argsstring>
+        <name>hasMultipleDeclarations</name>
+        <qualifiedname>semantic::BoolVarLookupRes::hasMultipleDeclarations</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSemantic.h" line="19" column="8" bodyfile="shaderSemantic.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structsemantic_1_1BoolVarLookupRes_1a3ea6b6fdd99eef40cebae458fe2079ed" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>semantic::BoolVarLookupRes::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <qualifiedname>semantic::BoolVarLookupRes::operator bool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSemantic.h" line="21" column="3" bodyfile="shaderSemantic.h" bodystart="21" bodyend="21"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shaderSemantic.h" line="15" column="1" bodyfile="shaderSemantic.h" bodystart="16" bodyend="22"/>
+    <listofallmembers>
+      <member refid="structsemantic_1_1BoolVarLookupRes_1a71374677a7a7c227ae79faba7c577bfa" prot="public" virt="non-virtual"><scope>semantic::BoolVarLookupRes</scope><name>expr</name></member>
+      <member refid="structsemantic_1_1BoolVarLookupRes_1a57afcc3ce9d5929ca0cd2a84bff1716b" prot="public" virt="non-virtual"><scope>semantic::BoolVarLookupRes</scope><name>hasMultipleDeclarations</name></member>
+      <member refid="structsemantic_1_1BoolVarLookupRes_1aff8f97bc14c9f6a3b663b284b7af3c15" prot="public" virt="non-virtual"><scope>semantic::BoolVarLookupRes</scope><name>isGlobal</name></member>
+      <member refid="structsemantic_1_1BoolVarLookupRes_1a3ea6b6fdd99eef40cebae458fe2079ed" prot="public" virt="non-virtual"><scope>semantic::BoolVarLookupRes</scope><name>operator bool</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

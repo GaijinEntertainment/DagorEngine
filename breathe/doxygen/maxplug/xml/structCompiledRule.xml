@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCompiledRule" kind="struct" language="C++" prot="public">
+    <compoundname>CompiledRule</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCompiledRule_1afcb5f40c275cd2b8ea4790bde60454b8" prot="public" static="no" mutable="no">
+        <type>std::wregex</type>
+        <definition>std::wregex CompiledRule::re</definition>
+        <argsstring></argsstring>
+        <name>re</name>
+        <qualifiedname>CompiledRule::re</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="644" column="15" bodyfile="dagimp.cpp" bodystart="644" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledRule_1a7393692b1dd322c0519951330a9a01ec" prot="public" static="no" mutable="no">
+        <type>std::wstring</type>
+        <definition>std::wstring CompiledRule::text</definition>
+        <argsstring></argsstring>
+        <name>text</name>
+        <qualifiedname>CompiledRule::text</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="645" column="16" bodyfile="dagimp.cpp" bodystart="645" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagimp.cpp" line="642" column="1" bodyfile="dagimp.cpp" bodystart="643" bodyend="646"/>
+    <listofallmembers>
+      <member refid="structCompiledRule_1afcb5f40c275cd2b8ea4790bde60454b8" prot="public" virt="non-virtual"><scope>CompiledRule</scope><name>re</name></member>
+      <member refid="structCompiledRule_1a7393692b1dd322c0519951330a9a01ec" prot="public" virt="non-virtual"><scope>CompiledRule</scope><name>text</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

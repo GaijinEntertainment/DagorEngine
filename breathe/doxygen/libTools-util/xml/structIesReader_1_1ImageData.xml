@@ -1,0 +1,89 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structIesReader_1_1ImageData" kind="struct" language="C++" prot="public">
+    <compoundname>IesReader::ImageData</compoundname>
+    <includes refid="iesReader_8h" local="no">iesReader.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structIesReader_1_1ImageData_1a36f8b6fe38da7cb3c21e22af8de877d1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t IesReader::ImageData::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <qualifiedname>IesReader::ImageData::width</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="39" column="14" bodyfile="iesReader.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structIesReader_1_1ImageData_1a7049399dc0870aff9032ae06a6d7902e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t IesReader::ImageData::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <qualifiedname>IesReader::ImageData::height</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="40" column="14" bodyfile="iesReader.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structIesReader_1_1ImageData_1a226320cc8693b30f4cab910a61cfbcc9" prot="public" static="no" mutable="no">
+        <type>eastl::vector&lt; <ref refid="classIesReader_1a3e90dc714086e9406644e0c32985a219" kindref="member">PixelType</ref> &gt;</type>
+        <definition>eastl::vector&lt;PixelType&gt; IesReader::ImageData::data</definition>
+        <argsstring></argsstring>
+        <name>data</name>
+        <qualifiedname>IesReader::ImageData::data</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="41" column="19" bodyfile="iesReader.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structIesReader_1_1ImageData_1a276f9b9751d510f8b55df02eaf5d9a2e" prot="public" static="no" mutable="no">
+        <type><ref refid="structIesReader_1_1TransformParams" kindref="compound">TransformParams</ref></type>
+        <definition>TransformParams IesReader::ImageData::transform</definition>
+        <argsstring></argsstring>
+        <name>transform</name>
+        <qualifiedname>IesReader::ImageData::transform</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="42" column="21" bodyfile="iesReader.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>IesReader::ImageData</label>
+        <link refid="structIesReader_1_1ImageData"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>transform</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IesReader::TransformParams</label>
+        <link refid="structIesReader_1_1TransformParams"/>
+      </node>
+    </collaborationgraph>
+    <location file="iesReader.h" line="37" column="3" bodyfile="iesReader.h" bodystart="38" bodyend="43"/>
+    <listofallmembers>
+      <member refid="structIesReader_1_1ImageData_1a226320cc8693b30f4cab910a61cfbcc9" prot="public" virt="non-virtual"><scope>IesReader::ImageData</scope><name>data</name></member>
+      <member refid="structIesReader_1_1ImageData_1a7049399dc0870aff9032ae06a6d7902e" prot="public" virt="non-virtual"><scope>IesReader::ImageData</scope><name>height</name></member>
+      <member refid="structIesReader_1_1ImageData_1a276f9b9751d510f8b55df02eaf5d9a2e" prot="public" virt="non-virtual"><scope>IesReader::ImageData</scope><name>transform</name></member>
+      <member refid="structIesReader_1_1ImageData_1a36f8b6fe38da7cb3c21e22af8de877d1" prot="public" virt="non-virtual"><scope>IesReader::ImageData</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

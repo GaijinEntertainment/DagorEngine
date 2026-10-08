@@ -1,0 +1,243 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacehdpi" kind="namespace" language="C++">
+    <compoundname>hdpi</compoundname>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" prot="public" static="no" strong="yes">
+        <type>int</type>
+        <name>Px</name>
+        <qualifiedname>hdpi::Px</qualifiedname>
+        <enumvalue id="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94fa529e9e0beb5f85d1f132917c1a09860c" prot="public">
+          <name>ZERO</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hdpiUtil.h" line="11" column="1" bodyfile="hdpiUtil.h" bodystart="12" bodyend="14"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacehdpi_1a22453d5df5fe6e20f15684c1d1d4947a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+        <definition>Px hdpi::_pxScaled</definition>
+        <argsstring>(int units_96dpi)</argsstring>
+        <name>_pxScaled</name>
+        <qualifiedname>hdpi::_pxScaled</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>units_96dpi</declname>
+        </param>
+        <briefdescription>
+<para>returns Px scaled from legacy 96dpi-based coord to current dpi </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hdpiUtil.h" line="17" column="5" bodyfile="hdpiUtil.h" bodystart="17" bodyend="17"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacehdpi_1a1dd6697feaea25074cc36dabb0120d7c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+        <definition>Px hdpi::_pxActual</definition>
+        <argsstring>(int px)</argsstring>
+        <name>_pxActual</name>
+        <qualifiedname>hdpi::_pxActual</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>px</declname>
+        </param>
+        <briefdescription>
+<para>returns Px that is reinterpreted from actual pixels coord </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hdpiUtil.h" line="19" column="5" bodyfile="hdpiUtil.h" bodystart="19" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacehdpi_1a9a357b814e1249897cd6b80a35782ed6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int hdpi::_px</definition>
+        <argsstring>(Px px)</argsstring>
+        <name>_px</name>
+        <qualifiedname>hdpi::_px</qualifiedname>
+        <param>
+          <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+          <declname>px</declname>
+        </param>
+        <briefdescription>
+<para>explicit cast to to actual pixels from Px </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hdpiUtil.h" line="21" column="6" bodyfile="hdpiUtil.h" bodystart="21" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacehdpi_1af25c41438b62d2b1e2a309647eee43e7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int hdpi::_pxS</definition>
+        <argsstring>(int units_96dpi)</argsstring>
+        <name>_pxS</name>
+        <qualifiedname>hdpi::_pxS</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>units_96dpi</declname>
+        </param>
+        <briefdescription>
+<para>helper that scales legacy 96dpi-based coord into actual pixels (use with care since in converts int-&gt;int without type checking) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hdpiUtil.h" line="23" column="6" bodyfile="hdpiUtil.h" bodystart="23" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacehdpi_1ac7765651ca584bb4c778aee805a861fd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+        <definition>Px hdpi::operator+</definition>
+        <argsstring>(Px a, Px b)</argsstring>
+        <name>operator+</name>
+        <qualifiedname>hdpi::operator+</qualifiedname>
+        <param>
+          <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hdpiUtil.h" line="25" column="5" bodyfile="hdpiUtil.h" bodystart="25" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacehdpi_1a2d0b8180297c76d6a1f6caf4111617c0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+        <definition>Px hdpi::operator-</definition>
+        <argsstring>(Px a, Px b)</argsstring>
+        <name>operator-</name>
+        <qualifiedname>hdpi::operator-</qualifiedname>
+        <param>
+          <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hdpiUtil.h" line="26" column="5" bodyfile="hdpiUtil.h" bodystart="26" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacehdpi_1a27a16111fe2ee1ea11223cbc899db5ea" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+        <definition>Px hdpi::operator*</definition>
+        <argsstring>(Px a, int b)</argsstring>
+        <name>operator*</name>
+        <qualifiedname>hdpi::operator*</qualifiedname>
+        <param>
+          <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hdpiUtil.h" line="27" column="5" bodyfile="hdpiUtil.h" bodystart="27" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacehdpi_1a7a6df70e27b43cd145a328c14540f360" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+        <definition>Px hdpi::operator/</definition>
+        <argsstring>(Px a, int b)</argsstring>
+        <name>operator/</name>
+        <qualifiedname>hdpi::operator/</qualifiedname>
+        <param>
+          <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hdpiUtil.h" line="28" column="5" bodyfile="hdpiUtil.h" bodystart="28" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacehdpi_1a81f8127801f495cc8da2f35f0bcfa856" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref> &amp;</type>
+        <definition>Px &amp; hdpi::operator+=</definition>
+        <argsstring>(Px &amp;a, Px b)</argsstring>
+        <name>operator+=</name>
+        <qualifiedname>hdpi::operator+=</qualifiedname>
+        <param>
+          <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hdpiUtil.h" line="29" column="5" bodyfile="hdpiUtil.h" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacehdpi_1a53f06129e86815cb780297a31b572e62" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref> &amp;</type>
+        <definition>Px &amp; hdpi::operator-=</definition>
+        <argsstring>(Px &amp;a, Px b)</argsstring>
+        <name>operator-=</name>
+        <qualifiedname>hdpi::operator-=</qualifiedname>
+        <param>
+          <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacehdpi_1a9facd7783e6b7afccdd114f7c65bb94f" kindref="member">Px</ref></type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hdpiUtil.h" line="30" column="5" bodyfile="hdpiUtil.h" bodystart="30" bodyend="30"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="hdpiUtil.h" line="9" column="1"/>
+  </compounddef>
+</doxygen>

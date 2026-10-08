@@ -1,0 +1,176 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structAtlasBlockManager_1_1Pool" kind="struct" language="C++" prot="protected">
+    <compoundname>AtlasBlockManager::Pool</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structAtlasBlockManager_1_1Pool_1a5ede7528abc1c916c91ec327e7de36a1" prot="public" static="no" mutable="no">
+        <type>UniqueTex</type>
+        <definition>UniqueTex AtlasBlockManager::Pool::texture</definition>
+        <argsstring></argsstring>
+        <name>texture</name>
+        <qualifiedname>AtlasBlockManager::Pool::texture</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="73" column="15" bodyfile="dag_atlasBlockManager.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structAtlasBlockManager_1_1Pool_1a477096a64139ac8930b841f83e7715e3" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structAtlasBlockManager_1_1Chunk" kindref="compound">Chunk</ref> &gt;</type>
+        <definition>Tab&lt;Chunk&gt; AtlasBlockManager::Pool::freeChunks</definition>
+        <argsstring></argsstring>
+        <name>freeChunks</name>
+        <qualifiedname>AtlasBlockManager::Pool::freeChunks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="74" column="9" bodyfile="dag_atlasBlockManager.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structAtlasBlockManager_1_1Pool_1afb52641bc6d989a355e321e6ae0ad3e3" prot="public" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 AtlasBlockManager::Pool::texSize</definition>
+        <argsstring></argsstring>
+        <name>texSize</name>
+        <qualifiedname>AtlasBlockManager::Pool::texSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="75" column="13" bodyfile="dag_atlasBlockManager.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structAtlasBlockManager_1_1Pool_1ad73a6cc99dd3b2df1993a7c9f8c29b3e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t AtlasBlockManager::Pool::numBlocks</definition>
+        <argsstring></argsstring>
+        <name>numBlocks</name>
+        <qualifiedname>AtlasBlockManager::Pool::numBlocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="76" column="14" bodyfile="dag_atlasBlockManager.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structAtlasBlockManager_1_1Pool_1a790a8ddd11bab4525e38cfd0a4373717" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool AtlasBlockManager::Pool::needResize</definition>
+        <argsstring></argsstring>
+        <name>needResize</name>
+        <qualifiedname>AtlasBlockManager::Pool::needResize</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="77" column="10" bodyfile="dag_atlasBlockManager.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structAtlasBlockManager_1_1Pool_1a33665a5c592db92d9f1a218cd189fd09" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>AtlasBlockManager::Pool::Pool</definition>
+        <argsstring>()</argsstring>
+        <name>Pool</name>
+        <qualifiedname>AtlasBlockManager::Pool::Pool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="79" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structAtlasBlockManager_1_1Pool_1afad3717e100979d3af9fb81fc3bf1bba" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>AtlasBlockManager::Pool::~Pool</definition>
+        <argsstring>()</argsstring>
+        <name>~Pool</name>
+        <qualifiedname>AtlasBlockManager::Pool::~Pool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="80" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structAtlasBlockManager_1_1Pool_1ac45624bf18e67c369a0b177502bdc6a2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>AtlasBlockManager::Pool::Pool</definition>
+        <argsstring>(Pool &amp;&amp;from)=default</argsstring>
+        <name>Pool</name>
+        <qualifiedname>AtlasBlockManager::Pool::Pool</qualifiedname>
+        <param>
+          <type><ref refid="structAtlasBlockManager_1_1Pool" kindref="compound">Pool</ref> &amp;&amp;</type>
+          <declname>from</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="81" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structAtlasBlockManager_1_1Pool_1a7b8c2f06931661744f69e25a63ae7995" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structAtlasBlockManager_1_1Pool" kindref="compound">Pool</ref> &amp;</type>
+        <definition>Pool &amp; AtlasBlockManager::Pool::operator=</definition>
+        <argsstring>(Pool &amp;&amp;from)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>AtlasBlockManager::Pool::operator=</qualifiedname>
+        <param>
+          <type><ref refid="structAtlasBlockManager_1_1Pool" kindref="compound">Pool</ref> &amp;&amp;</type>
+          <declname>from</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="82" column="10"/>
+      </memberdef>
+      <memberdef kind="function" id="structAtlasBlockManager_1_1Pool_1aa53d5dd9e54a4aa5c886e54d8ccd38ce" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int AtlasBlockManager::Pool::findTopFreeChunk</definition>
+        <argsstring>() const</argsstring>
+        <name>findTopFreeChunk</name>
+        <qualifiedname>AtlasBlockManager::Pool::findTopFreeChunk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="83" column="9"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_atlasBlockManager.h" line="71" column="3" bodyfile="dag_atlasBlockManager.h" bodystart="72" bodyend="84"/>
+    <listofallmembers>
+      <member refid="structAtlasBlockManager_1_1Pool_1aa53d5dd9e54a4aa5c886e54d8ccd38ce" prot="public" virt="non-virtual"><scope>AtlasBlockManager::Pool</scope><name>findTopFreeChunk</name></member>
+      <member refid="structAtlasBlockManager_1_1Pool_1a477096a64139ac8930b841f83e7715e3" prot="public" virt="non-virtual"><scope>AtlasBlockManager::Pool</scope><name>freeChunks</name></member>
+      <member refid="structAtlasBlockManager_1_1Pool_1a790a8ddd11bab4525e38cfd0a4373717" prot="public" virt="non-virtual"><scope>AtlasBlockManager::Pool</scope><name>needResize</name></member>
+      <member refid="structAtlasBlockManager_1_1Pool_1ad73a6cc99dd3b2df1993a7c9f8c29b3e" prot="public" virt="non-virtual"><scope>AtlasBlockManager::Pool</scope><name>numBlocks</name></member>
+      <member refid="structAtlasBlockManager_1_1Pool_1a7b8c2f06931661744f69e25a63ae7995" prot="public" virt="non-virtual"><scope>AtlasBlockManager::Pool</scope><name>operator=</name></member>
+      <member refid="structAtlasBlockManager_1_1Pool_1a33665a5c592db92d9f1a218cd189fd09" prot="public" virt="non-virtual"><scope>AtlasBlockManager::Pool</scope><name>Pool</name></member>
+      <member refid="structAtlasBlockManager_1_1Pool_1ac45624bf18e67c369a0b177502bdc6a2" prot="public" virt="non-virtual"><scope>AtlasBlockManager::Pool</scope><name>Pool</name></member>
+      <member refid="structAtlasBlockManager_1_1Pool_1afb52641bc6d989a355e321e6ae0ad3e3" prot="public" virt="non-virtual"><scope>AtlasBlockManager::Pool</scope><name>texSize</name></member>
+      <member refid="structAtlasBlockManager_1_1Pool_1a5ede7528abc1c916c91ec327e7de36a1" prot="public" virt="non-virtual"><scope>AtlasBlockManager::Pool</scope><name>texture</name></member>
+      <member refid="structAtlasBlockManager_1_1Pool_1afad3717e100979d3af9fb81fc3bf1bba" prot="public" virt="non-virtual"><scope>AtlasBlockManager::Pool</scope><name>~Pool</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

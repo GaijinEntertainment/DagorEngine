@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDag2EnumeratorCB" kind="class" language="C++" prot="public">
+    <compoundname>Dag2EnumeratorCB</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classDag2EnumeratorCB_1a58d7b92d8f0b4b441868b445801d96a3" prot="public" static="no" mutable="no">
+        <type><ref refid="util_8cpp_1a500c57a5a553dd203540dcee49a769ca" kindref="member">StrMap</ref></type>
+        <definition>StrMap Dag2EnumeratorCB::mats</definition>
+        <argsstring></argsstring>
+        <name>mats</name>
+        <qualifiedname>Dag2EnumeratorCB::mats</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1912" column="10" bodyfile="util.cpp" bodystart="1912" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDag2EnumeratorCB_1a5a46882de5be82dff0213a1b2c507437" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>Dag2EnumeratorCB::~Dag2EnumeratorCB</definition>
+        <argsstring>() override=default</argsstring>
+        <name>~Dag2EnumeratorCB</name>
+        <qualifiedname>Dag2EnumeratorCB::~Dag2EnumeratorCB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1914" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2EnumeratorCB_1aabc11b8b73f6309f6d2f3aa823d638ba" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int Dag2EnumeratorCB::enumerate</definition>
+        <argsstring>(Mtl *&amp;m)</argsstring>
+        <name>enumerate</name>
+        <qualifiedname>Dag2EnumeratorCB::enumerate</qualifiedname>
+        <param>
+          <type>Mtl *&amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1916" column="7" bodyfile="util.cpp" bodystart="1916" bodyend="1946"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2EnumeratorCB_1ab0dd63e3747e4aa77978092e2ce1403f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int Dag2EnumeratorCB::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>Dag2EnumeratorCB::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="1948" column="7" bodyfile="util.cpp" bodystart="1948" bodyend="1973"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>Dag2EnumeratorCB</label>
+        <link refid="classDag2EnumeratorCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>Dag2EnumeratorCB</label>
+        <link refid="classDag2EnumeratorCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="1909" column="1" bodyfile="util.cpp" bodystart="1910" bodyend="1974"/>
+    <listofallmembers>
+      <member refid="classDag2EnumeratorCB_1aabc11b8b73f6309f6d2f3aa823d638ba" prot="public" virt="non-virtual"><scope>Dag2EnumeratorCB</scope><name>enumerate</name></member>
+      <member refid="classDag2EnumeratorCB_1a58d7b92d8f0b4b441868b445801d96a3" prot="public" virt="non-virtual"><scope>Dag2EnumeratorCB</scope><name>mats</name></member>
+      <member refid="classDag2EnumeratorCB_1ab0dd63e3747e4aa77978092e2ce1403f" prot="public" virt="virtual"><scope>Dag2EnumeratorCB</scope><name>proc</name></member>
+      <member refid="classDag2EnumeratorCB_1a5a46882de5be82dff0213a1b2c507437" prot="public" virt="non-virtual"><scope>Dag2EnumeratorCB</scope><name>~Dag2EnumeratorCB</name></member>
+      <member refid="classENodeCB_1a0b6202439bd1551412480edbfcd9648c" prot="public" virt="virtual"><scope>Dag2EnumeratorCB</scope><name>~ENodeCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

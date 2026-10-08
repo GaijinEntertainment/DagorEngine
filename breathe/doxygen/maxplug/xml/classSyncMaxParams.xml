@@ -1,0 +1,169 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSyncMaxParams" kind="class" language="C++" prot="public">
+    <compoundname>SyncMaxParams</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classSyncMaxParams_1ab8cc72685cb78d0fdc43c695e4bcd271" prot="private" static="no" mutable="no">
+        <type><ref refid="classRollupPanel" kindref="compound">RollupPanel</ref> *</type>
+        <definition>RollupPanel* SyncMaxParams::panel</definition>
+        <argsstring></argsstring>
+        <name>panel</name>
+        <qualifiedname>SyncMaxParams::panel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="641" column="15" bodyfile="rolluppanel.cpp" bodystart="641" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSyncMaxParams_1ac4e6f581ed2e1487d4b063677acfe386" prot="private" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* SyncMaxParams::group</definition>
+        <argsstring></argsstring>
+        <name>group</name>
+        <qualifiedname>SyncMaxParams::group</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="642" column="14" bodyfile="rolluppanel.cpp" bodystart="642" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSyncMaxParams_1a922fd00b8ba38204455084d3f0ce5c16" prot="private" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char * SyncMaxParams::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>SyncMaxParams::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="642" column="20" bodyfile="rolluppanel.cpp" bodystart="642" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSyncMaxParams_1aad3689e3cb664076e0e26e4a1311f506" prot="private" static="no" mutable="no">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833d" kindref="member">SchemeType</ref></type>
+        <definition>SchemeType SyncMaxParams::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>SyncMaxParams::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="643" column="14" bodyfile="rolluppanel.cpp" bodystart="643" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classSyncMaxParams_1a09a585b008decbaf00a29a3ee667c8e0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>SyncMaxParams::SyncMaxParams</definition>
+        <argsstring>(RollupPanel *panel_, const char *group_, SchemeType type_, const char *name_)</argsstring>
+        <name>SyncMaxParams</name>
+        <qualifiedname>SyncMaxParams::SyncMaxParams</qualifiedname>
+        <param>
+          <type><ref refid="classRollupPanel" kindref="compound">RollupPanel</ref> *</type>
+          <declname>panel_</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>group_</declname>
+        </param>
+        <param>
+          <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833d" kindref="member">SchemeType</ref></type>
+          <declname>type_</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="610" column="3" bodyfile="rolluppanel.cpp" bodystart="610" bodyend="612"/>
+      </memberdef>
+      <memberdef kind="function" id="classSyncMaxParams_1a31a7d823aec93fe71c9808f25197acb9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>SyncMaxParams::~SyncMaxParams</definition>
+        <argsstring>() override=default</argsstring>
+        <name>~SyncMaxParams</name>
+        <qualifiedname>SyncMaxParams::~SyncMaxParams</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="613" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classSyncMaxParams_1a1c4ab46f99e16ae2d0f697c72f578603" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int SyncMaxParams::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>SyncMaxParams::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rolluppanel.cpp" line="614" column="7" bodyfile="rolluppanel.cpp" bodystart="614" bodyend="638"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>SyncMaxParams</label>
+        <link refid="classSyncMaxParams"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+      <node id="1">
+        <label>SyncMaxParams</label>
+        <link refid="classSyncMaxParams"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rolluppanel.cpp" line="607" column="1" bodyfile="rolluppanel.cpp" bodystart="608" bodyend="644"/>
+    <listofallmembers>
+      <member refid="classSyncMaxParams_1ac4e6f581ed2e1487d4b063677acfe386" prot="private" virt="non-virtual"><scope>SyncMaxParams</scope><name>group</name></member>
+      <member refid="classSyncMaxParams_1a922fd00b8ba38204455084d3f0ce5c16" prot="private" virt="non-virtual"><scope>SyncMaxParams</scope><name>name</name></member>
+      <member refid="classSyncMaxParams_1ab8cc72685cb78d0fdc43c695e4bcd271" prot="private" virt="non-virtual"><scope>SyncMaxParams</scope><name>panel</name></member>
+      <member refid="classSyncMaxParams_1a1c4ab46f99e16ae2d0f697c72f578603" prot="public" virt="virtual"><scope>SyncMaxParams</scope><name>proc</name></member>
+      <member refid="classSyncMaxParams_1a09a585b008decbaf00a29a3ee667c8e0" prot="public" virt="non-virtual"><scope>SyncMaxParams</scope><name>SyncMaxParams</name></member>
+      <member refid="classSyncMaxParams_1aad3689e3cb664076e0e26e4a1311f506" prot="private" virt="non-virtual"><scope>SyncMaxParams</scope><name>type</name></member>
+      <member refid="classENodeCB_1a0b6202439bd1551412480edbfcd9648c" prot="public" virt="virtual"><scope>SyncMaxParams</scope><name>~ENodeCB</name></member>
+      <member refid="classSyncMaxParams_1a31a7d823aec93fe71c9808f25197acb9" prot="public" virt="non-virtual"><scope>SyncMaxParams</scope><name>~SyncMaxParams</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

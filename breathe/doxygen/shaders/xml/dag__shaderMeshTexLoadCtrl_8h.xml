@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shaderMeshTexLoadCtrl_8h" kind="file" language="C++">
+    <compoundname>dag_shaderMeshTexLoadCtrl.h</compoundname>
+    <innerclass refid="classIShaderMatVdataTexLoadCtrl" prot="public">IShaderMatVdataTexLoadCtrl</innerclass>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__shaderMeshTexLoadCtrl_8h_1a8738a7088324876aa01117151dce0171" prot="public" static="no" mutable="no">
+        <type><ref refid="classIShaderMatVdataTexLoadCtrl" kindref="compound">IShaderMatVdataTexLoadCtrl</ref> *</type>
+        <definition>IShaderMatVdataTexLoadCtrl* dagor_sm_tex_load_controller</definition>
+        <argsstring></argsstring>
+        <name>dagor_sm_tex_load_controller</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshTexLoadCtrl.h" line="25" column="35" declfile="dag_shaderMeshTexLoadCtrl.h" declline="25" declcolumn="35"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__shaderMeshTexLoadCtrl_8h_1ac75338f16700df78f67017a08b62a5e4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dagor_set_sm_tex_load_ctx_type</definition>
+        <argsstring>(unsigned obj_type)</argsstring>
+        <name>dagor_set_sm_tex_load_ctx_type</name>
+        <param>
+          <type>unsigned</type>
+          <declname>obj_type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshTexLoadCtrl.h" line="27" column="6" declfile="dag_shaderMeshTexLoadCtrl.h" declline="27" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderMeshTexLoadCtrl_8h_1ac8dc6e632334deb9b08f340a52f5ada6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dagor_set_sm_tex_load_ctx_name</definition>
+        <argsstring>(const char *obj_name)</argsstring>
+        <name>dagor_set_sm_tex_load_ctx_name</name>
+        <param>
+          <type>const char *</type>
+          <declname>obj_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshTexLoadCtrl.h" line="28" column="6" declfile="dag_shaderMeshTexLoadCtrl.h" declline="28" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shaderMeshTexLoadCtrl_8h_1a1d1d673f0411db4511c651d5d9ab678d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dagor_reset_sm_tex_load_ctx</definition>
+        <argsstring>()</argsstring>
+        <name>dagor_reset_sm_tex_load_ctx</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshTexLoadCtrl.h" line="29" column="6" declfile="dag_shaderMeshTexLoadCtrl.h" declline="29" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>forwards<sp/>for<sp/>used<sp/>classes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">String;</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="classIShaderMatVdataTexLoadCtrl" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIShaderMatVdataTexLoadCtrl" kindref="compound">IShaderMatVdataTexLoadCtrl</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="19" refid="classIShaderMatVdataTexLoadCtrl_1a7bc64c9d7fc1e122afa29a605b2d1bbc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classIShaderMatVdataTexLoadCtrl_1a7bc64c9d7fc1e122afa29a605b2d1bbc" kindref="member">preprocessMatVdataTexName</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*original_tex_name,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>ctx_obj_type,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*ctx_obj_name,</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/>String<sp/>&amp;tmp_storage)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*preprocess_tex_name(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*original_tex_name,<sp/>String<sp/>&amp;tmp_storage);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/><ref refid="classIShaderMatVdataTexLoadCtrl" kindref="compound">IShaderMatVdataTexLoadCtrl</ref><sp/>*dagor_sm_tex_load_controller;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>dagor_set_sm_tex_load_ctx_type(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>obj_type);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>dagor_set_sm_tex_load_ctx_name(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*obj_name);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>dagor_reset_sm_tex_load_ctx();</highlight></codeline>
+    </programlisting>
+    <location file="dag_shaderMeshTexLoadCtrl.h"/>
+  </compounddef>
+</doxygen>

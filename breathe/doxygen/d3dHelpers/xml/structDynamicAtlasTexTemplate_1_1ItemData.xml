@@ -1,0 +1,314 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDynamicAtlasTexTemplate_1_1ItemData" kind="struct" language="C++" prot="public">
+    <compoundname>DynamicAtlasTexTemplate::ItemData</compoundname>
+    <includes refid="dag__dynAtlas_8h" local="no">dag_dynAtlas.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structDynamicAtlasTexTemplate_1_1ItemData_1abf3e64d79ad66c9db9b423d3b9482220" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData</qualifiedname>
+        <enumvalue id="structDynamicAtlasTexTemplate_1_1ItemData_1abf3e64d79ad66c9db9b423d3b9482220a81ccfa7e16c93ff73b2b59f98e0b868c" prot="public">
+          <name>ST_restoring</name>
+          <initializer>= 0x7FFDu</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structDynamicAtlasTexTemplate_1_1ItemData_1abf3e64d79ad66c9db9b423d3b9482220acba311cbfdf080cd408b133a8e74e7bb" prot="public">
+          <name>ST_waitPictureFactoryFirstRender</name>
+          <initializer>= 0x7FFEu</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structDynamicAtlasTexTemplate_1_1ItemData_1abf3e64d79ad66c9db9b423d3b9482220aa0acee7b05fa066469fc6746950a2c13" prot="public">
+          <name>ST_discarded</name>
+          <initializer>= 0x7FFFu</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="27" column="5" bodyfile="dag_dynAtlas.h" bodystart="28" bodyend="32"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDynamicAtlasTexTemplate_1_1ItemData_1aa9b315ec1cbca5563bdd04bfd764db69" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::u0</definition>
+        <argsstring></argsstring>
+        <name>u0</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::u0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="33" column="11" bodyfile="dag_dynAtlas.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexTemplate_1_1ItemData_1a70331b4d4aa7eff95fa4fa0e7723b356" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::v0</definition>
+        <argsstring></argsstring>
+        <name>v0</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::v0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="33" column="14" bodyfile="dag_dynAtlas.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexTemplate_1_1ItemData_1a14a55a3dfa9a6b019e477d975215b38a" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::u1</definition>
+        <argsstring></argsstring>
+        <name>u1</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::u1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="33" column="17" bodyfile="dag_dynAtlas.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexTemplate_1_1ItemData_1abc6aa1e23380a999eaee9d17b3c9e7ff" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::v1</definition>
+        <argsstring></argsstring>
+        <name>v1</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::v1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="33" column="20" bodyfile="dag_dynAtlas.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexTemplate_1_1ItemData_1a17f5324f7f34302de9b52e448aacbc03" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::w</definition>
+        <argsstring></argsstring>
+        <name>w</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::w</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="34" column="14" bodyfile="dag_dynAtlas.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexTemplate_1_1ItemData_1a7938d37ab92118501ff88d355871cbdc" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::h</definition>
+        <argsstring></argsstring>
+        <name>h</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::h</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="34" column="16" bodyfile="dag_dynAtlas.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexTemplate_1_1ItemData_1a1144bb923978f14bf2056b85b895ac2d" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::x0</definition>
+        <argsstring></argsstring>
+        <name>x0</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::x0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="34" column="18" bodyfile="dag_dynAtlas.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexTemplate_1_1ItemData_1a3d80a692d3875345b39fdd988d2bbed8" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::y0</definition>
+        <argsstring></argsstring>
+        <name>y0</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::y0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="34" column="21" bodyfile="dag_dynAtlas.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexTemplate_1_1ItemData_1a973f8b417690c50c594f4768dc449e08" prot="public" static="no" mutable="no">
+        <type>int16_t</type>
+        <definition>int16_t DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::xBaseOfs</definition>
+        <argsstring></argsstring>
+        <name>xBaseOfs</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::xBaseOfs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="35" column="13" bodyfile="dag_dynAtlas.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexTemplate_1_1ItemData_1ab9ea5b0e30137d76cc6fdb294ff78bde" prot="public" static="no" mutable="no">
+        <type>int16_t</type>
+        <definition>int16_t DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::yBaseOfs</definition>
+        <argsstring></argsstring>
+        <name>yBaseOfs</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::yBaseOfs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="35" column="22" bodyfile="dag_dynAtlas.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexTemplate_1_1ItemData_1a3cb7d8cc343464936c39ce807c159b39" prot="public" static="no" mutable="no">
+        <type>int16_t</type>
+        <definition>int16_t DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::dx</definition>
+        <argsstring></argsstring>
+        <name>dx</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::dx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="36" column="13" bodyfile="dag_dynAtlas.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexTemplate_1_1ItemData_1ac5958d218f266121b4f758e7cb23a406" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::allocW</definition>
+        <argsstring></argsstring>
+        <name>allocW</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::allocW</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="37" column="14" bodyfile="dag_dynAtlas.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexTemplate_1_1ItemData_1af9266ca8edd697017b1d8cb9d61cb57a" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::lruFrame</definition>
+        <argsstring></argsstring>
+        <name>lruFrame</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::lruFrame</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="38" column="14" bodyfile="dag_dynAtlas.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicAtlasTexTemplate_1_1ItemData_1a9586a9cdbacc17be57ee2a02ca45a2f0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::hash</definition>
+        <argsstring></argsstring>
+        <name>hash</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::hash</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="38" column="23" bodyfile="dag_dynAtlas.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDynamicAtlasTexTemplate_1_1ItemData_1a4dd96539a039b5a92248f6cef97926c1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::valid</definition>
+        <argsstring>() const</argsstring>
+        <name>valid</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::valid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="40" column="10" bodyfile="dag_dynAtlas.h" bodystart="40" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicAtlasTexTemplate_1_1ItemData_1a86042a8482604491b7c9531c2644c39b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::discard</definition>
+        <argsstring>()</argsstring>
+        <name>discard</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::discard</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="41" column="10" bodyfile="dag_dynAtlas.h" bodystart="41" bodyend="41"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynamicAtlasTexTemplate_1_1ItemData_1a55c91d025294b4ecf2cd6ac46e77b425" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynamicAtlasTexTemplate&lt; persistent &gt;::ItemData::scheduleRestoring</definition>
+        <argsstring>()</argsstring>
+        <name>scheduleRestoring</name>
+        <qualifiedname>DynamicAtlasTexTemplate::ItemData::scheduleRestoring</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="42" column="10" bodyfile="dag_dynAtlas.h" bodystart="42" bodyend="50"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynAtlas.h" line="25" column="3" bodyfile="dag_dynAtlas.h" bodystart="26" bodyend="51"/>
+    <listofallmembers>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1ac5958d218f266121b4f758e7cb23a406" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>allocW</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1a86042a8482604491b7c9531c2644c39b" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>discard</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1a3cb7d8cc343464936c39ce807c159b39" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>dx</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1a7938d37ab92118501ff88d355871cbdc" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>h</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1a9586a9cdbacc17be57ee2a02ca45a2f0" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>hash</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1af9266ca8edd697017b1d8cb9d61cb57a" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>lruFrame</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1a55c91d025294b4ecf2cd6ac46e77b425" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>scheduleRestoring</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1abf3e64d79ad66c9db9b423d3b9482220aa0acee7b05fa066469fc6746950a2c13" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>ST_discarded</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1abf3e64d79ad66c9db9b423d3b9482220a81ccfa7e16c93ff73b2b59f98e0b868c" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>ST_restoring</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1abf3e64d79ad66c9db9b423d3b9482220acba311cbfdf080cd408b133a8e74e7bb" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>ST_waitPictureFactoryFirstRender</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1aa9b315ec1cbca5563bdd04bfd764db69" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>u0</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1a14a55a3dfa9a6b019e477d975215b38a" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>u1</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1a70331b4d4aa7eff95fa4fa0e7723b356" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>v0</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1abc6aa1e23380a999eaee9d17b3c9e7ff" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>v1</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1a4dd96539a039b5a92248f6cef97926c1" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>valid</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1a17f5324f7f34302de9b52e448aacbc03" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>w</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1a1144bb923978f14bf2056b85b895ac2d" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>x0</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1a973f8b417690c50c594f4768dc449e08" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>xBaseOfs</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1a3d80a692d3875345b39fdd988d2bbed8" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>y0</name></member>
+      <member refid="structDynamicAtlasTexTemplate_1_1ItemData_1ab9ea5b0e30137d76cc6fdb294ff78bde" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate::ItemData</scope><name>yBaseOfs</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

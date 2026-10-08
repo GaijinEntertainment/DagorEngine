@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structMeshFormat" kind="struct" language="C++" prot="public">
+    <compoundname>MeshFormat</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structMeshFormat_1a8f5bbb56dccd59cc5ea4ad44564f7908" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool MeshFormat::big</definition>
+        <argsstring></argsstring>
+        <name>big</name>
+        <qualifiedname>MeshFormat::big</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1446" column="8" bodyfile="dagimp.cpp" bodystart="1446" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMeshFormat_1ab741ac3f6bacb8648ad978a611c7c5de" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int MeshFormat::count_sz</definition>
+        <argsstring></argsstring>
+        <name>count_sz</name>
+        <qualifiedname>MeshFormat::count_sz</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1447" column="7" bodyfile="dagimp.cpp" bodystart="1447" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMeshFormat_1aeca748bcce26b213d9acc396efc6b6a3" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int MeshFormat::face_sz</definition>
+        <argsstring></argsstring>
+        <name>face_sz</name>
+        <qualifiedname>MeshFormat::face_sz</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1448" column="7" bodyfile="dagimp.cpp" bodystart="1448" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMeshFormat_1a2e6eb72817e3cf292a515129c59f7b10" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int MeshFormat::tface_sz</definition>
+        <argsstring></argsstring>
+        <name>tface_sz</name>
+        <qualifiedname>MeshFormat::tface_sz</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1449" column="7" bodyfile="dagimp.cpp" bodystart="1449" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structMeshFormat_1a9a94f3d541f5a705afa2f4d055f2346d" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>MeshFormat::MeshFormat</definition>
+        <argsstring>(bool big_)</argsstring>
+        <name>MeshFormat</name>
+        <qualifiedname>MeshFormat::MeshFormat</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>big_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="1451" column="12" bodyfile="dagimp.cpp" bodystart="1451" bodyend="1456"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagimp.cpp" line="1444" column="1" bodyfile="dagimp.cpp" bodystart="1445" bodyend="1457"/>
+    <listofallmembers>
+      <member refid="structMeshFormat_1a8f5bbb56dccd59cc5ea4ad44564f7908" prot="public" virt="non-virtual"><scope>MeshFormat</scope><name>big</name></member>
+      <member refid="structMeshFormat_1ab741ac3f6bacb8648ad978a611c7c5de" prot="public" virt="non-virtual"><scope>MeshFormat</scope><name>count_sz</name></member>
+      <member refid="structMeshFormat_1aeca748bcce26b213d9acc396efc6b6a3" prot="public" virt="non-virtual"><scope>MeshFormat</scope><name>face_sz</name></member>
+      <member refid="structMeshFormat_1a9a94f3d541f5a705afa2f4d055f2346d" prot="public" virt="non-virtual"><scope>MeshFormat</scope><name>MeshFormat</name></member>
+      <member refid="structMeshFormat_1a2e6eb72817e3cf292a515129c59f7b10" prot="public" virt="non-virtual"><scope>MeshFormat</scope><name>tface_sz</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

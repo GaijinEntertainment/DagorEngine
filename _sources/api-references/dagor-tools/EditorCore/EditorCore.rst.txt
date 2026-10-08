@@ -1,0 +1,5 @@
+EditorCore
+=================================================
+
+.. doxygenindex::
+   :project: EditorCore

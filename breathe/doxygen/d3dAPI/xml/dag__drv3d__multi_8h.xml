@@ -1,0 +1,406 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__drv3d__multi_8h" kind="file" language="C++">
+    <compoundname>dag_drv3d_multi.h</compoundname>
+    <includes local="no">generic/dag_tabFwd.h</includes>
+    <includes refid="dag__driver_8h" local="no">drv/3d/dag_driver.h</includes>
+    <incdepgraph>
+      <node id="10">
+        <label>drv/3d/dag_barrier.h</label>
+        <link refid="dag__barrier_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h"/>
+      </node>
+      <node id="29">
+        <label>drv/3d/dag_d3dResource.h</label>
+        <link refid="dag__d3dResource_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_decl.h</label>
+        <link refid="dag__decl_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_driver.h</label>
+        <link refid="dag__driver_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_drv3d_multi.h</label>
+        <link refid="dag__drv3d__multi_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="17">
+        <label>drv/3d/dag_enhanced_barrier.h</label>
+        <link refid="dag__enhanced__barrier_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="37">
+        <label>drv/3d/dag_hangHandler.h</label>
+        <link refid="dag__hangHandler_8h"/>
+      </node>
+      <node id="21">
+        <label>drv/3d/dag_multi_interface.h</label>
+        <link refid="dag__multi__interface_8h"/>
+      </node>
+      <node id="30">
+        <label>drv/3d/dag_resId.h</label>
+        <link refid="dag__resId_8h"/>
+      </node>
+      <node id="22">
+        <label>drv/3d/dag_resource.h</label>
+        <link refid="dag__resource_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="25">
+        <label>drv/3d/dag_sampler.h</label>
+        <link refid="dag__sampler_8h"/>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>drv/3d/dag_samplerHandle.h</label>
+        <link refid="dag__samplerHandle_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>drv/3d/dag_shaderLibraryObject.h</label>
+        <link refid="dag__shaderLibraryObject_8h"/>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>drv/3d/dag_tex3d.h</label>
+        <link refid="dag__tex3d_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>drv/3d/dag_texFlags.h</label>
+        <link refid="dag__texFlags_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="38">
+        <label>rayTrace/dag_drvRayTrace.h</label>
+        <link refid="dag__drvRayTrace_8h"/>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+      </node>
+      <node id="44">
+        <label>rayTrace/rayTracedrv3d.inl.h</label>
+        <link refid="rayTracedrv3d_8inl_8h"/>
+      </node>
+      <node id="36">
+        <label>EASTL/functional.h</label>
+      </node>
+      <node id="11">
+        <label>EASTL/initializer_list.h</label>
+      </node>
+      <node id="43">
+        <label>EASTL/span.h</label>
+      </node>
+      <node id="15">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="42">
+        <label>EASTL/variant.h</label>
+      </node>
+      <node id="26">
+        <label>compare</label>
+      </node>
+      <node id="14">
+        <label>cstdint</label>
+      </node>
+      <node id="23">
+        <label>cstring</label>
+      </node>
+      <node id="12">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="39">
+        <label>generic/dag_enumBitMask.h</label>
+      </node>
+      <node id="20">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="2">
+        <label>generic/dag_tabFwd.h</label>
+      </node>
+      <node id="7">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+      <node id="8">
+        <label>math/dag_TMatrix4.h</label>
+      </node>
+      <node id="32">
+        <label>math/dag_adjpow2.h</label>
+      </node>
+      <node id="28">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="9">
+        <label>math/dag_lsbVisitor.h</label>
+      </node>
+      <node id="33">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="34">
+        <label>string.h</label>
+      </node>
+      <node id="19">
+        <label>util/dag_bitFlagsMask.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="41">
+        <label>util/dag_inttypes.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+      <node id="18">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="35">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+    </incdepgraph>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tabFwd.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__driver_8h" kindref="compound">drv/3d/dag_driver.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__interface__table_8h" kindref="compound">drv/3d/dag_interface_table.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;dag/dag_vector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">String;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">D3dEventQuery;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classDriver3dInitCallback" kindref="compound">Driver3dInitCallback</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>D3dEventQuery<sp/><ref refid="namespaced3d_1ac319d128a742223a1955303d059922a9" kindref="member">EventQuery</ref>;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a2420dc8bd6681711a9b0d7fce7c52d86" kindref="member">init_driver</ref>();</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a4317da9ee01e6fa4b4898255ebd88f1c" kindref="member">is_inited</ref>();</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1ae35bee2704a9c4467101289e8f67db01" kindref="member">init_video</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hinst,<sp/><ref refid="dag__driver_8h_1a9dc9a17a6115655f4a06d72858317417" kindref="member">main_wnd_f</ref><sp/>*f,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*wcname,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ncmdshow,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*&amp;mainwnd,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hicon,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*title,</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><ref refid="classDriver3dInitCallback" kindref="compound">Driver3dInitCallback</ref><sp/>*cb);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a0799209df54c514d9d69c8a2265d59ba" kindref="member">release_driver</ref>();</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a4cce417dd99a83189c3c5ee3b697bfa1" kindref="member">fill_interface_table</ref>(<ref refid="structD3dInterfaceTable" kindref="compound">D3dInterfaceTable</ref><sp/>&amp;d3dit);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a850d374a4cced517c69493f9e8c1d0a1" kindref="member">prepare_for_destroy</ref>();</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a4c0e3b94101b769f778a9d3b2d1cbb51" kindref="member">window_destroyed</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hwnd);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">BeforeWindowDestroyedCookie;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">BeforeWindowDestroyedCookie<sp/>*<ref refid="namespace__MULTI__INTERFACE_1a2bb398dbabc458487638ce5456bffa43" kindref="member">register_before_window_destroyed_callback</ref>(eastl::function&lt;</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">()&gt;<sp/>callback);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1ac3374b19bdc66e1be8f0958f853a3af8" kindref="member">unregister_before_window_destroyed_callback</ref>(BeforeWindowDestroyedCookie<sp/>*cookie);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a25e297ea15d92cf34e8fb9ab49ec4928" kindref="member">device_lost</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>*can_reset_now)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a0786238c8f81707b832e4d7aed50ec42" kindref="member">device_lost</ref>(can_reset_now);<sp/>}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a2d47d34fd17d4a6baeb257475326bf38" kindref="member">reset_device</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1afb17837d2e77d974063aeec856fc263f" kindref="member">reset_device</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a2d3af13ff2b6e9f44f267117bd1a41bb" kindref="member">update_screen</ref>(uint32_t<sp/>frame_id<sp/>=<sp/>0,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>app_active<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ae15230bbdaf6f49dc11937ca5523d132" kindref="member">update_screen</ref>(frame_id,<sp/>app_active);<sp/>}</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a4f5ed18d862e9c551333e68d174dc2bc" kindref="member">begin_frame</ref>(uint32_t<sp/>frame_id,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>allow_wait)<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1abafa7eebea5905ec6fee8dd009597a0a" kindref="member">begin_frame</ref>(frame_id,<sp/>allow_wait);<sp/>}</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1ac4026e9aecadac1f2c45c598b9c5d98e" kindref="member">mark_simulation_start</ref>(uint32_t<sp/>frame_id)<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1aa7569ccccc7e83f8a79e1b0b50d83d13" kindref="member">mark_simulation_start</ref>(frame_id);<sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1af09075c7207c5d6716333269e9dc1ee9" kindref="member">mark_simulation_end</ref>(uint32_t<sp/>frame_id)<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1acc3157e6708e8a95825216be30bf3e87" kindref="member">mark_simulation_end</ref>(frame_id);<sp/>}</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1aac34a571969beba6190d85ad213f698a" kindref="member">mark_render_start</ref>(uint32_t<sp/>frame_id)<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a7a6be657946abcda41a5c5668a1dda21" kindref="member">mark_render_start</ref>(frame_id);<sp/>}</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1ab1d8d625cb411853c5021dde823b6d44" kindref="member">mark_render_end</ref>(uint32_t<sp/>frame_id)<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a795053907dd62e59a05217e4b7316e02" kindref="member">mark_render_end</ref>(frame_id);<sp/>}</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="dag__consts_8h_1adb13938840a9c78154bd2e7ab0a6b751" kindref="member">GPUFENCEHANDLE</ref><sp/><ref refid="namespace__MULTI__INTERFACE_1a4c597c767cb7714b8aa1aee49eeada24" kindref="member">insert_fence</ref>(<ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref><sp/>gpu_pipeline)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a2c2c38ff78b2511c0673b3a00dd4f406" kindref="member">insert_fence</ref>(gpu_pipeline);<sp/>}</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1ad05de15e78fd35090308c05904240ed3" kindref="member">insert_wait_on_fence</ref>(<ref refid="dag__consts_8h_1adb13938840a9c78154bd2e7ab0a6b751" kindref="member">GPUFENCEHANDLE</ref><sp/>&amp;fence,<sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref><sp/>gpu_pipeline)</highlight></codeline>
+<codeline lineno="49"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a2fd3967ac1957216262f78adc50a15d0" kindref="member">insert_wait_on_fence</ref>(fence,<sp/>gpu_pipeline);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a542073f1047ffc9ee56829ce17fbb33d" kindref="member">set_srgb_backbuffer_write</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>on)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ac199e5e2da6f48835b27797ed0f17cb7" kindref="member">set_srgb_backbuffer_write</ref>(on);<sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a095408ea3ccb5728aa9b306351ad9239" kindref="member">setgamma</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>power)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a6e1b0106b03e0f1e90eaabc0b126d2e8" kindref="member">setgamma</ref>(power);<sp/>}</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a950a90c1f4bce07df6e6621c19133297" kindref="member">get_screen_aspect_ratio</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a979602d22ac134d8b2dfd2e175afd04c" kindref="member">get_screen_aspect_ratio</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a7095b83c1033366d820ccbbd872d9240" kindref="member">change_screen_aspect_ratio</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>ar)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1abbb388d5a55d2b2328ac69c0b2958f21" kindref="member">change_screen_aspect_ratio</ref>(ar);<sp/>}</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="namespace__MULTI__INTERFACE_1a17ccdd2bbe9dde08888c7c01dde121e2" kindref="member">fast_capture_screen</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;h,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;stride,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;fmt)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a6c8d771a543621f9f571e940046c17db" kindref="member">fast_capture_screen</ref>(w,<sp/>h,<sp/>stride,<sp/>fmt);<sp/>}</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1adf7206e39824de983e24672067e458e0" kindref="member">end_fast_capture_screen</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a5bc2feec89a659fb1aaf59220da3f50b" kindref="member">end_fast_capture_screen</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>TexPixel32<sp/>*<ref refid="namespace__MULTI__INTERFACE_1a61f25e83d5071f79af344d2604734491" kindref="member">capture_screen</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;h,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;stride_bytes)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ac4c01f511fdb9a755224de5e759f1dfc" kindref="member">capture_screen</ref>(w,<sp/>h,<sp/>stride_bytes);<sp/>}</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1ac06857bdd1e5a0a180072d924277b029" kindref="member">release_capture_buffer</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a042a7857c1ed757ad1fb3bff1e31c625" kindref="member">release_capture_buffer</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a0b1ee9039a3bd2481a08888d86bf2a99" kindref="member">create_predicate</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a8c495367966bfa7a96e57c6c56420936" kindref="member">create_predicate</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a58686591dbf90b666e52d6fb63d55394" kindref="member">free_predicate</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a0bdf2edaa5370b8cefd71e2b457873ed" kindref="member">free_predicate</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a94af7331885b147224f4511abaef0f56" kindref="member">begin_survey</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a1997eb27e4bb44ed63a9b2cf1ec63608" kindref="member">begin_survey</ref>(index);<sp/>}</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1acd6b2336fafd4e59a6c88642c7ad4447" kindref="member">end_survey</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a273fd8e8a8a709cf9bfe74520f5cb430" kindref="member">end_survey</ref>(index);<sp/>}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a1039aec99dc6ede81f7c768e779f6e83" kindref="member">begin_conditional_render</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>index)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a8710a39c864b5b50b3de24d7beafa081" kindref="member">begin_conditional_render</ref>(index);<sp/>}</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1af742d511ec0f5259d098a5eb7f54a29b" kindref="member">end_conditional_render</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a2e4b5a36a72c3fa1c7f9262997841c05" kindref="member">end_conditional_render</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a7f01ccf660b537b76aae621e67ee36f3" kindref="member">set_vertex_shader</ref>(<ref refid="dag__consts_8h_1a4fa6377d5dc060fc6dea9a03176ea944" kindref="member">VPROG</ref><sp/>ps)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a338e657db63ecf009e5743508847809f" kindref="member">set_vertex_shader</ref>(ps);<sp/>}</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1ae47f2370c1956d477e104cda9ad19065" kindref="member">set_pixel_shader</ref>(<ref refid="dag__consts_8h_1a831b714182cee438acae55ed474e13b8" kindref="member">FSHADER</ref><sp/>ps)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1abc4d08542ab7ee2743d8ca82329b4d6f" kindref="member">set_pixel_shader</ref>(ps);<sp/>}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1adbc8a500041911796c8cb584aa2a599b" kindref="member">get_vrr_supported</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a48fec14d101d614694376dac84a2b715" kindref="member">get_vrr_supported</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1abc3dec902a6e26cfd294ffd7b596e313" kindref="member">get_vsync_enabled</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ad663596882c90cb5977e41d52975e35f" kindref="member">get_vsync_enabled</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ac10d075649cf9abfe892df5492192e6b" kindref="member">enable_vsync</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enable)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ac38cf7c4705feb3eb7d7b2ab0a768a9d" kindref="member">enable_vsync</ref>(enable);<sp/>}</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a6699b1e07ba43b379edba74252f802c3" kindref="member">get_video_modes_list</ref>(Tab&lt;String&gt;<sp/>&amp;list)<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a00be226996877c8df97bb07d3352fead" kindref="member">get_video_modes_list</ref>(list);<sp/>}</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a7745b08e0044bfdb50a1d309b04739cb" kindref="member">beginEvent</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ad0be6af6a16665ed118a54c4d03c9f44" kindref="member">beginEvent</ref>(s);<sp/>}</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a487e2775eb3e1b38e58f9722fd96a03b" kindref="member">endEvent</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a1d5babd305d91c8d2c783be4f1ae96c4" kindref="member">endEvent</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="rayTraceMulti_8inl_8h" kindref="compound">rayTrace/rayTraceMulti.inl.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a93192d282f51a45238eef12b992fcd3a" kindref="member">resource_barrier</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classResourceBarrierDesc" kindref="compound">ResourceBarrierDesc</ref><sp/>&amp;desc,<sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref><sp/>gpu_pipeline<sp/>=<sp/><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461a6f49448c79d7d58c6e60cf7129b84d1c" kindref="member">GpuPipeline::GRAPHICS</ref>)</highlight></codeline>
+<codeline lineno="89"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1aa704d9090811cf66ddb92c0cf6fe6544" kindref="member">resource_barrier</ref>(desc,<sp/>gpu_pipeline);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1aea725dfe9b5ab00da02e532d591cf34d" kindref="member">enhanced_texture_barrier</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structd3d_1_1TextureBarrier" kindref="compound">d3d::TextureBarrier</ref><sp/>&amp;b,<sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*t)<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a18f9020e8257e6df96bac42e8612b566" kindref="member">enhanced_texture_barrier</ref>(b,<sp/>t);<sp/>}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a1a949a460f7b573a0fa1517669811e9f" kindref="member">enhanced_buffer_barrier</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structd3d_1_1BufferBarrier" kindref="compound">d3d::BufferBarrier</ref><sp/>&amp;b,<sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*buf)<sp/>{<sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a29171fe973b3816bb727edff33217694" kindref="member">enhanced_buffer_barrier</ref>(b,<sp/>buf);<sp/>}</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a4e1da6012b8084d939387a57ec7df301" kindref="member">enhanced_barrier_batch</ref>(dag::ConstSpan&lt;d3d::TextureBarrierBatchItem&gt;<sp/>texture_barriers,</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;d3d::BufferBarrierBatchItem&gt;<sp/>buffer_barriers)</highlight></codeline>
+<codeline lineno="96"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a7e25d425228d0cfa8e2c76afb7ced9e5" kindref="member">enhanced_barrier_batch</ref>(texture_barriers,<sp/>buffer_barriers);</highlight></codeline>
+<codeline lineno="98"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_PC_WIN<sp/>|<sp/>_TARGET_PC_MACOSX</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">pcwin</highlight></codeline>
+<codeline lineno="102"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_present_wnd(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hwnd)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1ab12fb497be652fd5e4c137cbd5469da7" kindref="member">set_present_wnd</ref>(hwnd);<sp/>}</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>can_render_to_window()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a51115b521e5766130eb40002bd81c629" kindref="member">can_render_to_window</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*get_swapchain_for_window(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hwnd)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a0c7e578d51dde83111ef7779ab1be690" kindref="member">get_swapchain_for_window</ref>(hwnd);<sp/>}</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>present_to_window(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hwnd)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1acd7eb80d9554263adb439720d7681f57" kindref="member">present_to_window</ref>(hwnd);<sp/>}</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_capture_full_frame_buffer(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>ison)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a6dcd638c00cffcf1402a5f05ec3efa8f" kindref="member">set_capture_full_frame_buffer</ref>(ison);<sp/>}</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>get_texture_format(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*tex)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a0662ff29c100ad169cb7932e60319738" kindref="member">get_texture_format</ref>(tex);<sp/>}</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*get_texture_format_str(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*tex)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a1649782e395114e5ebe78e4e4fb76841" kindref="member">get_texture_format_str</ref>(tex);<sp/>}</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*get_native_surface(<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*tex)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a5d57a8f8c68e524f27d4959356b16256" kindref="member">get_native_surface</ref>(tex);<sp/>}</highlight></codeline>
+<codeline lineno="113"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>pcwin</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="dag_drv3d_multi.h"/>
+  </compounddef>
+</doxygen>

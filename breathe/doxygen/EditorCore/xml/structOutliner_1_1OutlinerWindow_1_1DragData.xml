@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structOutliner_1_1OutlinerWindow_1_1DragData" kind="struct" language="C++" prot="private">
+    <compoundname>Outliner::OutlinerWindow::DragData</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1DragData_1a186a2003b2cc72205ad76a51499c2c44" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Outliner::OutlinerWindow::DragData::objectType</definition>
+        <argsstring></argsstring>
+        <name>objectType</name>
+        <qualifiedname>Outliner::OutlinerWindow::DragData::objectType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="70" column="9" bodyfile="ec_outliner.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1DragData_1a298a804085f9fc8405ed6379eb03111c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Outliner::OutlinerWindow::DragData::perTypeLayerIndex</definition>
+        <argsstring></argsstring>
+        <name>perTypeLayerIndex</name>
+        <qualifiedname>Outliner::OutlinerWindow::DragData::perTypeLayerIndex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="71" column="9" bodyfile="ec_outliner.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_outliner.h" line="68" column="3" bodyfile="ec_outliner.h" bodystart="69" bodyend="72"/>
+    <listofallmembers>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1DragData_1a186a2003b2cc72205ad76a51499c2c44" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::DragData</scope><name>objectType</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1DragData_1a298a804085f9fc8405ed6379eb03111c" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::DragData</scope><name>perTypeLayerIndex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

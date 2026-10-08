@@ -1,0 +1,205 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structITexBuildOnDemandHelper" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>ITexBuildOnDemandHelper</compoundname>
+    <includes refid="dag__buildOnDemandTexFactory_8h" local="no">dag_buildOnDemandTexFactory.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structITexBuildOnDemandHelper_1af5309166200d394f935aaaf1119377cf" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ITexBuildOnDemandHelper::checkTexNameHandled</definition>
+        <argsstring>(const char *tex_fn)=0</argsstring>
+        <name>checkTexNameHandled</name>
+        <qualifiedname>ITexBuildOnDemandHelper::checkTexNameHandled</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>tex_fn</declname>
+        </param>
+        <briefdescription>
+<para>checks whether texture name matches one supported by build-on-demand helper </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="28" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structITexBuildOnDemandHelper_1a38c46fcae2accf0fda05472eb2cdad5a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>asset_handle_t *</type>
+        <definition>virtual asset_handle_t * ITexBuildOnDemandHelper::resolveTex</definition>
+        <argsstring>(const char *tex_fn, TextureMetaData &amp;out_tmd)=0</argsstring>
+        <name>resolveTex</name>
+        <qualifiedname>ITexBuildOnDemandHelper::resolveTex</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>tex_fn</declname>
+        </param>
+        <param>
+          <type>TextureMetaData &amp;</type>
+          <declname>out_tmd</declname>
+        </param>
+        <briefdescription>
+<para>resolves texture name to asset handle (that can be used in other API); fills out_tmd if texture resolved successfuly </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="30" column="26"/>
+      </memberdef>
+      <memberdef kind="function" id="structITexBuildOnDemandHelper_1abee1a52dab5c06891356cac8ce78003e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ITexBuildOnDemandHelper::getConvertibleTexHeader</definition>
+        <argsstring>(asset_handle_t *h, ddsx::Header &amp;out_hdr, unsigned &amp;out_q_lev_desc, unsigned *out_name_ids)=0</argsstring>
+        <name>getConvertibleTexHeader</name>
+        <qualifiedname>ITexBuildOnDemandHelper::getConvertibleTexHeader</qualifiedname>
+        <param>
+          <type>asset_handle_t *</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>ddsx::Header &amp;</type>
+          <declname>out_hdr</declname>
+        </param>
+        <param>
+          <type>unsigned &amp;</type>
+          <declname>out_q_lev_desc</declname>
+        </param>
+        <param>
+          <type>unsigned *</type>
+          <declname>out_name_ids</declname>
+        </param>
+        <briefdescription>
+<para>fills DDSx header for texture asset (along with level and nameId for each TQL); returns false when headed cannot be deduced </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="33" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structITexBuildOnDemandHelper_1a9f3316d3a0a42ef9ca54589dcee0979c" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ITexBuildOnDemandHelper::getSimpleTexProps</definition>
+        <argsstring>(asset_handle_t *h, String &amp;out_fn, float &amp;out_gamma)=0</argsstring>
+        <name>getSimpleTexProps</name>
+        <qualifiedname>ITexBuildOnDemandHelper::getSimpleTexProps</qualifiedname>
+        <param>
+          <type>asset_handle_t *</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>String &amp;</type>
+          <declname>out_fn</declname>
+        </param>
+        <param>
+          <type>float &amp;</type>
+          <declname>out_gamma</declname>
+        </param>
+        <briefdescription>
+<para>fills target filepath and configured gamma for texture asset; returns false when bad assed handle passed </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="35" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structITexBuildOnDemandHelper_1a0df6c798115da03997e7af58eb5c1b8e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * ITexBuildOnDemandHelper::getTexName</definition>
+        <argsstring>(unsigned nameId)=0</argsstring>
+        <name>getTexName</name>
+        <qualifiedname>ITexBuildOnDemandHelper::getTexName</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>nameId</declname>
+        </param>
+        <briefdescription>
+<para>resolved nameId to texture asset name (used mainly for reporting) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="38" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="structITexBuildOnDemandHelper_1adbc87e72a39e3c271325ae0ca88ec70f" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ITexBuildOnDemandHelper::prebuildTex</definition>
+        <argsstring>(unsigned nameId, bool &amp;out_cache_was_updated)=0</argsstring>
+        <name>prebuildTex</name>
+        <qualifiedname>ITexBuildOnDemandHelper::prebuildTex</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>nameId</declname>
+        </param>
+        <param>
+          <type>bool &amp;</type>
+          <declname>out_cache_was_updated</declname>
+        </param>
+        <briefdescription>
+<para>prebuilds DDSx to cache for given texture asset nameId; returns false on error </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="41" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structITexBuildOnDemandHelper_1a186cb7b1af1288891ab5e598fdbae46b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>dag::Span&lt; char &gt;</type>
+        <definition>virtual dag::Span&lt; char &gt; ITexBuildOnDemandHelper::getDDSxTexData</definition>
+        <argsstring>(unsigned nameId)=0</argsstring>
+        <name>getDDSxTexData</name>
+        <qualifiedname>ITexBuildOnDemandHelper::getDDSxTexData</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>nameId</declname>
+        </param>
+        <briefdescription>
+<para>returns prebuilt (or cached) DDSx contents for given texture asset nameId; returns empty span on error </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="44" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="structITexBuildOnDemandHelper_1ab7b05ae9707a5397ed72c3252279cf50" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ITexBuildOnDemandHelper::releaseDDSxTexData</definition>
+        <argsstring>(dag::Span&lt; char &gt; data)=0</argsstring>
+        <name>releaseDDSxTexData</name>
+        <qualifiedname>ITexBuildOnDemandHelper::releaseDDSxTexData</qualifiedname>
+        <param>
+          <type>dag::Span&lt; char &gt;</type>
+          <declname>data</declname>
+        </param>
+        <briefdescription>
+<para>releases data previously got with <ref refid="structITexBuildOnDemandHelper_1a186cb7b1af1288891ab5e598fdbae46b" kindref="member">getDDSxTexData()</ref>, needed in order to match allocator pool </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="46" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>helper interface to build texture on demand (to be used by texture factory implementation) </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_buildOnDemandTexFactory.h" line="23" column="1" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="24" bodyend="47"/>
+    <listofallmembers>
+      <member refid="structITexBuildOnDemandHelper_1af5309166200d394f935aaaf1119377cf" prot="public" virt="pure-virtual"><scope>ITexBuildOnDemandHelper</scope><name>checkTexNameHandled</name></member>
+      <member refid="structITexBuildOnDemandHelper_1abee1a52dab5c06891356cac8ce78003e" prot="public" virt="pure-virtual"><scope>ITexBuildOnDemandHelper</scope><name>getConvertibleTexHeader</name></member>
+      <member refid="structITexBuildOnDemandHelper_1a186cb7b1af1288891ab5e598fdbae46b" prot="public" virt="pure-virtual"><scope>ITexBuildOnDemandHelper</scope><name>getDDSxTexData</name></member>
+      <member refid="structITexBuildOnDemandHelper_1a9f3316d3a0a42ef9ca54589dcee0979c" prot="public" virt="pure-virtual"><scope>ITexBuildOnDemandHelper</scope><name>getSimpleTexProps</name></member>
+      <member refid="structITexBuildOnDemandHelper_1a0df6c798115da03997e7af58eb5c1b8e" prot="public" virt="pure-virtual"><scope>ITexBuildOnDemandHelper</scope><name>getTexName</name></member>
+      <member refid="structITexBuildOnDemandHelper_1adbc87e72a39e3c271325ae0ca88ec70f" prot="public" virt="pure-virtual"><scope>ITexBuildOnDemandHelper</scope><name>prebuildTex</name></member>
+      <member refid="structITexBuildOnDemandHelper_1ab7b05ae9707a5397ed72c3252279cf50" prot="public" virt="pure-virtual"><scope>ITexBuildOnDemandHelper</scope><name>releaseDDSxTexData</name></member>
+      <member refid="structITexBuildOnDemandHelper_1a38c46fcae2accf0fda05472eb2cdad5a" prot="public" virt="pure-virtual"><scope>ITexBuildOnDemandHelper</scope><name>resolveTex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

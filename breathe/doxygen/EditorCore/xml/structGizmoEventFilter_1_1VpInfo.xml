@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structGizmoEventFilter_1_1VpInfo" kind="struct" language="C++" prot="protected">
+    <compoundname>GizmoEventFilter::VpInfo</compoundname>
+    <includes refid="ec__gizmofilter_8h" local="no">ec_gizmofilter.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structGizmoEventFilter_1_1VpInfo_1a9fdc8a1e145d7f56714a5bfc4bf8b6e8" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 GizmoEventFilter::VpInfo::center</definition>
+        <argsstring></argsstring>
+        <name>center</name>
+        <qualifiedname>GizmoEventFilter::VpInfo::center</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="140" column="12" bodyfile="ec_gizmofilter.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGizmoEventFilter_1_1VpInfo_1a69b212e508bc95cc1a66a5becc35a332" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 GizmoEventFilter::VpInfo::ax</definition>
+        <argsstring></argsstring>
+        <name>ax</name>
+        <qualifiedname>GizmoEventFilter::VpInfo::ax</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="140" column="19" bodyfile="ec_gizmofilter.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGizmoEventFilter_1_1VpInfo_1a78ac9e698c55579e00191e2561b72f33" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 GizmoEventFilter::VpInfo::ay</definition>
+        <argsstring></argsstring>
+        <name>ay</name>
+        <qualifiedname>GizmoEventFilter::VpInfo::ay</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="140" column="22" bodyfile="ec_gizmofilter.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGizmoEventFilter_1_1VpInfo_1ae22fc35acb530a207a4c2ea1f896984e" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 GizmoEventFilter::VpInfo::az</definition>
+        <argsstring></argsstring>
+        <name>az</name>
+        <qualifiedname>GizmoEventFilter::VpInfo::az</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="140" column="25" bodyfile="ec_gizmofilter.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_gizmofilter.h" line="138" column="3" bodyfile="ec_gizmofilter.h" bodystart="139" bodyend="141"/>
+    <listofallmembers>
+      <member refid="structGizmoEventFilter_1_1VpInfo_1a69b212e508bc95cc1a66a5becc35a332" prot="public" virt="non-virtual"><scope>GizmoEventFilter::VpInfo</scope><name>ax</name></member>
+      <member refid="structGizmoEventFilter_1_1VpInfo_1a78ac9e698c55579e00191e2561b72f33" prot="public" virt="non-virtual"><scope>GizmoEventFilter::VpInfo</scope><name>ay</name></member>
+      <member refid="structGizmoEventFilter_1_1VpInfo_1ae22fc35acb530a207a4c2ea1f896984e" prot="public" virt="non-virtual"><scope>GizmoEventFilter::VpInfo</scope><name>az</name></member>
+      <member refid="structGizmoEventFilter_1_1VpInfo_1a9fdc8a1e145d7f56714a5bfc4bf8b6e8" prot="public" virt="non-virtual"><scope>GizmoEventFilter::VpInfo</scope><name>center</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

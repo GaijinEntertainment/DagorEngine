@@ -1,0 +1,248 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structresptr__detail_1_1Helper_3_01BaseTexture_01_4" kind="struct" language="C++" prot="public">
+    <compoundname>resptr_detail::Helper&lt; BaseTexture &gt;</compoundname>
+    <derivedcompoundref refid="structresptr__detail_1_1Helper_3_01ExternalTexWrapper_01_4" prot="public" virt="non-virtual">resptr_detail::Helper&lt; ExternalTexWrapper &gt;</derivedcompoundref>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ae22048ac7fac9e338a55acf6f5d4f74c" prot="public" static="no">
+        <type>TEXTUREID</type>
+        <definition>using resptr_detail::Helper&lt; BaseTexture &gt;::resid_t =  TEXTUREID</definition>
+        <argsstring></argsstring>
+        <name>resid_t</name>
+        <qualifiedname>resptr_detail::Helper&lt; BaseTexture &gt;::resid_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="111" column="3" bodyfile="dag_resPtr.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1aa0d6706ea279db553b779520082c7c6e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ae22048ac7fac9e338a55acf6f5d4f74c" kindref="member">resid_t</ref></type>
+        <definition>constexpr resid_t resptr_detail::Helper&lt; BaseTexture &gt;::BAD_ID</definition>
+        <argsstring></argsstring>
+        <name>BAD_ID</name>
+        <qualifiedname>resptr_detail::Helper&lt; BaseTexture &gt;::BAD_ID</qualifiedname>
+        <initializer>= D3DRESID(D3DRESID::INVALID_ID)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="112" column="28" bodyfile="dag_resPtr.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1aba51278009aeb1485b1c7fb7f0694795" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ae22048ac7fac9e338a55acf6f5d4f74c" kindref="member">resid_t</ref></type>
+        <definition>static resid_t resptr_detail::Helper&lt; BaseTexture &gt;::registerRes</definition>
+        <argsstring>(const char *name, BaseTexture *res)</argsstring>
+        <name>registerRes</name>
+        <qualifiedname>resptr_detail::Helper&lt; BaseTexture &gt;::registerRes</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="113" column="18" bodyfile="dag_resPtr.h" bodystart="113" bodyend="113"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1acf8850e84736b2ec08b52fdc1a2cd80b" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BaseTexture *</type>
+        <definition>static BaseTexture * resptr_detail::Helper&lt; BaseTexture &gt;::acquire</definition>
+        <argsstring>(resid_t resId)</argsstring>
+        <name>acquire</name>
+        <qualifiedname>resptr_detail::Helper&lt; BaseTexture &gt;::acquire</qualifiedname>
+        <param>
+          <type><ref refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ae22048ac7fac9e338a55acf6f5d4f74c" kindref="member">resid_t</ref></type>
+          <declname>resId</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="114" column="22" bodyfile="dag_resPtr.h" bodystart="114" bodyend="114"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ae1e708057fd2cb6e4b9b10672d2f21ed" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void resptr_detail::Helper&lt; BaseTexture &gt;::release</definition>
+        <argsstring>(resid_t &amp;resId, BaseTexture *res)</argsstring>
+        <name>release</name>
+        <qualifiedname>resptr_detail::Helper&lt; BaseTexture &gt;::release</qualifiedname>
+        <param>
+          <type><ref refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ae22048ac7fac9e338a55acf6f5d4f74c" kindref="member">resid_t</ref> &amp;</type>
+          <declname>resId</declname>
+        </param>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="115" column="15" bodyfile="dag_resPtr.h" bodystart="115" bodyend="115"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1aaa16231e0dee536147915988c3bf7db4" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool resptr_detail::Helper&lt; BaseTexture &gt;::isManagedFactorySet</definition>
+        <argsstring>(resid_t resId)</argsstring>
+        <name>isManagedFactorySet</name>
+        <qualifiedname>resptr_detail::Helper&lt; BaseTexture &gt;::isManagedFactorySet</qualifiedname>
+        <param>
+          <type><ref refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ae22048ac7fac9e338a55acf6f5d4f74c" kindref="member">resid_t</ref></type>
+          <declname>resId</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="116" column="15" bodyfile="dag_resPtr.h" bodystart="116" bodyend="116"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1a9998caa6ab696ee9ba435b6935e778a3" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>static int resptr_detail::Helper&lt; BaseTexture &gt;::getManagedRefCount</definition>
+        <argsstring>(resid_t resId)</argsstring>
+        <name>getManagedRefCount</name>
+        <qualifiedname>resptr_detail::Helper&lt; BaseTexture &gt;::getManagedRefCount</qualifiedname>
+        <param>
+          <type><ref refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ae22048ac7fac9e338a55acf6f5d4f74c" kindref="member">resid_t</ref></type>
+          <declname>resId</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="117" column="14" bodyfile="dag_resPtr.h" bodystart="117" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1a68d1d7c33a5ee0ef56710e40438e94b9" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>static const char * resptr_detail::Helper&lt; BaseTexture &gt;::getName</definition>
+        <argsstring>(BaseTexture *res)</argsstring>
+        <name>getName</name>
+        <qualifiedname>resptr_detail::Helper&lt; BaseTexture &gt;::getName</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="118" column="21" bodyfile="dag_resPtr.h" bodystart="118" bodyend="118"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1a8bffe963ca5a8ff74fdb65efc8b7dc49" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>static const char * resptr_detail::Helper&lt; BaseTexture &gt;::getNameById</definition>
+        <argsstring>(resid_t resId)</argsstring>
+        <name>getNameById</name>
+        <qualifiedname>resptr_detail::Helper&lt; BaseTexture &gt;::getNameById</qualifiedname>
+        <param>
+          <type><ref refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ae22048ac7fac9e338a55acf6f5d4f74c" kindref="member">resid_t</ref></type>
+          <declname>resId</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="119" column="21" bodyfile="dag_resPtr.h" bodystart="119" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ad92bbfd45cf55405b7512b4e5755af08" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool resptr_detail::Helper&lt; BaseTexture &gt;::setVar</definition>
+        <argsstring>(int varId, resid_t resId)</argsstring>
+        <name>setVar</name>
+        <qualifiedname>resptr_detail::Helper&lt; BaseTexture &gt;::setVar</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>varId</declname>
+        </param>
+        <param>
+          <type><ref refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ae22048ac7fac9e338a55acf6f5d4f74c" kindref="member">resid_t</ref></type>
+          <declname>resId</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="120" column="15" bodyfile="dag_resPtr.h" bodystart="120" bodyend="120"/>
+      </memberdef>
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ab5eb476379bc0864a212342ddd646c8a" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool resptr_detail::Helper&lt; BaseTexture &gt;::can_bind</definition>
+        <argsstring>(BaseTexture *)</argsstring>
+        <name>can_bind</name>
+        <qualifiedname>resptr_detail::Helper&lt; BaseTexture &gt;::can_bind</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="121" column="15" bodyfile="dag_resPtr.h" bodystart="121" bodyend="121"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>resptr_detail::Helper&lt; BaseTexture &gt;</label>
+        <link refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4"/>
+      </node>
+      <node id="2">
+        <label>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</label>
+        <link refid="structresptr__detail_1_1Helper_3_01ExternalTexWrapper_01_4"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="dag_resPtr.h" line="109" column="1" bodyfile="dag_resPtr.h" bodystart="110" bodyend="122"/>
+    <listofallmembers>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1acf8850e84736b2ec08b52fdc1a2cd80b" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; BaseTexture &gt;</scope><name>acquire</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1aa0d6706ea279db553b779520082c7c6e" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; BaseTexture &gt;</scope><name>BAD_ID</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ab5eb476379bc0864a212342ddd646c8a" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; BaseTexture &gt;</scope><name>can_bind</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1a9998caa6ab696ee9ba435b6935e778a3" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; BaseTexture &gt;</scope><name>getManagedRefCount</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1a68d1d7c33a5ee0ef56710e40438e94b9" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; BaseTexture &gt;</scope><name>getName</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1a8bffe963ca5a8ff74fdb65efc8b7dc49" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; BaseTexture &gt;</scope><name>getNameById</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1aaa16231e0dee536147915988c3bf7db4" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; BaseTexture &gt;</scope><name>isManagedFactorySet</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1aba51278009aeb1485b1c7fb7f0694795" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; BaseTexture &gt;</scope><name>registerRes</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ae1e708057fd2cb6e4b9b10672d2f21ed" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; BaseTexture &gt;</scope><name>release</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ae22048ac7fac9e338a55acf6f5d4f74c" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; BaseTexture &gt;</scope><name>resid_t</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ad92bbfd45cf55405b7512b4e5755af08" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; BaseTexture &gt;</scope><name>setVar</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

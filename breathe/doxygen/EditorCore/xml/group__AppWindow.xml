@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="group__AppWindow" kind="group">
+    <compoundname>AppWindow</compoundname>
+    <title>Application Window</title>
+    <innerclass refid="classGenericEditorAppWindow" prot="public">GenericEditorAppWindow</innerclass>
+    <innerclass refid="classGenericEditorAppWindow_1_1AppEventHandler" prot="public">GenericEditorAppWindow::AppEventHandler</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

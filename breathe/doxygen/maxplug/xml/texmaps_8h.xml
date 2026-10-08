@@ -1,0 +1,355 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="texmaps_8h" kind="file" language="C++">
+    <compoundname>texmaps.h</compoundname>
+    <includes local="no">max.h</includes>
+    <includes local="no">stdmat.h</includes>
+    <includes refid="common_8h" local="yes">common.h</includes>
+    <includedby refid="mater_8cpp" local="yes">mater.cpp</includedby>
+    <includedby refid="mater2_8cpp" local="yes">mater2.cpp</includedby>
+    <includedby refid="util_8cpp" local="yes">util.cpp</includedby>
+    <incdepgraph>
+      <node id="10">
+        <label>ci.h</label>
+        <link refid="ci_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>common.h</label>
+        <link refid="common_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>texmaps.h</label>
+        <link refid="texmaps_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>algorithm</label>
+      </node>
+      <node id="5">
+        <label>charconv</label>
+      </node>
+      <node id="9">
+        <label>filesystem</label>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+      <node id="3">
+        <label>stdmat.h</label>
+      </node>
+      <node id="7">
+        <label>string</label>
+      </node>
+      <node id="8">
+        <label>string_view</label>
+      </node>
+      <node id="6">
+        <label>vector</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>mater.cpp</label>
+        <link refid="mater_8cpp"/>
+      </node>
+      <node id="3">
+        <label>mater2.cpp</label>
+        <link refid="mater2_8cpp"/>
+      </node>
+      <node id="1">
+        <label>texmaps.h</label>
+        <link refid="texmaps_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classTexmaps" prot="public">Texmaps</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="texmaps_8h_1aff91cf36fd3ffe965f4d5e1155bb06f3" prot="public" static="no">
+        <name>NUMTEXMAPS</name>
+        <initializer>16</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="12" column="9" bodyfile="texmaps.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="texmaps_8h_1af81e6e8611bd96af000d36e5a91d3fe3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void discard_vp_dib</definition>
+        <argsstring>(MtlMakerCallback &amp;cb, BITMAPINFO *bmi)</argsstring>
+        <name>discard_vp_dib</name>
+        <param>
+          <type>MtlMakerCallback &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>BITMAPINFO *</type>
+          <declname>bmi</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="108" column="13" bodyfile="texmaps.h" bodystart="108" bodyend="112"/>
+      </memberdef>
+      <memberdef kind="function" id="texmaps_8h_1ad1aea391df729e6a3ff7d4198ecb40d6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void merge_vp_dib_alpha</definition>
+        <argsstring>(BITMAPINFO *color, const BITMAPINFO *alpha)</argsstring>
+        <name>merge_vp_dib_alpha</name>
+        <param>
+          <type>BITMAPINFO *</type>
+          <declname>color</declname>
+        </param>
+        <param>
+          <type>const BITMAPINFO *</type>
+          <declname>alpha</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="118" column="13" bodyfile="texmaps.h" bodystart="118" bodyend="137"/>
+      </memberdef>
+      <memberdef kind="function" id="texmaps_8h_1a952f04b1ee94c20e39cb874687025f48" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TexHandle *</type>
+        <definition>TexHandle * make_vp_tex_handle</definition>
+        <argsstring>(Texmaps *texmaps, TimeValue t, MtlMakerCallback &amp;cb, Interval &amp;valid)</argsstring>
+        <name>make_vp_tex_handle</name>
+        <param>
+          <type><ref refid="classTexmaps" kindref="compound">Texmaps</ref> *</type>
+          <declname>texmaps</declname>
+        </param>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>MtlMakerCallback &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>Interval &amp;</type>
+          <declname>valid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="142" column="18" bodyfile="texmaps.h" bodystart="142" bodyend="163"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>for<sp/>TexmapContainer/Texmap<sp/>and<sp/>for<sp/>the<sp/>MtlMakerCallback/TexHandle<sp/>the<sp/>viewport<sp/>texture<sp/>is<sp/>built</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="comment">//<sp/>through,<sp/>so<sp/>that<sp/>this<sp/>header<sp/>does<sp/>not<sp/>depend<sp/>on<sp/>what<sp/>its<sp/>includer<sp/>pulled<sp/>in<sp/>first</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdmat.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/>for<sp/>iequal()</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="common_8h" kindref="compound">common.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="texmaps_8h_1aff91cf36fd3ffe965f4d5e1155bb06f3" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>NUMTEXMAPS<sp/>16</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="classTexmaps" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTexmaps" kindref="compound">Texmaps</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>TexmapContainer</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="17" refid="classTexmaps_1af769235e703332ea4a4b1366f7fe8c9f" refkind="member"><highlight class="normal"><sp/><sp/>Texmap<sp/>*<ref refid="classTexmaps_1af769235e703332ea4a4b1366f7fe8c9f" kindref="member">texmap</ref>[<ref refid="texmaps_8h_1aff91cf36fd3ffe965f4d5e1155bb06f3" kindref="member">NUMTEXMAPS</ref>]<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="classTexmaps_1a9a838ff9093c7047c78b605259673a59" refkind="member"><highlight class="normal"><sp/><sp/>Texmap<sp/>*<ref refid="classTexmaps_1a9a838ff9093c7047c78b605259673a59" kindref="member">gettex</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(Texmap<sp/>*)<ref refid="classTexmaps_1ac8138d83f0c50a4db9ae44336194f0b3" kindref="member">GetReference</ref>(i);<sp/>}</highlight></codeline>
+<codeline lineno="20" refid="classTexmaps_1a97be2716022e6c3f967821ef346199f2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTexmaps_1a97be2716022e6c3f967821ef346199f2" kindref="member">settex</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i,<sp/>Texmap<sp/>*t)<sp/>{<sp/>ReplaceReference(i,<sp/>t);<sp/>}</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>the<sp/>file<sp/>the<sp/>slot<sp/>shows,<sp/>NULL<sp/>when<sp/>it<sp/>is<sp/>empty<sp/>or<sp/>holds<sp/>a<sp/>texmap<sp/>of<sp/>another<sp/>kind</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="classTexmaps_1ab6a3316343f39195b1d4250f1bc33487" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>*<ref refid="classTexmaps_1ab6a3316343f39195b1d4250f1bc33487" kindref="member">gettexname</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/>Texmap<sp/>*tex<sp/>=<sp/><ref refid="classTexmaps_1a9a838ff9093c7047c78b605259673a59" kindref="member">gettex</ref>(i);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(tex<sp/>&amp;&amp;<sp/>tex-&gt;ClassID()<sp/>==<sp/>Class_ID(BMTEX_CLASS_ID,<sp/>0))</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>((BitmapTex<sp/>*)tex)-&gt;GetMapName();</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>an<sp/>empty<sp/>path<sp/>asks<sp/>whether<sp/>the<sp/>slot<sp/>is<sp/>empty</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="classTexmaps_1aba2cd348bd02b7eec5e94f130c3ccbc8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTexmaps_1aba2cd348bd02b7eec5e94f130c3ccbc8" kindref="member">holds_texname</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i,<sp/>std::wstring_view<sp/>path)</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(path.empty())</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>!<ref refid="classTexmaps_1a9a838ff9093c7047c78b605259673a59" kindref="member">gettex</ref>(i);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>*name<sp/>=<sp/><ref refid="classTexmaps_1ab6a3316343f39195b1d4250f1bc33487" kindref="member">gettexname</ref>(i);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>name<sp/>&amp;&amp;<sp/><ref refid="common_8h_1a21146447d5e3a739f1cd4c6a0b01fcac" kindref="member">iequal</ref>(name,<sp/>path);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="classTexmaps_1a9b36ecde37b2e4f948311ee4c416f6b1" refkind="member"><highlight class="normal"><sp/><sp/>Class_ID<sp/><ref refid="classTexmaps_1a9b36ecde37b2e4f948311ee4c416f6b1" kindref="member">ClassID</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dagor_8h_1a99239e9790a16497a4626fff345100bd" kindref="member">Texmaps_CID</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="43" refid="classTexmaps_1a188b1ca272ff1f8c2c248c24db76e280" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTexmaps_1a188b1ca272ff1f8c2c248c24db76e280" kindref="member">GetClassName</ref>(TSTR<sp/>&amp;s,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>localized<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/>{<sp/>s<sp/>=<sp/>_T(</highlight><highlight class="stringliteral">&quot;DagorTexmaps&quot;</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="44" refid="classTexmaps_1acbb18a3ed76a92244665d0013e1e940f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTexmaps_1acbb18a3ed76a92244665d0013e1e940f" kindref="member">DeleteThis</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="45" refid="classTexmaps_1a4e9738895d0587ec4bb820809db223ad" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTexmaps_1a4e9738895d0587ec4bb820809db223ad" kindref="member">NumSubs</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="texmaps_8h_1aff91cf36fd3ffe965f4d5e1155bb06f3" kindref="member">NUMTEXMAPS</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="46" refid="classTexmaps_1abc6e852d950fc3b2d43e5630b51e6754" refkind="member"><highlight class="normal"><sp/><sp/>Animatable<sp/>*<ref refid="classTexmaps_1abc6e852d950fc3b2d43e5630b51e6754" kindref="member">SubAnim</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="47"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(i<sp/>&gt;=<sp/>0<sp/>&amp;&amp;<sp/>i<sp/>&lt;<sp/><ref refid="texmaps_8h_1aff91cf36fd3ffe965f4d5e1155bb06f3" kindref="member">NUMTEXMAPS</ref>)</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classTexmaps_1af769235e703332ea4a4b1366f7fe8c9f" kindref="member">texmap</ref>[i];</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="52" refid="classTexmaps_1a7a59907f34a8b760e6f1a54f77d7d622" refkind="member"><highlight class="normal"><sp/><sp/>TSTR<sp/><ref refid="classTexmaps_1a7a59907f34a8b760e6f1a54f77d7d622" kindref="member">SubAnimName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>localized)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="53"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/>TSTR<sp/>s;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/>s.printf(_T(</highlight><highlight class="stringliteral">&quot;tex<sp/>%d&quot;</highlight><highlight class="normal">),<sp/>i);</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>s;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="58" refid="classTexmaps_1aec63bf8d29a35ffed4c5d91dd1240f05" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTexmaps_1aec63bf8d29a35ffed4c5d91dd1240f05" kindref="member">SubNumToRefNum</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>n)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>n;<sp/>}</highlight></codeline>
+<codeline lineno="59" refid="classTexmaps_1a979ed6c01d6e2fd25a78f78f4a807dbc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTexmaps_1a979ed6c01d6e2fd25a78f78f4a807dbc" kindref="member">NumRefs</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="texmaps_8h_1aff91cf36fd3ffe965f4d5e1155bb06f3" kindref="member">NUMTEXMAPS</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="60" refid="classTexmaps_1ac8138d83f0c50a4db9ae44336194f0b3" refkind="member"><highlight class="normal"><sp/><sp/>RefTargetHandle<sp/><ref refid="classTexmaps_1ac8138d83f0c50a4db9ae44336194f0b3" kindref="member">GetReference</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="61"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(i<sp/>&gt;=<sp/>0<sp/>&amp;&amp;<sp/>i<sp/>&lt;<sp/><ref refid="texmaps_8h_1aff91cf36fd3ffe965f4d5e1155bb06f3" kindref="member">NUMTEXMAPS</ref>)</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classTexmaps_1af769235e703332ea4a4b1366f7fe8c9f" kindref="member">texmap</ref>[i];</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="66" refid="classTexmaps_1aaf6e35d5676ad13ee383f1a0b6a7bbab" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTexmaps_1aaf6e35d5676ad13ee383f1a0b6a7bbab" kindref="member">SetReference</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i,<sp/>RefTargetHandle<sp/>rtarg)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="67"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(i<sp/>&gt;=<sp/>0<sp/>&amp;&amp;<sp/>i<sp/>&lt;<sp/><ref refid="texmaps_8h_1aff91cf36fd3ffe965f4d5e1155bb06f3" kindref="member">NUMTEXMAPS</ref>)</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classTexmaps_1af769235e703332ea4a4b1366f7fe8c9f" kindref="member">texmap</ref>[i]<sp/>=<sp/>(Texmap<sp/>*)rtarg;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="71" refid="classTexmaps_1a9724b023e0a99f205d9fcea606c6ffe9" refkind="member"><highlight class="normal"><sp/><sp/>RefTargetHandle<sp/><ref refid="classTexmaps_1a9724b023e0a99f205d9fcea606c6ffe9" kindref="member">Clone</ref>(RemapDir<sp/>&amp;remap)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="72"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTexmaps" kindref="compound">Texmaps</ref><sp/>*mtl<sp/>=<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/><ref refid="classTexmaps" kindref="compound">Texmaps</ref>;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="texmaps_8h_1aff91cf36fd3ffe965f4d5e1155bb06f3" kindref="member">NUMTEXMAPS</ref>;<sp/>++i)</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mtl-&gt;ReplaceReference(i,<sp/>remap.CloneRef(<ref refid="classTexmaps_1af769235e703332ea4a4b1366f7fe8c9f" kindref="member">texmap</ref>[i]));</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>BaseClone(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>mtl,<sp/>remap);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>mtl;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80" refid="classTexmaps_1ae21d669847c06233693f25aac966cc11" refkind="member"><highlight class="normal"><sp/><sp/>RefResult<sp/><ref refid="classTexmaps_1ae21d669847c06233693f25aac966cc11" kindref="member">NotifyRefChanged</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Interval<sp/>&amp;changeInt,<sp/>RefTargetHandle<sp/>hTarget,<sp/>PartID<sp/>&amp;partID,<sp/>RefMessage<sp/>message,</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>BOOL<sp/>propagate)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="82"><highlight class="keyword"></highlight></codeline>
+<codeline lineno="83"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(message)</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>REFMSG_GET_PARAM_DIM:</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>GetParamDim<sp/>*gpd<sp/>=<sp/>(GetParamDim<sp/>*)partID;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>gpd-&gt;dim<sp/>=<sp/>defaultDim;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>REFMSG_GET_PARAM_NAME_NONLOCALIZED:</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>GetParamName<sp/>*gpn<sp/>=<sp/>(GetParamName<sp/>*)partID;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>REF_STOP;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(REF_SUCCEED);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight><highlight class="comment">//<sp/>The<sp/>viewport<sp/>texture<sp/>of<sp/>a<sp/>Dagor<sp/>material<sp/>is<sp/>the<sp/>colour<sp/>DIB<sp/>of<sp/>its<sp/>first<sp/>texture<sp/>slot<sp/>with<sp/>the<sp/>mono</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight><highlight class="comment">//<sp/>DIB<sp/>of<sp/>the<sp/>same<sp/>slot<sp/>merged<sp/>into<sp/>the<sp/>alpha.<sp/>Both<sp/>material<sp/>classes<sp/>build<sp/>it<sp/>through</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight><highlight class="comment">//<sp/>make_vp_tex_handle();<sp/>the<sp/>two<sp/>functions<sp/>above<sp/>it<sp/>are<sp/>its<sp/>steps.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="comment">//<sp/>GetVPDisplayDIB()<sp/>hands<sp/>over<sp/>a<sp/>DIB<sp/>the<sp/>caller<sp/>owns,<sp/>and<sp/>MtlMakerCallback<sp/>has<sp/>no<sp/>way<sp/>to<sp/>release<sp/>one</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight><highlight class="comment">//<sp/>except<sp/>MakeHandle(),<sp/>which<sp/>takes<sp/>ownership.<sp/>A<sp/>throwaway<sp/>handle<sp/>is<sp/>how<sp/>an<sp/>unused<sp/>DIB<sp/>gets<sp/>freed.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108" refid="texmaps_8h_1af81e6e8611bd96af000d36e5a91d3fe3" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="texmaps_8h_1af81e6e8611bd96af000d36e5a91d3fe3" kindref="member">discard_vp_dib</ref>(MtlMakerCallback<sp/>&amp;cb,<sp/>BITMAPINFO<sp/>*bmi)</highlight></codeline>
+<codeline lineno="109"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(TexHandle<sp/>*th<sp/>=<sp/>cb.MakeHandle(bmi))</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/>th-&gt;DeleteThis();</highlight></codeline>
+<codeline lineno="112"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Writes<sp/>the<sp/>intensity<sp/>of<sp/>`alpha`<sp/>into<sp/>the<sp/>alpha<sp/>channel<sp/>of<sp/>`color`,<sp/>in<sp/>place.<sp/>Leaves<sp/>`color`<sp/>alone</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight><highlight class="comment">//<sp/>unless<sp/>both<sp/>DIBs<sp/>are<sp/>palette-less<sp/>32bpp,<sp/>the<sp/>form<sp/>that<sp/>puts<sp/>the<sp/>pixels<sp/>right<sp/>after<sp/>the<sp/>header,<sp/>and</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight><highlight class="comment">//<sp/>unless<sp/>their<sp/>geometry<sp/>matches<sp/>exactly:<sp/>one<sp/>lockstep<sp/>walk<sp/>only<sp/>keeps<sp/>the<sp/>rows,<sp/>and<sp/>the<sp/>top-down<sp/>or</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight><highlight class="comment">//<sp/>bottom-up<sp/>order<sp/>biHeight&apos;s<sp/>sign<sp/>carries,<sp/>aligned<sp/>when<sp/>both<sp/>sides<sp/>step<sp/>the<sp/>same<sp/>grid.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="118" refid="texmaps_8h_1ad1aea391df729e6a3ff7d4198ecb40d6" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="texmaps_8h_1ad1aea391df729e6a3ff7d4198ecb40d6" kindref="member">merge_vp_dib_alpha</ref>(BITMAPINFO<sp/>*color,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>BITMAPINFO<sp/>*alpha)</highlight></codeline>
+<codeline lineno="119"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>BITMAPINFOHEADER<sp/>&amp;ch<sp/>=<sp/>color-&gt;bmiHeader;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>BITMAPINFOHEADER<sp/>&amp;ah<sp/>=<sp/>alpha-&gt;bmiHeader;</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(ch.biBitCount<sp/>!=<sp/>32<sp/>||<sp/>ch.biCompression<sp/>!=<sp/>BI_RGB)</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(ah.biBitCount<sp/>!=<sp/>32<sp/>||<sp/>ah.biCompression<sp/>!=<sp/>BI_RGB)</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(ch.biWidth<sp/>!=<sp/>ah.biWidth<sp/>||<sp/>ch.biHeight<sp/>!=<sp/>ah.biHeight)</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>biHeight<sp/>is<sp/>negative<sp/>for<sp/>a<sp/>top-down<sp/>DIB</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>numPixels<sp/>=<sp/>size_t(ch.biWidth)<sp/>*<sp/>size_t(ch.biHeight<sp/>&lt;<sp/>0<sp/>?<sp/>-ch.biHeight<sp/>:<sp/>ch.biHeight);</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/>UBYTE<sp/>*colorPtr<sp/>=<sp/>(UBYTE<sp/>*)((BYTE<sp/>*)color<sp/>+<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(BITMAPINFOHEADER));</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>UBYTE<sp/>*alphaPtr<sp/>=<sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>UBYTE<sp/>*)((</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>BYTE<sp/>*)alpha<sp/>+<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(BITMAPINFOHEADER));</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>numPixels;<sp/>++i,<sp/>colorPtr<sp/>+=<sp/>4,<sp/>alphaPtr<sp/>+=<sp/>4)</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/>colorPtr[3]<sp/>=<sp/>(UBYTE)(((int)alphaPtr[0]<sp/>+<sp/>alphaPtr[1]<sp/>+<sp/>alphaPtr[2])<sp/>/<sp/>3);</highlight></codeline>
+<codeline lineno="137"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Builds<sp/>the<sp/>viewport<sp/>texture<sp/>handle<sp/>of<sp/>the<sp/>first<sp/>texture<sp/>slot,<sp/>NULL<sp/>if<sp/>the<sp/>slot<sp/>is<sp/>empty<sp/>or<sp/>the</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight><highlight class="comment">//<sp/>driver<sp/>would<sp/>not<sp/>take<sp/>the<sp/>DIB.<sp/>Leaves<sp/>nothing<sp/>behind<sp/>either<sp/>way:<sp/>MakeHandle()<sp/>takes<sp/>the<sp/>colour<sp/>DIB</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="comment">//<sp/>over,<sp/>and<sp/>the<sp/>mono<sp/>one<sp/>is<sp/>always<sp/>discarded.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="142" refid="texmaps_8h_1a952f04b1ee94c20e39cb874687025f48" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>TexHandle<sp/>*<ref refid="texmaps_8h_1a952f04b1ee94c20e39cb874687025f48" kindref="member">make_vp_tex_handle</ref>(<ref refid="classTexmaps" kindref="compound">Texmaps</ref><sp/>*texmaps,<sp/>TimeValue<sp/>t,<sp/>MtlMakerCallback<sp/>&amp;cb,<sp/>Interval<sp/>&amp;valid)</highlight></codeline>
+<codeline lineno="143"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/>Texmap<sp/>*tex<sp/>=<sp/>texmaps<sp/>?<sp/>texmaps-&gt;<ref refid="classTexmaps_1a9a838ff9093c7047c78b605259673a59" kindref="member">gettex</ref>(0)<sp/>:<sp/>NULL;</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!tex)</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/>BITMAPINFO<sp/>*bmiColor<sp/>=<sp/>tex-&gt;GetVPDisplayDIB(t,<sp/>cb,<sp/>valid,<sp/>FALSE,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!bmiColor)</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/>BITMAPINFO<sp/>*bmiAlpha<sp/>=<sp/>tex-&gt;GetVPDisplayDIB(t,<sp/>cb,<sp/>valid,<sp/>TRUE,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!bmiAlpha)</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="texmaps_8h_1af81e6e8611bd96af000d36e5a91d3fe3" kindref="member">discard_vp_dib</ref>(cb,<sp/>bmiColor);</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><ref refid="texmaps_8h_1ad1aea391df729e6a3ff7d4198ecb40d6" kindref="member">merge_vp_dib_alpha</ref>(bmiColor,<sp/>bmiAlpha);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><ref refid="texmaps_8h_1af81e6e8611bd96af000d36e5a91d3fe3" kindref="member">discard_vp_dib</ref>(cb,<sp/>bmiAlpha);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>cb.MakeHandle(bmiColor);</highlight></codeline>
+<codeline lineno="163"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="texmaps.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,123 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDagLight" kind="struct" language="C++" prot="public">
+    <compoundname>DagLight</compoundname>
+    <includes refid="dagfmt_8h" local="no">dagfmt.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDagLight_1a9ddde5a9057f0479a6660f80732d0abd" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagLight::r</definition>
+        <argsstring></argsstring>
+        <name>r</name>
+        <qualifiedname>DagLight::r</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="121" column="9" bodyfile="dagfmt.h" bodystart="121" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagLight_1a51d9e2499cc8f4c052bc0052e0819b8d" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagLight::g</definition>
+        <argsstring></argsstring>
+        <name>g</name>
+        <qualifiedname>DagLight::g</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="121" column="11" bodyfile="dagfmt.h" bodystart="121" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagLight_1a38e0dfeeba77ea75a334d7f822a08cfa" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagLight::b</definition>
+        <argsstring></argsstring>
+        <name>b</name>
+        <qualifiedname>DagLight::b</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="121" column="13" bodyfile="dagfmt.h" bodystart="121" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagLight_1a25eebd5c643d1850f7ff00adac52d40d" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagLight::range</definition>
+        <argsstring></argsstring>
+        <name>range</name>
+        <qualifiedname>DagLight::range</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="122" column="9" bodyfile="dagfmt.h" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagLight_1a60681e33fb6279b0141c4405f1140758" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagLight::drad</definition>
+        <argsstring></argsstring>
+        <name>drad</name>
+        <qualifiedname>DagLight::drad</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="122" column="15" bodyfile="dagfmt.h" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagLight_1a7680f03a14534f23d1c291ac74b6f11d" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char DagLight::decay</definition>
+        <argsstring></argsstring>
+        <name>decay</name>
+        <qualifiedname>DagLight::decay</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="123" column="17" bodyfile="dagfmt.h" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDagLight_1a319e7be78e0a0f3be15f12b0d7744a1d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagLight::DagLight</definition>
+        <argsstring>()</argsstring>
+        <name>DagLight</name>
+        <qualifiedname>DagLight::DagLight</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="124" column="3" bodyfile="dagfmt.h" bodystart="124" bodyend="124"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagfmt.h" line="119" column="1" bodyfile="dagfmt.h" bodystart="120" bodyend="125"/>
+    <listofallmembers>
+      <member refid="structDagLight_1a38e0dfeeba77ea75a334d7f822a08cfa" prot="public" virt="non-virtual"><scope>DagLight</scope><name>b</name></member>
+      <member refid="structDagLight_1a319e7be78e0a0f3be15f12b0d7744a1d" prot="public" virt="non-virtual"><scope>DagLight</scope><name>DagLight</name></member>
+      <member refid="structDagLight_1a7680f03a14534f23d1c291ac74b6f11d" prot="public" virt="non-virtual"><scope>DagLight</scope><name>decay</name></member>
+      <member refid="structDagLight_1a60681e33fb6279b0141c4405f1140758" prot="public" virt="non-virtual"><scope>DagLight</scope><name>drad</name></member>
+      <member refid="structDagLight_1a51d9e2499cc8f4c052bc0052e0819b8d" prot="public" virt="non-virtual"><scope>DagLight</scope><name>g</name></member>
+      <member refid="structDagLight_1a9ddde5a9057f0479a6660f80732d0abd" prot="public" virt="non-virtual"><scope>DagLight</scope><name>r</name></member>
+      <member refid="structDagLight_1a25eebd5c643d1850f7ff00adac52d40d" prot="public" virt="non-virtual"><scope>DagLight</scope><name>range</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

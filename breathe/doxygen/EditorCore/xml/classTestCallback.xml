@@ -1,0 +1,103 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTestCallback" kind="class" language="C++" prot="public">
+    <compoundname>TestCallback</compoundname>
+    <includes refid="ec__testSystem_8h" local="no">ec_testSystem.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classTestCallback_1af190a8321e22c186d3333d6c3dac8a27" prot="public" static="no">
+        <type>eastl::function&lt; void(<ref refid="classTestRuntime" kindref="compound">TestRuntime</ref> &amp;)&gt;</type>
+        <definition>using TestCallback::TestFunc =  eastl::function&lt;void(TestRuntime &amp;)&gt;</definition>
+        <argsstring></argsstring>
+        <name>TestFunc</name>
+        <qualifiedname>TestCallback::TestFunc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="33" column="3" bodyfile="ec_testSystem.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classTestCallback_1ad1e0af6cf82e67f74d43af6b8bc3c7d2" prot="private" static="no" mutable="no">
+        <type><ref refid="classTestCallback_1af190a8321e22c186d3333d6c3dac8a27" kindref="member">TestFunc</ref></type>
+        <definition>TestFunc TestCallback::testFunc</definition>
+        <argsstring></argsstring>
+        <name>testFunc</name>
+        <qualifiedname>TestCallback::testFunc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="41" column="12" bodyfile="ec_testSystem.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTestCallback_1a0489ec2e3c8cbcceaabfdd559d202639" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TestCallback::TestCallback</definition>
+        <argsstring>(TestFunc test_func)</argsstring>
+        <name>TestCallback</name>
+        <qualifiedname>TestCallback::TestCallback</qualifiedname>
+        <param>
+          <type><ref refid="classTestCallback_1af190a8321e22c186d3333d6c3dac8a27" kindref="member">TestFunc</ref></type>
+          <declname>test_func</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="35" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestCallback_1a641c8d6d0a35a2ed0af7687d0cfb3443" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual TestCallback::~TestCallback</definition>
+        <argsstring>()</argsstring>
+        <name>~TestCallback</name>
+        <qualifiedname>TestCallback::~TestCallback</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="36" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestCallback_1a6999f1b38938078bf0e05076c1d5b15a" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void TestCallback::run</definition>
+        <argsstring>(TestRuntime &amp;rt)</argsstring>
+        <name>run</name>
+        <qualifiedname>TestCallback::run</qualifiedname>
+        <param>
+          <type><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref> &amp;</type>
+          <declname>rt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="38" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_testSystem.h" line="30" column="1" bodyfile="ec_testSystem.h" bodystart="31" bodyend="42"/>
+    <listofallmembers>
+      <member refid="classTestCallback_1a6999f1b38938078bf0e05076c1d5b15a" prot="public" virt="virtual"><scope>TestCallback</scope><name>run</name></member>
+      <member refid="classTestCallback_1a0489ec2e3c8cbcceaabfdd559d202639" prot="public" virt="non-virtual"><scope>TestCallback</scope><name>TestCallback</name></member>
+      <member refid="classTestCallback_1af190a8321e22c186d3333d6c3dac8a27" prot="public" virt="non-virtual"><scope>TestCallback</scope><name>TestFunc</name></member>
+      <member refid="classTestCallback_1ad1e0af6cf82e67f74d43af6b8bc3c7d2" prot="private" virt="non-virtual"><scope>TestCallback</scope><name>testFunc</name></member>
+      <member refid="classTestCallback_1a641c8d6d0a35a2ed0af7687d0cfb3443" prot="public" virt="virtual"><scope>TestCallback</scope><name>~TestCallback</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

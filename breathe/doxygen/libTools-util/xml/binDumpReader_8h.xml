@@ -1,0 +1,217 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="binDumpReader_8h" kind="file" language="C++">
+    <compoundname>binDumpReader.h</compoundname>
+    <includes local="no">ioSys/dag_genIo.h</includes>
+    <includes local="no">util/dag_stdint.h</includes>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includes refid="targetClass_8h" local="no">libTools/util/targetClass.h</includes>
+    <includes local="no">util/dag_string.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>binDumpReader.h</label>
+        <link refid="binDumpReader_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>libTools/util/targetClass.h</label>
+        <link refid="targetClass_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ioSys/dag_genIo.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_baseDef.h</label>
+      </node>
+      <node id="4">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="3">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classBinDumpReader" prot="public">BinDumpReader</innerclass>
+    <innerclass refid="structBinDumpReader_1_1Block" prot="protected">BinDumpReader::Block</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;ioSys/dag_genIo.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="targetClass_8h" kindref="compound">libTools/util/targetClass.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="classBinDumpReader" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classBinDumpReader" kindref="compound">BinDumpReader</ref></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="17" refid="classBinDumpReader_1a51d9e992da99048094af738c751ba066" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBinDumpReader_1a51d9e992da99048094af738c751ba066" kindref="member">BinDumpReader</ref>(IGenLoad<sp/>*_crd,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>target,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>big_endian)<sp/>:<sp/><ref refid="classBinDumpReader_1a329341396bacb280674e73255628f680" kindref="member">crd</ref>(_crd),<sp/><ref refid="classBinDumpReader_1ad66c54818bc1ec70d43d640eb9f05d7b" kindref="member">READ_BE</ref>(big_endian),<sp/><ref refid="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" kindref="member">blocks</ref>(tmpmem),<sp/><ref refid="classBinDumpReader_1a08ee4cf565a5d5d9d49645584dd0c200" kindref="member">targetCode</ref>(target)</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="classBinDumpReader_1a842bf38669ea487a190281854e65af13" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a842bf38669ea487a190281854e65af13" kindref="member">getTarget</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a08ee4cf565a5d5d9d49645584dd0c200" kindref="member">targetCode</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="21" refid="classBinDumpReader_1af0cb83e07985fabd1bdf1dd1883435cc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1af0cb83e07985fabd1bdf1dd1883435cc" kindref="member">readBE</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1ad66c54818bc1ec70d43d640eb9f05d7b" kindref="member">READ_BE</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="classBinDumpReader_1a7333453b543af0b4b6f13d09feb84c1b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a7333453b543af0b4b6f13d09feb84c1b" kindref="member">readFourCC</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a329341396bacb280674e73255628f680" kindref="member">crd</ref>-&gt;readInt();<sp/>}</highlight></codeline>
+<codeline lineno="24" refid="classBinDumpReader_1a4b1b15b84396c32d51fcb5891126b55b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a4b1b15b84396c32d51fcb5891126b55b" kindref="member">readInt32e</ref>()</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>v<sp/>=<sp/><ref refid="classBinDumpReader_1a329341396bacb280674e73255628f680" kindref="member">crd</ref>-&gt;readInt();</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1ad66c54818bc1ec70d43d640eb9f05d7b" kindref="member">READ_BE</ref><sp/>?<sp/><ref refid="classBinDumpReader_1a9fac2068667a3f2c2650ea301f91d65e" kindref="member">le2be32</ref>(v)<sp/>:<sp/>v;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="classBinDumpReader_1adf32cbc673fe980d7cf6d6da3248320a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1adf32cbc673fe980d7cf6d6da3248320a" kindref="member">read32ex</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*dest,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>len)</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT((len<sp/>&amp;<sp/>3)<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classBinDumpReader_1a329341396bacb280674e73255628f680" kindref="member">crd</ref>-&gt;read(dest,<sp/>len);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classBinDumpReader_1ad66c54818bc1ec70d43d640eb9f05d7b" kindref="member">READ_BE</ref>)</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classBinDumpReader_1a10b710197cdfa945bbcb1c25a1c4d89d" kindref="member">le2be32_s</ref>(dest,<sp/>dest,<sp/>len<sp/>/<sp/>4);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38" refid="classBinDumpReader_1a73af97091cdd4d625ac44119a89283d3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a73af97091cdd4d625ac44119a89283d3" kindref="member">readDwString</ref>(String<sp/>&amp;s)</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>len<sp/>=<sp/><ref refid="classBinDumpReader_1a4b1b15b84396c32d51fcb5891126b55b" kindref="member">readInt32e</ref>();</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/>s.resize(len<sp/>+<sp/>1);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classBinDumpReader_1a329341396bacb280674e73255628f680" kindref="member">crd</ref>-&gt;read(s.data(),<sp/>len);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/>s[len]<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(len<sp/>&amp;<sp/>3)</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classBinDumpReader_1a329341396bacb280674e73255628f680" kindref="member">crd</ref>-&gt;seekrel(4<sp/>-<sp/>(len<sp/>&amp;<sp/>3));</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="classBinDumpReader_1ac216f71d1ae85df9f8e9632157d4592f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1ac216f71d1ae85df9f8e9632157d4592f" kindref="member">tell</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a329341396bacb280674e73255628f680" kindref="member">crd</ref>-&gt;tell();<sp/>}</highlight></codeline>
+<codeline lineno="49" refid="classBinDumpReader_1a910f7709076480c6815b821271e2d676" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a910f7709076480c6815b821271e2d676" kindref="member">seekto</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ofs)<sp/>{<sp/><ref refid="classBinDumpReader_1a329341396bacb280674e73255628f680" kindref="member">crd</ref>-&gt;seekto(ofs);<sp/>}</highlight></codeline>
+<codeline lineno="50" refid="classBinDumpReader_1a735aca4bdd010f8c4e44236f60b60552" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a735aca4bdd010f8c4e44236f60b60552" kindref="member">seekrel</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ofs)<sp/>{<sp/><ref refid="classBinDumpReader_1a329341396bacb280674e73255628f680" kindref="member">crd</ref>-&gt;seekrel(ofs);<sp/>}</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="classBinDumpReader_1ac15b3797fca7a8bbd5484ebe11dda9e1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1ac15b3797fca7a8bbd5484ebe11dda9e1" kindref="member">beginBlock</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>*out_block_flags<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>l<sp/>=<sp/><ref refid="classBinDumpReader_1a4b1b15b84396c32d51fcb5891126b55b" kindref="member">readInt32e</ref>();</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(out_block_flags)</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>*out_block_flags<sp/>=<sp/>l<sp/>&gt;&gt;<sp/>30;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/>l<sp/>&amp;=<sp/>0x3FFFFFFF;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" kindref="member">blocks</ref>.push_back().set(<ref refid="classBinDumpReader_1ac216f71d1ae85df9f8e9632157d4592f" kindref="member">tell</ref>(),<sp/>l);</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>l;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="classBinDumpReader_1aa5f789e9cd089f819ecd9488b1555458" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1aa5f789e9cd089f819ecd9488b1555458" kindref="member">beginTaggedBlock</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>*out_block_flags<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classBinDumpReader_1ac15b3797fca7a8bbd5484ebe11dda9e1" kindref="member">beginBlock</ref>(out_block_flags);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a7333453b543af0b4b6f13d09feb84c1b" kindref="member">readFourCC</ref>();</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69" refid="classBinDumpReader_1a46e0a380e9f672ddde713c3d8712bd3e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a46e0a380e9f672ddde713c3d8712bd3e" kindref="member">endBlock</ref>()</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" kindref="member">blocks</ref>.size()<sp/>&lt;=<sp/>0)</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>DAGOR_THROW(IGenLoad::LoadException(</highlight><highlight class="stringliteral">&quot;endBlock<sp/>without<sp/>beginBlock&quot;</highlight><highlight class="normal">,<sp/><ref refid="classBinDumpReader_1ac216f71d1ae85df9f8e9632157d4592f" kindref="member">tell</ref>()));</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structBinDumpReader_1_1Block" kindref="compound">Block</ref><sp/>&amp;b<sp/>=<sp/><ref refid="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" kindref="member">blocks</ref>.back();</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classBinDumpReader_1a910f7709076480c6815b821271e2d676" kindref="member">seekto</ref>(b.<ref refid="structBinDumpReader_1_1Block_1a0968322d33c349becb3df4def6866d23" kindref="member">ofs</ref><sp/>+<sp/>b.<ref refid="structBinDumpReader_1_1Block_1a24eba229e4c9e8a8fe7d4dd7a4100b67" kindref="member">len</ref>);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" kindref="member">blocks</ref>.pop_back();</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79" refid="classBinDumpReader_1a238b88d91d736b37bff4d4c459abf9ba" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a238b88d91d736b37bff4d4c459abf9ba" kindref="member">getBlockLength</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" kindref="member">blocks</ref>.size()<sp/>?<sp/><ref refid="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" kindref="member">blocks</ref>.back().len<sp/>:<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="80" refid="classBinDumpReader_1a5c3ae0a97094a158d70a1194af235e83" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a5c3ae0a97094a158d70a1194af235e83" kindref="member">getBlockRest</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" kindref="member">blocks</ref>.size()<sp/>?<sp/><ref refid="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" kindref="member">blocks</ref>.back().end()<sp/>-<sp/><ref refid="classBinDumpReader_1ac216f71d1ae85df9f8e9632157d4592f" kindref="member">tell</ref>()<sp/>:<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="81" refid="classBinDumpReader_1a97eb12193654af033e568b11914bfaf8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a97eb12193654af033e568b11914bfaf8" kindref="member">getBlockLevel</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" kindref="member">blocks</ref>.size();<sp/>}</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83" refid="classBinDumpReader_1a2832270dbbdd399bc3597dee7610dd86" refkind="member"><highlight class="normal"><sp/><sp/>IGenLoad<sp/>&amp;<ref refid="classBinDumpReader_1a2832270dbbdd399bc3597dee7610dd86" kindref="member">getRawReader</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*<ref refid="classBinDumpReader_1a329341396bacb280674e73255628f680" kindref="member">crd</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85" refid="classBinDumpReader_1a61729962bf028bfc5d02552a6e98392b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a61729962bf028bfc5d02552a6e98392b" kindref="member">convert32</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*p,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sz)</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT((sz<sp/>&amp;<sp/>3)<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classBinDumpReader_1ad66c54818bc1ec70d43d640eb9f05d7b" kindref="member">READ_BE</ref>)</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classBinDumpReader_1a10b710197cdfa945bbcb1c25a1c4d89d" kindref="member">le2be32_s</ref>(p,<sp/>p,<sp/>sz<sp/>/<sp/>4);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92" refid="classBinDumpReader_1ae7637aaae37a01cfda1a98944c2a4c55" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1ae7637aaae37a01cfda1a98944c2a4c55" kindref="member">convert16</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*p,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sz)</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT((sz<sp/>&amp;<sp/>1)<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classBinDumpReader_1ad66c54818bc1ec70d43d640eb9f05d7b" kindref="member">READ_BE</ref>)</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classBinDumpReader_1ae9e412f1e00e8a5bddf656cf97309357" kindref="member">le2be16_s</ref>(p,<sp/>p,<sp/>sz<sp/>/<sp/>2);</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99" refid="classBinDumpReader_1a11f989bbd1de0a19a048869617a8dc87" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a11f989bbd1de0a19a048869617a8dc87" kindref="member">convert32</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>v)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1ad66c54818bc1ec70d43d640eb9f05d7b" kindref="member">READ_BE</ref><sp/>?<sp/><ref refid="classBinDumpReader_1a9fac2068667a3f2c2650ea301f91d65e" kindref="member">le2be32</ref>(v)<sp/>:<sp/>v;<sp/>}</highlight></codeline>
+<codeline lineno="100" refid="classBinDumpReader_1a4dca3c2a70018293a02fa390f7311473" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a4dca3c2a70018293a02fa390f7311473" kindref="member">convert16</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>v)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1ad66c54818bc1ec70d43d640eb9f05d7b" kindref="member">READ_BE</ref><sp/>?<sp/><ref refid="classBinDumpReader_1a1a67bc5202a8acce7857ae5b14ecbf64" kindref="member">le2be16</ref>(v)<sp/>:<sp/>v;<sp/>}</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="103" refid="classBinDumpReader_1a6cce2f7f0a7def1ae046265d051d0a22" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a6cce2f7f0a7def1ae046265d051d0a22" kindref="member">convert32</ref>(dag::Span&lt;T&gt;<sp/>s)</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classBinDumpReader_1a61729962bf028bfc5d02552a6e98392b" kindref="member">convert32</ref>(s.data(),<sp/>data_size(s));</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="108" refid="classBinDumpReader_1aecc607ac15737222e97772166cfea458" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1aecc607ac15737222e97772166cfea458" kindref="member">convert16</ref>(dag::Span&lt;T&gt;<sp/>s)</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classBinDumpReader_1ae7637aaae37a01cfda1a98944c2a4c55" kindref="member">convert16</ref>(s.data(),<sp/>data_size(s));</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="115" refid="classBinDumpReader_1a9fac2068667a3f2c2650ea301f91d65e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="classBinDumpReader_1a9fac2068667a3f2c2650ea301f91d65e" kindref="member">le2be32</ref>(uint32_t<sp/>v)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(v<sp/>&gt;&gt;<sp/>24)<sp/>|<sp/>((v<sp/>&gt;&gt;<sp/>8)<sp/>&amp;<sp/>0xFF00)<sp/>|<sp/>((v<sp/>&lt;&lt;<sp/>8)<sp/>&amp;<sp/>0xFF0000)<sp/>|<sp/>(v<sp/>&lt;&lt;<sp/>24);<sp/>}</highlight></codeline>
+<codeline lineno="116" refid="classBinDumpReader_1a1a67bc5202a8acce7857ae5b14ecbf64" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>uint16_t<sp/><ref refid="classBinDumpReader_1a1a67bc5202a8acce7857ae5b14ecbf64" kindref="member">le2be16</ref>(uint16_t<sp/>v)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(v<sp/>&gt;&gt;<sp/>8)<sp/>|<sp/>((v<sp/>&amp;<sp/>0xFF)<sp/>&lt;&lt;<sp/>8);<sp/>}</highlight></codeline>
+<codeline lineno="117" refid="classBinDumpReader_1a10b710197cdfa945bbcb1c25a1c4d89d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a10b710197cdfa945bbcb1c25a1c4d89d" kindref="member">le2be32_s</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*dest,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*src,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dw_num)</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>*d<sp/>=<sp/>(uint32_t<sp/>*)dest;</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>*s<sp/>=<sp/>(uint32_t<sp/>*)src;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(dw_num<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>*d<sp/>=<sp/><ref refid="classBinDumpReader_1a9fac2068667a3f2c2650ea301f91d65e" kindref="member">le2be32</ref>(*s);</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>d++;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>s++;</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>dw_num--;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="129" refid="classBinDumpReader_1ae9e412f1e00e8a5bddf656cf97309357" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1ae9e412f1e00e8a5bddf656cf97309357" kindref="member">le2be16_s</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*dest,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*src,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>w_num)</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/>uint16_t<sp/>*d<sp/>=<sp/>(uint16_t<sp/>*)dest;</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint16_t<sp/>*s<sp/>=<sp/>(uint16_t<sp/>*)src;</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(w_num<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>*d<sp/>=<sp/><ref refid="classBinDumpReader_1a1a67bc5202a8acce7857ae5b14ecbf64" kindref="member">le2be16</ref>(*s);</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>d++;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>s++;</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>w_num--;</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="143" refid="classBinDumpReader_1a329341396bacb280674e73255628f680" refkind="member"><highlight class="normal"><sp/><sp/>IGenLoad<sp/>*<ref refid="classBinDumpReader_1a329341396bacb280674e73255628f680" kindref="member">crd</ref>;</highlight></codeline>
+<codeline lineno="144" refid="classBinDumpReader_1ad66c54818bc1ec70d43d640eb9f05d7b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1ad66c54818bc1ec70d43d640eb9f05d7b" kindref="member">READ_BE</ref>;</highlight></codeline>
+<codeline lineno="145" refid="classBinDumpReader_1a08ee4cf565a5d5d9d49645584dd0c200" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="classBinDumpReader_1a08ee4cf565a5d5d9d49645584dd0c200" kindref="member">targetCode</ref>;</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147" refid="structBinDumpReader_1_1Block" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structBinDumpReader_1_1Block" kindref="compound">Block</ref></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="149" refid="structBinDumpReader_1_1Block_1a24eba229e4c9e8a8fe7d4dd7a4100b67" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structBinDumpReader_1_1Block_1a0968322d33c349becb3df4def6866d23" kindref="member">ofs</ref>,<sp/><ref refid="structBinDumpReader_1_1Block_1a24eba229e4c9e8a8fe7d4dd7a4100b67" kindref="member">len</ref>;</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151" refid="structBinDumpReader_1_1Block_1a5706c3b0cad7e4701ecbba66a3bb398f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structBinDumpReader_1_1Block_1a5706c3b0cad7e4701ecbba66a3bb398f" kindref="member">end</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structBinDumpReader_1_1Block_1a0968322d33c349becb3df4def6866d23" kindref="member">ofs</ref><sp/>+<sp/><ref refid="structBinDumpReader_1_1Block_1a24eba229e4c9e8a8fe7d4dd7a4100b67" kindref="member">len</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="152" refid="structBinDumpReader_1_1Block_1a81f4b6287c6bc0d018ea9a9aaa834ddd" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structBinDumpReader_1_1Block_1a81f4b6287c6bc0d018ea9a9aaa834ddd" kindref="member">set</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>o,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>l)</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structBinDumpReader_1_1Block_1a0968322d33c349becb3df4def6866d23" kindref="member">ofs</ref><sp/>=<sp/>o;</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structBinDumpReader_1_1Block_1a24eba229e4c9e8a8fe7d4dd7a4100b67" kindref="member">len</ref><sp/>=<sp/>l;</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="158" refid="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;Block&gt;<sp/><ref refid="classBinDumpReader_1aaebcf9293fa33328d0e93dee388aa317" kindref="member">blocks</ref>;</highlight></codeline>
+<codeline lineno="159"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="binDumpReader.h"/>
+  </compounddef>
+</doxygen>

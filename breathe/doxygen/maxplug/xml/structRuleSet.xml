@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRuleSet" kind="struct" language="C++" prot="public">
+    <compoundname>RuleSet</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRuleSet_1a78086dff9f7d6f88e4caa08456e1a9c8" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; <ref refid="structCompiledRule" kindref="compound">CompiledRule</ref> &gt;</type>
+        <definition>std::vector&lt;CompiledRule&gt; RuleSet::rule</definition>
+        <argsstring></argsstring>
+        <name>rule</name>
+        <qualifiedname>RuleSet::rule</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="650" column="15" bodyfile="dagimp.cpp" bodystart="650" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRuleSet_1a05761672592031627606442aacfe9b0d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RuleSet::any</definition>
+        <argsstring></argsstring>
+        <name>any</name>
+        <qualifiedname>RuleSet::any</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="651" column="8" bodyfile="dagimp.cpp" bodystart="651" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagimp.cpp" line="648" column="1" bodyfile="dagimp.cpp" bodystart="649" bodyend="652"/>
+    <listofallmembers>
+      <member refid="structRuleSet_1a05761672592031627606442aacfe9b0d" prot="public" virt="non-virtual"><scope>RuleSet</scope><name>any</name></member>
+      <member refid="structRuleSet_1a78086dff9f7d6f88e4caa08456e1a9c8" prot="public" virt="non-virtual"><scope>RuleSet</scope><name>rule</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

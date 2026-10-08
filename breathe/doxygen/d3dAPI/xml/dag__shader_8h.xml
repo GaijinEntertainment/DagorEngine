@@ -1,0 +1,153 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shader_8h" kind="file" language="C++">
+    <compoundname>dag_shader.h</compoundname>
+    <includes refid="dag__consts_8h" local="no">drv/3d/dag_consts.h</includes>
+    <includes refid="dag__multi__interface_8h" local="no">drv/3d/dag_multi_interface.h</includes>
+    <includes local="no">util/dag_inttypes.h</includes>
+    <includes local="no">generic/dag_tab.h</includes>
+    <includes local="no">EASTL/string_view.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h"/>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_multi_interface.h</label>
+        <link refid="dag__multi__interface_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_shader.h</label>
+        <link refid="dag__shader_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="4">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="3">
+        <label>cstdint</label>
+      </node>
+      <node id="8">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="7">
+        <label>util/dag_inttypes.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structShaderSource" prot="public">ShaderSource</innerclass>
+    <innerclass refid="structShaderSourceExt" prot="public">ShaderSourceExt</innerclass>
+    <innernamespace refid="namespace__MULTI__INTERFACE">_MULTI_INTERFACE</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__consts_8h" kindref="compound">drv/3d/dag_consts.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__multi__interface_8h" kindref="compound">drv/3d/dag_multi_interface.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_inttypes.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string_view.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="structShaderSource" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderSource" kindref="compound">ShaderSource</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20" refid="structShaderSource_1afec1bc45228f9f41473c12a37e3eeb09" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;uint8_t&gt;<sp/><ref refid="structShaderSource_1afec1bc45228f9f41473c12a37e3eeb09" kindref="member">compressedData</ref>;</highlight></codeline>
+<codeline lineno="21" refid="structShaderSource_1a0c3ed997a9d7162d7500a1c6783f54c6" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;uint8_t&gt;<sp/><ref refid="structShaderSource_1a0c3ed997a9d7162d7500a1c6783f54c6" kindref="member">metadata</ref>;</highlight></codeline>
+<codeline lineno="22" refid="structShaderSource_1a36f969a47a64bdebf98e4e7b715ced0e" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderSource_1a36f969a47a64bdebf98e4e7b715ced0e" kindref="member">uncompressedSize</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="23" refid="structShaderSource_1a5782756301f297b8826356447b50ef9a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="structShaderSource_1a5782756301f297b8826356447b50ef9a" kindref="member">dictionary</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31" refid="structShaderSource_1af63837f02a03b6f29e3c633f3aba1f87" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>*<ref refid="structShaderSource_1af63837f02a03b6f29e3c633f3aba1f87" kindref="member">uncompress</ref>(Tab&lt;uint8_t&gt;<sp/>&amp;tmpbuf)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="structShaderSourceExt" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderSourceExt" kindref="compound">ShaderSourceExt</ref><sp/>:<sp/><ref refid="structShaderSource" kindref="compound">ShaderSource</ref></highlight></codeline>
+<codeline lineno="41"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="42" refid="structShaderSourceExt_1a1127ca04eb34c64a0b85900835df5bae" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structShaderSourceExt_1a1127ca04eb34c64a0b85900835df5bae" kindref="member">debugNameLen</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="43" refid="structShaderSourceExt_1add59930ddd331e1a9ad191a90a6a2f0b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structShaderSourceExt_1add59930ddd331e1a9ad191a90a6a2f0b" kindref="member">debugName</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54" refid="structShaderSourceExt_1a6dc6e4f06352ff060f7438a92c7976dd" refkind="member"><highlight class="normal"><sp/><sp/>eastl::string_view<sp/><ref refid="structShaderSourceExt_1a6dc6e4f06352ff060f7438a92c7976dd" kindref="member">getDebugName</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="55"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structShaderSourceExt_1add59930ddd331e1a9ad191a90a6a2f0b" kindref="member">debugName</ref><sp/>?<sp/>eastl::string_view{<ref refid="structShaderSourceExt_1add59930ddd331e1a9ad191a90a6a2f0b" kindref="member">debugName</ref>,<sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="keywordtype">size_t</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(<ref refid="structShaderSourceExt_1a1127ca04eb34c64a0b85900835df5bae" kindref="member">debugNameLen</ref>)}<sp/>:<sp/>eastl::string_view{};</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="58"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref><sp/><ref refid="namespace__MULTI__INTERFACE" kindref="compound">_MULTI_INTERFACE</ref></highlight></codeline>
+<codeline lineno="61"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="75" refid="namespace__MULTI__INTERFACE_1a48767d176885e54d714afd40fb56f0bf" refkind="member"><highlight class="normal"><ref refid="dag__consts_8h_1af06818afc8cf42203df4d873886f23bc" kindref="member">PROGRAM</ref><sp/><ref refid="namespace__MULTI__INTERFACE_1a48767d176885e54d714afd40fb56f0bf" kindref="member">create_program</ref>(<ref refid="dag__consts_8h_1a4fa6377d5dc060fc6dea9a03176ea944" kindref="member">VPROG</ref><sp/>vprog,<sp/><ref refid="dag__consts_8h_1a831b714182cee438acae55ed474e13b8" kindref="member">FSHADER</ref><sp/>fsh,<sp/><ref refid="dag__consts_8h_1a9f53c0fed6dcdbc4173e71bb186bab79" kindref="member">VDECL</ref><sp/>vdecl,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>*strides<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>streams<sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84" refid="namespace__MULTI__INTERFACE_1a85ff26c57bdbf3050a832a2985b04745" refkind="member"><highlight class="normal"><ref refid="dag__consts_8h_1af06818afc8cf42203df4d873886f23bc" kindref="member">PROGRAM</ref><sp/><ref refid="namespace__MULTI__INTERFACE_1a85ff26c57bdbf3050a832a2985b04745" kindref="member">create_program_cs</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderSourceExt" kindref="compound">ShaderSourceExt</ref><sp/>&amp;cs_native,<sp/><ref refid="dag__consts_8h_1a31c1815b49a225364c2c7f1641abc137" kindref="member">CSPreloaded</ref><sp/>preloaded);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92" refid="namespace__MULTI__INTERFACE_1a8b4db6f35d831d0e5884ad63dc2b914b" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a8b4db6f35d831d0e5884ad63dc2b914b" kindref="member">set_program</ref>(<ref refid="dag__consts_8h_1af06818afc8cf42203df4d873886f23bc" kindref="member">PROGRAM</ref><sp/>program);</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101" refid="namespace__MULTI__INTERFACE_1ae2de070d1a6dbaf8091e2e52ab9541da" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1ae2de070d1a6dbaf8091e2e52ab9541da" kindref="member">delete_program</ref>(<ref refid="dag__consts_8h_1af06818afc8cf42203df4d873886f23bc" kindref="member">PROGRAM</ref><sp/>program);</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="109" refid="namespace__MULTI__INTERFACE_1ac4796a9ec406c5070114987f0d6a10ed" refkind="member"><highlight class="normal"><ref refid="dag__consts_8h_1a4fa6377d5dc060fc6dea9a03176ea944" kindref="member">VPROG</ref><sp/><ref refid="namespace__MULTI__INTERFACE_1ac4796a9ec406c5070114987f0d6a10ed" kindref="member">create_vertex_shader</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderSourceExt" kindref="compound">ShaderSourceExt</ref><sp/>&amp;native_code);</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="116" refid="namespace__MULTI__INTERFACE_1a2bd5cb785d82ac01b5cd54828eb75d1e" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a2bd5cb785d82ac01b5cd54828eb75d1e" kindref="member">delete_vertex_shader</ref>(<ref refid="dag__consts_8h_1a4fa6377d5dc060fc6dea9a03176ea944" kindref="member">VPROG</ref><sp/>vs);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124" refid="namespace__MULTI__INTERFACE_1a651353c9caf9e9718d59ddd4b136c026" refkind="member"><highlight class="normal"><ref refid="dag__consts_8h_1a831b714182cee438acae55ed474e13b8" kindref="member">FSHADER</ref><sp/><ref refid="namespace__MULTI__INTERFACE_1a651353c9caf9e9718d59ddd4b136c026" kindref="member">create_pixel_shader</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderSourceExt" kindref="compound">ShaderSourceExt</ref><sp/>&amp;native_code);</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131" refid="namespace__MULTI__INTERFACE_1a5359b4a87efc6c424386144bdc74685d" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a5359b4a87efc6c424386144bdc74685d" kindref="member">delete_pixel_shader</ref>(<ref refid="dag__consts_8h_1a831b714182cee438acae55ed474e13b8" kindref="member">FSHADER</ref><sp/>ps);</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141" refid="namespace__MULTI__INTERFACE_1a66c7b30fac287cfa2df3a8dfdf86b6bb" refkind="member"><highlight class="normal"><ref refid="dag__consts_8h_1af06818afc8cf42203df4d873886f23bc" kindref="member">PROGRAM</ref><sp/><ref refid="namespace__MULTI__INTERFACE_1a66c7b30fac287cfa2df3a8dfdf86b6bb" kindref="member">get_debug_program</ref>();</highlight></codeline>
+<codeline lineno="142"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d<sp/>_MULTI_INTERFACE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__interface__table_8h" kindref="compound">drv/3d/dag_interface_table.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="147"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="dag__consts_8h_1af06818afc8cf42203df4d873886f23bc" kindref="member">PROGRAM</ref><sp/>create_program(<ref refid="dag__consts_8h_1a4fa6377d5dc060fc6dea9a03176ea944" kindref="member">VPROG</ref><sp/>vprog,<sp/><ref refid="dag__consts_8h_1a831b714182cee438acae55ed474e13b8" kindref="member">FSHADER</ref><sp/>fsh,<sp/><ref refid="dag__consts_8h_1a9f53c0fed6dcdbc4173e71bb186bab79" kindref="member">VDECL</ref><sp/>vdecl,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>*strides,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>streams)</highlight></codeline>
+<codeline lineno="149"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a8d645b4ba079e8f90e9c33b2cc39a34e" kindref="member">create_program_0</ref>(vprog,<sp/>fsh,<sp/>vdecl,<sp/>strides,<sp/>streams);</highlight></codeline>
+<codeline lineno="151"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="dag__consts_8h_1af06818afc8cf42203df4d873886f23bc" kindref="member">PROGRAM</ref><sp/><ref refid="namespace__MULTI__INTERFACE_1a85ff26c57bdbf3050a832a2985b04745" kindref="member">create_program_cs</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderSourceExt" kindref="compound">ShaderSourceExt</ref><sp/>&amp;cs_native,<sp/><ref refid="dag__consts_8h_1a31c1815b49a225364c2c7f1641abc137" kindref="member">CSPreloaded</ref><sp/>preloaded)</highlight></codeline>
+<codeline lineno="154"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a8d0c31f506393711b11af14f9a7a9324" kindref="member">create_program_cs</ref>(cs_native,<sp/>preloaded);</highlight></codeline>
+<codeline lineno="156"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a8b4db6f35d831d0e5884ad63dc2b914b" kindref="member">set_program</ref>(<ref refid="dag__consts_8h_1af06818afc8cf42203df4d873886f23bc" kindref="member">PROGRAM</ref><sp/>p)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1aa044e1df6805aee46fc64f2e4458d6b1" kindref="member">set_program</ref>(p);<sp/>}</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1ae2de070d1a6dbaf8091e2e52ab9541da" kindref="member">delete_program</ref>(<ref refid="dag__consts_8h_1af06818afc8cf42203df4d873886f23bc" kindref="member">PROGRAM</ref><sp/>p)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a34d5c570d7610294391ef50d8209bad3" kindref="member">delete_program</ref>(p);<sp/>}</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="dag__consts_8h_1a4fa6377d5dc060fc6dea9a03176ea944" kindref="member">VPROG</ref><sp/><ref refid="namespace__MULTI__INTERFACE_1ac4796a9ec406c5070114987f0d6a10ed" kindref="member">create_vertex_shader</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderSourceExt" kindref="compound">ShaderSourceExt</ref><sp/>&amp;native_code)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a05645f3d23241c7107e4cf0fb37458cd" kindref="member">create_vertex_shader</ref>(native_code);<sp/>}</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a2bd5cb785d82ac01b5cd54828eb75d1e" kindref="member">delete_vertex_shader</ref>(<ref refid="dag__consts_8h_1a4fa6377d5dc060fc6dea9a03176ea944" kindref="member">VPROG</ref><sp/>vs)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a18307da8d9f65a3ecb0fd4558c4384ad" kindref="member">delete_vertex_shader</ref>(vs);<sp/>}</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="dag__consts_8h_1a831b714182cee438acae55ed474e13b8" kindref="member">FSHADER</ref><sp/><ref refid="namespace__MULTI__INTERFACE_1a651353c9caf9e9718d59ddd4b136c026" kindref="member">create_pixel_shader</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structShaderSourceExt" kindref="compound">ShaderSourceExt</ref><sp/>&amp;native_code)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a44c68010b94f79cb4849a8b3ad6370f0" kindref="member">create_pixel_shader</ref>(native_code);<sp/>}</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespace__MULTI__INTERFACE_1a5359b4a87efc6c424386144bdc74685d" kindref="member">delete_pixel_shader</ref>(<ref refid="dag__consts_8h_1a831b714182cee438acae55ed474e13b8" kindref="member">FSHADER</ref><sp/>ps)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a4cf8211cb562dbefbdaa99ec7f03e9ab" kindref="member">delete_pixel_shader</ref>(ps);<sp/>}</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="dag__consts_8h_1af06818afc8cf42203df4d873886f23bc" kindref="member">PROGRAM</ref><sp/><ref refid="namespace__MULTI__INTERFACE_1a66c7b30fac287cfa2df3a8dfdf86b6bb" kindref="member">get_debug_program</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1a283852bb27b59e7c2c80010b62d1da24" kindref="member">get_debug_program</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="171"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="dag_shader.h"/>
+  </compounddef>
+</doxygen>

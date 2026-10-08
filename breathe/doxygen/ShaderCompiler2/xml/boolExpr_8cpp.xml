@@ -1,0 +1,540 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="boolExpr_8cpp" kind="file" language="C++">
+    <compoundname>boolExpr.cpp</compoundname>
+    <includes refid="boolExpr_8h" local="yes">boolExpr.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>boolExpr.cpp</label>
+        <link refid="boolExpr_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>boolExpr.h</label>
+        <link refid="boolExpr_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+      </node>
+      <node id="4">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="boolExpr_8cpp_1a1a3fff6c7efd8fa9b496bbf5e5f829fa" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class...</type>
+            <declname>TArgs</declname>
+            <defname>TArgs</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>static void report_compilation_error</definition>
+        <argsstring>(bool_expr_compiler_error_cb_t cb, const char *fmt, TArgs &amp;&amp;...args)</argsstring>
+        <name>report_compilation_error</name>
+        <param>
+          <type><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref></type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>TArgs &amp;&amp;...</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.cpp" line="13" column="13" bodyfile="boolExpr.cpp" bodystart="13" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="boolExpr_8cpp_1a361dfbf72b080016bc2a39765feee1e0" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool flip</definition>
+        <argsstring>(bool v, bool negated)</argsstring>
+        <name>flip</name>
+        <param>
+          <type>bool</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>negated</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.cpp" line="20" column="13" bodyfile="boolExpr.cpp" bodystart="20" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="boolExpr_8cpp_1a8a609c838f06029be9c013d76278f922" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool compile_bool_expr_to_bytecode_impl</definition>
+        <argsstring>(eastl::vector&lt; BoolExprEvalInstruction &gt; &amp;out_bytecode, eastl::optional&lt; bool &gt; &amp;out_constvalue, ShaderTerminal::bool_expr &amp;expr, shc::TargetContext &amp;ctx, bool_expr_compiler_error_cb_t error_cb, bool negate_expr)</argsstring>
+        <name>compile_bool_expr_to_bytecode_impl</name>
+        <param>
+          <type>eastl::vector&lt; <ref refid="structBoolExprEvalInstruction" kindref="compound">BoolExprEvalInstruction</ref> &gt; &amp;</type>
+          <declname>out_bytecode</declname>
+        </param>
+        <param>
+          <type>eastl::optional&lt; bool &gt; &amp;</type>
+          <declname>out_constvalue</declname>
+        </param>
+        <param>
+          <type>ShaderTerminal::bool_expr &amp;</type>
+          <declname>expr</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref></type>
+          <declname>error_cb</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>negate_expr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.cpp" line="228" column="13" bodyfile="boolExpr.cpp" bodystart="228" bodyend="291" declfile="boolExpr.cpp" declline="22" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="boolExpr_8cpp_1a2a3029785136957320eae257a37e7eeb" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool compile_bool_expr_not_to_bytecode_impl</definition>
+        <argsstring>(eastl::vector&lt; BoolExprEvalInstruction &gt; &amp;out_bytecode, eastl::optional&lt; bool &gt; &amp;out_constvalue, ShaderTerminal::not_expr &amp;expr, shc::TargetContext &amp;ctx, bool_expr_compiler_error_cb_t error_cb, bool negate_expr)</argsstring>
+        <name>compile_bool_expr_not_to_bytecode_impl</name>
+        <param>
+          <type>eastl::vector&lt; <ref refid="structBoolExprEvalInstruction" kindref="compound">BoolExprEvalInstruction</ref> &gt; &amp;</type>
+          <declname>out_bytecode</declname>
+        </param>
+        <param>
+          <type>eastl::optional&lt; bool &gt; &amp;</type>
+          <declname>out_constvalue</declname>
+        </param>
+        <param>
+          <type>ShaderTerminal::not_expr &amp;</type>
+          <declname>expr</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref></type>
+          <declname>error_cb</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>negate_expr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.cpp" line="30" column="13" bodyfile="boolExpr.cpp" bodystart="30" bodyend="161"/>
+      </memberdef>
+      <memberdef kind="function" id="boolExpr_8cpp_1a6c582428a7aa860f97534a2d05dda7e2" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool compile_bool_expr_and_to_bytecode_impl</definition>
+        <argsstring>(eastl::vector&lt; BoolExprEvalInstruction &gt; &amp;out_bytecode, eastl::optional&lt; bool &gt; &amp;out_constvalue, ShaderTerminal::and_expr &amp;expr, shc::TargetContext &amp;ctx, bool_expr_compiler_error_cb_t error_cb, bool negate_expr)</argsstring>
+        <name>compile_bool_expr_and_to_bytecode_impl</name>
+        <param>
+          <type>eastl::vector&lt; <ref refid="structBoolExprEvalInstruction" kindref="compound">BoolExprEvalInstruction</ref> &gt; &amp;</type>
+          <declname>out_bytecode</declname>
+        </param>
+        <param>
+          <type>eastl::optional&lt; bool &gt; &amp;</type>
+          <declname>out_constvalue</declname>
+        </param>
+        <param>
+          <type>ShaderTerminal::and_expr &amp;</type>
+          <declname>expr</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref></type>
+          <declname>error_cb</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>negate_expr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.cpp" line="163" column="13" bodyfile="boolExpr.cpp" bodystart="163" bodyend="226"/>
+      </memberdef>
+      <memberdef kind="function" id="boolExpr_8cpp_1a3568233a51b352cc87077fd69119efe4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool compile_bool_expr_to_bytecode</definition>
+        <argsstring>(eastl::vector&lt; BoolExprEvalInstruction &gt; &amp;out_bytecode, eastl::optional&lt; bool &gt; &amp;out_constvalue, ShaderTerminal::bool_expr &amp;expr, shc::TargetContext &amp;ctx, bool_expr_compiler_error_cb_t error_cb)</argsstring>
+        <name>compile_bool_expr_to_bytecode</name>
+        <param>
+          <type>eastl::vector&lt; <ref refid="structBoolExprEvalInstruction" kindref="compound">BoolExprEvalInstruction</ref> &gt; &amp;</type>
+          <declname>out_bytecode</declname>
+        </param>
+        <param>
+          <type>eastl::optional&lt; bool &gt; &amp;</type>
+          <declname>out_constvalue</declname>
+        </param>
+        <param>
+          <type>ShaderTerminal::bool_expr &amp;</type>
+          <declname>expr</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref></type>
+          <declname>error_cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.cpp" line="293" column="6" bodyfile="boolExpr.cpp" bodystart="293" bodyend="303"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="boolExpr_8h" kindref="compound">boolExpr.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shTargetContext_8h" kindref="compound">shTargetContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="hwSemantic_8h" kindref="compound">hwSemantic.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_relocatableFixedVector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/>@TODO(boolvar_opt):<sp/>non-recursive<sp/>if<sp/>compilation<sp/>is<sp/>hot<sp/>enough</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Utility<sp/>for<sp/>error<sp/>reporting<sp/>with<sp/>varargs.<sp/>Don&apos;t<sp/>mind<sp/>the<sp/>allocation<sp/>--<sp/>error<sp/>path<sp/>is<sp/>the<sp/>cold<sp/>path.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal">...<sp/>TArgs&gt;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>report_compilation_error(<ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref><sp/>cb,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fmt,<sp/>TArgs<sp/>&amp;&amp;...args)</highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>m<sp/>=<sp/><ref refid="commonUtils_8h_1a423a5cbb08af4695251ec87aa21a5fe1" kindref="member">string_f</ref>(fmt,<sp/>eastl::forward&lt;TArgs&gt;(args)...);</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/>m<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;Bool<sp/>compilation<sp/>error:<sp/>&quot;</highlight><highlight class="normal"><sp/>+<sp/>m;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/>cb(m.c_str());</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>flip(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>v,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>negated)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>negated<sp/>?<sp/>!v<sp/>:<sp/>v;<sp/>}</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>compile_bool_expr_to_bytecode_impl(<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>eastl::vector&lt;BoolExprEvalInstruction&gt;<sp/>&amp;out_bytecode,<sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>eastl::optional&lt;bool&gt;<sp/>&amp;out_constvalue,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>ShaderTerminal::bool_expr<sp/>&amp;expr,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref><sp/>error_cb,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>negate_expr);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>compile_bool_expr_not_to_bytecode_impl(<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>eastl::vector&lt;BoolExprEvalInstruction&gt;<sp/>&amp;out_bytecode,<sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>eastl::optional&lt;bool&gt;<sp/>&amp;out_constvalue,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/>ShaderTerminal::not_expr<sp/>&amp;expr,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref><sp/>error_cb,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>negate_expr)</highlight></codeline>
+<codeline lineno="37"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>negate_expr<sp/>=<sp/>flip(expr.is_not<sp/>!=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/>negate_expr);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(expr.value-&gt;expr)</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>compile_bool_expr_to_bytecode_impl(out_bytecode,<sp/>out_constvalue,<sp/>*expr.value-&gt;expr,<sp/>ctx,<sp/>error_cb,<sp/>negate_expr);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;val<sp/>=<sp/>*expr.value;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.hw)</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out_constvalue.emplace(flip(<ref refid="namespacesemantic_1a3f41f0541f7be2032f5c877c84ec11a5" kindref="member">semantic::compare_hw_token</ref>(val.hw-&gt;var-&gt;num,<sp/>ctx.<ref refid="classshc_1_1TargetContext_1a94d79d5964ab2d1015108ebaa9a93197" kindref="member">compCtx</ref>()),<sp/>negate_expr));</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.true_value)</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out_constvalue.emplace(flip(</highlight><highlight class="keyword">true</highlight><highlight class="normal">,<sp/>negate_expr));</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.false_value)</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out_constvalue.emplace(flip(</highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/>negate_expr));</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;instr<sp/>=<sp/>out_bytecode.emplace_back();</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/>instr.link<sp/>=<sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba725fd4a3d3fb4681794eb2e3c156628b" kindref="member">BE_ILT_EOE</ref>;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>instr.valueIsNegated<sp/>=<sp/>negate_expr;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SET_ARG_ID(id_)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="69"><highlight class="preprocessor"><sp/><sp/>do<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="70"><highlight class="preprocessor"><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="71"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>G_ASSERT((id_)<sp/>&gt;=<sp/>0);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="72"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>if<sp/>((id_)<sp/>&gt;<sp/>MAX_BE_ARGID_VALUE)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="73"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="74"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/>report_compilation_error(error_cb,<sp/>&quot;argument<sp/>id<sp/>%d<sp/>&gt;<sp/>%d<sp/>too<sp/>large<sp/>for<sp/>max<sp/>bitness&quot;</highlight><highlight class="normal">,<sp/>(id_),<sp/>MAX_BE_ARGID_VALUE);<sp/>\</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>return<sp/>false;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>}<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>instr.argumentId<sp/>=<sp/>int16_t(id_);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>}<sp/>while<sp/>(0)</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>SET_VAL_ID(id_)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="80"><highlight class="preprocessor"><sp/><sp/>do<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="81"><highlight class="preprocessor"><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="82"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>G_ASSERT((id_)<sp/>&gt;=<sp/>0);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="83"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>if<sp/>((id_)<sp/>&gt;<sp/>MAX_BE_VALID_VALUE)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="84"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="85"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/>report_compilation_error(error_cb,<sp/>&quot;value<sp/>id<sp/>%d<sp/>&gt;<sp/>%d<sp/>too<sp/>large<sp/>for<sp/>max<sp/>bitness&quot;</highlight><highlight class="normal">,<sp/>(id_),<sp/>MAX_BE_VALID_VALUE);<sp/>\</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>return<sp/>false;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/>}<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/>instr.valueId<sp/>=<sp/>int16_t(id_);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/>}<sp/>while<sp/>(0)</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.shader)</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>instr.opcode<sp/>=<sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8aaabe3554a48edd0a71891c5562d36e85" kindref="member">BE_IT_SHADER</ref>;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SET_ARG_ID(ctx.<ref refid="classshc_1_1TargetContext_1a640c924b12f1485f4f1775688bf671f8" kindref="member">shaderNameMap</ref>().<ref refid="classHashStrings_1a42b8ab5dce91f04e182d652763f10736" kindref="member">addNameId</ref>(val.shader-&gt;text));</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.two_sided)</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>instr.opcode<sp/>=<sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a333377d9fc0bb71fc7c4d12b9a4759df" kindref="member">BE_IT_TWOSIDED</ref>;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.real_two_sided)</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>instr.opcode<sp/>=<sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a28d853c14a6d67813242d0f1209d5ce3" kindref="member">BE_IT_REALTWOSIDED</ref>;</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.interval_ident)</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>instr.opcode<sp/>=<sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a4a68700e03f044a7ca9e848d9ff20517" kindref="member">BE_IT_INTERVAL</ref>;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SET_ARG_ID(ctx.<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a42b8ab5dce91f04e182d652763f10736" kindref="member">addNameId</ref>(val.interval_ident-&gt;text));</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SET_VAL_ID(ctx.<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a42b8ab5dce91f04e182d652763f10736" kindref="member">addNameId</ref>(val.interval_value-&gt;text));</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.texture_name)</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>instr.opcode<sp/>=<sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5b59a8f76a7b47dcbaedc615de7260cf" kindref="member">BE_IT_TEXINTERVAL</ref>;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SET_ARG_ID(ctx.<ref refid="classshc_1_1TargetContext_1ad61d7a132b4b9b57202752394eed414d" kindref="member">intervalNameMap</ref>().<ref refid="classHashStrings_1a42b8ab5dce91f04e182d652763f10736" kindref="member">addNameId</ref>(val.texture_name-&gt;text));</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.bool_var)</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>instr.opcode<sp/>=<sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5f212ebed0e66f32a67523854c2f8125" kindref="member">BE_IT_BOOL_VAR</ref>;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SET_ARG_ID(ctx.<ref refid="classshc_1_1TargetContext_1a209402288a1ff9323229dd732cb32570" kindref="member">boolVarNameMap</ref>().<ref refid="classVarNameMap_1a1aee6745dfff43ef84ae9b292dc9e130" kindref="member">addVarId</ref>(val.bool_var-&gt;text));</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.maybe)</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>instr.opcode<sp/>=<sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a8a9008a8b0022984a1dbba496cdf582e" kindref="member">BE_IT_BOOL_VAR_MAYBE</ref>;</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SET_ARG_ID(ctx.<ref refid="classshc_1_1TargetContext_1a209402288a1ff9323229dd732cb32570" kindref="member">boolVarNameMap</ref>().<ref refid="classVarNameMap_1a1aee6745dfff43ef84ae9b292dc9e130" kindref="member">addVarId</ref>(val.maybe_bool_var-&gt;text));</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERTF(0,<sp/></highlight><highlight class="stringliteral">&quot;ICE:<sp/>Unhandled<sp/>bool_value<sp/>node<sp/>variation:<sp/>syntax<sp/>has<sp/>been<sp/>extended<sp/>and<sp/>the<sp/>new<sp/>value<sp/>shoulb<sp/>be<sp/>handled&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(val.cmpop)</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(val.cmpop-&gt;op-&gt;num)</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_eq:</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_assign:<sp/>instr.comp<sp/>=<sp/><ref refid="classInterval_1a62cc94f67e3c53979160b44f53c5cebfa253bb907801ba70fe66248b5dc8252d2" kindref="member">Interval::EXPR_EQ</ref>;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_noteq:<sp/>instr.comp<sp/>=<sp/><ref refid="classInterval_1a62cc94f67e3c53979160b44f53c5cebfa2510fff4d417ea82c5cd124e3370c848" kindref="member">Interval::EXPR_NOT_EQ</ref>;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_greater:<sp/>instr.comp<sp/>=<sp/><ref refid="classInterval_1a62cc94f67e3c53979160b44f53c5cebfa32f9d4bcd17a2e04c7f5e52db06fc571" kindref="member">Interval::EXPR_GREATER</ref>;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_greatereq:<sp/>instr.comp<sp/>=<sp/><ref refid="classInterval_1a62cc94f67e3c53979160b44f53c5cebfa1a7ebae6e5f4c3922b23dbaee7893305" kindref="member">Interval::EXPR_GREATER_EQ</ref>;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_smaller:<sp/>instr.comp<sp/>=<sp/><ref refid="classInterval_1a62cc94f67e3c53979160b44f53c5cebfa1679d981116dfcb2811aef8a4eb98f7f" kindref="member">Interval::EXPR_SMALLER</ref>;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>SHADER_TOKENS::SHTOK_smallereq:<sp/>instr.comp<sp/>=<sp/><ref refid="classInterval_1a62cc94f67e3c53979160b44f53c5cebfadd09b88e878a21790b0de3b85ac485e9" kindref="member">Interval::EXPR_SMALLER_EQ</ref>;<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/>G_ASSERT(0);</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(DAGOR_UNLIKELY(!<ref refid="commonUtils_8h_1ae2667fae32711226a08120e1cc45974d" kindref="member">item_is_in</ref>(instr.opcode,<sp/>{BE_IT_SHADER,<sp/>BE_IT_INTERVAL,<sp/>BE_IT_TEXINTERVAL})))</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>report_compilation_error(error_cb,<sp/></highlight><highlight class="stringliteral">&quot;can&apos;t<sp/>use<sp/>comparison<sp/>op<sp/>for<sp/>expression<sp/>of<sp/>type<sp/>%s&quot;</highlight><highlight class="normal">,<sp/><ref refid="boolExpr_8h_1ae5aab0bd821cdb6716d81892a97619d2" kindref="member">BE_IT_NAMES</ref>[instr.opcode]);</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(DAGOR_UNLIKELY(instr.opcode<sp/>!=<sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a4a68700e03f044a7ca9e848d9ff20517" kindref="member">BE_IT_INTERVAL</ref><sp/>&amp;&amp;<sp/>!<ref refid="commonUtils_8h_1ae2667fae32711226a08120e1cc45974d" kindref="member">item_is_in</ref>(instr.comp,<sp/>{Interval::EXPR_EQ,<sp/>Interval::EXPR_NOT_EQ})))</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>report_compilation_error(error_cb,<sp/></highlight><highlight class="stringliteral">&quot;can&apos;t<sp/>use<sp/>comparison<sp/>op<sp/>%s<sp/>for<sp/>expression<sp/>of<sp/>type<sp/>%s&quot;</highlight><highlight class="normal">,<sp/><ref refid="boolExpr_8h_1af111a3dfddf4ee3bfb411f1cd02c5fcf" kindref="member">IBE_NAMES</ref>[instr.comp],</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="boolExpr_8h_1ae5aab0bd821cdb6716d81892a97619d2" kindref="member">BE_IT_NAMES</ref>[instr.opcode]);</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>SET_ARG_ID</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>SET_VAL_ID</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>compile_bool_expr_and_to_bytecode_impl(<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/>eastl::vector&lt;BoolExprEvalInstruction&gt;<sp/>&amp;out_bytecode,<sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/>eastl::optional&lt;bool&gt;<sp/>&amp;out_constvalue,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/>ShaderTerminal::and_expr<sp/>&amp;expr,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref><sp/>error_cb,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>negate_expr)</highlight></codeline>
+<codeline lineno="170"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(expr.value)</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>compile_bool_expr_not_to_bytecode_impl(out_bytecode,<sp/>out_constvalue,<sp/>*expr.value,<sp/>ctx,<sp/>error_cb,<sp/>negate_expr);</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/>eastl::optional&lt;bool&gt;<sp/>constvalueA{};</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/>uint32_t<sp/>startA<sp/>=<sp/>out_bytecode.size();</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!compile_bool_expr_and_to_bytecode_impl(out_bytecode,<sp/>constvalueA,<sp/>*expr.a,<sp/>ctx,<sp/>error_cb,<sp/>negate_expr))</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(constvalueA)</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/>out_bytecode.resize(startA);<sp/></highlight><highlight class="comment">//<sp/>clear<sp/>out<sp/>redundant<sp/>bytecode</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(negate_expr<sp/>==<sp/>constvalueA.value())</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out_constvalue<sp/>=<sp/>constvalueA;</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>compile_bool_expr_not_to_bytecode_impl(out_bytecode,<sp/>out_constvalue,<sp/>*expr.b,<sp/>ctx,<sp/>error_cb,<sp/>negate_expr);</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"></highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/>uint32_t<sp/>lastAInstrId<sp/>=<sp/>out_bytecode.size()<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/>out_bytecode[lastAInstrId].link<sp/>=<sp/>negate_expr<sp/>?<sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba0257235b1c80102435f6217fea8a73cd" kindref="member">BE_ILT_OR</ref><sp/>:<sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba97e484d877d1c446eecc6a143533c6a1" kindref="member">BE_ILT_AND</ref>;</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/>out_bytecode[lastAInstrId].shortCircuitJump<sp/>=<sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0ac66518d95af3566974d2bdbc6bc9d970" kindref="member">BE_SCJ_PLACEHOLDER</ref>;</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/>eastl::optional&lt;bool&gt;<sp/>constvalueB{};</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/>uint32_t<sp/>startB<sp/>=<sp/>out_bytecode.size();</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!compile_bool_expr_not_to_bytecode_impl(out_bytecode,<sp/>constvalueB,<sp/>*expr.b,<sp/>ctx,<sp/>error_cb,<sp/>negate_expr))</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(constvalueB)</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/>out_bytecode.resize(startB);<sp/></highlight><highlight class="comment">//<sp/>clear<sp/>out<sp/>redundant<sp/>bytecode</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(negate_expr<sp/>==<sp/>constvalueB.value())</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out_bytecode.resize(startA);<sp/></highlight><highlight class="comment">//<sp/>A<sp/>is<sp/>also<sp/>not<sp/>needed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out_constvalue<sp/>=<sp/>constvalueB;</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>otherwise,<sp/>the<sp/>value<sp/>of<sp/>A<sp/>is<sp/>what<sp/>we<sp/>use</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out_bytecode[lastAInstrId].link<sp/>=<sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba725fd4a3d3fb4681794eb2e3c156628b" kindref="member">BE_ILT_EOE</ref>;</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out_constvalue<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"></highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/>uint32_t<sp/>lastBInstrId<sp/>=<sp/>out_bytecode.size()<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/>uint32_t<sp/>scj<sp/>=<sp/>lastBInstrId<sp/>-<sp/>lastAInstrId<sp/>+<sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0abca275000d872042eaf736b4580c0e9c" kindref="member">BE_SCJ_ENUMERATED_BASE</ref><sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(DAGOR_UNLIKELY(scj<sp/>&gt;<sp/><ref refid="boolExpr_8h_1a050e5ed15cec99807e38245f31ddd8c8" kindref="member">MAX_BE_SCJ_VALUE</ref>))</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/>report_compilation_error(error_cb,<sp/></highlight><highlight class="stringliteral">&quot;bool<sp/>expr<sp/>bytecode<sp/>label<sp/>%u<sp/>exceeds<sp/>%u<sp/>(max<sp/>for<sp/>bitwidth)&quot;</highlight><highlight class="normal">,<sp/>scj,<sp/><ref refid="boolExpr_8h_1a050e5ed15cec99807e38245f31ddd8c8" kindref="member">MAX_BE_SCJ_VALUE</ref>);</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/>out_bytecode[lastAInstrId].shortCircuitJump<sp/>=<sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0" kindref="member">ShortCircuitJumpLabel</ref>(scj);</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/>out_bytecode[lastBInstrId].shortCircuitJump<sp/>=<sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0a505d704fcd220285b08597bc638cf7f3" kindref="member">BE_SCJ_EOE</ref>;</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="226"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"></highlight></codeline>
+<codeline lineno="228"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>compile_bool_expr_to_bytecode_impl(<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/>eastl::vector&lt;BoolExprEvalInstruction&gt;<sp/>&amp;out_bytecode,<sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/>eastl::optional&lt;bool&gt;<sp/>&amp;out_constvalue,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/>ShaderTerminal::bool_expr<sp/>&amp;expr,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref><sp/>error_cb,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>negate_expr)</highlight></codeline>
+<codeline lineno="235"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(expr.value)</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>compile_bool_expr_and_to_bytecode_impl(out_bytecode,<sp/>out_constvalue,<sp/>*expr.value,<sp/>ctx,<sp/>error_cb,<sp/>negate_expr);</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"></highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/>eastl::optional&lt;bool&gt;<sp/>constvalueA{};</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/>uint32_t<sp/>startA<sp/>=<sp/>out_bytecode.size();</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!compile_bool_expr_to_bytecode_impl(out_bytecode,<sp/>constvalueA,<sp/>*expr.a,<sp/>ctx,<sp/>error_cb,<sp/>negate_expr))</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(constvalueA)</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/>out_bytecode.resize(startA);<sp/></highlight><highlight class="comment">//<sp/>clear<sp/>out<sp/>redundant<sp/>bytecode</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(negate_expr<sp/>!=<sp/>constvalueA.value())</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out_constvalue<sp/>=<sp/>constvalueA;</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>compile_bool_expr_and_to_bytecode_impl(out_bytecode,<sp/>out_constvalue,<sp/>*expr.b,<sp/>ctx,<sp/>error_cb,<sp/>negate_expr);</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"></highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/>uint32_t<sp/>lastAInstrId<sp/>=<sp/>out_bytecode.size()<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/>out_bytecode[lastAInstrId].link<sp/>=<sp/>negate_expr<sp/>?<sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba97e484d877d1c446eecc6a143533c6a1" kindref="member">BE_ILT_AND</ref><sp/>:<sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba0257235b1c80102435f6217fea8a73cd" kindref="member">BE_ILT_OR</ref>;</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/>out_bytecode[lastAInstrId].shortCircuitJump<sp/>=<sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0ac66518d95af3566974d2bdbc6bc9d970" kindref="member">BE_SCJ_PLACEHOLDER</ref>;</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/>eastl::optional&lt;bool&gt;<sp/>constvalueB{};</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/>uint32_t<sp/>startB<sp/>=<sp/>out_bytecode.size();</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!compile_bool_expr_and_to_bytecode_impl(out_bytecode,<sp/>constvalueB,<sp/>*expr.b,<sp/>ctx,<sp/>error_cb,<sp/>negate_expr))</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(constvalueB)</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/><sp/><sp/>out_bytecode.resize(startB);<sp/></highlight><highlight class="comment">//<sp/>clear<sp/>out<sp/>redundant<sp/>bytecode</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(negate_expr<sp/>!=<sp/>constvalueB.value())</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out_bytecode.resize(startA);<sp/></highlight><highlight class="comment">//<sp/>A<sp/>is<sp/>also<sp/>not<sp/>needed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out_constvalue<sp/>=<sp/>constvalueB;</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>otherwise,<sp/>the<sp/>value<sp/>of<sp/>A<sp/>is<sp/>what<sp/>we<sp/>use</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out_bytecode[lastAInstrId].link<sp/>=<sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba725fd4a3d3fb4681794eb2e3c156628b" kindref="member">BE_ILT_EOE</ref>;</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>out_constvalue<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"></highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/>uint32_t<sp/>lastBInstrId<sp/>=<sp/>out_bytecode.size()<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/>uint32_t<sp/>scj<sp/>=<sp/>lastBInstrId<sp/>-<sp/>lastAInstrId<sp/>+<sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0abca275000d872042eaf736b4580c0e9c" kindref="member">BE_SCJ_ENUMERATED_BASE</ref><sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(DAGOR_UNLIKELY(scj<sp/>&gt;<sp/><ref refid="boolExpr_8h_1a050e5ed15cec99807e38245f31ddd8c8" kindref="member">MAX_BE_SCJ_VALUE</ref>))</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/><sp/><sp/>report_compilation_error(error_cb,<sp/></highlight><highlight class="stringliteral">&quot;bool<sp/>expr<sp/>bytecode<sp/>label<sp/>%u<sp/>exceeds<sp/>%u<sp/>(max<sp/>for<sp/>bitwidth)&quot;</highlight><highlight class="normal">,<sp/>scj,<sp/><ref refid="boolExpr_8h_1a050e5ed15cec99807e38245f31ddd8c8" kindref="member">MAX_BE_SCJ_VALUE</ref>);</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/>out_bytecode[lastAInstrId].shortCircuitJump<sp/>=<sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0" kindref="member">ShortCircuitJumpLabel</ref>(scj);</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/>out_bytecode[lastBInstrId].shortCircuitJump<sp/>=<sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0a505d704fcd220285b08597bc638cf7f3" kindref="member">BE_SCJ_EOE</ref>;</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="291"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"></highlight></codeline>
+<codeline lineno="293"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8cpp_1a3568233a51b352cc87077fd69119efe4" kindref="member">compile_bool_expr_to_bytecode</ref>(<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/>eastl::vector&lt;BoolExprEvalInstruction&gt;<sp/>&amp;out_bytecode,<sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/>eastl::optional&lt;bool&gt;<sp/>&amp;out_constvalue,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/>ShaderTerminal::bool_expr<sp/>&amp;expr,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="298"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref><sp/>error_cb)</highlight></codeline>
+<codeline lineno="299"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/>out_bytecode.clear();</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/>out_constvalue.reset();</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>compile_bool_expr_to_bytecode_impl(out_bytecode,<sp/>out_constvalue,<sp/>expr,<sp/>ctx,<sp/>error_cb,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="303"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="boolExpr.cpp"/>
+  </compounddef>
+</doxygen>

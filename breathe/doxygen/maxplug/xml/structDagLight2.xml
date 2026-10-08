@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDagLight2" kind="struct" language="C++" prot="public">
+    <compoundname>DagLight2</compoundname>
+    <includes refid="dagfmt_8h" local="no">dagfmt.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDagLight2_1acd0be638e1b29de98d213926c4f6d30e" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char DagLight2::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>DagLight2::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="136" column="17" bodyfile="dagfmt.h" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagLight2_1a4b90d1ec2617399b7f82f3604a144d3d" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagLight2::hotspot</definition>
+        <argsstring></argsstring>
+        <name>hotspot</name>
+        <qualifiedname>DagLight2::hotspot</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="137" column="9" bodyfile="dagfmt.h" bodystart="137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagLight2_1a05dc43d7fc32ebec34843c3231d22567" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagLight2::falloff</definition>
+        <argsstring></argsstring>
+        <name>falloff</name>
+        <qualifiedname>DagLight2::falloff</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="137" column="17" bodyfile="dagfmt.h" bodystart="137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagLight2_1ae76d3e5172b8a893ea57ee834c9902be" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DagLight2::mult</definition>
+        <argsstring></argsstring>
+        <name>mult</name>
+        <qualifiedname>DagLight2::mult</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="138" column="9" bodyfile="dagfmt.h" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDagLight2_1aebebf82d415d4d6de351448c494182e7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagLight2::DagLight2</definition>
+        <argsstring>()</argsstring>
+        <name>DagLight2</name>
+        <qualifiedname>DagLight2::DagLight2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="139" column="3" bodyfile="dagfmt.h" bodystart="139" bodyend="139"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagfmt.h" line="134" column="1" bodyfile="dagfmt.h" bodystart="135" bodyend="140"/>
+    <listofallmembers>
+      <member refid="structDagLight2_1aebebf82d415d4d6de351448c494182e7" prot="public" virt="non-virtual"><scope>DagLight2</scope><name>DagLight2</name></member>
+      <member refid="structDagLight2_1a05dc43d7fc32ebec34843c3231d22567" prot="public" virt="non-virtual"><scope>DagLight2</scope><name>falloff</name></member>
+      <member refid="structDagLight2_1a4b90d1ec2617399b7f82f3604a144d3d" prot="public" virt="non-virtual"><scope>DagLight2</scope><name>hotspot</name></member>
+      <member refid="structDagLight2_1ae76d3e5172b8a893ea57ee834c9902be" prot="public" virt="non-virtual"><scope>DagLight2</scope><name>mult</name></member>
+      <member refid="structDagLight2_1acd0be638e1b29de98d213926c4f6d30e" prot="public" virt="non-virtual"><scope>DagLight2</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

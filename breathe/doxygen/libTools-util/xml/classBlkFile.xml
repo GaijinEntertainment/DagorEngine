@@ -1,0 +1,958 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBlkFile" kind="class" language="C++" prot="public">
+    <compoundname>BlkFile</compoundname>
+    <includes refid="blockFileUtil_8h" local="no">blockFileUtil.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classBlkFile_1af98e865a1f76ad3ee3d1059d303eb04a" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; char &gt;</type>
+        <definition>Tab&lt;char&gt; BlkFile::data</definition>
+        <argsstring></argsstring>
+        <name>data</name>
+        <qualifiedname>BlkFile::data</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="58" column="7" bodyfile="blockFileUtil.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBlkFile_1ad75b8097b8604173422beb57a04aba79" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structBlkFileBlk" kindref="compound">BlkFileBlk</ref> &gt;</type>
+        <definition>Tab&lt;BlkFileBlk&gt; BlkFile::blk</definition>
+        <argsstring></argsstring>
+        <name>blk</name>
+        <qualifiedname>BlkFile::blk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="59" column="7" bodyfile="blockFileUtil.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBlkFile_1a66b43233100b06cc4d54833d8e10ed6d" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structBlkFileCP" kindref="compound">BlkFileCP</ref> &gt;</type>
+        <definition>Tab&lt;BlkFileCP&gt; BlkFile::cpstk</definition>
+        <argsstring></argsstring>
+        <name>cpstk</name>
+        <qualifiedname>BlkFile::cpstk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="60" column="7" bodyfile="blockFileUtil.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBlkFile_1ac6dbd4abc7ea3fe45146d5c78474d51d" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BlkFile::curpos</definition>
+        <argsstring></argsstring>
+        <name>curpos</name>
+        <qualifiedname>BlkFile::curpos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="61" column="7" bodyfile="blockFileUtil.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBlkFile_1a7805fe010c9a84f9724564045f5a378e" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BlkFile::blko</definition>
+        <argsstring></argsstring>
+        <name>blko</name>
+        <qualifiedname>BlkFile::blko</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="61" column="14" bodyfile="blockFileUtil.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBlkFile_1a65ac38d6e9b25f324d85df8a5480cf86" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BlkFile::blkl</definition>
+        <argsstring></argsstring>
+        <name>blkl</name>
+        <qualifiedname>BlkFile::blkl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="61" column="19" bodyfile="blockFileUtil.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classBlkFile_1abf6d6fdc88e06dd201e7a645e1b8ec3b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BlkFile::fileid</definition>
+        <argsstring></argsstring>
+        <name>fileid</name>
+        <qualifiedname>BlkFile::fileid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="66" column="7" bodyfile="blockFileUtil.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBlkFile_1a5ddca7a0a00e404f2b64c65df089e64a" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char BlkFile::chkerr</definition>
+        <argsstring></argsstring>
+        <name>chkerr</name>
+        <qualifiedname>BlkFile::chkerr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="67" column="8" bodyfile="blockFileUtil.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classBlkFile_1ab83bb9116e7bffa628f3352a82721fa3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>BlkFile::BlkFile</definition>
+        <argsstring>(int id, char chkerr)</argsstring>
+        <name>BlkFile</name>
+        <qualifiedname>BlkFile::BlkFile</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>char</type>
+          <declname>chkerr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="69" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1af0b10418298b41f8716d61dee2711b4c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::getabscurpos</definition>
+        <argsstring>()</argsstring>
+        <name>getabscurpos</name>
+        <qualifiedname>BlkFile::getabscurpos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="70" column="7" bodyfile="blockFileUtil.h" bodystart="70" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a120f7750a0edabb9c800174fbedb3822" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::loadfile</definition>
+        <argsstring>(file_ptr_t, int loadid=1)</argsstring>
+        <name>loadfile</name>
+        <qualifiedname>BlkFile::loadfile</qualifiedname>
+        <param>
+          <type>file_ptr_t</type>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>loadid</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="73" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1abc37af341c1890cac9f6a6254c4220a4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::loadfile</definition>
+        <argsstring>(const char *fn, int flg)</argsstring>
+        <name>loadfile</name>
+        <qualifiedname>BlkFile::loadfile</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="75" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a7eb34f1c5ee5ceac7c710c96879fcf0b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::savefile</definition>
+        <argsstring>(file_ptr_t, int saveid=1)</argsstring>
+        <name>savefile</name>
+        <qualifiedname>BlkFile::savefile</qualifiedname>
+        <param>
+          <type>file_ptr_t</type>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>saveid</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="78" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1acd236bec33e27b2a611d9fbecb7212bf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::savefile</definition>
+        <argsstring>(const char *fn, int flg)</argsstring>
+        <name>savefile</name>
+        <qualifiedname>BlkFile::savefile</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fn</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="80" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a88caa93ed924b66398eab0b6f7cf76ab" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void BlkFile::clearfile</definition>
+        <argsstring>()</argsstring>
+        <name>clearfile</name>
+        <qualifiedname>BlkFile::clearfile</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="82" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1af5dd538e095e67ec42f7a8e6dcf44b4b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void BlkFile::resetfile</definition>
+        <argsstring>()</argsstring>
+        <name>resetfile</name>
+        <qualifiedname>BlkFile::resetfile</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="84" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1ab40f301e8896e2b9f0c4c27cd213a904" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::getblk</definition>
+        <argsstring>()</argsstring>
+        <name>getblk</name>
+        <qualifiedname>BlkFile::getblk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="87" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1adcdee366734eaff7918260e968e582e7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::insertblk</definition>
+        <argsstring>()</argsstring>
+        <name>insertblk</name>
+        <qualifiedname>BlkFile::insertblk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="90" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a8b56cdfdce5ba7e3b57cecf86780c13e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::appendblk</definition>
+        <argsstring>()</argsstring>
+        <name>appendblk</name>
+        <qualifiedname>BlkFile::appendblk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="92" column="7" bodyfile="blockFileUtil.h" bodystart="92" bodyend="97"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a11d86c4dc620d03e5d2f685e95bdb0b8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::eraseblk</definition>
+        <argsstring>()</argsstring>
+        <name>eraseblk</name>
+        <qualifiedname>BlkFile::eraseblk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="100" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a1305e624f211d9a38a60c3c0e1b59fd5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::goup</definition>
+        <argsstring>()</argsstring>
+        <name>goup</name>
+        <qualifiedname>BlkFile::goup</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="103" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a880d96a7fa57fdc129ce26ee77c0dbb3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::goupstart</definition>
+        <argsstring>()</argsstring>
+        <name>goupstart</name>
+        <qualifiedname>BlkFile::goupstart</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="107" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1adff01a4dc5de1c2c574f4cc3fa752a16" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::size</definition>
+        <argsstring>()</argsstring>
+        <name>size</name>
+        <qualifiedname>BlkFile::size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="109" column="7" bodyfile="blockFileUtil.h" bodystart="109" bodyend="109"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a93e68a380ab1744c6ca71031747adfb7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::rest</definition>
+        <argsstring>()</argsstring>
+        <name>rest</name>
+        <qualifiedname>BlkFile::rest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="111" column="7" bodyfile="blockFileUtil.h" bodystart="111" bodyend="111"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1aa480a6f3c7c91ee21914d47bdef323bd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::tell</definition>
+        <argsstring>()</argsstring>
+        <name>tell</name>
+        <qualifiedname>BlkFile::tell</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="113" column="7" bodyfile="blockFileUtil.h" bodystart="113" bodyend="113"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a2762ed0137ce68a3322a6488f876c1ee" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::seekset</definition>
+        <argsstring>(int ofs)</argsstring>
+        <name>seekset</name>
+        <qualifiedname>BlkFile::seekset</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="116" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a1badeb6c560b1373a918e51b36b2475e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::seekcur</definition>
+        <argsstring>(int ofs)</argsstring>
+        <name>seekcur</name>
+        <qualifiedname>BlkFile::seekcur</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="117" column="7" bodyfile="blockFileUtil.h" bodystart="117" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a9e36433405596290dc8ed68be7cabd01" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::seekend</definition>
+        <argsstring>(int ofs=0)</argsstring>
+        <name>seekend</name>
+        <qualifiedname>BlkFile::seekend</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="118" column="7" bodyfile="blockFileUtil.h" bodystart="118" bodyend="118"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a3ca21169bde38cad6d3acc301b32b183" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::skip</definition>
+        <argsstring>(int n)</argsstring>
+        <name>skip</name>
+        <qualifiedname>BlkFile::skip</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="119" column="7" bodyfile="blockFileUtil.h" bodystart="119" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a5cb6d199971908e1b2b78bed8089e3ac" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>char *</type>
+        <definition>char * BlkFile::ptr</definition>
+        <argsstring>(int o=0)</argsstring>
+        <name>ptr</name>
+        <qualifiedname>BlkFile::ptr</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>o</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="123" column="8" bodyfile="blockFileUtil.h" bodystart="123" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a94bd74a6c6a8990e2a1b149ca9141a3f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>BlkFile::operator char *</definition>
+        <argsstring>()</argsstring>
+        <name>operator char *</name>
+        <qualifiedname>BlkFile::operator char *</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="124" column="3" bodyfile="blockFileUtil.h" bodystart="124" bodyend="124"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a6a02a8af11ca867dc4f0d2a57648295b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>char &amp;</type>
+        <definition>char &amp; BlkFile::operator[]</definition>
+        <argsstring>(int i)</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>BlkFile::operator[]</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="125" column="8" bodyfile="blockFileUtil.h" bodystart="125" bodyend="125"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1ae5556c203ebac4824046912b05e10936" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::insert</definition>
+        <argsstring>(int n, void *p=NULL)</argsstring>
+        <name>insert</name>
+        <qualifiedname>BlkFile::insert</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>p</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="128" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1af992a8f2edc02a18e835ba6ed8f196ab" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::append</definition>
+        <argsstring>(int n, void *p=NULL)</argsstring>
+        <name>append</name>
+        <qualifiedname>BlkFile::append</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>p</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="130" column="7" bodyfile="blockFileUtil.h" bodystart="130" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1aa4294dad26c5970b9ac90480ada0721d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::get</definition>
+        <argsstring>(int n, void *d)</argsstring>
+        <name>get</name>
+        <qualifiedname>BlkFile::get</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="137" column="7" bodyfile="blockFileUtil.h" bodystart="137" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1aff8a89c77ce47bd8124b195e890895bc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::putint</definition>
+        <argsstring>(int a)</argsstring>
+        <name>putint</name>
+        <qualifiedname>BlkFile::putint</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="147" column="7" bodyfile="blockFileUtil.h" bodystart="147" bodyend="147"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a0c61796b4d1d788ac4fc80c60604aa97" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::putshort</definition>
+        <argsstring>(short a)</argsstring>
+        <name>putshort</name>
+        <qualifiedname>BlkFile::putshort</qualifiedname>
+        <param>
+          <type>short</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="148" column="7" bodyfile="blockFileUtil.h" bodystart="148" bodyend="148"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1af8844956dc89b98d4e7ba2c9ad371bf7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::putchar</definition>
+        <argsstring>(char a)</argsstring>
+        <name>putchar</name>
+        <qualifiedname>BlkFile::putchar</qualifiedname>
+        <param>
+          <type>char</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="149" column="7" bodyfile="blockFileUtil.h" bodystart="149" bodyend="149"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1afa1935f588c67a2eb671b94f30ec5118" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::putreal</definition>
+        <argsstring>(real a)</argsstring>
+        <name>putreal</name>
+        <qualifiedname>BlkFile::putreal</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="150" column="7" bodyfile="blockFileUtil.h" bodystart="150" bodyend="150"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a090e6b084176a5396104e69050256ab3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::putpoint2</definition>
+        <argsstring>(Point2 a)</argsstring>
+        <name>putpoint2</name>
+        <qualifiedname>BlkFile::putpoint2</qualifiedname>
+        <param>
+          <type>Point2</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="151" column="7" bodyfile="blockFileUtil.h" bodystart="151" bodyend="151"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a86b536b92652505bb1eddd79cd04940a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::putpoint3</definition>
+        <argsstring>(Point3 a)</argsstring>
+        <name>putpoint3</name>
+        <qualifiedname>BlkFile::putpoint3</qualifiedname>
+        <param>
+          <type>Point3</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="152" column="7" bodyfile="blockFileUtil.h" bodystart="152" bodyend="152"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1abb5ea4a4fbbfc11a6ea75b32d8f88be2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::puttm</definition>
+        <argsstring>(TMatrix a)</argsstring>
+        <name>puttm</name>
+        <qualifiedname>BlkFile::puttm</qualifiedname>
+        <param>
+          <type>TMatrix</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="153" column="7" bodyfile="blockFileUtil.h" bodystart="153" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a96adf874808099182ebf953ee3e09354" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::putstrz</definition>
+        <argsstring>(char *s)</argsstring>
+        <name>putstrz</name>
+        <qualifiedname>BlkFile::putstrz</qualifiedname>
+        <param>
+          <type>char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="154" column="7" bodyfile="blockFileUtil.h" bodystart="154" bodyend="163"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a541942114e547a968eb1543250405137" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::getint</definition>
+        <argsstring>()</argsstring>
+        <name>getint</name>
+        <qualifiedname>BlkFile::getint</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="166" column="7" bodyfile="blockFileUtil.h" bodystart="166" bodyend="171"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a7fe499683ee9c9b03e8ceff38cf62b1b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::getshort</definition>
+        <argsstring>()</argsstring>
+        <name>getshort</name>
+        <qualifiedname>BlkFile::getshort</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="172" column="7" bodyfile="blockFileUtil.h" bodystart="172" bodyend="177"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a684f87fb4bc0815270e91525c54dbc0f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::getchar</definition>
+        <argsstring>()</argsstring>
+        <name>getchar</name>
+        <qualifiedname>BlkFile::getchar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="178" column="7" bodyfile="blockFileUtil.h" bodystart="178" bodyend="183"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a99c529268fddde5a17f0b0f2602f8e49" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real BlkFile::getreal</definition>
+        <argsstring>()</argsstring>
+        <name>getreal</name>
+        <qualifiedname>BlkFile::getreal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="184" column="8" bodyfile="blockFileUtil.h" bodystart="184" bodyend="189"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1aa02822a6c8c46b1bf9882a5d86025893" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point2</type>
+        <definition>Point2 BlkFile::getpoint2</definition>
+        <argsstring>()</argsstring>
+        <name>getpoint2</name>
+        <qualifiedname>BlkFile::getpoint2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="190" column="10" bodyfile="blockFileUtil.h" bodystart="190" bodyend="195"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1ac913e6f3630a5846f5dff4e5599e5b7d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BlkFile::getpoint3</definition>
+        <argsstring>()</argsstring>
+        <name>getpoint3</name>
+        <qualifiedname>BlkFile::getpoint3</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="196" column="10" bodyfile="blockFileUtil.h" bodystart="196" bodyend="201"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1ac23e2ba9be4144c3ff961bac9782b6f6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TMatrix</type>
+        <definition>TMatrix BlkFile::gettm</definition>
+        <argsstring>()</argsstring>
+        <name>gettm</name>
+        <qualifiedname>BlkFile::gettm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="202" column="11" bodyfile="blockFileUtil.h" bodystart="202" bodyend="207"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a65e90dfd112e510e4ffb29c185a26f97" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>char *</type>
+        <definition>char * BlkFile::getstrz</definition>
+        <argsstring>()</argsstring>
+        <name>getstrz</name>
+        <qualifiedname>BlkFile::getstrz</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="208" column="8" bodyfile="blockFileUtil.h" bodystart="208" bodyend="213"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1ac9ffcebe11a26ea51024a7d860848210" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::erase</definition>
+        <argsstring>(int n)</argsstring>
+        <name>erase</name>
+        <qualifiedname>BlkFile::erase</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="216" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1a2204ef6cd8a160cc7f7fe3b35d8e5ffa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::pushcurpos</definition>
+        <argsstring>()</argsstring>
+        <name>pushcurpos</name>
+        <qualifiedname>BlkFile::pushcurpos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="218" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classBlkFile_1aedc2dd4eab5305cbfcbf3d1cc8c49471" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int BlkFile::popcurpos</definition>
+        <argsstring>()</argsstring>
+        <name>popcurpos</name>
+        <qualifiedname>BlkFile::popcurpos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="221" column="7"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="blockFileUtil.h" line="55" column="1" bodyfile="blockFileUtil.h" bodystart="56" bodyend="222"/>
+    <listofallmembers>
+      <member refid="classBlkFile_1af992a8f2edc02a18e835ba6ed8f196ab" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>append</name></member>
+      <member refid="classBlkFile_1a8b56cdfdce5ba7e3b57cecf86780c13e" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>appendblk</name></member>
+      <member refid="classBlkFile_1ad75b8097b8604173422beb57a04aba79" prot="protected" virt="non-virtual"><scope>BlkFile</scope><name>blk</name></member>
+      <member refid="classBlkFile_1ab83bb9116e7bffa628f3352a82721fa3" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>BlkFile</name></member>
+      <member refid="classBlkFile_1a65ac38d6e9b25f324d85df8a5480cf86" prot="protected" virt="non-virtual"><scope>BlkFile</scope><name>blkl</name></member>
+      <member refid="classBlkFile_1a7805fe010c9a84f9724564045f5a378e" prot="protected" virt="non-virtual"><scope>BlkFile</scope><name>blko</name></member>
+      <member refid="classBlkFile_1a5ddca7a0a00e404f2b64c65df089e64a" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>chkerr</name></member>
+      <member refid="classBlkFile_1a88caa93ed924b66398eab0b6f7cf76ab" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>clearfile</name></member>
+      <member refid="classBlkFile_1a66b43233100b06cc4d54833d8e10ed6d" prot="protected" virt="non-virtual"><scope>BlkFile</scope><name>cpstk</name></member>
+      <member refid="classBlkFile_1ac6dbd4abc7ea3fe45146d5c78474d51d" prot="protected" virt="non-virtual"><scope>BlkFile</scope><name>curpos</name></member>
+      <member refid="classBlkFile_1af98e865a1f76ad3ee3d1059d303eb04a" prot="protected" virt="non-virtual"><scope>BlkFile</scope><name>data</name></member>
+      <member refid="classBlkFile_1ac9ffcebe11a26ea51024a7d860848210" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>erase</name></member>
+      <member refid="classBlkFile_1a11d86c4dc620d03e5d2f685e95bdb0b8" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>eraseblk</name></member>
+      <member refid="classBlkFile_1abf6d6fdc88e06dd201e7a645e1b8ec3b" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>fileid</name></member>
+      <member refid="classBlkFile_1aa4294dad26c5970b9ac90480ada0721d" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>get</name></member>
+      <member refid="classBlkFile_1af0b10418298b41f8716d61dee2711b4c" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>getabscurpos</name></member>
+      <member refid="classBlkFile_1ab40f301e8896e2b9f0c4c27cd213a904" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>getblk</name></member>
+      <member refid="classBlkFile_1a684f87fb4bc0815270e91525c54dbc0f" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>getchar</name></member>
+      <member refid="classBlkFile_1a541942114e547a968eb1543250405137" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>getint</name></member>
+      <member refid="classBlkFile_1aa02822a6c8c46b1bf9882a5d86025893" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>getpoint2</name></member>
+      <member refid="classBlkFile_1ac913e6f3630a5846f5dff4e5599e5b7d" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>getpoint3</name></member>
+      <member refid="classBlkFile_1a99c529268fddde5a17f0b0f2602f8e49" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>getreal</name></member>
+      <member refid="classBlkFile_1a7fe499683ee9c9b03e8ceff38cf62b1b" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>getshort</name></member>
+      <member refid="classBlkFile_1a65e90dfd112e510e4ffb29c185a26f97" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>getstrz</name></member>
+      <member refid="classBlkFile_1ac23e2ba9be4144c3ff961bac9782b6f6" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>gettm</name></member>
+      <member refid="classBlkFile_1a1305e624f211d9a38a60c3c0e1b59fd5" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>goup</name></member>
+      <member refid="classBlkFile_1a880d96a7fa57fdc129ce26ee77c0dbb3" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>goupstart</name></member>
+      <member refid="classBlkFile_1ae5556c203ebac4824046912b05e10936" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>insert</name></member>
+      <member refid="classBlkFile_1adcdee366734eaff7918260e968e582e7" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>insertblk</name></member>
+      <member refid="classBlkFile_1a120f7750a0edabb9c800174fbedb3822" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>loadfile</name></member>
+      <member refid="classBlkFile_1abc37af341c1890cac9f6a6254c4220a4" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>loadfile</name></member>
+      <member refid="classBlkFile_1a94bd74a6c6a8990e2a1b149ca9141a3f" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>operator char *</name></member>
+      <member refid="classBlkFile_1a6a02a8af11ca867dc4f0d2a57648295b" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>operator[]</name></member>
+      <member refid="classBlkFile_1aedc2dd4eab5305cbfcbf3d1cc8c49471" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>popcurpos</name></member>
+      <member refid="classBlkFile_1a5cb6d199971908e1b2b78bed8089e3ac" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>ptr</name></member>
+      <member refid="classBlkFile_1a2204ef6cd8a160cc7f7fe3b35d8e5ffa" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>pushcurpos</name></member>
+      <member refid="classBlkFile_1af8844956dc89b98d4e7ba2c9ad371bf7" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>putchar</name></member>
+      <member refid="classBlkFile_1aff8a89c77ce47bd8124b195e890895bc" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>putint</name></member>
+      <member refid="classBlkFile_1a090e6b084176a5396104e69050256ab3" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>putpoint2</name></member>
+      <member refid="classBlkFile_1a86b536b92652505bb1eddd79cd04940a" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>putpoint3</name></member>
+      <member refid="classBlkFile_1afa1935f588c67a2eb671b94f30ec5118" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>putreal</name></member>
+      <member refid="classBlkFile_1a0c61796b4d1d788ac4fc80c60604aa97" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>putshort</name></member>
+      <member refid="classBlkFile_1a96adf874808099182ebf953ee3e09354" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>putstrz</name></member>
+      <member refid="classBlkFile_1abb5ea4a4fbbfc11a6ea75b32d8f88be2" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>puttm</name></member>
+      <member refid="classBlkFile_1af5dd538e095e67ec42f7a8e6dcf44b4b" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>resetfile</name></member>
+      <member refid="classBlkFile_1a93e68a380ab1744c6ca71031747adfb7" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>rest</name></member>
+      <member refid="classBlkFile_1a7eb34f1c5ee5ceac7c710c96879fcf0b" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>savefile</name></member>
+      <member refid="classBlkFile_1acd236bec33e27b2a611d9fbecb7212bf" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>savefile</name></member>
+      <member refid="classBlkFile_1a1badeb6c560b1373a918e51b36b2475e" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>seekcur</name></member>
+      <member refid="classBlkFile_1a9e36433405596290dc8ed68be7cabd01" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>seekend</name></member>
+      <member refid="classBlkFile_1a2762ed0137ce68a3322a6488f876c1ee" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>seekset</name></member>
+      <member refid="classBlkFile_1adff01a4dc5de1c2c574f4cc3fa752a16" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>size</name></member>
+      <member refid="classBlkFile_1a3ca21169bde38cad6d3acc301b32b183" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>skip</name></member>
+      <member refid="classBlkFile_1aa480a6f3c7c91ee21914d47bdef323bd" prot="public" virt="non-virtual"><scope>BlkFile</scope><name>tell</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,125 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classmkbindump_1_1GatherNameMap" kind="class" language="C++" prot="public">
+    <compoundname>mkbindump::GatherNameMap</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">FastNameMap</basecompoundref>
+    <includes refid="makeBindump_8h" local="no">makeBindump.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classmkbindump_1_1GatherNameMap_1adfd8501a6aae3b27641562fc4830e084" prot="public" static="no" mutable="no">
+        <type>SmallTab&lt; int, TmpmemAlloc &gt;</type>
+        <definition>SmallTab&lt;int, TmpmemAlloc&gt; mkbindump::GatherNameMap::sNid</definition>
+        <argsstring></argsstring>
+        <name>sNid</name>
+        <qualifiedname>mkbindump::GatherNameMap::sNid</qualifiedname>
+        <briefdescription>
+<para>name IDs sorted in lexical order; valid after call to <ref refid="classmkbindump_1_1GatherNameMap_1a9517016739525079491d7cb0a970b42c" kindref="member">prepareXmap()</ref> </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="63" column="12" bodyfile="makeBindump.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classmkbindump_1_1GatherNameMap_1a74bc94cbb680463f6c7af1e3c90b4209" prot="public" static="no" mutable="no">
+        <type>SmallTab&lt; int, TmpmemAlloc &gt;</type>
+        <definition>SmallTab&lt;int, TmpmemAlloc&gt; mkbindump::GatherNameMap::xmap</definition>
+        <argsstring></argsstring>
+        <name>xmap</name>
+        <qualifiedname>mkbindump::GatherNameMap::xmap</qualifiedname>
+        <briefdescription>
+<para>crossmap to convert old nameId -&gt; ordinal nameId; valid after call to <ref refid="classmkbindump_1_1GatherNameMap_1a9517016739525079491d7cb0a970b42c" kindref="member">prepareXmap()</ref> </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="65" column="12" bodyfile="makeBindump.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classmkbindump_1_1GatherNameMap_1ab2bc892e277b276c7673806a0b0099f4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>mkbindump::GatherNameMap::GatherNameMap</definition>
+        <argsstring>()=default</argsstring>
+        <name>GatherNameMap</name>
+        <qualifiedname>mkbindump::GatherNameMap::GatherNameMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="46" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1GatherNameMap_1a9517016739525079491d7cb0a970b42c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::GatherNameMap::prepareXmap</definition>
+        <argsstring>()</argsstring>
+        <name>prepareXmap</name>
+        <qualifiedname>mkbindump::GatherNameMap::prepareXmap</qualifiedname>
+        <briefdescription>
+<para>builds crossmap to convert old nameId -&gt; ordinal nameId </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="49" column="8" bodyfile="makeBindump.h" bodystart="49" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1GatherNameMap_1a77d10bc9bebb03a1af0d999c7fdfa624" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * mkbindump::GatherNameMap::getOrdinalName</definition>
+        <argsstring>(unsigned ord_idx) const</argsstring>
+        <name>getOrdinalName</name>
+        <qualifiedname>mkbindump::GatherNameMap::getOrdinalName</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>ord_idx</declname>
+        </param>
+        <briefdescription>
+<para>return name by index in lexical order </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="60" column="14" bodyfile="makeBindump.h" bodystart="60" bodyend="60"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Fast namemap builder with crossmap (old nameId -&gt; ordinal nameId) Ordinal nameId scheme means that index of string in sorted table of strings is nameId Thus, one can store only table of strings to get nameId-&gt;name resolution (fast lookup) and name-&gt;nameId resolution (fast binsearch) </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>FastNameMap</label>
+      </node>
+      <node id="1">
+        <label>mkbindump::GatherNameMap</label>
+        <link refid="classmkbindump_1_1GatherNameMap"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>FastNameMap</label>
+      </node>
+      <node id="1">
+        <label>mkbindump::GatherNameMap</label>
+        <link refid="classmkbindump_1_1GatherNameMap"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="makeBindump.h" line="43" column="1" bodyfile="makeBindump.h" bodystart="44" bodyend="66"/>
+    <listofallmembers>
+      <member refid="classmkbindump_1_1GatherNameMap_1ab2bc892e277b276c7673806a0b0099f4" prot="public" virt="non-virtual"><scope>mkbindump::GatherNameMap</scope><name>GatherNameMap</name></member>
+      <member refid="classmkbindump_1_1GatherNameMap_1a77d10bc9bebb03a1af0d999c7fdfa624" prot="public" virt="non-virtual"><scope>mkbindump::GatherNameMap</scope><name>getOrdinalName</name></member>
+      <member refid="classmkbindump_1_1GatherNameMap_1a9517016739525079491d7cb0a970b42c" prot="public" virt="non-virtual"><scope>mkbindump::GatherNameMap</scope><name>prepareXmap</name></member>
+      <member refid="classmkbindump_1_1GatherNameMap_1adfd8501a6aae3b27641562fc4830e084" prot="public" virt="non-virtual"><scope>mkbindump::GatherNameMap</scope><name>sNid</name></member>
+      <member refid="classmkbindump_1_1GatherNameMap_1a74bc94cbb680463f6c7af1e3c90b4209" prot="public" virt="non-virtual"><scope>mkbindump::GatherNameMap</scope><name>xmap</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

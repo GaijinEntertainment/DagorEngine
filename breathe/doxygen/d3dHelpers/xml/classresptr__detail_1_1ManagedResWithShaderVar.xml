@@ -1,0 +1,164 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1ManagedResWithShaderVar" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::ManagedResWithShaderVar</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ManagedResType</basecompoundref>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename ManagedResType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classresptr__detail_1_1ManagedResWithShaderVar_1a97fd832e941d15fc1d640d528cf3c121" prot="private" static="no">
+        <type>typename ManagedResType::resource_t</type>
+        <definition>using resptr_detail::ManagedResWithShaderVar&lt; ManagedResType &gt;::ResType =  typename ManagedResType::resource_t</definition>
+        <argsstring></argsstring>
+        <name>ResType</name>
+        <qualifiedname>resptr_detail::ManagedResWithShaderVar::ResType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="497" column="3" bodyfile="dag_resPtr.h" bodystart="497" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classresptr__detail_1_1ManagedResWithShaderVar_1a290715780a84ee960f70951f42534f17" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int resptr_detail::ManagedResWithShaderVar&lt; ManagedResType &gt;::mShaderVarId</definition>
+        <argsstring></argsstring>
+        <name>mShaderVarId</name>
+        <qualifiedname>resptr_detail::ManagedResWithShaderVar::mShaderVarId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="500" column="7" bodyfile="dag_resPtr.h" bodystart="500" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedResWithShaderVar_1a03f0318d854d27c0c5499dc2715dd176" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::ManagedResWithShaderVar&lt; ManagedResType &gt;::swap</definition>
+        <argsstring>(ManagedResWithShaderVar &amp;other)</argsstring>
+        <name>swap</name>
+        <qualifiedname>resptr_detail::ManagedResWithShaderVar::swap</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ManagedResWithShaderVar" kindref="compound">ManagedResWithShaderVar</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="502" column="8" bodyfile="dag_resPtr.h" bodystart="502" bodyend="506"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedResWithShaderVar_1a0f8236730d6e70ebd19eb0ca31981217" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ManagedResWithShaderVar&lt; ManagedResType &gt;::ManagedResWithShaderVar</definition>
+        <argsstring>()=default</argsstring>
+        <name>ManagedResWithShaderVar</name>
+        <qualifiedname>resptr_detail::ManagedResWithShaderVar::ManagedResWithShaderVar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="508" column="3"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedResWithShaderVar_1a9e6dfd73e138e44b9f11fc944c0b5c12" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int resptr_detail::ManagedResWithShaderVar&lt; ManagedResType &gt;::getVarId</definition>
+        <argsstring>() const</argsstring>
+        <name>getVarId</name>
+        <qualifiedname>resptr_detail::ManagedResWithShaderVar::getVarId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="511" column="7" bodyfile="dag_resPtr.h" bodystart="511" bodyend="511"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedResWithShaderVar_1a18bafdf63aae349e80716a1d2d0bd4ff" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::ManagedResWithShaderVar&lt; ManagedResType &gt;::setVar</definition>
+        <argsstring>() const</argsstring>
+        <name>setVar</name>
+        <qualifiedname>resptr_detail::ManagedResWithShaderVar::setVar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="513" column="8" bodyfile="dag_resPtr.h" bodystart="513" bodyend="517"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedResWithShaderVar_1a48eacb34af79a1dcb82429fbc3c4c28d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::ManagedResWithShaderVar&lt; ManagedResType &gt;::setVarId</definition>
+        <argsstring>(int var_id)</argsstring>
+        <name>setVarId</name>
+        <qualifiedname>resptr_detail::ManagedResWithShaderVar::setVarId</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="519" column="8" bodyfile="dag_resPtr.h" bodystart="519" bodyend="524"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ManagedResType</label>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ManagedResWithShaderVar&lt; ManagedResType &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedResWithShaderVar"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ManagedResType</label>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ManagedResWithShaderVar&lt; ManagedResType &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedResWithShaderVar"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resPtr.h" line="495" column="1" bodyfile="dag_resPtr.h" bodystart="496" bodyend="525"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1ManagedResWithShaderVar_1a9e6dfd73e138e44b9f11fc944c0b5c12" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedResWithShaderVar</scope><name>getVarId</name></member>
+      <member refid="classresptr__detail_1_1ManagedResWithShaderVar_1a0f8236730d6e70ebd19eb0ca31981217" prot="protected" virt="non-virtual"><scope>resptr_detail::ManagedResWithShaderVar</scope><name>ManagedResWithShaderVar</name></member>
+      <member refid="classresptr__detail_1_1ManagedResWithShaderVar_1a290715780a84ee960f70951f42534f17" prot="protected" virt="non-virtual"><scope>resptr_detail::ManagedResWithShaderVar</scope><name>mShaderVarId</name></member>
+      <member refid="classresptr__detail_1_1ManagedResWithShaderVar_1a97fd832e941d15fc1d640d528cf3c121" prot="private" virt="non-virtual"><scope>resptr_detail::ManagedResWithShaderVar</scope><name>ResType</name></member>
+      <member refid="classresptr__detail_1_1ManagedResWithShaderVar_1a18bafdf63aae349e80716a1d2d0bd4ff" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedResWithShaderVar</scope><name>setVar</name></member>
+      <member refid="classresptr__detail_1_1ManagedResWithShaderVar_1a48eacb34af79a1dcb82429fbc3c4c28d" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedResWithShaderVar</scope><name>setVarId</name></member>
+      <member refid="classresptr__detail_1_1ManagedResWithShaderVar_1a03f0318d854d27c0c5499dc2715dd176" prot="protected" virt="non-virtual"><scope>resptr_detail::ManagedResWithShaderVar</scope><name>swap</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

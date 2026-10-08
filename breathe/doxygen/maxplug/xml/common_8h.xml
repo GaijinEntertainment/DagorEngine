@@ -1,0 +1,1132 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="common_8h" kind="file" language="C++">
+    <compoundname>common.h</compoundname>
+    <includes local="no">charconv</includes>
+    <includes local="no">vector</includes>
+    <includes local="no">string</includes>
+    <includes local="no">string_view</includes>
+    <includes local="no">filesystem</includes>
+    <includes local="no">max.h</includes>
+    <includes refid="ci_8h" local="yes">ci.h</includes>
+    <includedby refid="cfg_8cpp" local="yes">cfg.cpp</includedby>
+    <includedby refid="common_8cpp" local="yes">common.cpp</includedby>
+    <includedby refid="dagimp_8cpp" local="yes">dagimp.cpp</includedby>
+    <includedby refid="datablk_8cpp" local="yes">datablk.cpp</includedby>
+    <includedby refid="debug_8cpp" local="yes">debug.cpp</includedby>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <includedby refid="font_8cpp" local="yes">font.cpp</includedby>
+    <includedby refid="freecam_8cpp" local="yes">freecam.cpp</includedby>
+    <includedby refid="loadta_8cpp" local="yes">loadta.cpp</includedby>
+    <includedby refid="matConvUtil_8cpp" local="yes">matConvUtil.cpp</includedby>
+    <includedby refid="mater_8cpp" local="yes">mater.cpp</includedby>
+    <includedby refid="mater2_8cpp" local="yes">mater2.cpp</includedby>
+    <includedby refid="milkShapeAnimImport_8cpp" local="yes">milkShapeAnimImport.cpp</includedby>
+    <includedby refid="physExport_8cpp" local="yes">physExport.cpp</includedby>
+    <includedby refid="polyBumpUtil_8cpp" local="yes">polyBumpUtil.cpp</includedby>
+    <includedby refid="rolluppanel_8cpp" local="yes">rolluppanel.cpp</includedby>
+    <includedby refid="texmaps_8h" local="yes">texmaps.h</includedby>
+    <includedby refid="util_8cpp" local="yes">util.cpp</includedby>
+    <incdepgraph>
+      <node id="8">
+        <label>ci.h</label>
+        <link refid="ci_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>common.h</label>
+        <link refid="common_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>algorithm</label>
+      </node>
+      <node id="2">
+        <label>charconv</label>
+      </node>
+      <node id="6">
+        <label>filesystem</label>
+      </node>
+      <node id="7">
+        <label>max.h</label>
+      </node>
+      <node id="4">
+        <label>string</label>
+      </node>
+      <node id="5">
+        <label>string_view</label>
+      </node>
+      <node id="3">
+        <label>vector</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>cfg.cpp</label>
+        <link refid="cfg_8cpp"/>
+      </node>
+      <node id="3">
+        <label>common.cpp</label>
+        <link refid="common_8cpp"/>
+      </node>
+      <node id="1">
+        <label>common.h</label>
+        <link refid="common_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>dagimp.cpp</label>
+        <link refid="dagimp_8cpp"/>
+      </node>
+      <node id="5">
+        <label>datablk.cpp</label>
+        <link refid="datablk_8cpp"/>
+      </node>
+      <node id="6">
+        <label>debug.cpp</label>
+        <link refid="debug_8cpp"/>
+      </node>
+      <node id="7">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="8">
+        <label>font.cpp</label>
+        <link refid="font_8cpp"/>
+      </node>
+      <node id="9">
+        <label>freecam.cpp</label>
+        <link refid="freecam_8cpp"/>
+      </node>
+      <node id="10">
+        <label>loadta.cpp</label>
+        <link refid="loadta_8cpp"/>
+      </node>
+      <node id="11">
+        <label>matConvUtil.cpp</label>
+        <link refid="matConvUtil_8cpp"/>
+      </node>
+      <node id="12">
+        <label>mater.cpp</label>
+        <link refid="mater_8cpp"/>
+      </node>
+      <node id="13">
+        <label>mater2.cpp</label>
+        <link refid="mater2_8cpp"/>
+      </node>
+      <node id="14">
+        <label>milkShapeAnimImport.cpp</label>
+        <link refid="milkShapeAnimImport_8cpp"/>
+      </node>
+      <node id="15">
+        <label>physExport.cpp</label>
+        <link refid="physExport_8cpp"/>
+      </node>
+      <node id="16">
+        <label>polyBumpUtil.cpp</label>
+        <link refid="polyBumpUtil_8cpp"/>
+      </node>
+      <node id="17">
+        <label>rolluppanel.cpp</label>
+        <link refid="rolluppanel_8cpp"/>
+      </node>
+      <node id="18">
+        <label>texmaps.h</label>
+        <link refid="texmaps_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classAutotoggle" prot="public">Autotoggle</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="common_8h_1a2922c0ff799bab73fda7ef905a074c8c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>HWND</type>
+        <definition>HWND add_rollup_page</definition>
+        <argsstring>(Interface *ip, int resource_id, DLGPROC proc, const TCHAR *title, LPARAM param=0, DWORD flags=0)</argsstring>
+        <name>add_rollup_page</name>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>resource_id</declname>
+        </param>
+        <param>
+          <type>DLGPROC</type>
+          <declname>proc</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>title</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>param</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>DWORD</type>
+          <declname>flags</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="30" column="6" bodyfile="common.cpp" bodystart="14" bodyend="19" declfile="common.h" declline="30" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1ac9901f1c91ba6fca4d76e222820f8b52" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void delete_rollup_page</definition>
+        <argsstring>(Interface *ip, HWND *hw)</argsstring>
+        <name>delete_rollup_page</name>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <param>
+          <type>HWND *</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="33" column="6" bodyfile="common.cpp" bodystart="21" bodyend="30" declfile="common.h" declline="33" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1ab3996dd0d94c2f2ea13b532cd01a3acf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float get_master_scale</definition>
+        <argsstring>()</argsstring>
+        <name>get_master_scale</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="37" column="7" bodyfile="common.cpp" bodystart="32" bodyend="36" declfile="common.h" declline="37" declcolumn="7"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1abf1874d5ba8f4418974dee973d633f0a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_dag_file</definition>
+        <argsstring>(const std::filesystem::path &amp;filename)</argsstring>
+        <name>is_dag_file</name>
+        <param>
+          <type>const std::filesystem::path &amp;</type>
+          <declname>filename</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="41" column="6" declfile="common.h" declline="41" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a63d7ef0ccc4033af70e729cbc76ac07e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::vector&lt; std::filesystem::path &gt;</type>
+        <definition>std::vector&lt; std::filesystem::path &gt; glob</definition>
+        <argsstring>(const std::filesystem::path &amp;dir, bool recursive)</argsstring>
+        <name>glob</name>
+        <param>
+          <type>const std::filesystem::path &amp;</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>recursive</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="44" column="13" declfile="common.h" declline="44" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1aa7a04a6b3e85348d94e1fd9b47f02bbc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring strToWide</definition>
+        <argsstring>(const char *sz)</argsstring>
+        <name>strToWide</name>
+        <param>
+          <type>const char *</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="47" column="14" bodyfile="common.cpp" bodystart="68" bodyend="76" declfile="common.h" declline="47" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a1b90dd0c9131602460c362eb6e5fa374" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring strToWide</definition>
+        <argsstring>(std::string_view sv)</argsstring>
+        <name>strToWide</name>
+        <param>
+          <type>std::string_view</type>
+          <declname>sv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="48" column="14" bodyfile="common.cpp" bodystart="90" bodyend="100" declfile="common.h" declline="48" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a7d903fa919ea26cd19f8a6191f5daeff" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::string</type>
+        <definition>std::string wideToStr</definition>
+        <argsstring>(const wchar_t *sw)</argsstring>
+        <name>wideToStr</name>
+        <param>
+          <type>const wchar_t *</type>
+          <declname>sw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="49" column="13" bodyfile="common.cpp" bodystart="79" bodyend="87" declfile="common.h" declline="49" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1aba8c8e3e10186d34909fc7ffd0e09368" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::string</type>
+        <definition>std::string wideToStr</definition>
+        <argsstring>(std::wstring_view sv)</argsstring>
+        <name>wideToStr</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>sv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="50" column="13" bodyfile="common.cpp" bodystart="103" bodyend="113" declfile="common.h" declline="50" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1ab276a8d21d187650668e7730011e4761" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring drop_quotation_marks</definition>
+        <argsstring>(std::wstring_view s)</argsstring>
+        <name>drop_quotation_marks</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="53" column="14" bodyfile="common.cpp" bodystart="116" bodyend="122" declfile="common.h" declline="53" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a25724cf03a0df69a784f23dbdbe404f4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring get_window_text</definition>
+        <argsstring>(HWND hw)</argsstring>
+        <name>get_window_text</name>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="56" column="14" bodyfile="common.cpp" bodystart="125" bodyend="135" declfile="common.h" declline="56" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a14a306dd89ac4b563b5da49c18afbc29" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool get_edint</definition>
+        <argsstring>(ICustEdit *e, int &amp;a)</argsstring>
+        <name>get_edint</name>
+        <param>
+          <type>ICustEdit *</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="59" column="6" bodyfile="util.cpp" bodystart="540" bodyend="550" declfile="common.h" declline="59" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1ab0f0424bae942f9a6b4f9d4b27d6ce1d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool get_edfloat</definition>
+        <argsstring>(ICustEdit *e, float &amp;a)</argsstring>
+        <name>get_edfloat</name>
+        <param>
+          <type>ICustEdit *</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type>float &amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="60" column="6" bodyfile="util.cpp" bodystart="552" bodyend="562" declfile="common.h" declline="60" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a29832698b1367ac638f4b6a2055a419e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void update_path_edit_control</definition>
+        <argsstring>(HWND hDlg, int id, const std::filesystem::path &amp;path)</argsstring>
+        <name>update_path_edit_control</name>
+        <param>
+          <type>HWND</type>
+          <declname>hDlg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>const std::filesystem::path &amp;</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="62" column="6" declfile="common.h" declline="62" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a5d2097fd9a8ba9bd21fc32d8e74f50db" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int get_save_filename</definition>
+        <argsstring>(HWND owner, const TCHAR *title, FilterList &amp;filter, const TCHAR *def_ext, std::filesystem::path &amp;exp_fname, bool init_with_previous=true)</argsstring>
+        <name>get_save_filename</name>
+        <param>
+          <type>HWND</type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>title</declname>
+        </param>
+        <param>
+          <type>FilterList &amp;</type>
+          <declname>filter</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>def_ext</declname>
+        </param>
+        <param>
+          <type>std::filesystem::path &amp;</type>
+          <declname>exp_fname</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>init_with_previous</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="64" column="5" declfile="common.h" declline="64" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1aa18bc158a0ca172b42c0508774c36f38" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool get_open_filename</definition>
+        <argsstring>(HWND owner, const TCHAR *title, FilterList &amp;filter, const TCHAR *def_ext, std::filesystem::path &amp;imp_fname)</argsstring>
+        <name>get_open_filename</name>
+        <param>
+          <type>HWND</type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>title</declname>
+        </param>
+        <param>
+          <type>FilterList &amp;</type>
+          <declname>filter</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>def_ext</declname>
+        </param>
+        <param>
+          <type>std::filesystem::path &amp;</type>
+          <declname>imp_fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="66" column="6" declfile="common.h" declline="66" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a0933975a9e3f5e21c4cf6e9b7cfc3406" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool get_open_filename</definition>
+        <argsstring>(HWND owner, std::filesystem::path &amp;imp_fname)</argsstring>
+        <name>get_open_filename</name>
+        <param>
+          <type>HWND</type>
+          <declname>owner</declname>
+        </param>
+        <param>
+          <type>std::filesystem::path &amp;</type>
+          <declname>imp_fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="67" column="6" declfile="common.h" declline="67" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a9139206b52e519ebc3565024ef6501e3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::filesystem::path</type>
+        <definition>std::filesystem::path get_cfg_filename</definition>
+        <argsstring>(const TCHAR *cfg)</argsstring>
+        <name>get_cfg_filename</name>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="69" column="23" bodyfile="common.cpp" bodystart="222" bodyend="233" declfile="common.h" declline="69" declcolumn="23"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1ae7410f819ee39a9f1fc7e598846feefa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::filesystem::path</type>
+        <definition>std::filesystem::path resolve_tex_path</definition>
+        <argsstring>(const wchar_t *name)</argsstring>
+        <name>resolve_tex_path</name>
+        <param>
+          <type>const wchar_t *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="72" column="23" bodyfile="common.cpp" bodystart="235" bodyend="242" declfile="common.h" declline="72" declcolumn="23"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1ae3e2966e56b8f353e13736457b880db9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::vector&lt; std::wstring &gt;</type>
+        <definition>std::vector&lt; std::wstring &gt; split</definition>
+        <argsstring>(std::wstring_view text, const wchar_t delim)</argsstring>
+        <name>split</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>text</declname>
+        </param>
+        <param>
+          <type>const wchar_t</type>
+          <declname>delim</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="74" column="13" bodyfile="common.cpp" bodystart="245" bodyend="256" declfile="common.h" declline="74" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a7339fce64bf5ea3fe5389d9995060427" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring replace_all</definition>
+        <argsstring>(std::wstring str, std::wstring_view from, std::wstring_view to)</argsstring>
+        <name>replace_all</name>
+        <param>
+          <type>std::wstring</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>to</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="75" column="14" bodyfile="common.cpp" bodystart="258" bodyend="265" declfile="common.h" declline="75" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1aea05e92fdb89f4b185b78f2e875e2858" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring collapse_repeats</definition>
+        <argsstring>(std::wstring str, std::wstring_view seq)</argsstring>
+        <name>collapse_repeats</name>
+        <param>
+          <type>std::wstring</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>seq</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="78" column="14" bodyfile="common.cpp" bodystart="267" bodyend="279" declfile="common.h" declline="78" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a4d0e1f9176d5eb904c3692f341e184eb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void trim</definition>
+        <argsstring>(std::wstring &amp;str)</argsstring>
+        <name>trim</name>
+        <param>
+          <type>std::wstring &amp;</type>
+          <declname>str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="80" column="6" bodyfile="common.cpp" bodystart="281" bodyend="285" declfile="common.h" declline="80" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a8dae99a68045154d9d919ef6d35c639d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool isProxymatName</definition>
+        <argsstring>(std::wstring_view mat_name)</argsstring>
+        <name>isProxymatName</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>mat_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="82" column="6" bodyfile="common.cpp" bodystart="287" bodyend="287" declfile="common.h" declline="82" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a21146447d5e3a739f1cd4c6a0b01fcac" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool iequal</definition>
+        <argsstring>(std::string_view s1, std::string_view s2)</argsstring>
+        <name>iequal</name>
+        <param>
+          <type>std::string_view</type>
+          <declname>s1</declname>
+        </param>
+        <param>
+          <type>std::string_view</type>
+          <declname>s2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="84" column="13" bodyfile="common.h" bodystart="84" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1ac6178c4290bfecf81e9e8b823e00abde" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool iequal</definition>
+        <argsstring>(std::wstring_view s1, std::wstring_view s2)</argsstring>
+        <name>iequal</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>s1</declname>
+        </param>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>s2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="85" column="13" bodyfile="common.h" bodystart="85" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a7114f4bca729c301080d0b13cfac67ba" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool istarts_with</definition>
+        <argsstring>(std::string_view s, std::string_view prefix)</argsstring>
+        <name>istarts_with</name>
+        <param>
+          <type>std::string_view</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>std::string_view</type>
+          <declname>prefix</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="87" column="13" bodyfile="common.h" bodystart="87" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a76b8c136641dd0626d72b223468eabf8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool istarts_with</definition>
+        <argsstring>(std::wstring_view s, std::wstring_view prefix)</argsstring>
+        <name>istarts_with</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>prefix</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="88" column="13" bodyfile="common.h" bodystart="88" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1af5660b9cebec447a7ba75dec1034e635" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring simplifyRN</definition>
+        <argsstring>(std::wstring_view from)</argsstring>
+        <name>simplifyRN</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>from</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="90" column="14" bodyfile="common.cpp" bodystart="289" bodyend="296" declfile="common.h" declline="90" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1aa6a4a08c0122deead6e5eb6a53156598" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::wstring</type>
+        <definition>std::wstring trim_params</definition>
+        <argsstring>(std::wstring_view from)</argsstring>
+        <name>trim_params</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>from</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="91" column="14" bodyfile="common.cpp" bodystart="298" bodyend="330" declfile="common.h" declline="91" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1acbbf18e917eaee5923a2562a5864ea11" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::string</type>
+        <definition>std::string escape_json_string</definition>
+        <argsstring>(std::string_view input)</argsstring>
+        <name>escape_json_string</name>
+        <param>
+          <type>std::string_view</type>
+          <declname>input</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="93" column="13" bodyfile="common.cpp" bodystart="332" bodyend="362" declfile="common.h" declline="93" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1abaa1bd316e4f2ebdc73f70f735481ed8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>bool parse_num</definition>
+        <argsstring>(std::string_view &amp;s, T &amp;out)</argsstring>
+        <name>parse_num</name>
+        <param>
+          <type>std::string_view &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>T &amp;</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="97" column="6" bodyfile="common.h" bodystart="97" bodyend="110"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1aab71fd5c2b5c5347cfa3b2be2eaeeda1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool parse_sep</definition>
+        <argsstring>(std::string_view &amp;s, std::string_view sep)</argsstring>
+        <name>parse_sep</name>
+        <param>
+          <type>std::string_view &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>std::string_view</type>
+          <declname>sep</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="113" column="13" bodyfile="common.h" bodystart="113" bodyend="121"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1ace79873ffb991a9328686f0cda6928e7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename...</type>
+            <declname>T</declname>
+            <defname>T</defname>
+          </param>
+        </templateparamlist>
+        <type>int</type>
+        <definition>int parse_nums_sep</definition>
+        <argsstring>(std::string_view &amp;s, std::string_view sep, T &amp;...out)</argsstring>
+        <name>parse_nums_sep</name>
+        <param>
+          <type>std::string_view &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>std::string_view</type>
+          <declname>sep</declname>
+        </param>
+        <param>
+          <type>T &amp;...</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="126" column="5" bodyfile="common.h" bodystart="126" bodyend="131"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a647a359141efae8c014c8b03ec4652f3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename...</type>
+            <declname>T</declname>
+            <defname>T</defname>
+          </param>
+        </templateparamlist>
+        <type>int</type>
+        <definition>int parse_nums</definition>
+        <argsstring>(std::string_view s, T &amp;...out)</argsstring>
+        <name>parse_nums</name>
+        <param>
+          <type>std::string_view</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>T &amp;...</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="135" column="5" bodyfile="common.h" bodystart="135" bodyend="138"/>
+      </memberdef>
+      <memberdef kind="function" id="common_8h_1a45cef4e68312d5c95c52745a5417a27b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename...</type>
+            <declname>T</declname>
+            <defname>T</defname>
+          </param>
+        </templateparamlist>
+        <type>int</type>
+        <definition>int parse_spaced_nums</definition>
+        <argsstring>(std::string_view s, T &amp;...out)</argsstring>
+        <name>parse_spaced_nums</name>
+        <param>
+          <type>std::string_view</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>T &amp;...</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="142" column="5" bodyfile="common.h" bodystart="142" bodyend="145"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;charconv&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;vector&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string_view&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;filesystem&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="ci_8h" kindref="compound">ci.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="comment">//<sp/>boolean<sp/>guard:<sp/>sets<sp/>the<sp/>flag<sp/>for<sp/>the<sp/>duration<sp/>of<sp/>the<sp/>scope,<sp/>then<sp/>puts<sp/>back<sp/>what<sp/>was<sp/>there</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="classAutotoggle" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classAutotoggle" kindref="compound">Autotoggle</ref></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>&amp;f;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>prev;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="20" refid="classAutotoggle_1a48bfacef9c18801952be4ab568b01329" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classAutotoggle_1a48bfacef9c18801952be4ab568b01329" kindref="member">Autotoggle</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>&amp;f_)<sp/>:<sp/>f(f_),<sp/>prev(f_)<sp/>{<sp/>f<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="21" refid="classAutotoggle_1ab10e9de5afa6b7294c93dd4b6ed3f449" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classAutotoggle_1ab10e9de5afa6b7294c93dd4b6ed3f449" kindref="member">Autotoggle</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>&amp;f_,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>v_)<sp/>:<sp/>f(f_),<sp/>prev(f_)<sp/>{<sp/>f<sp/>=<sp/>v_;<sp/>}</highlight></codeline>
+<codeline lineno="22" refid="classAutotoggle_1a561dbcdbee6ee8c12b42aa328caa60be" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classAutotoggle_1a561dbcdbee6ee8c12b42aa328caa60be" kindref="member">~Autotoggle</ref>()<sp/>{<sp/>f<sp/>=<sp/>prev;<sp/>}</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="classAutotoggle_1ae2551cb886bf49063ea01480e03321ea" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classAutotoggle_1ae2551cb886bf49063ea01480e03321ea" kindref="member">Autotoggle</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classAutotoggle" kindref="compound">Autotoggle</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="25" refid="classAutotoggle_1a925382cea8f923426524e05f7f6575e3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classAutotoggle" kindref="compound">Autotoggle</ref><sp/>&amp;<ref refid="classAutotoggle_1a925382cea8f923426524e05f7f6575e3" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classAutotoggle" kindref="compound">Autotoggle</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="comment">//<sp/>add<sp/>rollup<sp/>page<sp/>with<sp/>layout</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal">HWND<sp/><ref refid="common_8h_1a2922c0ff799bab73fda7ef905a074c8c" kindref="member">add_rollup_page</ref>(Interface<sp/>*ip,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>resource_id,<sp/>DLGPROC<sp/>proc,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*title,<sp/>LPARAM<sp/>param<sp/>=<sp/>0,<sp/>DWORD<sp/>flags<sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="comment">//<sp/>delete<sp/>rollup<sp/>page<sp/>and<sp/>reset<sp/>hw</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="common_8h_1ac9901f1c91ba6fca4d76e222820f8b52" kindref="member">delete_rollup_page</ref>(Interface<sp/>*ip,<sp/>HWND<sp/>*hw);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="common_8h_1ab3996dd0d94c2f2ea13b532cd01a3acf" kindref="member">get_master_scale</ref>();</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="comment">//<sp/>file<sp/>extension<sp/>is<sp/>&quot;.dag&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="common_8h_1abf1874d5ba8f4418974dee973d633f0a" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8h_1abf1874d5ba8f4418974dee973d633f0a" kindref="member">is_dag_file</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::filesystem::path<sp/>&amp;filename);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="comment">//<sp/>list<sp/>of<sp/>all<sp/>files<sp/>in<sp/>the<sp/>dir</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="common_8h_1a63d7ef0ccc4033af70e729cbc76ac07e" refkind="member"><highlight class="normal">std::vector&lt;std::filesystem::path&gt;<sp/><ref refid="common_8h_1a63d7ef0ccc4033af70e729cbc76ac07e" kindref="member">glob</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::filesystem::path<sp/>&amp;dir,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>recursive);</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal">std::wstring<sp/><ref refid="common_8h_1aa7a04a6b3e85348d94e1fd9b47f02bbc" kindref="member">strToWide</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*sz);</highlight></codeline>
+<codeline lineno="48"><highlight class="normal">std::wstring<sp/><ref refid="common_8h_1aa7a04a6b3e85348d94e1fd9b47f02bbc" kindref="member">strToWide</ref>(std::string_view<sp/>sv);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal">std::string<sp/><ref refid="common_8h_1a7d903fa919ea26cd19f8a6191f5daeff" kindref="member">wideToStr</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>*sw);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal">std::string<sp/><ref refid="common_8h_1a7d903fa919ea26cd19f8a6191f5daeff" kindref="member">wideToStr</ref>(std::wstring_view<sp/>sv);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="comment">//<sp/>&quot;\foo\bar.baz&quot;<sp/>--&gt;<sp/>\foo\bar.baz</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal">std::wstring<sp/><ref refid="common_8h_1ab276a8d21d187650668e7730011e4761" kindref="member">drop_quotation_marks</ref>(std::wstring_view<sp/>s);</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="comment">//<sp/>full<sp/>text<sp/>of<sp/>a<sp/>window/control;<sp/>empty<sp/>string<sp/>if<sp/>there<sp/>is<sp/>none</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal">std::wstring<sp/><ref refid="common_8h_1a25724cf03a0df69a784f23dbdbe404f4" kindref="member">get_window_text</ref>(HWND<sp/>hw);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="comment">//<sp/>read<sp/>a<sp/>numeric<sp/>edit<sp/>control,<sp/>false<sp/>if<sp/>it<sp/>does<sp/>not<sp/>hold<sp/>a<sp/>valid<sp/>number</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a14a306dd89ac4b563b5da49c18afbc29" kindref="member">get_edint</ref>(ICustEdit<sp/>*e,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;a);</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8h_1ab0f0424bae942f9a6b4f9d4b27d6ce1d" kindref="member">get_edfloat</ref>(ICustEdit<sp/>*e,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>&amp;a);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="common_8h_1a29832698b1367ac638f4b6a2055a419e" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a29832698b1367ac638f4b6a2055a419e" kindref="member">update_path_edit_control</ref>(HWND<sp/>hDlg,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::filesystem::path<sp/>&amp;path);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64" refid="common_8h_1a5d2097fd9a8ba9bd21fc32d8e74f50db" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a5d2097fd9a8ba9bd21fc32d8e74f50db" kindref="member">get_save_filename</ref>(HWND<sp/>owner,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*title,<sp/>FilterList<sp/>&amp;filter,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*def_ext,<sp/>std::filesystem::path<sp/>&amp;exp_fname,</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>init_with_previous<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="66" refid="common_8h_1aa18bc158a0ca172b42c0508774c36f38" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8h_1aa18bc158a0ca172b42c0508774c36f38" kindref="member">get_open_filename</ref>(HWND<sp/>owner,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*title,<sp/>FilterList<sp/>&amp;filter,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*def_ext,<sp/>std::filesystem::path<sp/>&amp;imp_fname);</highlight></codeline>
+<codeline lineno="67" refid="common_8h_1a0933975a9e3f5e21c4cf6e9b7cfc3406" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8h_1aa18bc158a0ca172b42c0508774c36f38" kindref="member">get_open_filename</ref>(HWND<sp/>owner,<sp/>std::filesystem::path<sp/>&amp;imp_fname);</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal">std::filesystem::path<sp/><ref refid="common_8h_1a9139206b52e519ebc3565024ef6501e3" kindref="member">get_cfg_filename</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*cfg);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="comment">//<sp/>the<sp/>full<sp/>path<sp/>of<sp/>a<sp/>texture<sp/>named<sp/>in<sp/>a<sp/>dag<sp/>or<sp/>a<sp/>proxymat</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal">std::filesystem::path<sp/><ref refid="common_8h_1ae7410f819ee39a9f1fc7e598846feefa" kindref="member">resolve_tex_path</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal">std::vector&lt;std::wstring&gt;<sp/><ref refid="common_8h_1ae3e2966e56b8f353e13736457b880db9" kindref="member">split</ref>(std::wstring_view<sp/>text,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>delim);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal">std::wstring<sp/><ref refid="common_8h_1a7339fce64bf5ea3fe5389d9995060427" kindref="member">replace_all</ref>(std::wstring<sp/>str,<sp/>std::wstring_view<sp/>from,<sp/>std::wstring_view<sp/>to);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight><highlight class="comment">//<sp/>&quot;a&lt;sep&gt;&lt;sep&gt;&lt;sep&gt;b&quot;<sp/>--&gt;<sp/>&quot;a&lt;sep&gt;b&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal">std::wstring<sp/><ref refid="common_8h_1aea05e92fdb89f4b185b78f2e875e2858" kindref="member">collapse_repeats</ref>(std::wstring<sp/>str,<sp/>std::wstring_view<sp/>seq);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a4d0e1f9176d5eb904c3692f341e184eb" kindref="member">trim</ref>(std::wstring<sp/>&amp;str);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a8dae99a68045154d9d919ef6d35c639d" kindref="member">isProxymatName</ref>(std::wstring_view<sp/>mat_name);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84" refid="common_8h_1a21146447d5e3a739f1cd4c6a0b01fcac" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a21146447d5e3a739f1cd4c6a0b01fcac" kindref="member">iequal</ref>(std::string_view<sp/>s1,<sp/>std::string_view<sp/>s2)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structCaseInsensitiveEqual" kindref="compound">CaseInsensitiveEqual</ref>{}(s1,<sp/>s2);<sp/>}</highlight></codeline>
+<codeline lineno="85" refid="common_8h_1ac6178c4290bfecf81e9e8b823e00abde" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a21146447d5e3a739f1cd4c6a0b01fcac" kindref="member">iequal</ref>(std::wstring_view<sp/>s1,<sp/>std::wstring_view<sp/>s2)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structCaseInsensitiveEqualW" kindref="compound">CaseInsensitiveEqualW</ref>{}(s1,<sp/>s2);<sp/>}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87" refid="common_8h_1a7114f4bca729c301080d0b13cfac67ba" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a7114f4bca729c301080d0b13cfac67ba" kindref="member">istarts_with</ref>(std::string_view<sp/>s,<sp/>std::string_view<sp/>prefix)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a21146447d5e3a739f1cd4c6a0b01fcac" kindref="member">iequal</ref>(s.substr(0,<sp/>prefix.size()),<sp/>prefix);<sp/>}</highlight></codeline>
+<codeline lineno="88" refid="common_8h_1a76b8c136641dd0626d72b223468eabf8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a7114f4bca729c301080d0b13cfac67ba" kindref="member">istarts_with</ref>(std::wstring_view<sp/>s,<sp/>std::wstring_view<sp/>prefix)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a21146447d5e3a739f1cd4c6a0b01fcac" kindref="member">iequal</ref>(s.substr(0,<sp/>prefix.size()),<sp/>prefix);<sp/>}</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal">std::wstring<sp/><ref refid="common_8h_1af5660b9cebec447a7ba75dec1034e635" kindref="member">simplifyRN</ref>(std::wstring_view<sp/>from);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal">std::wstring<sp/><ref refid="common_8h_1aa6a4a08c0122deead6e5eb6a53156598" kindref="member">trim_params</ref>(std::wstring_view<sp/>from);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal">std::string<sp/><ref refid="common_8h_1acbbf18e917eaee5923a2562a5864ea11" kindref="member">escape_json_string</ref>(std::string_view<sp/>input);</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight><highlight class="comment">//<sp/>consumes<sp/>leading<sp/>spaces<sp/>and<sp/>tabs,<sp/>then<sp/>one<sp/>number;<sp/>false<sp/>if<sp/>there<sp/>is<sp/>none</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="97" refid="common_8h_1abaa1bd316e4f2ebdc73f70f735481ed8" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8h_1abaa1bd316e4f2ebdc73f70f735481ed8" kindref="member">parse_num</ref>(std::string_view<sp/>&amp;s,<sp/>T<sp/>&amp;out)</highlight></codeline>
+<codeline lineno="98"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>at<sp/>=<sp/>s.find_first_not_of(</highlight><highlight class="stringliteral">&quot;<sp/>\t&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(at<sp/>==<sp/>std::string_view::npos)</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*begin<sp/>=<sp/>s.data()<sp/>+<sp/>at<sp/>+<sp/>(s[at]<sp/>==<sp/></highlight><highlight class="charliteral">&apos;+&apos;</highlight><highlight class="normal"><sp/>?<sp/>1<sp/>:<sp/>0);</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>,<sp/>ec]<sp/>=<sp/>std::from_chars(begin,<sp/>s.data()<sp/>+<sp/>s.size(),<sp/>out);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(ec<sp/>!=<sp/>std::errc())</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/>s.remove_prefix(<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref><sp/>-<sp/>s.data());</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="comment">//<sp/>consumes<sp/>the<sp/>run<sp/>of<sp/>spaces,<sp/>tabs<sp/>and<sp/>commas<sp/>between<sp/>two<sp/>numbers;<sp/>false<sp/>if<sp/>it<sp/>holds<sp/>none<sp/>of<sp/>`sep`</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113" refid="common_8h_1aab71fd5c2b5c5347cfa3b2be2eaeeda1" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="common_8h_1aab71fd5c2b5c5347cfa3b2be2eaeeda1" kindref="member">parse_sep</ref>(std::string_view<sp/>&amp;s,<sp/>std::string_view<sp/>sep)</highlight></codeline>
+<codeline lineno="114"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::string_view<sp/>gap<sp/>=<sp/>s.substr(0,<sp/>s.find_first_not_of(</highlight><highlight class="stringliteral">&quot;<sp/>\t,&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(gap.find_first_of(sep)<sp/>==<sp/>std::string_view::npos)</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/>s.remove_prefix(gap.size());</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight><highlight class="comment">//<sp/>how<sp/>many<sp/>of<sp/>the<sp/>numbers<sp/>were<sp/>read,<sp/>like<sp/>the<sp/>return<sp/>value<sp/>of<sp/>scanf;<sp/>base<sp/>is<sp/>always<sp/>10.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight><highlight class="comment">//<sp/>consumes<sp/>what<sp/>it<sp/>reads,<sp/>so<sp/>`s`<sp/>is<sp/>left<sp/>holding<sp/>the<sp/>tail</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal">...<sp/>T&gt;</highlight></codeline>
+<codeline lineno="126" refid="common_8h_1ace79873ffb991a9328686f0cda6928e7" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="common_8h_1ace79873ffb991a9328686f0cda6928e7" kindref="member">parse_nums_sep</ref>(std::string_view<sp/>&amp;s,<sp/>std::string_view<sp/>sep,<sp/>T<sp/>&amp;...out)</highlight></codeline>
+<codeline lineno="127"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>parsed<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/>(void)(((parsed<sp/>==<sp/>0<sp/>||<sp/><ref refid="common_8h_1aab71fd5c2b5c5347cfa3b2be2eaeeda1" kindref="member">parse_sep</ref>(s,<sp/>sep))<sp/>&amp;&amp;<sp/><ref refid="common_8h_1abaa1bd316e4f2ebdc73f70f735481ed8" kindref="member">parse_num</ref>(s,<sp/>out)<sp/>&amp;&amp;<sp/>(++parsed,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">))<sp/>&amp;&amp;<sp/>...);</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>parsed;</highlight></codeline>
+<codeline lineno="131"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight><highlight class="comment">//<sp/>the<sp/>numbers<sp/>must<sp/>be<sp/>comma-separated,<sp/>as<sp/>in<sp/>&quot;1,<sp/>2,<sp/>3&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal">...<sp/>T&gt;</highlight></codeline>
+<codeline lineno="135" refid="common_8h_1a647a359141efae8c014c8b03ec4652f3" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a647a359141efae8c014c8b03ec4652f3" kindref="member">parse_nums</ref>(std::string_view<sp/>s,<sp/>T<sp/>&amp;...out)</highlight></codeline>
+<codeline lineno="136"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8h_1ace79873ffb991a9328686f0cda6928e7" kindref="member">parse_nums_sep</ref>(s,<sp/></highlight><highlight class="stringliteral">&quot;,&quot;</highlight><highlight class="normal">,<sp/>out...);</highlight></codeline>
+<codeline lineno="138"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight><highlight class="comment">//<sp/>the<sp/>numbers<sp/>must<sp/>be<sp/>separated<sp/>by<sp/>blanks,<sp/>as<sp/>in<sp/>&quot;1<sp/>2<sp/>3&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal">...<sp/>T&gt;</highlight></codeline>
+<codeline lineno="142" refid="common_8h_1a45cef4e68312d5c95c52745a5417a27b" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="common_8h_1a45cef4e68312d5c95c52745a5417a27b" kindref="member">parse_spaced_nums</ref>(std::string_view<sp/>s,<sp/>T<sp/>&amp;...out)</highlight></codeline>
+<codeline lineno="143"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="common_8h_1ace79873ffb991a9328686f0cda6928e7" kindref="member">parse_nums_sep</ref>(s,<sp/></highlight><highlight class="stringliteral">&quot;<sp/>\t&quot;</highlight><highlight class="normal">,<sp/>out...);</highlight></codeline>
+<codeline lineno="145"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="common.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structBlkFileBlk" kind="struct" language="C++" prot="public">
+    <compoundname>BlkFileBlk</compoundname>
+    <includes refid="blockFileUtil_8h" local="no">blockFileUtil.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structBlkFileBlk_1a18ab398d171391807ef66984af7e7f82" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BlkFileBlk::o</definition>
+        <argsstring></argsstring>
+        <name>o</name>
+        <qualifiedname>BlkFileBlk::o</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="47" column="7" bodyfile="blockFileUtil.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBlkFileBlk_1a3374ef733e9725e93092bb870d699ee3" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BlkFileBlk::l</definition>
+        <argsstring></argsstring>
+        <name>l</name>
+        <qualifiedname>BlkFileBlk::l</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="47" column="9" bodyfile="blockFileUtil.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="blockFileUtil.h" line="45" column="1" bodyfile="blockFileUtil.h" bodystart="46" bodyend="48"/>
+    <listofallmembers>
+      <member refid="structBlkFileBlk_1a3374ef733e9725e93092bb870d699ee3" prot="public" virt="non-virtual"><scope>BlkFileBlk</scope><name>l</name></member>
+      <member refid="structBlkFileBlk_1a18ab398d171391807ef66984af7e7f82" prot="public" virt="non-virtual"><scope>BlkFileBlk</scope><name>o</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

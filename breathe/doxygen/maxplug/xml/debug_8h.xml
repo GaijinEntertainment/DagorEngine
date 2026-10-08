@@ -1,0 +1,289 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="debug_8h" kind="file" language="C++">
+    <compoundname>debug.h</compoundname>
+    <includes local="no">format</includes>
+    <includes local="no">string_view</includes>
+    <includedby refid="dagimp_8cpp" local="yes">dagimp.cpp</includedby>
+    <includedby refid="datablk_8cpp" local="yes">datablk.cpp</includedby>
+    <includedby refid="debug_8cpp" local="yes">debug.cpp</includedby>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <includedby refid="freecam_8cpp" local="yes">freecam.cpp</includedby>
+    <includedby refid="mater2_8cpp" local="yes">mater2.cpp</includedby>
+    <includedby refid="meshtrace_8cpp" local="yes">meshtrace.cpp</includedby>
+    <includedby refid="milkShapeAnimImport_8cpp" local="yes">milkShapeAnimImport.cpp</includedby>
+    <includedby refid="objonsrf_8cpp" local="yes">objonsrf.cpp</includedby>
+    <includedby refid="polyBumpUtil_8cpp" local="yes">polyBumpUtil.cpp</includedby>
+    <includedby refid="rolluppanel_8cpp" local="yes">rolluppanel.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>debug.h</label>
+        <link refid="debug_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>format</label>
+      </node>
+      <node id="3">
+        <label>string_view</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dagimp.cpp</label>
+        <link refid="dagimp_8cpp"/>
+      </node>
+      <node id="3">
+        <label>datablk.cpp</label>
+        <link refid="datablk_8cpp"/>
+      </node>
+      <node id="4">
+        <label>debug.cpp</label>
+        <link refid="debug_8cpp"/>
+      </node>
+      <node id="1">
+        <label>debug.h</label>
+        <link refid="debug_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="6">
+        <label>freecam.cpp</label>
+        <link refid="freecam_8cpp"/>
+      </node>
+      <node id="7">
+        <label>mater2.cpp</label>
+        <link refid="mater2_8cpp"/>
+      </node>
+      <node id="8">
+        <label>meshtrace.cpp</label>
+        <link refid="meshtrace_8cpp"/>
+      </node>
+      <node id="9">
+        <label>milkShapeAnimImport.cpp</label>
+        <link refid="milkShapeAnimImport_8cpp"/>
+      </node>
+      <node id="10">
+        <label>objonsrf.cpp</label>
+        <link refid="objonsrf_8cpp"/>
+      </node>
+      <node id="11">
+        <label>polyBumpUtil.cpp</label>
+        <link refid="polyBumpUtil_8cpp"/>
+      </node>
+      <node id="12">
+        <label>rolluppanel.cpp</label>
+        <link refid="rolluppanel_8cpp"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="debug_8h_1a85202214da334a103f3b39467cee63de" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void debug_out</definition>
+        <argsstring>(std::string_view text)</argsstring>
+        <name>debug_out</name>
+        <param>
+          <type>std::string_view</type>
+          <declname>text</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.h" line="7" column="6" bodyfile="debug.cpp" bodystart="43" bodyend="43" declfile="debug.h" declline="7" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="debug_8h_1a77fcd087cc360f03ee720900dc553819" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void debug_out</definition>
+        <argsstring>(std::wstring_view text)</argsstring>
+        <name>debug_out</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>text</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.h" line="8" column="6" bodyfile="debug.cpp" bodystart="45" bodyend="78" declfile="debug.h" declline="8" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="debug_8h_1a0c196a83abb554f39a2279567e9195e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void debug_formatted</definition>
+        <argsstring>(std::string_view fmt, std::format_args args)</argsstring>
+        <name>debug_formatted</name>
+        <param>
+          <type>std::string_view</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>std::format_args</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.h" line="10" column="6" bodyfile="debug.cpp" bodystart="19" bodyend="29" declfile="debug.h" declline="10" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="debug_8h_1a52d5c08d9c2cc95359dd8f38cecbe8b0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void debug_formatted</definition>
+        <argsstring>(std::wstring_view fmt, std::wformat_args args)</argsstring>
+        <name>debug_formatted</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>std::wformat_args</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.h" line="11" column="6" bodyfile="debug.cpp" bodystart="31" bodyend="41" declfile="debug.h" declline="11" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="debug_8h_1ac6b112152b09e73c44aaf09495763263" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename...</type>
+            <declname>Args</declname>
+            <defname>Args</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void debug</definition>
+        <argsstring>(std::string_view fmt, Args &amp;&amp;...args)</argsstring>
+        <name>debug</name>
+        <param>
+          <type>std::string_view</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>Args &amp;&amp;...</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.h" line="30" column="6" bodyfile="debug.h" bodystart="30" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="debug_8h_1afe817ef776a077f0dbe4491b2f5ddf96" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename...</type>
+            <declname>Args</declname>
+            <defname>Args</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void debug</definition>
+        <argsstring>(std::wstring_view fmt, Args &amp;&amp;...args)</argsstring>
+        <name>debug</name>
+        <param>
+          <type>std::wstring_view</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>Args &amp;&amp;...</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debug.h" line="36" column="6" bodyfile="debug.h" bodystart="36" bodyend="39"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;format&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string_view&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debug_8h_1a85202214da334a103f3b39467cee63de" kindref="member">debug_out</ref>(std::string_view<sp/>text);</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debug_8h_1a85202214da334a103f3b39467cee63de" kindref="member">debug_out</ref>(std::wstring_view<sp/>text);</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debug_8h_1a0c196a83abb554f39a2279567e9195e8" kindref="member">debug_formatted</ref>(std::string_view<sp/>fmt,<sp/>std::format_args<sp/>args);</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debug_8h_1a0c196a83abb554f39a2279567e9195e8" kindref="member">debug_formatted</ref>(std::wstring_view<sp/>fmt,<sp/>std::wformat_args<sp/>args);</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>__cpp_lib_format<sp/>&gt;=<sp/>202207L</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal">...<sp/>Args&gt;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debug_8h_1ac6b112152b09e73c44aaf09495763263" kindref="member">debug</ref>(std::format_string&lt;Args...&gt;<sp/>fmt,<sp/>Args<sp/>&amp;&amp;...args)</highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><ref refid="debug_8h_1a0c196a83abb554f39a2279567e9195e8" kindref="member">debug_formatted</ref>(fmt.get(),<sp/>std::make_format_args(args...));</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal">...<sp/>Args&gt;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debug_8h_1ac6b112152b09e73c44aaf09495763263" kindref="member">debug</ref>(std::wformat_string&lt;Args...&gt;<sp/>fmt,<sp/>Args<sp/>&amp;&amp;...args)</highlight></codeline>
+<codeline lineno="23"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><ref refid="debug_8h_1a0c196a83abb554f39a2279567e9195e8" kindref="member">debug_formatted</ref>(fmt.get(),<sp/>std::make_wformat_args(args...));</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal">...<sp/>Args&gt;</highlight></codeline>
+<codeline lineno="30" refid="debug_8h_1ac6b112152b09e73c44aaf09495763263" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debug_8h_1ac6b112152b09e73c44aaf09495763263" kindref="member">debug</ref>(std::string_view<sp/>fmt,<sp/>Args<sp/>&amp;&amp;...args)</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><ref refid="debug_8h_1a0c196a83abb554f39a2279567e9195e8" kindref="member">debug_formatted</ref>(fmt,<sp/>std::make_format_args(args...));</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal">...<sp/>Args&gt;</highlight></codeline>
+<codeline lineno="36" refid="debug_8h_1afe817ef776a077f0dbe4491b2f5ddf96" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debug_8h_1ac6b112152b09e73c44aaf09495763263" kindref="member">debug</ref>(std::wstring_view<sp/>fmt,<sp/>Args<sp/>&amp;&amp;...args)</highlight></codeline>
+<codeline lineno="37"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><ref refid="debug_8h_1a0c196a83abb554f39a2279567e9195e8" kindref="member">debug_formatted</ref>(fmt,<sp/>std::make_wformat_args(args...));</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="debug.h"/>
+  </compounddef>
+</doxygen>

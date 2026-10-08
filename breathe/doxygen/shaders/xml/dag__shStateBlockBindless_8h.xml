@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shStateBlockBindless_8h" kind="file" language="C++">
+    <compoundname>dag_shStateBlockBindless.h</compoundname>
+    <includes refid="dag__shaderState_8h" local="no">shaders/dag_shaderState.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_shStateBlockBindless.h</label>
+        <link refid="dag__shStateBlockBindless_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shaders/dag_shaderState.h</label>
+        <link refid="dag__shaderState_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>stdint.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__shStateBlockBindless_8h_1aa5aa642ad98e562c53e9e465dbca349a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void update_bindless_state</definition>
+        <argsstring>(shaders::ConstStateIdx const_state_idx, int tex_level)</argsstring>
+        <name>update_bindless_state</name>
+        <param>
+          <type>shaders::ConstStateIdx</type>
+          <declname>const_state_idx</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>tex_level</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shStateBlockBindless.h" line="9" column="6" declfile="dag_shStateBlockBindless.h" declline="9" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shStateBlockBindless_8h_1a7b7e6398cb7c8a90e3dff0c3e850ac47" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t get_material_offset</definition>
+        <argsstring>(shaders::ConstStateIdx const_state_idx)</argsstring>
+        <name>get_material_offset</name>
+        <param>
+          <type>shaders::ConstStateIdx</type>
+          <declname>const_state_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shStateBlockBindless.h" line="10" column="10" declfile="dag_shStateBlockBindless.h" declline="10" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shStateBlockBindless_8h_1ab232a4602704184ff4ae35e74ed9ed79" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t get_material_id</definition>
+        <argsstring>(shaders::ConstStateIdx const_state_idx)</argsstring>
+        <name>get_material_id</name>
+        <param>
+          <type>shaders::ConstStateIdx</type>
+          <declname>const_state_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shStateBlockBindless.h" line="11" column="10" declfile="dag_shStateBlockBindless.h" declline="11" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shStateBlockBindless_8h_1a826589b47439130e51b24184f33494e6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_packed_material</definition>
+        <argsstring>(shaders::ConstStateIdx const_state_idx)</argsstring>
+        <name>is_packed_material</name>
+        <param>
+          <type>shaders::ConstStateIdx</type>
+          <declname>const_state_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shStateBlockBindless.h" line="16" column="6" declfile="dag_shStateBlockBindless.h" declline="16" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderState.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>update_bindless_state(shaders::ConstStateIdx<sp/>const_state_idx,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>tex_level);</highlight></codeline>
+<codeline lineno="10"><highlight class="normal">uint32_t<sp/>get_material_offset(shaders::ConstStateIdx<sp/>const_state_idx);</highlight></codeline>
+<codeline lineno="11"><highlight class="normal">uint32_t<sp/>get_material_id(shaders::ConstStateIdx<sp/>const_state_idx)</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(__GNUC__)<sp/>||<sp/>defined(__clang__)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/>__attribute__((</highlight><highlight class="keyword">const</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/>;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_packed_material(shaders::ConstStateIdx<sp/>const_state_idx);</highlight></codeline>
+    </programlisting>
+    <location file="dag_shStateBlockBindless.h"/>
+  </compounddef>
+</doxygen>

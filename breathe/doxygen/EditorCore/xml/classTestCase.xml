@@ -1,0 +1,201 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTestCase" kind="class" language="C++" prot="public">
+    <compoundname>TestCase</compoundname>
+    <includes refid="ec__testSystem_8h" local="no">ec_testSystem.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classTestCase_1acc97294cd1db9e95eba98e457082a683" prot="private" static="no" mutable="no">
+        <type>String</type>
+        <definition>String TestCase::testName</definition>
+        <argsstring></argsstring>
+        <name>testName</name>
+        <qualifiedname>TestCase::testName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="62" column="10" bodyfile="ec_testSystem.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestCase_1afa7e835ef06cc172f1fa2c12e99c772c" prot="private" static="no" mutable="no">
+        <type>eastl::shared_ptr&lt; <ref refid="classTestCallback" kindref="compound">TestCallback</ref> &gt;</type>
+        <definition>eastl::shared_ptr&lt;TestCallback&gt; TestCase::testCallback</definition>
+        <argsstring></argsstring>
+        <name>testCallback</name>
+        <qualifiedname>TestCase::testCallback</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="63" column="21" bodyfile="ec_testSystem.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTestCase_1a7ced304172bd3880f434505b03d1bb50" prot="private" static="no" mutable="no">
+        <type>volatile int</type>
+        <definition>volatile int TestCase::state</definition>
+        <argsstring></argsstring>
+        <name>state</name>
+        <qualifiedname>TestCase::state</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="64" column="16" bodyfile="ec_testSystem.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTestCase_1a41dcc0139577f90f57543049a9a9ca8a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TestCase::TestCase</definition>
+        <argsstring>(const char *name, eastl::shared_ptr&lt; TestCallback &gt; test_callback)</argsstring>
+        <name>TestCase</name>
+        <qualifiedname>TestCase::TestCase</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>eastl::shared_ptr&lt; <ref refid="classTestCallback" kindref="compound">TestCallback</ref> &gt;</type>
+          <declname>test_callback</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="47" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestCase_1af502896392a5e14e24fedeecb44954bd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const String &amp;</type>
+        <definition>const String &amp; TestCase::name</definition>
+        <argsstring>() const</argsstring>
+        <name>name</name>
+        <qualifiedname>TestCase::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="49" column="16" bodyfile="ec_testSystem.h" bodystart="49" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestCase_1a4c56a3fb3e112174c403354fa5f68847" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8" kindref="member">TestState</ref></type>
+        <definition>TestState TestCase::lastState</definition>
+        <argsstring>() const</argsstring>
+        <name>lastState</name>
+        <qualifiedname>TestCase::lastState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="50" column="13" bodyfile="ec_testSystem.h" bodystart="50" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestCase_1afe647670fa7433018c6c1130987d4aff" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestCase::resetState</definition>
+        <argsstring>()</argsstring>
+        <name>resetState</name>
+        <qualifiedname>TestCase::resetState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="52" column="8" bodyfile="ec_testSystem.h" bodystart="52" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestCase_1af8d6fed4d9587f3f86043ff075bfc365" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestCase::markPassed</definition>
+        <argsstring>()</argsstring>
+        <name>markPassed</name>
+        <qualifiedname>TestCase::markPassed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="53" column="8" bodyfile="ec_testSystem.h" bodystart="53" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestCase_1ab0dc2e6a02f56ae48a3afe5b3a223d57" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestCase::markFailed</definition>
+        <argsstring>()</argsstring>
+        <name>markFailed</name>
+        <qualifiedname>TestCase::markFailed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="54" column="8" bodyfile="ec_testSystem.h" bodystart="54" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="classTestCase_1a3ef3e8a59d48e17efd4dd0dad877c488" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TestCase::run</definition>
+        <argsstring>(TestRuntime &amp;rt)</argsstring>
+        <name>run</name>
+        <qualifiedname>TestCase::run</qualifiedname>
+        <param>
+          <type><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref> &amp;</type>
+          <declname>rt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="57" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classTestCase_1ae44f88cbf91d0ff3dc08ca91af52ce3f" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void TestCase::register_script_class</definition>
+        <argsstring>(HSQUIRRELVM vm)</argsstring>
+        <name>register_script_class</name>
+        <qualifiedname>TestCase::register_script_class</qualifiedname>
+        <param>
+          <type><ref refid="ec__testSystem_8h_1a9118df9c000fff034a7b410b6de3443c" kindref="member">HSQUIRRELVM</ref></type>
+          <declname>vm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="59" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_testSystem.h" line="44" column="1" bodyfile="ec_testSystem.h" bodystart="45" bodyend="65"/>
+    <listofallmembers>
+      <member refid="classTestCase_1a4c56a3fb3e112174c403354fa5f68847" prot="public" virt="non-virtual"><scope>TestCase</scope><name>lastState</name></member>
+      <member refid="classTestCase_1ab0dc2e6a02f56ae48a3afe5b3a223d57" prot="public" virt="non-virtual"><scope>TestCase</scope><name>markFailed</name></member>
+      <member refid="classTestCase_1af8d6fed4d9587f3f86043ff075bfc365" prot="public" virt="non-virtual"><scope>TestCase</scope><name>markPassed</name></member>
+      <member refid="classTestCase_1af502896392a5e14e24fedeecb44954bd" prot="public" virt="non-virtual"><scope>TestCase</scope><name>name</name></member>
+      <member refid="classTestCase_1ae44f88cbf91d0ff3dc08ca91af52ce3f" prot="public" virt="non-virtual"><scope>TestCase</scope><name>register_script_class</name></member>
+      <member refid="classTestCase_1afe647670fa7433018c6c1130987d4aff" prot="public" virt="non-virtual"><scope>TestCase</scope><name>resetState</name></member>
+      <member refid="classTestCase_1a3ef3e8a59d48e17efd4dd0dad877c488" prot="public" virt="non-virtual"><scope>TestCase</scope><name>run</name></member>
+      <member refid="classTestCase_1a7ced304172bd3880f434505b03d1bb50" prot="private" virt="non-virtual"><scope>TestCase</scope><name>state</name></member>
+      <member refid="classTestCase_1afa7e835ef06cc172f1fa2c12e99c772c" prot="private" virt="non-virtual"><scope>TestCase</scope><name>testCallback</name></member>
+      <member refid="classTestCase_1a41dcc0139577f90f57543049a9a9ca8a" prot="public" virt="non-virtual"><scope>TestCase</scope><name>TestCase</name></member>
+      <member refid="classTestCase_1acc97294cd1db9e95eba98e457082a683" prot="private" virt="non-virtual"><scope>TestCase</scope><name>testName</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

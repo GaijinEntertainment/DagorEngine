@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceserial__buffer" kind="namespace" language="C++">
+    <compoundname>serial_buffer</compoundname>
+    <innerclass refid="structserial__buffer_1_1SerialBufferCounter" prot="public">serial_buffer::SerialBufferCounter</innerclass>
+    <innerclass refid="structserial__buffer_1_1SerialBufferUsage" prot="public">serial_buffer::SerialBufferUsage</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceserial__buffer_1a6bcb9f35736f5f7188e97c78c67f1b63" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void serial_buffer::init_serial</definition>
+        <argsstring>(uint32_t count)</argsstring>
+        <name>init_serial</name>
+        <qualifiedname>serial_buffer::init_serial</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="15" column="13" declfile="dag_serialIntBuffer.h" declline="15" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceserial__buffer_1af94a7000d49e2c471ec196591eb06568" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void serial_buffer::term_serial</definition>
+        <argsstring>()</argsstring>
+        <name>term_serial</name>
+        <qualifiedname>serial_buffer::term_serial</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="16" column="13" declfile="dag_serialIntBuffer.h" declline="16" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceserial__buffer_1a2cf538b686464759d70c6c700cb7f4a5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer * serial_buffer::start_use_serial</definition>
+        <argsstring>(uint32_t count)</argsstring>
+        <name>start_use_serial</name>
+        <qualifiedname>serial_buffer::start_use_serial</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="19" column="16" declfile="dag_serialIntBuffer.h" declline="19" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceserial__buffer_1a7e74b586ebb83602075990cab470379c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void serial_buffer::stop_use_serial</definition>
+        <argsstring>(Sbuffer *)</argsstring>
+        <name>stop_use_serial</name>
+        <qualifiedname>serial_buffer::stop_use_serial</qualifiedname>
+        <param>
+          <type>Sbuffer *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_serialIntBuffer.h" line="20" column="13" declfile="dag_serialIntBuffer.h" declline="20" declcolumn="13"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_serialIntBuffer.h" line="13" column="1"/>
+  </compounddef>
+</doxygen>

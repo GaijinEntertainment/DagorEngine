@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structIesReader_1_1OctahedralBounds" kind="struct" language="C++" prot="public">
+    <compoundname>IesReader::OctahedralBounds</compoundname>
+    <includes refid="iesReader_8h" local="no">iesReader.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structIesReader_1_1OctahedralBounds_1ad376414d4d54baf8f12924b8739f3c95" prot="public" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::OctahedralBounds::rectilinear</definition>
+        <argsstring></argsstring>
+        <name>rectilinear</name>
+        <qualifiedname>IesReader::OctahedralBounds::rectilinear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="66" column="10" bodyfile="iesReader.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structIesReader_1_1OctahedralBounds_1aaa7bd484b4f224f47de4c943d69d7954" prot="public" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::OctahedralBounds::norm1</definition>
+        <argsstring></argsstring>
+        <name>norm1</name>
+        <qualifiedname>IesReader::OctahedralBounds::norm1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="67" column="10" bodyfile="iesReader.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="iesReader.h" line="64" column="3" bodyfile="iesReader.h" bodystart="65" bodyend="68"/>
+    <listofallmembers>
+      <member refid="structIesReader_1_1OctahedralBounds_1aaa7bd484b4f224f47de4c943d69d7954" prot="public" virt="non-virtual"><scope>IesReader::OctahedralBounds</scope><name>norm1</name></member>
+      <member refid="structIesReader_1_1OctahedralBounds_1ad376414d4d54baf8f12924b8739f3c95" prot="public" virt="non-virtual"><scope>IesReader::OctahedralBounds</scope><name>rectilinear</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

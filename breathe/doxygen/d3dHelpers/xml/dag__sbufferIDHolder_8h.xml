@@ -1,0 +1,163 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__sbufferIDHolder_8h" kind="file" language="C++">
+    <compoundname>dag_sbufferIDHolder.h</compoundname>
+    <includes refid="dag__resMgr_8h" local="no">3d/dag_resMgr.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>3d/dag_resMgr.h</label>
+        <link refid="dag__resMgr_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_sbufferIDHolder.h</label>
+        <link refid="dag__sbufferIDHolder_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="5">
+        <label>osApiWrappers/dag_atomic.h</label>
+      </node>
+      <node id="7">
+        <label>startup/dag_globalSettings.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_stdint.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classSbufferIDPair" prot="public">SbufferIDPair</innerclass>
+    <innerclass refid="classSbufferIDHolder" prot="public">SbufferIDHolder</innerclass>
+    <innerclass refid="classSbufferIDHolderWithVar" prot="public">SbufferIDHolderWithVar</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__resMgr_8h" kindref="compound">3d/dag_resMgr.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="classSbufferIDPair" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classSbufferIDPair" kindref="compound">SbufferIDPair</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="12" refid="classSbufferIDPair_1a56a1f7f581be238699889ccc62e63195" refkind="member"><highlight class="normal"><sp/><sp/>Sbuffer<sp/>*<ref refid="classSbufferIDPair_1a56a1f7f581be238699889ccc62e63195" kindref="member">buf</ref>;</highlight></codeline>
+<codeline lineno="13" refid="classSbufferIDPair_1ae2c370aaaf81ac520551bb1ed16e4f65" refkind="member"><highlight class="normal"><sp/><sp/>D3DRESID<sp/><ref refid="classSbufferIDPair_1ae2c370aaaf81ac520551bb1ed16e4f65" kindref="member">bufId</ref>;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="16" refid="classSbufferIDPair_1af2b2297b2893f48f7e57d41abf975154" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbufferIDPair_1af2b2297b2893f48f7e57d41abf975154" kindref="member">SbufferIDPair</ref>(Sbuffer<sp/>*t<sp/>=<sp/>NULL,<sp/>D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>BAD_D3DRESID)<sp/>:<sp/><ref refid="classSbufferIDPair_1a56a1f7f581be238699889ccc62e63195" kindref="member">buf</ref>(t),<sp/><ref refid="classSbufferIDPair_1ae2c370aaaf81ac520551bb1ed16e4f65" kindref="member">bufId</ref>(id)<sp/>{}</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="classSbufferIDPair_1a51c95bf83d62c23d05071ec918c6d7d3" refkind="member"><highlight class="normal"><sp/><sp/>D3DRESID<sp/><ref refid="classSbufferIDPair_1a51c95bf83d62c23d05071ec918c6d7d3" kindref="member">getId</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDPair_1ae2c370aaaf81ac520551bb1ed16e4f65" kindref="member">bufId</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="19" refid="classSbufferIDPair_1a585441494f9b458cec8b3d378023f535" refkind="member"><highlight class="normal"><sp/><sp/>Sbuffer<sp/>*<ref refid="classSbufferIDPair_1a585441494f9b458cec8b3d378023f535" kindref="member">getBuf</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDPair_1a56a1f7f581be238699889ccc62e63195" kindref="member">buf</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="classSbufferIDHolder" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classSbufferIDHolder" kindref="compound">SbufferIDHolder</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDPair" kindref="compound">SbufferIDPair</ref></highlight></codeline>
+<codeline lineno="23"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="25" refid="classSbufferIDHolder_1a47d9cb70802cc5d4815fa1dd0490c9fe" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbufferIDHolder_1a47d9cb70802cc5d4815fa1dd0490c9fe" kindref="member">SbufferIDHolder</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="26" refid="classSbufferIDHolder_1acb8ec6fde6d9b0ecb682f0eb91498795" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbufferIDHolder_1acb8ec6fde6d9b0ecb682f0eb91498795" kindref="member">SbufferIDHolder</ref>(<ref refid="classSbufferIDHolder" kindref="compound">SbufferIDHolder</ref><sp/>&amp;&amp;rhs)</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDPair_1a56a1f7f581be238699889ccc62e63195" kindref="member">buf</ref><sp/>=<sp/>rhs.buf;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDPair_1ae2c370aaaf81ac520551bb1ed16e4f65" kindref="member">bufId</ref><sp/>=<sp/>rhs.bufId;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.buf<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.bufId<sp/>=<sp/>BAD_D3DRESID;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="33" refid="classSbufferIDHolder_1a0c3b79ee70b799ffd2fc5da716129143" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbufferIDHolder_1a0c3b79ee70b799ffd2fc5da716129143" kindref="member">~SbufferIDHolder</ref>()<sp/>{<sp/><ref refid="classSbufferIDHolder_1a1bd9d260afaf3ea38916e195f5e2f422" kindref="member">close</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="classSbufferIDHolder_1a38e697b03d78708856d72787175b45e5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbufferIDHolder" kindref="compound">SbufferIDHolder</ref><sp/>&amp;<ref refid="classSbufferIDHolder_1a38e697b03d78708856d72787175b45e5" kindref="member">operator=</ref>(<ref refid="classSbufferIDHolder" kindref="compound">SbufferIDHolder</ref><sp/>&amp;&amp;rhs)</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDHolder_1a1bd9d260afaf3ea38916e195f5e2f422" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDPair_1a56a1f7f581be238699889ccc62e63195" kindref="member">buf</ref><sp/>=<sp/>rhs.buf;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDPair_1ae2c370aaaf81ac520551bb1ed16e4f65" kindref="member">bufId</ref><sp/>=<sp/>rhs.bufId;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.buf<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.bufId<sp/>=<sp/>BAD_D3DRESID;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="classSbufferIDHolder_1a0fc581ee72ed75518a9d3d1e4e924257" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDHolder_1a0fc581ee72ed75518a9d3d1e4e924257" kindref="member">setRaw</ref>(Sbuffer<sp/>*buf_,<sp/>D3DRESID<sp/>texId_)</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDPair_1a56a1f7f581be238699889ccc62e63195" kindref="member">buf</ref><sp/>=<sp/>buf_;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDPair_1ae2c370aaaf81ac520551bb1ed16e4f65" kindref="member">bufId</ref><sp/>=<sp/>texId_;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="50" refid="classSbufferIDHolder_1a55ca51156ae95fa8a7e108f4b54d65e9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDHolder_1a55ca51156ae95fa8a7e108f4b54d65e9" kindref="member">set</ref>(Sbuffer<sp/>*buf_,<sp/>D3DRESID<sp/>texId_)</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDHolder_1a1bd9d260afaf3ea38916e195f5e2f422" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDHolder_1a0fc581ee72ed75518a9d3d1e4e924257" kindref="member">setRaw</ref>(buf_,<sp/>texId_);</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="55" refid="classSbufferIDHolder_1a9974d9534e39ad741e1d5ababb742435" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDHolder_1a9974d9534e39ad741e1d5ababb742435" kindref="member">set</ref>(Sbuffer<sp/>*buf_,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="56" refid="classSbufferIDHolder_1a1bd9d260afaf3ea38916e195f5e2f422" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDHolder_1a1bd9d260afaf3ea38916e195f5e2f422" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><ref refid="classSbufferIDHolder_1a47d9cb70802cc5d4815fa1dd0490c9fe" kindref="member">SbufferIDHolder</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDHolder" kindref="compound">SbufferIDHolder</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;<sp/></highlight><highlight class="comment">//<sp/>Avoid<sp/>removing<sp/>the<sp/>copy<sp/>of<sp/>the<sp/>texture.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="classSbufferIDHolderWithVar" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classSbufferIDHolderWithVar" kindref="compound">SbufferIDHolderWithVar</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDPair" kindref="compound">SbufferIDPair</ref></highlight></codeline>
+<codeline lineno="63"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>varId<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="67" refid="classSbufferIDHolderWithVar_1a6528e71fa6ccdb012374b3ba236fc17a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbufferIDHolderWithVar_1a6528e71fa6ccdb012374b3ba236fc17a" kindref="member">SbufferIDHolderWithVar</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="68" refid="classSbufferIDHolderWithVar_1a7e2ebb83e4e55bfe2a0dfb4c665cff01" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbufferIDHolderWithVar_1a7e2ebb83e4e55bfe2a0dfb4c665cff01" kindref="member">SbufferIDHolderWithVar</ref>(<ref refid="classSbufferIDHolderWithVar" kindref="compound">SbufferIDHolderWithVar</ref><sp/>&amp;&amp;rhs)</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDPair_1a56a1f7f581be238699889ccc62e63195" kindref="member">buf</ref><sp/>=<sp/>rhs.buf;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDPair_1ae2c370aaaf81ac520551bb1ed16e4f65" kindref="member">bufId</ref><sp/>=<sp/>rhs.bufId;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/>varId<sp/>=<sp/>rhs.varId;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.buf<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.bufId<sp/>=<sp/>BAD_D3DRESID;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.varId<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="77" refid="classSbufferIDHolderWithVar_1ab9888812ce147142cf2c0dd8d4ccbd0d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbufferIDHolderWithVar_1ab9888812ce147142cf2c0dd8d4ccbd0d" kindref="member">~SbufferIDHolderWithVar</ref>()<sp/>{<sp/><ref refid="classSbufferIDHolderWithVar_1aa5289b3e1e89e7c8c0557dbb3bbcbaec" kindref="member">close</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="78" refid="classSbufferIDHolderWithVar_1a1d5832804b987af5c5aff928a78cfcdf" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDHolderWithVar_1a1d5832804b987af5c5aff928a78cfcdf" kindref="member">setVarId</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/>varId<sp/>=<sp/>id;<sp/>}</highlight></codeline>
+<codeline lineno="79" refid="classSbufferIDHolderWithVar_1a6982707e3b79c83bd32aa05f3f27b3b8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDHolderWithVar_1a6982707e3b79c83bd32aa05f3f27b3b8" kindref="member">getVarId</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>varId;<sp/>}</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="classSbufferIDHolderWithVar_1a903c5eb1ac1315d5ad33063cf3ea4242" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbufferIDHolderWithVar" kindref="compound">SbufferIDHolderWithVar</ref><sp/>&amp;<ref refid="classSbufferIDHolderWithVar_1a903c5eb1ac1315d5ad33063cf3ea4242" kindref="member">operator=</ref>(<ref refid="classSbufferIDHolderWithVar" kindref="compound">SbufferIDHolderWithVar</ref><sp/>&amp;&amp;rhs)</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDHolderWithVar_1aa5289b3e1e89e7c8c0557dbb3bbcbaec" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDPair_1a56a1f7f581be238699889ccc62e63195" kindref="member">buf</ref><sp/>=<sp/>rhs.buf;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDPair_1ae2c370aaaf81ac520551bb1ed16e4f65" kindref="member">bufId</ref><sp/>=<sp/>rhs.bufId;</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/>varId<sp/>=<sp/>rhs.varId;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.buf<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.bufId<sp/>=<sp/>BAD_D3DRESID;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/>rhs.varId<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93" refid="classSbufferIDHolderWithVar_1a0954254707668112e0513f557a2eb82c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDHolderWithVar_1a0954254707668112e0513f557a2eb82c" kindref="member">setRaw</ref>(Sbuffer<sp/>*buf_,<sp/>D3DRESID<sp/>texId_)</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDPair_1a56a1f7f581be238699889ccc62e63195" kindref="member">buf</ref><sp/>=<sp/>buf_;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDPair_1ae2c370aaaf81ac520551bb1ed16e4f65" kindref="member">bufId</ref><sp/>=<sp/>texId_;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="98" refid="classSbufferIDHolderWithVar_1ad4d423070e8ddde114c329a1dfa391de" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDHolderWithVar_1ad4d423070e8ddde114c329a1dfa391de" kindref="member">set</ref>(Sbuffer<sp/>*buf_,<sp/>D3DRESID<sp/>texId_)</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDHolderWithVar_1aa5289b3e1e89e7c8c0557dbb3bbcbaec" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classSbufferIDHolderWithVar_1a0954254707668112e0513f557a2eb82c" kindref="member">setRaw</ref>(buf_,<sp/>texId_);</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="103" refid="classSbufferIDHolderWithVar_1adba4c9c79bc914647c870b78577c54c9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDHolderWithVar_1adba4c9c79bc914647c870b78577c54c9" kindref="member">set</ref>(Sbuffer<sp/>*buf_,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="104" refid="classSbufferIDHolderWithVar_1af91c222bcd8aa442ec4a930a1e41f228" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDHolderWithVar_1af91c222bcd8aa442ec4a930a1e41f228" kindref="member">setVar</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="105" refid="classSbufferIDHolderWithVar_1aa5289b3e1e89e7c8c0557dbb3bbcbaec" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDHolderWithVar_1aa5289b3e1e89e7c8c0557dbb3bbcbaec" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><ref refid="classSbufferIDHolderWithVar_1a6528e71fa6ccdb012374b3ba236fc17a" kindref="member">SbufferIDHolderWithVar</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classSbufferIDHolderWithVar" kindref="compound">SbufferIDHolderWithVar</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;<sp/></highlight><highlight class="comment">//<sp/>Avoid<sp/>removing<sp/>the<sp/>copy<sp/>of<sp/>the<sp/>texture.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_sbufferIDHolder.h"/>
+  </compounddef>
+</doxygen>
