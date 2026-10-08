@@ -2,9 +2,7 @@
 danetgamelibs = [
   "render_debug",
   "cables",
-  "imgui_daeditor",
   "screen_vhs",
-   {"lib": "console_commands", "use_in_tools": False},
   "native_dasevents",
   "dascript_base",
   "renderer",
