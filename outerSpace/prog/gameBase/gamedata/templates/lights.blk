@@ -1,0 +1,1731 @@
+local_light{
+  // Absence of replicating parent is intentional
+  _group{
+    _track:b=yes
+    _replicate:b=yes
+    light__max_radius:r=8
+    light__offset:p3=0, 0, 0
+    light__color:c=255, 250, 200, 255
+    light__brightness:r=1
+    light__dynamic_light:b=no // TODO: use a shared one with spot lights
+    light__affect_volumes:b=yes
+    light__render_gpu_objects:b=no
+    light__force_max_light_radius:b=no
+    light__radius_scale:r=1
+  }
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  _tracked:t="transform"
+  _replicated:t="transform"
+  shreddableInDarkZone:b=yes
+}
+
+light{
+  _use:t="local_light"
+  _use:t="replicating"
+}
+
+omni_light_restriction_box{
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+
+  "restriction_box:tag"{}
+}
+
+range_pauseable_light {
+  _group{
+    _tags:t="render"
+    light__is_paused:b = yes
+    light__render_range_gap:r = 0.1
+    light__render_range_limit_start_sq:r = 0.0
+    light__render_range_limit_stop_sq:r = 0.0
+  }
+  light__render_range_limit:r = 0.0
+  _tracked:t="light__is_paused"
+}
+
+local_omni_light{
+  _use:t="local_light"
+  _group{
+    _track:b=yes
+    _replicate:b=yes
+    light__contact_shadows:b=yes
+    light__use_box:b=yes
+    // this option is automatically set to true, if the box is 0
+    light__automatic_box:b=no
+    light__box:m=[[0, 0, 0] [0, 0, 0] [0, 0, 0] [0, 0, 0]]
+    light__direction:p3=0, -1, 0
+    light__texture_name:t=""
+  }
+  omni_light{
+    _tags:t="render"
+  }
+  // Absence of replicating parent is intentional
+  _group{
+    _tags:t="render"
+    _track:b=yes
+    _replicate:b=yes
+    omni_light__shadows:b=no
+    omni_light__dynamic_obj_shadows:b=no
+    omni_light__shadow_shrink:i=0
+    omni_light__shadow_quality:i=2
+  }
+
+  "destroyable_with_rendinst:tag"{}
+}
+
+omni_light{
+  _use:t="local_omni_light"
+  _use:t="replicating"
+}
+
+base_spot_light{
+  _use:t="light"
+  light__texture_name:t=""
+  _tracked:t="light__texture_name"
+  _replicated:t="light__texture_name"
+
+  spot_light{
+    _tags:t="render"
+  }
+
+  _group{
+    _tags:t="render"
+    _track:b=yes
+    _replicate:b=yes
+    spot_light__inner_attenuation:r=0.9
+    spot_light__dynamic_light:b=no
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__contact_shadows:b=no
+    spot_light__shadow_shrink:i=0
+    spot_light__cone_angle:r=-1
+  }
+}
+
+spot_light{
+  _use:t="base_spot_light"
+
+  "destroyable_with_rendinst:tag"{}
+}
+
+omni_light_huge{
+  _use:t="omni_light"
+  light__max_radius:r=20
+  light__offset:p3=0, 0, 0
+  light__color:c=230, 130, 59, 10
+  light__brightness:r=5
+  shreddableInDarkZone:b=no
+}
+
+omni_light_for_cornellbox{
+  _use:t="omni_light"
+  light__max_radius:r=1
+  light__offset:p3=0, 0, 0
+  light__color:c=199, 199, 199, 255
+  light__brightness:r=100
+  shreddableInDarkZone:b=no
+}
+
+spot_light_huge{
+  _use:t="spot_light"
+  light__max_radius:r=13
+  light__color:c=224, 145, 93, 255 //230, 190, 133, 255
+  light__brightness:r=5
+  light__nightly:b=yes
+  shreddableInDarkZone:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.0001
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=0
+    spot_light__shadow_quality:i=1
+  }
+}
+
+spot_light_gaint{
+  _use:t="spot_light"
+  light__max_radius:r=20
+  light__color:c=224, 145, 93, 255 //230, 190, 133, 255
+  light__brightness:r=140
+  light__nightly:b=yes
+  shreddableInDarkZone:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.0001
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=0
+    spot_light__shadow_quality:i=1
+  }
+}
+
+spot_light_long{
+  _use:t="spot_light"
+  light__max_radius:r=13
+  light__color:c=224, 145, 93, 255
+  light__brightness:r=130
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.1
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=0
+  }
+}
+
+spot_light_little{
+  _use:t="spot_light"
+  light__max_radius:r=9
+  light__color:c=224, 178, 76, 255
+  light__brightness:r=15
+  light__nightly:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.1
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+omni_light_bunker{
+  _use:t="spot_light"
+  light__max_radius:r=7
+  light__color:c=255, 230, 200, 255
+  light__brightness:r=0.5
+
+  //spot_light.max_radius:r=7
+  _group{
+    _tags:t="render"
+    spot_light__shadows:b=yes
+    spot_light__shadow_shrink:i=1
+  }
+}
+
+light_bunker_wall{
+  _use:t="omni_light"
+  light__max_radius:r=5
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 100, 50, 255
+  light__brightness:r=0.85
+}
+
+light_bunker_wall_b{
+  _use:t="omni_light"
+  light__max_radius:r=3.5
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 120, 40, 255
+  light__brightness:r=3
+  light__texture_name:t="ies_barsed_lamp_b_v180"
+}
+
+light_bunker_wall_b_nightly{
+  _use:t="spot_light"
+  light__max_radius:r=4
+  light__color:c=255, 120, 40, 255
+  light__brightness:r=6
+  light__nightly:b=yes
+  shreddableInDarkZone:b=no
+  light__texture_name:t="ies_barsed_lamp_b_v180"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.0001
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=0
+    spot_light__shadow_quality:i=1
+  }
+}
+
+light_bunker_wall_red{
+  _use:t="omni_light"
+  light__max_radius:r=8
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 10, 20, 255
+  light__brightness:r=2.5
+  light__contact_shadows:b=no
+  light__texture_name:t="ies_singlelamp_sconce_b"
+}
+
+emergency_lamp_wall{
+  _use:t="omni_light"
+  light__max_radius:r=5.2
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 40, 10, 255
+  light__brightness:r=0.5
+
+  //  light.box:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+}
+
+light_bunker_ceiling{
+  _use:t="spot_light"
+  light__max_radius:r=8
+  light__color:c=255, 230, 200, 255
+  light__brightness:r=2.5
+
+  _group{
+    _tags:t="render"
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+light_small_lantern{
+  _use:t="omni_light"
+  light__max_radius:r=2
+  light__offset:p3=0, 0, 0
+  light__color:c=125, 60, 20, 255
+  light__brightness:r=0.25
+  light__radius_scale:r=2
+  light__contact_shadows:b=no
+
+  _group{
+    _tags:t="render"
+    omni_light__shadows:b=yes
+    omni_light__shadow_shrink:i=2
+    omni_light__shadow_quality:i=0
+  }
+}
+
+light_teleport_wc{
+  _use:t="spot_light"
+  light__max_radius:r=10
+  light__color:c=100, 150, 255, 255
+  light__brightness:r=0
+  _replicated:t="light__brightness"
+  teleportLightBrightness:r=16
+
+  _group{
+    _tags:t="render"
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=1
+  }
+}
+
+
+
+light_chandelier_a{
+  _use:t="omni_light"
+  light__max_radius:r=3
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 170, 80, 255
+  light__brightness:r=1
+  light__texture_name:t="ies_chandelier_a"
+}
+
+light_chandelier_b{
+  _use:t="omni_light"
+  light__max_radius:r=4.5
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 170, 80, 255
+  light__brightness:r=1.5
+  light__texture_name:t="ies_chandelier_b"
+}
+
+
+light_chandelier_big{
+  _use:t="omni_light"
+  light__max_radius:r=6
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 170, 80, 255
+  light__brightness:r=2
+}
+
+light_chandelier_big_far{
+  _use:t="omni_light"
+  light__max_radius:r=13
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 170, 80, 255
+  light__brightness:r=0.75
+  light__contact_shadows:b=no
+}
+
+light_chandelier_big_far_b{
+  _use:t="spot_light"
+  light__max_radius:r=18
+  light__color:c=255, 230, 200, 255
+  light__brightness:r=5
+
+  _group{
+    _tags:t="render"
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+light_chandelier_big_antiprobe{
+  _use:t="omni_light"
+  light__max_radius:r=6
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 170, 80, 255
+  light__brightness:r=0.75
+  light__use_box:b=no
+}
+
+light_sconce_big{
+  _use:t="omni_light"
+  light__max_radius:r=5
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 172, 50, 255
+  light__brightness:r=2
+  light__contact_shadows:b=no
+  light__texture_name:t="ies_multilamp_sconce_a"
+}
+
+light_sconce_medium{
+  _use:t="omni_light"
+  light__max_radius:r=3.5
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 152, 70, 255
+  light__brightness:r=0.75
+  light__contact_shadows:b=no
+  light__texture_name:t="ies_doublelamp_sconce_a"
+}
+
+light_sconce_small{
+  _use:t="omni_light"
+  light__max_radius:r=2.5
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 140, 50, 255
+  light__brightness:r=0.5
+  light__contact_shadows:b=no
+  light__texture_name:t="ies_singlelamp_sconce_a"
+}
+
+light_sconce_small_b{
+  _use:t="omni_light"
+  light__max_radius:r=3
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 152, 70, 255
+  light__brightness:r=0.5
+  light__contact_shadows:b=no
+  light__texture_name:t="ies_singlelamp_sconce_b"
+}
+
+omni_atmospheric_entry_light{
+  _use:t="omni_light"
+  light__contact_shadows:b=no
+  light__max_radius:r=500
+  light__offset:p3=0, 4, 0
+  light__color:c=255, 255, 255, 255
+  light__brightness:r=1000
+  shreddableInDarkZone:b=no
+}
+
+gunlight{
+  light__max_radius:r=25
+  light__offset:p3=0, 0.2, 0
+  light__color:c=255, 250, 200, 255
+  light__brightness:r=3
+  lightModTm:m=[[-0.8, 0, 0] [0, 0.8, 0] [0, 0, -0.8] [0, 0, 0]]
+  light__contact_shadows:b=yes
+  light__dynamic_light:b=yes
+  light__direction:p3=0, 0, 1
+  light__nightly:b=no
+  light__texture_name:t="ies_flashlight_a"
+
+  omni_light{
+    _tags:t="render"
+  }
+}
+
+gunlight_spot{
+  _use:t="base_spot_light"
+  light__max_radius:r=25
+  lightModTm:m=[[1.25, 0, 0] [0, 1.25, 0] [0, 0, 1.25] [0, 0, 0.2]]
+  light__color:c=255, 250, 200, 255
+  light__brightness:r=3
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.1
+    spot_light__dynamic_light:b=yes
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=yes
+    spot_light__shadow_shrink:i=1
+  }
+}
+
+spot_light_little_b{
+  _use:t="spot_light"
+  light__max_radius:r=10
+  light__color:c=208, 191, 152, 255
+  light__brightness:r=5
+  light__nightly:b=no
+  light__texture_name:t="ies_barsed_lamp_b"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.1
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+spot_light_little_b_5m{
+  _use:t="spot_light"
+  light__max_radius:r=6
+  light__color:c=208, 191, 152, 255
+  light__brightness:r=2
+  light__nightly:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.1
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+spot_light_little_c{
+  _use:t="spot_light"
+  light__max_radius:r=6
+  light__color:c=224, 178, 76, 255
+  light__brightness:r=0.75
+  light__nightly:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.1
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+light_monitor_a{
+  _use:t="omni_light"
+  light__max_radius:r=1.5
+  light__offset:p3=0, 0, 0
+  light__color:c=80, 117, 255, 255
+  light__brightness:r=15
+  light__contact_shadows:b=no
+  light__texture_name:t="ies_monitor_a"
+}
+
+sign_red_light{
+  _use:t="omni_light"
+  light__max_radius:r=1
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 20, 21, 255
+  light__brightness:r=15
+  light__contact_shadows:b=no
+  light__texture_name:t="ies_hand_lantern_a"
+}
+
+sign_green_light{
+  _use:t="omni_light"
+  light__max_radius:r=1
+  light__offset:p3=0, 0, 0
+  light__color:c=0, 211, 35, 255
+  light__brightness:r=15
+  light__contact_shadows:b=no
+  light__texture_name:t="ies_hand_lantern_a"
+}
+
+spot_light_work_a{
+  _use:t="spot_light"
+  light__max_radius:r=7
+  light__color:c=208, 191, 152, 255
+  light__brightness:r=12
+  light__nightly:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.1
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=0
+  }
+}
+
+spot_light_workshop_a{
+  _use:t="spot_light"
+  light__max_radius:r=12
+  light__color:c=220, 140, 65, 255
+  light__brightness:r=5
+  light__nightly:b=no
+  shreddableInDarkZone:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.0001
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=1
+    spot_light__shadow_quality:i=1
+  }
+}
+
+spot_light_workshop_b{
+  _use:t="spot_light"
+  light__max_radius:r=6
+  light__color:c=220, 140, 65, 255
+  light__brightness:r=1.5
+  light__nightly:b=no
+  shreddableInDarkZone:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.0001
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=1
+    spot_light__shadow_quality:i=1
+  }
+}
+
+factory_lamp_e{
+  _use:t="omni_light"
+  light__max_radius:r=12
+  light__color:c=220, 140, 65, 255
+  light__brightness:r=5
+  light__nightly:b=no
+  light__texture_name:t="ies_barsed_lamp_b"
+  shreddableInDarkZone:b=no
+  light__direction:p3=0, 0, 1
+
+  _group{
+    _tags:t="render"
+    omni_light__inner_attenuation:r=0.0001
+    omni_light__shadows:b=yes
+    omni_light__dynamic_obj_shadows:b=no
+    omni_light__shadow_shrink:i=1
+    omni_light__shadow_quality:i=1
+  }
+}
+
+sg_light_spot_ceiling_white{
+  _use:t="spot_light"
+  light__max_radius:r=12
+  light__color:c=255, 240, 230, 255
+  light__brightness:r=80
+  shreddableInDarkZone:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.0001
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=0
+    spot_light__shadow_quality:i=1
+  }
+}
+
+sg_light_spot_ceiling_red{
+  _use:t="sg_light_spot_ceiling_white"
+  light__color:c=255, 5, 0, 255
+}
+
+sg_light_spot_ceiling_green{
+  _use:t="sg_light_spot_ceiling_white"
+  light__color:c=80, 255, 0, 255
+}
+
+spot_light_street_poles{
+  _use:t="spot_light"
+  light__max_radius:r=12
+  light__color:c=224, 145, 93, 255 //230, 190, 133, 255
+  light__nightly:b=yes
+  light__brightness:r=100
+  shreddableInDarkZone:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.0001
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+    spot_light__shadow_quality:i=1
+  }
+}
+
+spot_light_fliker_street_poles{
+  _use:t="spot_light"
+  light__max_radius:r=9
+  light__color:c=224, 145, 93, 255 //230, 190, 133, 255
+  light__brightness:r=2
+  light__nightly:b=yes
+  light__flicker_attack_time:p2 = 0.5, 0.4
+  light__flicker_on_time:p2 = 0.5, 0.4
+  light__flicker_release_time:p2 = 0.5, 0.4
+  light__flicker_off_time:p2 = 0.5, 0.4
+  light__flicker_on_brightness:p2 = 4.5, 0.5
+  light__flicker_off_brightness:p2 = 0, 3
+  light__flicker_seed:r=1
+  shreddableInDarkZone:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.0001
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+    spot_light__shadow_quality:i=1
+  }
+}
+
+factory_lamp_b_light{
+  _use:t="omni_light"
+  light__max_radius:r=3.0
+  light__offset:p3=0, 0, 0
+  light__color:c=160, 80, 40, 255
+  light__brightness:r=1.5
+  light__contact_shadows:b=no
+
+  _group{
+    _tags:t="render"
+  omni_light__shadow_shrink:i=3
+  }
+}
+
+
+
+//flickers
+factory_lamp_a_red_flicker{
+  _use:t="spot_light"
+  _use:t="light_flicker_updater_light"
+ light_flicker_updater__template:t="factory_lamp_a_red_flicker_template"
+  light__max_radius:r=8
+  light__color:c=225, 15, 15, 255
+  light__brightness:r=2
+  light__nightly:b=no
+  shreddableInDarkZone:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.0001
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=1
+    spot_light__shadow_quality:i=1
+  }
+}
+
+
+factory_lamp_a_red_mesh{
+  _use:t="light_flicker_updater_mesh"
+  animchar__res:t="factory_lamp_a_red_char"
+ light_flicker_updater__template:t="factory_lamp_a_red_flicker_template"
+
+}
+
+factory_lamp_a_red_flicker_template{
+  _use:t="light_flicker_with_sparks"
+
+  light_flicker__attack_time:p2 = 0.01, 0.15 // required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 0.1, 1.5 // duration of position "on"
+  light_flicker__release_time:p2 = 0.75, 1.25 // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 0.01, 6 // duration of position "off"
+
+  light_flicker__on_brightness:p2 = 0.6, 1.0 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 0.0, 0.2 // during of position "off". It's multiplyed by light__brightness
+
+  light_flicker__noise_brightness_on:p2=0.5,1.0 // it's multiplyer for low/high noise amplitude when light "on"
+  light_flicker__noise_brightness_off:p2=0.0,1.0 // it's multiplyer for low/high noise amplitude when light "off"
+  light_flicker__noise_time:r=8.0 // frequency of noise per sec
+}
+
+chinese_lantern_a_flicker_mesh{
+  _use:t="light_flicker_updater_mesh"
+  animchar__res:t="chinese_lantern_a_flicker_char"
+ light_flicker_updater__template:t="chinese_lantern_a_flicker_template"
+
+}
+
+chinese_lantern_a_flicker_template{
+  _use:t="light_flicker"
+
+  light_flicker__attack_time:p2 = 0.6, 1.25 // required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 1, 2 // duration of position "on"
+  light_flicker__release_time:p2 = 0.75, 1.25 // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 1, 2 // duration of position "off"
+
+  light_flicker__on_brightness:p2 = 1.8, 3 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 1.5, 2.3 // during of position "off". It's multiplyed by light__brightness
+
+//  light_flicker__noise_brightness_on:p2=0.2,0.4 // it's multiplyer for low/high noise amplitude when light "on"
+//  light_flicker__noise_brightness_off:p2=0.0,0.2 // it's multiplyer for low/high noise amplitude when light "off"
+//  light_flicker__noise_time:r=5.0 // frequency of noise per sec
+}
+
+chinese_lantern_b_flicker_mesh{
+  _use:t="light_flicker_updater_mesh"
+  animchar__res:t="chinese_lantern_b_flicker_char"
+ light_flicker_updater__template:t="chinese_lantern_b_flicker_template"
+
+}
+
+chinese_lantern_b_flicker_template{
+  _use:t="light_flicker"
+
+  light_flicker__attack_time:p2 = 0.5, 1.45 // required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 1, 2.5 // duration of position "on"
+  light_flicker__release_time:p2 = 0.55, 1.15 // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 1, 1.5 // duration of position "off"
+
+  light_flicker__on_brightness:p2 = 1.15, 1.8 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 0.9, 1.15 // during of position "off". It's multiplyed by light__brightness
+
+}
+
+industrial_lamp_steel_wall_a_flicker_8m_light{
+  _use:t="spot_light_little_b"
+  _use:t="light_flicker_updater_light"
+ light_flicker_updater__template:t="industrial_lamp_steel_wall_a_flicker_8m_template"
+
+}
+
+
+industrial_lamp_steel_wall_a_flicker_8m_mesh{
+  _use:t="light_flicker_updater_mesh"
+  animchar__res:t="industrial_lamp_steel_wall_a_flicker_char"
+ light_flicker_updater__template:t="industrial_lamp_steel_wall_a_flicker_8m_template"
+
+  "destroyable_with_rendinst:tag"{}
+}
+
+industrial_lamp_steel_wall_a_flicker_8m_template{
+  _use:t="light_flicker_with_sparks"
+
+  light_flicker__attack_time:p2 = 0.01, 0.15 // required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 1, 10 // duration of position "on"
+  light_flicker__release_time:p2 = 0.75, 1.25 // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 0.01, 6 // duration of position "off"
+
+  light_flicker__on_brightness:p2 = 1.0, 1.6 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 0.0, 0.2 // during of position "off". It's multiplyed by light__brightness
+
+  light_flicker__noise_brightness_on:p2=0.5,1.0 // it's multiplyer for low/high noise amplitude when light "on"
+  light_flicker__noise_brightness_off:p2=0.0,1.0 // it's multiplyer for low/high noise amplitude when light "off"
+  light_flicker__noise_time:r=17.0 // frequency of noise per sec
+}
+
+spot_light_wooden_power_pole{
+  _use:t="spot_light"
+  light__max_radius:r=10
+  light__color:c=208, 191, 152, 255
+  light__brightness:r=100
+  light__nightly:b=yes
+  light__texture_name:t="ies_barsed_lamp_b"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.1
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+wooden_power_pole_lamp_a_flicker_light{
+  _use:t="spot_light_wooden_power_pole"
+  _use:t="light_flicker_updater_light"
+ light_flicker_updater__template:t="wooden_power_pole_lamp_flicker_light_template"
+
+ "destroyable_with_rendinst:tag"{}
+}
+
+
+wooden_power_pole_lamp_a_flicker_mesh{
+  _use:t="light_flicker_updater_mesh"
+  animchar__res:t="wooden_power_pole_lamp_a_flicker_char"
+ light_flicker_updater__template:t="wooden_power_pole_lamp_flicker_light_template"
+
+   "dynamic_material_channels_arr:array" {
+    _tags:t="render"
+    "dynamic_material_channel:object" { // parameters_channel = 0
+      dynamic_material_type:t="emissive"
+      dynmat_param__emissive_color:p4=1,1,1,10
+      dynmat_param__emission_albedo_mult:r=1
+    }
+  }
+
+"destroyable_with_rendinst:tag"{}
+}
+
+wooden_power_pole_lamp_flicker_light_template{
+  _use:t="light_flicker_with_sparks_nightly"
+
+  light_flicker__attack_time:p2 = 0.01, 0.15 // required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 0.1, 1.5 // duration of position "on"
+  light_flicker__release_time:p2 = 0.75, 1.25 // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 0.01, 6 // duration of position "off"
+
+  light_flicker__on_brightness:p2 = 0.6, 1.0 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 0.0, 0.2 // during of position "off". It's multiplyed by light__brightness
+
+  light_flicker__noise_brightness_on:p2=0.5,1.0 // it's multiplyer for low/high noise amplitude when light "on"
+  light_flicker__noise_brightness_off:p2=0.0,1.0 // it's multiplyer for low/high noise amplitude when light "off"
+  light_flicker__noise_time:r=8.0 // frequency of noise per sec
+}
+
+
+wooden_power_pole_lamp_a_flicker_char_mesh{
+  _use:t="animchar"
+  _use:t="replicating"
+  animchar__res:t="wooden_power_pole_lamp_a_flicker_char"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  "destroyable_with_rendinst:tag"{}
+}
+
+omni_light_lamppost_undestr{
+  _use:t="replicating"
+  _use:t="local_light"
+  _group{
+    _track:b=yes
+    _replicate:b=yes
+    light__contact_shadows:b=yes
+    light__use_box:b=yes
+    // this option is automatically set to true, if the box is 0
+    light__automatic_box:b=no
+    light__box:m=[[0, 0, 0] [0, 0, 0] [0, 0, 0] [0, 0, 0]]
+    light__direction:p3=0, -1, 0
+    light__texture_name:t="ies_barsed_lamp_b"
+  }
+  omni_light{
+    _tags:t="render"
+  }
+  // Absence of replicating parent is intentional
+  _group{
+    _tags:t="render"
+    _track:b=yes
+    omni_light__shadow_quality:i=2
+  }
+
+  light__max_radius:r=10
+  light__color:c=208, 191, 152, 255
+  light__brightness:r=2
+  light__nightly:b=yes
+
+  _group{
+    _tags:t="render"
+    omni_light__inner_attenuation:r=0.1
+    omni_light__shadows:b=yes
+    omni_light__dynamic_obj_shadows:b=no
+    omni_light__shadow_shrink:i=2
+  }
+}
+
+omni_light_lamppost{
+  _use:t="omni_light"
+  light__max_radius:r=10
+  light__color:c=208, 191, 152, 255
+  light__brightness:r=2
+  light__nightly:b=yes
+  light__texture_name:t="ies_barsed_lamp_b"
+
+  _group{
+    _tags:t="render"
+    omni_light__inner_attenuation:r=0.1
+    omni_light__shadows:b=yes
+    omni_light__dynamic_obj_shadows:b=no
+    omni_light__shadow_shrink:i=2
+  }
+}
+
+lamppost_d_glass_flicker_light{
+  _use:t="omni_light_lamppost"
+  _use:t="light_flicker_updater_light"
+ light_flicker_updater__template:t="lamppost_glass_flicker_light_template"
+
+ "destroyable_with_rendinst:tag"{}
+}
+
+
+lamppost_d_glass_flicker_mesh{
+  _use:t="light_flicker_updater_mesh"
+  animchar__res:t="lamppost_d_glass_flicker_char"
+ light_flicker_updater__template:t="lamppost_glass_flicker_light_template"
+
+"destroyable_with_rendinst:tag"{}
+}
+
+lamppost_glass_flicker_light_template{
+  _use:t="light_flicker_with_sparks_nightly"
+
+  light_flicker__attack_time:p2 = 0.01, 0.15 // required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 0.1, 1.5 // duration of position "on"
+  light_flicker__release_time:p2 = 0.75, 1.25 // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 0.01, 6 // duration of position "off"
+
+  light_flicker__on_brightness:p2 = 0.6, 1.0 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 0.0, 0.2 // during of position "off". It's multiplyed by light__brightness
+
+  light_flicker__noise_brightness_on:p2=0.5,1.0 // it's multiplyer for low/high noise amplitude when light "on"
+  light_flicker__noise_brightness_off:p2=0.0,1.0 // it's multiplyer for low/high noise amplitude when light "off"
+  light_flicker__noise_time:r=8.0 // frequency of noise per sec
+}
+
+lamppost_d_glass_flicker_char_mesh{
+  _use:t="animchar"
+  _use:t="dynmat_params_base"
+  _use:t="replicating"
+  animchar__res:t="lamppost_d_glass_flicker_char"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+
+  "dynamic_material_channels_arr:array" {
+    _tags:t="render"
+    "dynamic_material_channel:object" { // parameters_channel = 0
+      dynamic_material_type:t="emissive"
+      dynmat_param__emissive_color:p4=1,1,1,10
+      dynmat_param__emission_albedo_mult:r=1
+    }
+  }
+
+  "destroyable_with_rendinst:tag"{}
+}
+
+light_kerosene_lamp{
+  _use:t="omni_light"
+  light__max_radius:r=2.5
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 120, 50, 255
+  light__brightness:r=0.7
+  light__contact_shadows:b=no
+//  light__texture_name:t="ies_hand_lantern_a"
+
+  _group{
+    _tags:t="render"
+  omni_light__shadows:b=yes
+  omni_light__shadow_shrink:i=3
+  }
+}
+light_kerosene_lamp_flicker_light{
+  _use:t="light_kerosene_lamp"
+  _use:t="light_flicker_updater_light"
+  light_flicker_updater__template:t="light_kerosene_lamp_template"
+}
+light_kerosene_lamp_flicker_mesh{
+  _use:t="light_flicker_updater_mesh"
+  animchar__res:t="is_lantern_hanging_a_flicker_char"
+ light_flicker_updater__template:t="light_kerosene_lamp_template"
+  "destroyable_with_rendinst:tag"{}
+}
+light_kerosene_lamp_template{
+  _use:t="light_flicker"
+  light_flicker__attack_time:p2 = 0.1, 1.2 // required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 0.9, 5.3 // duration of position "on"
+  light_flicker__release_time:p2 = 0.1, 1.2 // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 0, 0.01// duration of position "off"
+  light_flicker__on_brightness:p2 = 1.1, 1.1 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 1.2, 1.2 // during of position "off". It's multiplyed by light__brightness
+  light_flicker__noise_brightness_on:p2=1.0,1.1 // it's multiplyer for low/high noise amplitude when light "on"
+  light_flicker__noise_brightness_off:p2=1.0,1.1 // it's multiplyer for low/high noise amplitude when light "off"
+  light_flicker__noise_time:r=3.0 // frequency of noise per sec
+}
+
+light_kerosene_lamp_a{
+  _use:t="omni_light"
+  light__max_radius:r=2.5
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 120, 50, 255
+  light__brightness:r=0.7
+  light__contact_shadows:b=no
+//  light__texture_name:t="ies_hand_lantern_a"
+
+  _group{
+    _tags:t="render"
+  omni_light__shadows:b=yes
+  omni_light__shadow_shrink:i=3
+  }
+}
+light_kerosene_lamp_a_flicker_light{
+  _use:t="light_kerosene_lamp_a"
+  _use:t="light_flicker_updater_light"
+  light_flicker_updater__template:t="light_kerosene_lamp_a_template"
+}
+light_kerosene_lamp_d_flicker_mesh{
+  _use:t="light_flicker_updater_mesh"
+  animchar__res:t="is_lantern_hanging_d_flicker_char"
+ light_flicker_updater__template:t="light_kerosene_lamp_a_template"
+  "destroyable_with_rendinst:tag"{}
+}
+light_kerosene_lamp_a_template{
+  _use:t="light_flicker"
+  light_flicker__attack_time:p2 = 0.5, 1.1 // required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 0.9, 9.3 // duration of position "on"
+  light_flicker__release_time:p2 = 0.1, 1.2 // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 0, 0.00// duration of position "off"
+  light_flicker__on_brightness:p2 = 1.1, 1.1 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 1.2, 1.2 // during of position "off". It's multiplyed by light__brightness
+  light_flicker__noise_brightness_on:p2=1.0,1.1 // it's multiplyer for low/high noise amplitude when light "on"
+  light_flicker__noise_brightness_off:p2=1.0,1.1 // it's multiplyer for low/high noise amplitude when light "off"
+  light_flicker__noise_time:r=2.0 // frequency of noise per sec
+}
+
+light_chandelier_big_tall{
+_use:t="spot_light"
+  light__max_radius:r=13
+  light__color:c=255, 170, 80, 255
+  light__brightness:r=10
+  light__affect_volumes:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.75
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=0
+  }
+}
+
+light_chandelier_big_tall_top{
+_use:t="spot_light"
+  light__max_radius:r=8
+  light__color:c=255, 170, 80, 255
+  light__brightness:r=5
+  //light__texture_name:t="ies_chandelier_b"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.5
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+light_chandelier_small_tall_top{
+_use:t="spot_light"
+  light__max_radius:r=6
+  light__color:c=255, 120, 40, 255
+  light__brightness:r=2
+  //light__texture_name:t="ies_chandelier_b"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.5
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+light_chandelier_small_tall{
+_use:t="spot_light"
+  light__max_radius:r=10
+  light__color:c=255, 120, 40, 255
+  light__brightness:r=10
+  light__affect_volumes:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.3
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=0
+  }
+}
+
+
+light_chandelier_tosmall_tall{
+_use:t="spot_light"
+  light__max_radius:r=10
+  light__color:c=255, 120, 40, 255
+  light__brightness:r=8
+  light__affect_volumes:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.3
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=0
+  }
+}
+
+light_chandelier_sobig_tall{
+_use:t="spot_light"
+  light__max_radius:r=13
+  light__color:c=255, 170, 80, 255
+  light__brightness:r=10
+  light__affect_volumes:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.75
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=0
+  }
+}
+
+light_chandelier_sobig_tall_top{
+_use:t="spot_light"
+  light__max_radius:r=8
+  light__color:c=255, 170, 80, 255
+  light__brightness:r=2
+  //light__texture_name:t="ies_chandelier_b"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.5
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+light_sconce_medium_down{
+_use:t="spot_light"
+  light__max_radius:r=4
+  light__color:c=255, 112, 40, 255
+  light__brightness:r=2
+  light__texture_name:t="ies_barsed_lamp_c"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.3
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+light_sconce_medium_top{
+_use:t="spot_light"
+  light__max_radius:r=2.5
+  light__color:c=255, 112, 40, 255
+  light__brightness:r=1.5
+  light__texture_name:t="ies_barsed_lamp_a"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.75
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+
+light_sconce_medium_sh_top{
+_use:t="spot_light"
+  light__max_radius:r=3.5
+  light__color:c=255, 112, 40, 255
+  light__brightness:r=1.5
+  light__texture_name:t="ies_barsed_lamp_a"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.75
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+light_sconce_single_medium_down{
+_use:t="spot_light"
+  light__max_radius:r=1.75
+  light__color:c=255, 112, 40, 255
+  light__brightness:r=1.5
+  light__texture_name:t="ies_singlelamp_sconce_a"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.9
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+light_sconce_single_medium_top{
+_use:t="spot_light"
+  light__max_radius:r=2
+  light__color:c=255, 112, 40, 255
+  light__brightness:r=1
+  light__texture_name:t="ies_chandelier_b"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.8
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+light_bonefire_a_middle{
+  _use:t="omni_light"
+  light__affect_volumes:b=no
+  light__max_radius:r=5
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 40, 10, 255
+  light__brightness:r=2
+}
+
+light_chandelier_multismall_tall_top{
+_use:t="spot_light"
+  light__max_radius:r=3
+  light__color:c=255, 170, 80, 255
+  light__brightness:r=2
+  light__texture_name:t="ies_doublelamp_sconce_b"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.8
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+//is_lamp_wall_g_mlt_on_cmp
+
+light_chandelier_multismall_tall{
+_use:t="spot_light"
+  light__max_radius:r=3
+  light__color:c=255, 170, 80, 255
+  light__brightness:r=5
+  light__affect_volumes:b=no
+  light__texture_name:t="ies_doublelamp_sconce_b"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.7
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=0
+  }
+}
+
+//is_lamp_wall_f_on
+
+light_wall_lamp_small_top{
+_use:t="spot_light"
+  light__max_radius:r=3
+  light__color:c=255, 120, 40, 255
+  light__brightness:r=0.7
+  light__texture_name:t="ies_bunker_wall_lamp_a"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.5
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+light_wall_lamp_small_down{
+_use:t="spot_light"
+  light__max_radius:r=3.5
+  light__color:c=255, 120, 40, 255
+  light__brightness:r=2
+  light__texture_name:t="ies_barsed_lamp_a"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.4
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+light_wall_lamp_small_mid{
+_use:t="spot_light"
+  light__max_radius:r=0.7
+  light__color:c=255, 120, 40, 255
+  light__brightness:r=0.5
+  light__texture_name:t="ies_hand_lantern_a"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.7
+    spot_light__shadows:b=no
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+light_chandelier_big_cold_tall{
+_use:t="spot_light"
+  light__max_radius:r=13
+  light__color:c=255, 170, 120, 255
+  light__brightness:r=10
+  light__affect_volumes:b=no
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.3
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=yes
+    spot_light__shadow_shrink:i=0
+  }
+}
+
+
+spot_light_wall_lamp_a_glass{
+  _use:t="spot_light_huge"
+  light__max_radius:r=10
+  light__color:c=208, 191, 152, 255
+  light__brightness:r=5
+  light__nightly:b=yes
+  light__texture_name:t="ies_barsed_lamp_b"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.1
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+demon_portal_omni_light_15m{
+  _use:t="omni_light"
+  light__max_radius:r=15
+  light__color:c=255, 170, 255, 255
+  light__brightness:r=3
+}
+
+demon_portal_flicker_char_template_15m_a{
+  _use:t="light_flicker"
+
+  light_flicker__attack_time:p2 = 0, 0 // required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 60, 180 // duration of position "on"
+  light_flicker__release_time:p2 = 0, 0 // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 0, 0 // duration of position "off"
+
+  light_flicker__on_brightness:p2 = 1, 1 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 0.0, 0.0 // during of position "off". It's multiplyed by light__brightness
+
+  light_flicker__noise_brightness_on:p2=0.2,0.5 // it's multiplyer for low/high noise amplitude when light "on"
+  light_flicker__noise_brightness_off:p2=0.2,0.5 // it's multiplyer for low/high noise amplitude when light "off"
+  light_flicker__noise_time:r=3.0 // frequency of noise per sec
+}
+
+demon_portal_flicker_15m_light_a{
+  _use:t="demon_portal_omni_light_15m"
+  _use:t="light_flicker_updater_light"
+ light_flicker_updater__template:t="demon_portal_flicker_char_template_15m_a"
+
+ "destroyable_with_rendinst:tag"{}
+}
+
+demon_portal_flicker_15m_mesh_a{
+  _use:t="light_flicker_updater_mesh"
+  animchar__res:t="demon_portal_flicker_char"
+ light_flicker_updater__template:t="demon_portal_flicker_char_template_15m_a"
+
+  "destroyable_with_rendinst:tag"{}
+}
+
+
+wall_lamp_a_glass_flicker_light_a{
+  _use:t="spot_light_wall_lamp_a_glass"
+  _use:t="light_flicker_updater_light"
+ light_flicker_updater__template:t="wall_lamp_a_glass_flicker_light_template_a"
+
+ "destroyable_with_rendinst:tag"{}
+}
+
+wall_lamp_a_glass_flicker_light_b{
+  _use:t="spot_light_wall_lamp_a_glass"
+  _use:t="light_flicker_updater_light"
+ light_flicker_updater__template:t="wall_lamp_a_glass_flicker_light_template_b"
+
+ "destroyable_with_rendinst:tag"{}
+}
+
+
+wall_lamp_a_glass_flicker_mesh_a{
+  _use:t="light_flicker_updater_mesh"
+  animchar__res:t="wall_lamp_a_glass_flicker_char"
+ light_flicker_updater__template:t="wall_lamp_a_glass_flicker_light_template_a"
+
+   "dynamic_material_channels_arr:array" {
+    _tags:t="render"
+    "dynamic_material_channel:object" { // parameters_channel = 0
+      dynamic_material_type:t="emissive"
+      dynmat_param__emissive_color:p4=1,1,1,10
+      dynmat_param__emission_albedo_mult:r=1
+    }
+  }
+
+"destroyable_with_rendinst:tag"{}
+}
+
+wall_lamp_a_glass_flicker_mesh_b{
+  _use:t="light_flicker_updater_mesh"
+  animchar__res:t="wall_lamp_a_glass_flicker_char"
+ light_flicker_updater__template:t="wall_lamp_a_glass_flicker_light_template_b"
+
+   "dynamic_material_channels_arr:array" {
+    _tags:t="render"
+    "dynamic_material_channel:object" { // parameters_channel = 0
+      dynamic_material_type:t="emissive"
+      dynmat_param__emissive_color:p4=1,1,1,10
+      dynmat_param__emission_albedo_mult:r=1
+    }
+  }
+
+"destroyable_with_rendinst:tag"{}
+}
+
+wall_lamp_a_glass_flicker_light_template_a{
+  _use:t="light_flicker_with_sparks_nightly"
+
+  light_flicker__attack_time:p2 = 0.01, 0.15 // required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 8, 10 // duration of position "on"
+  light_flicker__release_time:p2 = 0.2, 1.4 // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 0.01, 0.8 // duration of position "off"
+
+  light_flicker__on_brightness:p2 = 0.35, 1.0 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 0.0, 0.2 // during of position "off". It's multiplyed by light__brightness
+
+  light_flicker__noise_brightness_on:p2=0.3,1.0 // it's multiplyer for low/high noise amplitude when light "on"
+  light_flicker__noise_brightness_off:p2=0.1,1.0 // it's multiplyer for low/high noise amplitude when light "off"
+  light_flicker__noise_time:r=8.0 // frequency of noise per sec
+}
+
+wall_lamp_a_glass_flicker_light_template_b{
+  _use:t="light_flicker_with_sparks_nightly"
+
+  light_flicker__attack_time:p2 = 0.01, 0.15 // required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 0.5, 1 // duration of position "on"
+  light_flicker__release_time:p2 = 0.2, 0.6 // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 5, 10 // duration of position "off"
+
+  light_flicker__on_brightness:p2 = 0.6, 1.0 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 0.0, 0.2 // during of position "off". It's multiplyed by light__brightness
+
+  light_flicker__noise_brightness_on:p2=0.3,1.0 // it's multiplyer for low/high noise amplitude when light "on"
+  light_flicker__noise_brightness_off:p2=0.1,0.5 // it's multiplyer for low/high noise amplitude when light "off"
+  light_flicker__noise_time:r=4.0 // frequency of noise per sec
+}
+
+
+wall_lamp_a_glass_flicker_char_mesh_a{
+  _use:t="animchar"
+  _use:t="replicating"
+  animchar__res:t="wall_lamp_a_glass_flicker_char"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  "destroyable_with_rendinst:tag"{}
+}
+
+wall_lamp_a_glass_flicker_char_mesh_b{
+  _use:t="animchar"
+  _use:t="replicating"
+  animchar__res:t="wall_lamp_a_glass_flicker_char"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  "destroyable_with_rendinst:tag"{}
+}
+
+
+spot_light_wall_lamp_b_glass{
+  _use:t="spot_light_huge"
+  light__max_radius:r=10
+  light__color:c=208, 191, 152, 255
+  light__brightness:r=5
+  light__nightly:b=yes
+  light__texture_name:t="ies_barsed_lamp_b"
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.1
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+wall_lamp_b_glass_flicker_light_a{
+  _use:t="spot_light_wall_lamp_b_glass"
+  _use:t="light_flicker_updater_light"
+ light_flicker_updater__template:t="wall_lamp_b_glass_flicker_light_template_a"
+
+ "destroyable_with_rendinst:tag"{}
+}
+
+wall_lamp_b_glass_flicker_light_b{
+  _use:t="spot_light_wall_lamp_b_glass"
+  _use:t="light_flicker_updater_light"
+ light_flicker_updater__template:t="wall_lamp_b_glass_flicker_light_template_b"
+
+ "destroyable_with_rendinst:tag"{}
+}
+
+
+wall_lamp_b_glass_flicker_mesh_a{
+  _use:t="light_flicker_updater_mesh"
+  animchar__res:t="wall_lamp_b_glass_flicker_char"
+ light_flicker_updater__template:t="wall_lamp_b_glass_flicker_light_template_a"
+
+   "dynamic_material_channels_arr:array" {
+    _tags:t="render"
+    "dynamic_material_channel:object" { // parameters_channel = 0
+      dynamic_material_type:t="emissive"
+      dynmat_param__emissive_color:p4=1,1,1,10
+      dynmat_param__emission_albedo_mult:r=1
+    }
+  }
+
+"destroyable_with_rendinst:tag"{}
+}
+
+wall_lamp_b_glass_flicker_mesh_b{
+  _use:t="light_flicker_updater_mesh"
+  animchar__res:t="wall_lamp_b_glass_flicker_char"
+ light_flicker_updater__template:t="wall_lamp_b_glass_flicker_light_template_b"
+
+   "dynamic_material_channels_arr:array" {
+    _tags:t="render"
+    "dynamic_material_channel:object" { // parameters_channel = 0
+      dynamic_material_type:t="emissive"
+      dynmat_param__emissive_color:p4=1,1,1,10
+      dynmat_param__emission_albedo_mult:r=1
+    }
+  }
+
+"destroyable_with_rendinst:tag"{}
+}
+
+wall_lamp_b_glass_flicker_light_template_a{
+  _use:t="light_flicker_with_sparks_nightly"
+
+  light_flicker__attack_time:p2 = 0.01, 0.15 // required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 4, 8 // duration of position "on"
+  light_flicker__release_time:p2 = 0.2, 1.4 // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 1, 2 // duration of position "off"
+
+  light_flicker__on_brightness:p2 = 0.9, 2.0 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 0.0, 0.5 // during of position "off". It's multiplyed by light__brightness
+
+  light_flicker__noise_brightness_on:p2=0.5,1.0 // it's multiplyer for low/high noise amplitude when light "on"
+  light_flicker__noise_brightness_off:p2=0.1,1.0 // it's multiplyer for low/high noise amplitude when light "off"
+  light_flicker__noise_time:r=12.0 // frequency of noise per sec
+}
+
+wall_lamp_b_glass_flicker_light_template_b{
+  _use:t="light_flicker_with_sparks_nightly"
+
+  light_flicker__attack_time:p2 = 0.01, 0.15 // required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 0.5, 1 // duration of position "on"
+  light_flicker__release_time:p2 = 0.2, 0.6 // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 5, 8 // duration of position "off"
+
+  light_flicker__on_brightness:p2 = 0.6, 1.2 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 0.0, 0.3 // during of position "off". It's multiplyed by light__brightness
+
+  light_flicker__noise_brightness_on:p2=0.3,1.0 // it's multiplyer for low/high noise amplitude when light "on"
+  light_flicker__noise_brightness_off:p2=0.1,0.5 // it's multiplyer for low/high noise amplitude when light "off"
+  light_flicker__noise_time:r=3.0 // frequency of noise per sec
+}
+
+
+wall_lamp_b_glass_flicker_char_mesh_a{
+  _use:t="animchar"
+  _use:t="replicating"
+  animchar__res:t="wall_lamp_b_glass_flicker_char"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  "destroyable_with_rendinst:tag"{}
+}
+
+wall_lamp_b_glass_flicker_char_mesh_b{
+  _use:t="animchar"
+  _use:t="replicating"
+  animchar__res:t="wall_lamp_b_glass_flicker_char"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  "destroyable_with_rendinst:tag"{}
+}
+
+spot_light_long_outside{
+  _use:t="spot_light_huge"
+  light__max_radius:r=25
+  light__color:c=208, 191, 152, 255
+  light__brightness:r=120
+  light__nightly:b=yes
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.9
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+spot_light_long_projector{
+  _use:t="spot_light_huge"
+  light__max_radius:r=20
+  light__color:c=255, 80, 20, 255
+  light__brightness:r=25
+  light__nightly:b=yes
+
+  _group{
+    _tags:t="render"
+    spot_light__inner_attenuation:r=0.9
+    spot_light__shadows:b=yes
+    spot_light__dynamic_obj_shadows:b=no
+    spot_light__shadow_shrink:i=2
+  }
+}
+
+omni_light_huge_flicker{
+  _use:t="omni_light_huge"
+  _use:t="light_flicker_updater_light"
+ light_flicker_updater__template:t="omni_flicker_light_template_a"
+}
+
+omni_flicker_light_template_a{
+  _use:t="light_flicker"
+
+  light_flicker__attack_time:p2 = 2, 2.5// required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 0.8, 1// duration of position "on"
+  light_flicker__release_time:p2 = 1.08, 1.25  // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 2.4, 2.5 // duration of position "off"
+
+  light_flicker__on_brightness:p2 = 2.0, 2.2 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 0.8, 1.2 // during of position "off". It's multiplyed by light__brightness
+
+  light_flicker__noise_brightness_on:p2=2.5,3.0 // it's multiplyer for low/high noise amplitude when light "on"
+  light_flicker__noise_brightness_off:p2=0.8,1 // it's multiplyer for low/high noise amplitude when light "off"
+  light_flicker__noise_time:r=2 // frequency of noise per sec
+}
+
+omni_flicker_light_template_b{
+  _use:t="light_flicker"
+
+  light_flicker__attack_time:p2 = 3, 3.5// required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 0.5, 0.8// duration of position "on"
+  light_flicker__release_time:p2 = 2.08, 2.25  // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 3.4, 3.5 // duration of position "off"
+
+  light_flicker__on_brightness:p2 = 2.0, 2.2 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 0.8, 1 // during of position "off". It's multiplyed by light__brightness
+
+  light_flicker__noise_brightness_on:p2=2.5,3.0 // it's multiplyer for low/high noise amplitude when light "on"
+  light_flicker__noise_brightness_off:p2=0.8,1 // it's multiplyer for low/high noise amplitude when light "off"
+  light_flicker__noise_time:r=2 // frequency of noise per se
+}
+
+omni_flicker_light_template_c{
+  _use:t="light_flicker"
+
+  light_flicker__attack_time:p2 = 1, 1.5// required time for transition from "off" to "on" position
+  light_flicker__on_time:p2 = 1.8, 1.9// duration of position "on"
+  light_flicker__release_time:p2 = 2.5, 3 // required time for transition from "on" to "off" position
+  light_flicker__off_time:p2 = 1.2, 1.5 // duration of position "off"
+
+  light_flicker__on_brightness:p2 = 2.0, 2.2 // during of position "on". It's multiplyed by light__brightness
+  light_flicker__off_brightness:p2 = 0.7, 1.2// during of position "off". It's multiplyed by light__brightness
+
+  light_flicker__noise_brightness_on:p2=2.5,3.0 // it's multiplyer for low/high noise amplitude when light "on"
+  light_flicker__noise_brightness_off:p2=0.8,1 // it's multiplyer for low/high noise amplitude when light "off"
+  light_flicker__noise_time:r=2 // frequency of noise per se
+}
